@@ -105,7 +105,7 @@ export function SebaranJaringHeader({
         >
           {showAllCities ? (
             <option value="" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">
-              Seluruh wilayah
+              Cakupan aktif
             </option>
           ) : null}
           {cities.map((city) => (

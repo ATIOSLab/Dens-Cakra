@@ -408,7 +408,7 @@ export function BaketCoordinatorClient() {
     () =>
       buildAreaFilterSubtitle({
         metricLabel: "Jumlah Baket",
-        allScopeLabel: directAreaFilter !== "ALL" ? "wilayah terpilih dari dashboard" : "semua wilayah koordinasi",
+        allScopeLabel: directAreaFilter !== "ALL" ? "wilayah terpilih dari dashboard" : "cakupan koordinasi aktif",
         provinceFilter,
         regencyFilter,
         districtFilter,
@@ -650,7 +650,7 @@ export function BaketCoordinatorClient() {
                 aria-label="Filter Provinsi"
                 value={provinceFilter}
                 options={[
-                  { value: "ALL", label: "Semua Provinsi" },
+                  { value: "ALL", label: "Pilih Provinsi/Binda terlebih dahulu", disabled: provinceOptions.length > 0 },
                   ...provinceOptions.map((province) => ({ value: province.id, label: province.name })),
                 ]}
                 onValueChange={(value) => {
@@ -660,7 +660,7 @@ export function BaketCoordinatorClient() {
                   setVillageFilter("ALL");
                   setPage(1);
                 }}
-                placeholder="Semua Provinsi"
+                placeholder="Pilih Provinsi/Binda terlebih dahulu"
                 searchPlaceholder="Cari Provinsi..."
                 emptyText="Provinsi tidak ditemukan."
                 className="h-9 w-full border-slate-200 text-xs dark:border-white/10"
@@ -677,7 +677,7 @@ export function BaketCoordinatorClient() {
                     value: "ALL",
                     label:
                       provinceOptions.length > 0 && provinceFilter === "ALL"
-                        ? "Pilih Provinsi dahulu"
+                        ? "Pilih Provinsi/Binda dahulu"
                         : "Semua Kota/Kabupaten",
                     disabled: provinceOptions.length > 0 && provinceFilter === "ALL",
                   },
@@ -692,7 +692,7 @@ export function BaketCoordinatorClient() {
                 disabled={provinceOptions.length > 0 && provinceFilter === "ALL"}
                 placeholder={
                   provinceOptions.length > 0 && provinceFilter === "ALL"
-                    ? "Pilih Provinsi dahulu"
+                    ? "Pilih Provinsi/Binda dahulu"
                     : "Semua Kota/Kabupaten"
                 }
                 searchPlaceholder="Cari Kota/Kabupaten..."

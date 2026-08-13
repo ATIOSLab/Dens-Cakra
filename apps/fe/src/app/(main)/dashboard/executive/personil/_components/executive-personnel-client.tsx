@@ -1364,7 +1364,11 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
                   aria-label="Filter Provinsi"
                   value={queryState.provinceId || "ALL"}
                   options={[
-                    { value: "ALL", label: "Semua Provinsi" },
+                    {
+                      value: "ALL",
+                      label: "Pilih Provinsi/Binda terlebih dahulu",
+                      disabled: areaFilters.provinces.length > 0,
+                    },
                     ...areaFilters.provinces.map((area) => ({ value: area.id, label: area.name })),
                   ]}
                   onValueChange={(val) =>
@@ -1374,7 +1378,7 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
                       districtId: "",
                     })
                   }
-                  placeholder="Semua Provinsi"
+                  placeholder="Pilih Provinsi/Binda terlebih dahulu"
                   searchPlaceholder="Cari Provinsi..."
                   emptyText="Provinsi tidak ditemukan."
                   className={dynamicFilterClassName}
@@ -1397,7 +1401,7 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
                     value: "ALL",
                     label:
                       config.showProvinceFilter && !queryState.provinceId
-                        ? "Pilih Provinsi dahulu"
+                        ? "Pilih Provinsi/Binda dahulu"
                         : "Semua Kota/Kabupaten",
                     disabled: config.showProvinceFilter && !queryState.provinceId,
                   },
@@ -1411,7 +1415,7 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
                 }
                 placeholder={
                   config.showProvinceFilter && !queryState.provinceId
-                    ? "Pilih Provinsi dahulu"
+                    ? "Pilih Provinsi/Binda dahulu"
                     : "Semua Kota/Kabupaten"
                 }
                 searchPlaceholder="Cari Kota/Kabupaten..."

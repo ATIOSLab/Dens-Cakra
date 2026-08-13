@@ -338,7 +338,7 @@ export function buildAreaFilterSubtitle(input: {
 }) {
   const {
     metricLabel,
-    allScopeLabel = "semua wilayah",
+    allScopeLabel = "cakupan aktif",
     provinceFilter = "ALL",
     regencyFilter,
     districtFilter,

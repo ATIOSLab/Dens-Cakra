@@ -1229,7 +1229,7 @@ export function NationalMap() {
                   onChange={(e) => void handleCountryChange(e.target.value)}
                   disabled={areaOptionsLoading}
                 >
-                  <option value="">SEMUA</option>
+                  <option value="">Pilih negara</option>
                   {countries.map((area) => (
                     <option key={area.id} value={area.id}>
                       {area.name}
@@ -1246,7 +1246,7 @@ export function NationalMap() {
                   onChange={(e) => void handleProvinceChange(e.target.value)}
                   disabled={!selectedCountryId || areaOptionsLoading}
                 >
-                  <option value="">SEMUA</option>
+                  <option value="">{selectedCountryId ? "Pilih Provinsi/Binda" : "Pilih negara dahulu"}</option>
                   {provinces.map((area) => (
                     <option key={area.id} value={area.id}>
                       {area.name}
@@ -1265,7 +1265,7 @@ export function NationalMap() {
                   onChange={(e) => void handleRegencyChange(e.target.value)}
                   disabled={!selectedProvinceId || areaOptionsLoading}
                 >
-                  <option value="">SEMUA</option>
+                  <option value="">{selectedProvinceId ? "Semua Kota/Kabupaten" : "Pilih Provinsi/Binda dahulu"}</option>
                   {regencies.map((area) => (
                     <option key={area.id} value={area.id}>
                       {area.name}
@@ -1282,7 +1282,7 @@ export function NationalMap() {
                   onChange={(e) => void handleDistrictChange(e.target.value)}
                   disabled={!selectedRegencyId || areaOptionsLoading}
                 >
-                  <option value="">SEMUA</option>
+                  <option value="">{selectedRegencyId ? "Semua Kecamatan" : "Pilih Kota/Kabupaten dahulu"}</option>
                   {districts.map((area) => (
                     <option key={area.id} value={area.id}>
                       {area.name}

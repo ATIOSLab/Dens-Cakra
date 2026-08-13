@@ -546,7 +546,7 @@ export function LaporanPembinaanCoordinatorClient() {
     () =>
       buildAreaFilterSubtitle({
         metricLabel: "Jumlah pembinaan",
-        allScopeLabel: "semua wilayah koordinasi",
+        allScopeLabel: "cakupan koordinasi aktif",
         provinceFilter,
         regencyFilter,
         districtFilter,
@@ -848,7 +848,7 @@ export function LaporanPembinaanCoordinatorClient() {
                 aria-label="Filter Provinsi"
                 value={provinceFilter}
                 options={[
-                  { value: "ALL", label: "Semua Provinsi" },
+                  { value: "ALL", label: "Pilih Provinsi/Binda terlebih dahulu", disabled: provinceOptions.length > 0 },
                   ...provinceOptions.map((province) => ({ value: province.id, label: province.name })),
                 ]}
                 onValueChange={(nextProvince) => {
@@ -860,7 +860,7 @@ export function LaporanPembinaanCoordinatorClient() {
                   setJaringFilter("ALL");
                   setPage(1);
                 }}
-                placeholder="Semua Provinsi"
+                placeholder="Pilih Provinsi/Binda terlebih dahulu"
                   searchPlaceholder="Cari provinsi..."
                   emptyText="Provinsi tidak ditemukan."
                   className={cn(DC_CONTROLS.selectTrigger, "w-full text-xs")}
@@ -877,7 +877,7 @@ export function LaporanPembinaanCoordinatorClient() {
                     value: "ALL",
                     label:
                       provinceOptions.length > 0 && provinceFilter === "ALL"
-                        ? "Pilih provinsi dahulu"
+                        ? "Pilih Provinsi/Binda dahulu"
                         : "Semua Kota/Kabupaten",
                     disabled: provinceOptions.length > 0 && provinceFilter === "ALL",
                   },
@@ -894,7 +894,7 @@ export function LaporanPembinaanCoordinatorClient() {
                 disabled={provinceOptions.length > 0 && provinceFilter === "ALL"}
                 placeholder={
                   provinceOptions.length > 0 && provinceFilter === "ALL"
-                    ? "Pilih provinsi dahulu"
+                    ? "Pilih Provinsi/Binda dahulu"
                     : "Semua Kota/Kabupaten"
                 }
                 searchPlaceholder="Cari kota/kabupaten..."

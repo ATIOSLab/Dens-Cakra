@@ -52,6 +52,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { EvidenceAttachmentViewer } from "@/features/baket/components/evidence-attachment-viewer";
+import { findDkiJakartaProvinceFilterId } from "@/lib/domain/area-filter";
 import { cn } from "@/lib/utils";
 import { getSystemRoleLabel, type SystemRole } from "@/navigation/sidebar/system-roles";
 
@@ -518,6 +519,7 @@ export function CommandIntelligenceClient({ initialData, initialError, role }: C
   const [hoveredMapBaket, setHoveredMapBaket] = useState<{ item: MapBaket; x: number; y: number } | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const skippedInitialRequest = useRef(false);
+  const didApplyDefaultAreaFilter = useRef(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const [viewport, setViewport] = useState({
     center: [117.5, -2.5] as [number, number],
@@ -526,6 +528,10 @@ export function CommandIntelligenceClient({ initialData, initialError, role }: C
     bearing: 0,
   });
   const [pointer, setPointer] = useState({ latitude: -2.5, longitude: 117.5 });
+  const defaultAreaId = useMemo(
+    () => findDkiJakartaProvinceFilterId(data?.filters.areas ?? []),
+    [data?.filters.areas],
+  );
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -578,6 +584,13 @@ export function CommandIntelligenceClient({ initialData, initialError, role }: C
   }, [filters, initialData, loadData]);
 
   useEffect(() => {
+    if (didApplyDefaultAreaFilter.current || !defaultAreaId || filters.areaId !== "ALL") return;
+
+    setFilters((current) => (current.areaId === "ALL" ? { ...current, areaId: defaultAreaId, page: 1 } : current));
+    didApplyDefaultAreaFilter.current = true;
+  }, [defaultAreaId, filters.areaId]);
+
+  useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(document.fullscreenElement === rootRef.current);
     };
@@ -601,9 +614,13 @@ export function CommandIntelligenceClient({ initialData, initialError, role }: C
 
   const updateFilter = useCallback(
     <Key extends keyof FieldIntelligenceFilters>(key: Key, value: FieldIntelligenceFilters[Key]) => {
-      setFilters((current) => ({ ...current, [key]: value, page: key === "page" ? Number(value) : 1 }));
+      const nextValue =
+        key === "areaId" && value === "ALL" && defaultAreaId
+          ? (defaultAreaId as FieldIntelligenceFilters[Key])
+          : value;
+      setFilters((current) => ({ ...current, [key]: nextValue, page: key === "page" ? Number(value) : 1 }));
     },
-    [],
+    [defaultAreaId],
   );
 
   const handleJaringMapSelect = useCallback(
@@ -1083,7 +1100,7 @@ export function CommandIntelligenceClient({ initialData, initialError, role }: C
                   </SelectTrigger>
                   <SelectContent>
                     <SelectGroup>
-                      <SelectItem value="ALL">Seluruh wilayah cakupan</SelectItem>
+                      <SelectItem value="ALL">Pilih wilayah cakupan terlebih dahulu</SelectItem>
                       {data.filters.areas.map((area) => (
                         <SelectItem key={area.id} value={area.id}>
                           {area.name} - {area.level}
@@ -1123,7 +1140,7 @@ export function CommandIntelligenceClient({ initialData, initialError, role }: C
               <Button
                 variant="outline"
                 onClick={() => {
-                  setFilters(DEFAULT_FILTERS);
+                  setFilters({ ...DEFAULT_FILTERS, areaId: defaultAreaId || DEFAULT_FILTERS.areaId });
                   setLayers({ jaring: true, baket: true });
                 }}
               >

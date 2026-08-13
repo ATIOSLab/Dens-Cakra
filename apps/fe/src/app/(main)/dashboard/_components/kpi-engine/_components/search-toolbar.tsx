@@ -162,7 +162,7 @@ export function SearchToolbar({
           value={bindaFilter}
           onValueChange={onBindaChange}
           options={bindaOptions}
-          placeholder="Semua Provinsi/Binda"
+          placeholder="Pilih Provinsi/Binda terlebih dahulu"
           searchPlaceholder="Cari provinsi atau Binda..."
           className={cn(DC_CONTROLS.selectTrigger, "text-xs")}
         />

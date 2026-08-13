@@ -343,8 +343,8 @@ export function JaringDistributionClient({
       : selectedDistrict
         ? selectedDistrict.name
         : adminLevel === "PROVINCE"
-          ? (cities[0]?.provinceName ?? "Seluruh wilayah")
-          : (selectedCity?.name ?? "Seluruh wilayah");
+          ? (cities[0]?.provinceName ?? "Cakupan aktif")
+          : (selectedCity?.name ?? "Cakupan aktif");
 
     const levelName = selectedVillage
       ? "Kelurahan/Desa"

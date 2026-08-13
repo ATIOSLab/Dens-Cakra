@@ -746,7 +746,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
               aria-label="Filter Provinsi"
               value={provinceFilter}
               options={[
-                { value: "ALL", label: "Semua Provinsi" },
+                { value: "ALL", label: "Pilih Provinsi/Binda terlebih dahulu", disabled: uniqueProvinces.length > 0 },
                 ...uniqueProvinces.map((province) => ({ value: province.id, label: province.name })),
               ]}
               onValueChange={(value) => {
@@ -756,7 +756,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
                 setVillageFilter("ALL");
                 setPage(1);
               }}
-              placeholder="Semua Provinsi"
+              placeholder="Pilih Provinsi/Binda terlebih dahulu"
               searchPlaceholder="Cari provinsi..."
               emptyText="Provinsi tidak ditemukan."
               className="h-9 w-full min-w-[150px] text-xs sm:w-auto"
@@ -769,7 +769,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
               options={[
                 {
                   value: "ALL",
-                  label: provinceFilter === "ALL" ? "Pilih provinsi dahulu" : "Semua Kota/Kabupaten",
+                  label: provinceFilter === "ALL" ? "Pilih Provinsi/Binda dahulu" : "Semua Kota/Kabupaten",
                   disabled: provinceFilter === "ALL",
                 },
                 ...uniqueCities.map((city) => ({ value: city.id, label: city.name })),
@@ -781,7 +781,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
                 setPage(1);
               }}
               disabled={provinceFilter === "ALL"}
-              placeholder={provinceFilter === "ALL" ? "Pilih provinsi dahulu" : "Semua Kota/Kabupaten"}
+              placeholder={provinceFilter === "ALL" ? "Pilih Provinsi/Binda dahulu" : "Semua Kota/Kabupaten"}
               searchPlaceholder="Cari kota/kabupaten..."
               emptyText="Kota/Kabupaten tidak ditemukan."
               className="h-9 w-full min-w-[150px] text-xs sm:w-auto"
@@ -794,7 +794,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
               options={[
                 {
                   value: "ALL",
-                  label: cityFilter === "ALL" ? "Pilih kota/kabupaten dahulu" : "Semua Kecamatan",
+                  label: cityFilter === "ALL" ? "Pilih Kota/Kabupaten dahulu" : "Semua Kecamatan",
                   disabled: cityFilter === "ALL",
                 },
                 ...uniqueDistricts.map((dist) => ({ value: dist.id, label: dist.name })),
@@ -805,7 +805,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
                 setPage(1);
               }}
               disabled={cityFilter === "ALL"}
-              placeholder={cityFilter === "ALL" ? "Pilih kota/kabupaten dahulu" : "Semua Kecamatan"}
+              placeholder={cityFilter === "ALL" ? "Pilih Kota/Kabupaten dahulu" : "Semua Kecamatan"}
               searchPlaceholder="Cari kecamatan..."
               emptyText="Kecamatan tidak ditemukan."
               className="h-9 w-full min-w-[150px] text-xs sm:w-auto"

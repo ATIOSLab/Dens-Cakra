@@ -604,7 +604,7 @@ export function LaporanJaringCoordinatorClient() {
     () =>
       buildAreaFilterSubtitle({
         metricLabel: "Jumlah laporan",
-        allScopeLabel: "semua wilayah koordinasi",
+        allScopeLabel: "cakupan koordinasi aktif",
         provinceFilter,
         regencyFilter,
         districtFilter,
@@ -919,7 +919,7 @@ export function LaporanJaringCoordinatorClient() {
                 aria-label="Filter Provinsi"
                 value={provinceFilter}
                 options={[
-                  { value: "ALL", label: "Semua Provinsi" },
+                  { value: "ALL", label: "Pilih Provinsi/Binda terlebih dahulu", disabled: provinceOptions.length > 0 },
                   ...provinceOptions.map((province) => ({ value: province.id, label: province.name })),
                 ]}
                 onValueChange={(value) => {
@@ -929,7 +929,7 @@ export function LaporanJaringCoordinatorClient() {
                   setVillageFilter("ALL");
                   setPage(1);
                 }}
-                placeholder="Semua Provinsi"
+                placeholder="Pilih Provinsi/Binda terlebih dahulu"
                 searchPlaceholder="Cari Provinsi..."
                 emptyText="Provinsi tidak ditemukan."
                 className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full text-xs")}
@@ -946,7 +946,7 @@ export function LaporanJaringCoordinatorClient() {
                     value: "ALL",
                     label:
                       provinceOptions.length > 0 && provinceFilter === "ALL"
-                        ? "Pilih Provinsi dahulu"
+                        ? "Pilih Provinsi/Binda dahulu"
                         : isDkiScoped
                           ? "Semua Kota/Kabupaten DKI"
                           : "Semua Kota/Kabupaten",
@@ -963,7 +963,7 @@ export function LaporanJaringCoordinatorClient() {
                 disabled={provinceOptions.length > 0 && provinceFilter === "ALL"}
                 placeholder={
                   provinceOptions.length > 0 && provinceFilter === "ALL"
-                    ? "Pilih Provinsi dahulu"
+                    ? "Pilih Provinsi/Binda dahulu"
                     : isDkiScoped
                       ? "Semua Kota/Kabupaten DKI"
                       : "Semua Kota/Kabupaten"

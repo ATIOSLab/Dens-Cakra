@@ -341,7 +341,12 @@ export function HierarchyExplorer({
 
   const bindaOptions = useMemo(
     () => [
-      { value: "ALL", label: "Semua Provinsi/Binda", description: "Peringkat Binda per provinsi sesuai hak akses" },
+      {
+        value: "ALL",
+        label: "Pilih Provinsi/Binda terlebih dahulu",
+        description: "Peringkat dimulai dari Provinsi/Binda sesuai hak akses",
+        disabled: bindaUnits.length > 0,
+      },
       ...bindaUnits.map(unitOption),
     ],
     [bindaUnits],
@@ -351,11 +356,11 @@ export function HierarchyExplorer({
     () => [
       {
         value: "ALL",
-        label: bindaFilter === "ALL" ? "Pilih provinsi/Binda terlebih dahulu" : "Semua Kota/Kabupaten/Korwil",
+        label: bindaFilter === "ALL" ? "Pilih Provinsi/Binda terlebih dahulu" : "Semua Kota/Kabupaten/Korwil",
         description:
           bindaFilter === "ALL"
-            ? "Filter Korwil aktif setelah provinsi/Binda dipilih"
-            : "Semua Korwil dalam provinsi/Binda",
+            ? "Filter Korwil aktif setelah Provinsi/Binda dipilih"
+            : "Semua Korwil dalam Provinsi/Binda",
       },
       ...korwilUnits.map(unitOption),
     ],
@@ -366,11 +371,11 @@ export function HierarchyExplorer({
     () => [
       {
         value: "ALL",
-        label: korwilFilter === "ALL" ? "Pilih kota/kabupaten/Korwil terlebih dahulu" : "Semua Kecamatan/Gaswil",
+        label: korwilFilter === "ALL" ? "Pilih Kota/Kabupaten/Korwil terlebih dahulu" : "Semua Kecamatan/Gaswil",
         description:
           korwilFilter === "ALL"
-            ? "Filter Gaswil aktif setelah kota/kabupaten/Korwil dipilih"
-            : "Semua Gaswil dalam kota/kabupaten/Korwil",
+            ? "Filter Gaswil aktif setelah Kota/Kabupaten/Korwil dipilih"
+            : "Semua Gaswil dalam Kota/Kabupaten/Korwil",
       },
       ...gaswilUnits.map(unitOption),
     ],

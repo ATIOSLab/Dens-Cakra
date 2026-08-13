@@ -78,10 +78,15 @@ function queryParams(query: DashboardQueryState) {
 }
 
 function flattenDashboardAreaTree(root: ExecutiveDashboardFilters["areaTree"] | null | undefined) {
-  const result: Array<{ id: string; name: string }> = [];
+  const result: Array<{ id: string; name: string; code?: string | null; officialCode?: string | null }> = [];
 
   function visit(node: ExecutiveDashboardFilters["areaTree"]) {
-    result.push({ id: node.id, name: node.name });
+    result.push({
+      id: node.id,
+      name: node.name,
+      code: node.code,
+      officialCode: node.officialCode,
+    });
     for (const child of node.children ?? []) visit(child);
   }
 

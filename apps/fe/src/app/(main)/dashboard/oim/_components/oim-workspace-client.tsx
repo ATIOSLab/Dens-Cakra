@@ -689,7 +689,7 @@ function Filters({
     ? `Jumlah data Kecamatan ${selectedDistrict.name}`
     : selectedRegency
       ? `Jumlah data Kota/Kabupaten ${selectedRegency.name}`
-      : "Jumlah data semua wilayah akses";
+      : "Jumlah data cakupan akses aktif";
   const statusOptions =
     mode === "product"
       ? ["DRAFT", "READY_FOR_SUBMISSION", "SUBMITTED", "IN_REVIEW", "NEEDS_REVISION", "APPROVED", "REJECTED"]
@@ -789,14 +789,14 @@ function Filters({
           aria-label="Filter Kota/Kabupaten"
           value={regencyId || "ALL"}
           options={[
-            { value: "ALL", label: "Seluruh Kota/Kabupaten" },
+            { value: "ALL", label: "Semua Kota/Kabupaten" },
             ...regencies.map((area) => ({ value: area.id, label: area.name })),
           ]}
           onValueChange={(val) => {
             setRegencyId(val === "ALL" ? "" : val);
             setDistrictId("");
           }}
-          placeholder="Seluruh Kota/Kabupaten"
+          placeholder="Semua Kota/Kabupaten"
           searchPlaceholder="Cari Kota/Kabupaten..."
           emptyText="Kota/Kabupaten tidak ditemukan."
           className="h-10 border-border bg-background text-sm text-foreground"
@@ -809,14 +809,14 @@ function Filters({
           options={[
             {
               value: "ALL",
-              label: regencyId ? "Seluruh Kecamatan" : "Pilih Kota/Kabupaten dahulu",
+              label: regencyId ? "Semua Kecamatan" : "Pilih Kota/Kabupaten dahulu",
               disabled: !regencyId,
             },
             ...districts.map((area) => ({ value: area.id, label: area.name })),
           ]}
           onValueChange={(val) => setDistrictId(val === "ALL" ? "" : val)}
           disabled={!regencyId}
-          placeholder={regencyId ? "Seluruh Kecamatan" : "Pilih Kota/Kabupaten dahulu"}
+          placeholder={regencyId ? "Semua Kecamatan" : "Pilih Kota/Kabupaten dahulu"}
           searchPlaceholder="Cari Kecamatan..."
           emptyText="Kecamatan tidak ditemukan."
           className="h-10 border-border bg-background text-sm text-foreground"

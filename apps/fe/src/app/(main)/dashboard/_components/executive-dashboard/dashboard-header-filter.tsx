@@ -40,6 +40,8 @@ function periodLabel(value: string) {
 
 type FlatAreaNode = {
   id: string;
+  code?: string | null;
+  officialCode?: string | null;
   name: string;
   level: string;
   parentId: string | null;
@@ -90,6 +92,8 @@ function flattenAreaTree(root: DashboardAreaNode | null | undefined) {
     const nextRegencyCityId = isRegencyCity(node) ? node.id : regencyCityId;
     result.push({
       id: node.id,
+      code: node.code,
+      officialCode: node.officialCode,
       name: node.name,
       level: node.level,
       parentId,
@@ -121,7 +125,7 @@ function areaOption(area: FlatAreaNode): SearchableSelectOption {
           : area.level === "REGENCY"
             ? "Kabupaten"
             : "Kecamatan",
-    keywords: [area.level],
+    keywords: [area.level, area.code, area.officialCode].filter(Boolean) as string[],
   };
 }
 
@@ -181,8 +185,8 @@ export function DashboardHeaderFilter({
   const flatAreas = flattenAreaTree(filters?.areaTree);
   const selectedArea = flatAreas.find((area) => area.id === query.areaId) ?? null;
   const isDeputyScope = isExecutiveScope(data.scope);
-  const allScopeLabel = isDeputyScope ? "Seluruh Indonesia (semua Binda)" : data.scope.label || "Seluruh wilayah cakupan";
-  const allProvinceLabel = isDeputyScope ? "Seluruh Indonesia / Semua Binda" : "Semua Provinsi";
+  const allScopeLabel = isDeputyScope ? "cakupan Kedeputian II" : data.scope.label || "cakupan aktif";
+  const provincePlaceholder = "Pilih Provinsi/Binda terlebih dahulu";
   const selectedProvinceId =
     selectedArea && isProvince(selectedArea) ? selectedArea.id : (selectedArea?.provinceId ?? null);
   const implicitProvince = selectedProvinceId
@@ -203,15 +207,23 @@ export function DashboardHeaderFilter({
   const districts = uniqueAreas(
     flatAreas.filter((area) => isDistrict(area) && Boolean(selectedRegencyCity?.id) && area.parentId === selectedRegencyCity?.id),
   );
+  const hasSelectedProvince = Boolean(effectiveProvinceId);
   const provinceOptions: SearchableSelectOption[] = [
-    { value: ALL_AREAS, label: allProvinceLabel, description: "Mengikuti cakupan hak akses aktif" },
+    {
+      value: ALL_AREAS,
+      label: provincePlaceholder,
+      description: "Filter wilayah dimulai dari Provinsi/Binda",
+      disabled: provinces.length > 1,
+    },
     ...provinces.map(areaOption),
   ];
   const regencyOptions: SearchableSelectOption[] = [
     {
       value: ALL_AREAS,
-      label: effectiveProvinceId ? "Semua kota/kabupaten" : "Pilih provinsi terlebih dahulu",
-      description: effectiveProvinceId ? "Seluruh kota/kabupaten dalam provinsi" : "Filter kota aktif setelah provinsi dipilih",
+      label: effectiveProvinceId ? "Semua Kota/Kabupaten" : provincePlaceholder,
+      description: effectiveProvinceId
+        ? "Semua Kota/Kabupaten dalam Provinsi/Binda terpilih"
+        : "Filter Kota/Kabupaten aktif setelah Provinsi/Binda dipilih",
       disabled: !effectiveProvinceId && provinces.length > 1,
     },
     ...regencyCities.map(areaOption),
@@ -220,7 +232,9 @@ export function DashboardHeaderFilter({
     {
       value: ALL_AREAS,
       label: selectedRegencyCity ? "Semua Kecamatan" : "Pilih Kota/Kabupaten dahulu",
-      description: selectedRegencyCity ? "Seluruh kecamatan dalam kota/kabupaten" : "Filter kecamatan aktif setelah kota/kabupaten dipilih",
+      description: selectedRegencyCity
+        ? "Semua Kecamatan dalam Kota/Kabupaten terpilih"
+        : "Filter Kecamatan aktif setelah Kota/Kabupaten dipilih",
       disabled: !selectedRegencyCity,
     },
     ...districts.map(areaOption),
@@ -229,8 +243,10 @@ export function DashboardHeaderFilter({
     selectedDistrict?.name ??
     selectedRegencyCity?.name ??
     (selectedArea && isProvince(selectedArea) ? selectedArea.name : null) ??
-    allScopeLabel;
+    (hasSelectedProvince ? allScopeLabel : "wilayah belum dipilih");
   const filterDisabled = loading || filtersLoading || !filters;
+  const operationalFilterDisabled = filterDisabled || !hasSelectedProvince;
+  const operationalFilterPlaceholder = hasSelectedProvince ? undefined : provincePlaceholder;
   const categoryOptions: SearchableSelectOption[] = [
     { value: ALL_FILTERS, label: "Semua kategori", description: "Laporan Jaring dan Baket" },
     ...(filters?.categories ?? []).map(namedOption),
@@ -428,7 +444,7 @@ export function DashboardHeaderFilter({
               value={selectedProvinceId ?? ALL_AREAS}
               options={provinceOptions}
               onValueChange={(value) => onChange("areaId", value === ALL_AREAS ? "" : value)}
-              placeholder={filtersLoading ? "Memuat wilayah..." : allProvinceLabel}
+              placeholder={filtersLoading ? "Memuat wilayah..." : provincePlaceholder}
               searchPlaceholder="Cari provinsi atau Binda..."
               emptyText="Wilayah tidak ditemukan."
               disabled={filterDisabled || provinceOptions.length <= 1}
@@ -447,7 +463,7 @@ export function DashboardHeaderFilter({
                 }
                 onChange("areaId", value);
               }}
-              placeholder={filtersLoading ? "Memuat kota/kabupaten..." : "Semua kota/kabupaten"}
+              placeholder={filtersLoading ? "Memuat Kota/Kabupaten..." : "Semua Kota/Kabupaten"}
               searchPlaceholder="Cari kota/kabupaten..."
               emptyText="Kota/kabupaten tidak ditemukan."
               disabled={filterDisabled || regencyOptions.length <= 1}
@@ -482,6 +498,11 @@ export function DashboardHeaderFilter({
               <h3 className="truncate text-sm font-semibold">Filter Operasional</h3>
             </div>
             {filtersLoading ? <Badge variant="secondary">Memuat opsi</Badge> : null}
+            {!filtersLoading && !hasSelectedProvince ? (
+              <Badge variant="outline" className="border-amber-500/50 text-amber-300">
+                Pilih wilayah dulu
+              </Badge>
+            ) : null}
           </div>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <div className="grid min-w-0 gap-1 text-xs text-muted-foreground">
@@ -490,10 +511,10 @@ export function DashboardHeaderFilter({
                 value={query.categoryId || ALL_FILTERS}
                 options={categoryOptions}
                 onValueChange={(value) => selectFilterValue("categoryId", value)}
-                placeholder="Semua kategori"
+                placeholder={operationalFilterPlaceholder ?? "Semua kategori"}
                 searchPlaceholder="Cari kategori..."
                 emptyText="Kategori tidak ditemukan."
-                disabled={filterDisabled || categoryOptions.length <= 1}
+                disabled={operationalFilterDisabled || categoryOptions.length <= 1}
                 aria-label="Filter kategori dashboard"
               />
             </div>
@@ -503,10 +524,10 @@ export function DashboardHeaderFilter({
                 value={query.fieldOfficerAssignmentId || ALL_FILTERS}
                 options={fieldOfficerOptions}
                 onValueChange={(value) => selectFilterValue("fieldOfficerAssignmentId", value)}
-                placeholder={`Semua ${DOMAIN_TERMS.fieldOfficer}`}
+                placeholder={operationalFilterPlaceholder ?? `Semua ${DOMAIN_TERMS.fieldOfficer}`}
                 searchPlaceholder={`Cari ${DOMAIN_TERMS.fieldOfficer}...`}
                 emptyText={`${DOMAIN_TERMS.fieldOfficer} tidak ditemukan.`}
-                disabled={filterDisabled || fieldOfficerOptions.length <= 1}
+                disabled={operationalFilterDisabled || fieldOfficerOptions.length <= 1}
                 aria-label={`Filter ${DOMAIN_TERMS.fieldOfficer} dashboard`}
               />
             </div>
@@ -516,10 +537,10 @@ export function DashboardHeaderFilter({
                 value={query.jaringId || ALL_FILTERS}
                 options={jaringOptions}
                 onValueChange={(value) => selectFilterValue("jaringId", value)}
-                placeholder={`Semua ${DOMAIN_TERMS.jaring}`}
+                placeholder={operationalFilterPlaceholder ?? `Semua ${DOMAIN_TERMS.jaring}`}
                 searchPlaceholder={`Cari ${DOMAIN_TERMS.jaring}...`}
                 emptyText={`${DOMAIN_TERMS.jaring} tidak ditemukan.`}
-                disabled={filterDisabled || jaringOptions.length <= 1}
+                disabled={operationalFilterDisabled || jaringOptions.length <= 1}
                 aria-label={`Filter ${DOMAIN_TERMS.jaring} dashboard`}
               />
             </div>
@@ -529,10 +550,10 @@ export function DashboardHeaderFilter({
                 value={query.urgency || ALL_FILTERS}
                 options={urgencyOptions}
                 onValueChange={(value) => selectFilterValue("urgency", value)}
-                placeholder="Semua urgensi"
+                placeholder={operationalFilterPlaceholder ?? "Semua urgensi"}
                 searchPlaceholder="Cari urgensi..."
                 emptyText="Urgensi tidak ditemukan."
-                disabled={filterDisabled}
+                disabled={operationalFilterDisabled}
                 aria-label="Filter urgensi dashboard"
               />
             </div>
@@ -542,10 +563,10 @@ export function DashboardHeaderFilter({
                 value={query.reportStatus || ALL_FILTERS}
                 options={reportStatusOptions}
                 onValueChange={(value) => selectFilterValue("reportStatus", value)}
-                placeholder={`Semua status ${DOMAIN_TERMS.jaringReport}`}
+                placeholder={operationalFilterPlaceholder ?? `Semua status ${DOMAIN_TERMS.jaringReport}`}
                 searchPlaceholder="Cari status laporan..."
                 emptyText="Status laporan tidak ditemukan."
-                disabled={filterDisabled}
+                disabled={operationalFilterDisabled}
                 aria-label={`Filter status ${DOMAIN_TERMS.jaringReport}`}
               />
             </div>
@@ -555,10 +576,10 @@ export function DashboardHeaderFilter({
                 value={query.workflowStatus || ALL_FILTERS}
                 options={workflowStatusOptions}
                 onValueChange={(value) => selectFilterValue("workflowStatus", value)}
-                placeholder={`Semua status ${DOMAIN_TERMS.baket}`}
+                placeholder={operationalFilterPlaceholder ?? `Semua status ${DOMAIN_TERMS.baket}`}
                 searchPlaceholder="Cari status Baket..."
                 emptyText="Status Baket tidak ditemukan."
-                disabled={filterDisabled}
+                disabled={operationalFilterDisabled}
                 aria-label={`Filter status ${DOMAIN_TERMS.baket}`}
               />
             </div>
@@ -568,10 +589,10 @@ export function DashboardHeaderFilter({
                 value={query.validationStatus || ALL_FILTERS}
                 options={validationStatusOptions}
                 onValueChange={(value) => selectFilterValue("validationStatus", value)}
-                placeholder={`Semua verifikasi ${DOMAIN_TERMS.baket}`}
+                placeholder={operationalFilterPlaceholder ?? `Semua verifikasi ${DOMAIN_TERMS.baket}`}
                 searchPlaceholder="Cari verifikasi Baket..."
                 emptyText="Verifikasi Baket tidak ditemukan."
-                disabled={filterDisabled}
+                disabled={operationalFilterDisabled}
                 aria-label={`Filter verifikasi ${DOMAIN_TERMS.baket}`}
               />
             </div>
@@ -581,10 +602,10 @@ export function DashboardHeaderFilter({
                 value={query.productTypeId || ALL_FILTERS}
                 options={productTypeOptions}
                 onValueChange={(value) => selectFilterValue("productTypeId", value)}
-                placeholder="Semua jenis produk"
+                placeholder={operationalFilterPlaceholder ?? "Semua jenis produk"}
                 searchPlaceholder="Cari jenis produk..."
                 emptyText="Jenis produk tidak ditemukan."
-                disabled={filterDisabled || productTypeOptions.length <= 1}
+                disabled={operationalFilterDisabled || productTypeOptions.length <= 1}
                 aria-label="Filter jenis produk intelijen"
               />
             </div>
@@ -594,10 +615,10 @@ export function DashboardHeaderFilter({
                 value={query.hasAttachment || ALL_FILTERS}
                 options={attachmentOptions}
                 onValueChange={(value) => selectFilterValue("hasAttachment", value)}
-                placeholder="Semua kondisi lampiran"
+                placeholder={operationalFilterPlaceholder ?? "Semua kondisi lampiran"}
                 searchPlaceholder="Cari kondisi lampiran..."
                 emptyText="Kondisi lampiran tidak ditemukan."
-                disabled={filterDisabled}
+                disabled={operationalFilterDisabled}
                 aria-label="Filter lampiran dashboard"
               />
             </div>
@@ -607,10 +628,10 @@ export function DashboardHeaderFilter({
                 value={query.coordinateSource || ALL_FILTERS}
                 options={coordinateSourceOptions}
                 onValueChange={(value) => selectFilterValue("coordinateSource", value)}
-                placeholder="Semua sumber lokasi"
+                placeholder={operationalFilterPlaceholder ?? "Semua sumber lokasi"}
                 searchPlaceholder="Cari sumber lokasi..."
                 emptyText="Sumber lokasi tidak ditemukan."
-                disabled={filterDisabled}
+                disabled={operationalFilterDisabled}
                 aria-label="Filter sumber lokasi dashboard"
               />
             </div>
@@ -620,26 +641,28 @@ export function DashboardHeaderFilter({
                 value={query.locationSuitability || ALL_FILTERS}
                 options={locationSuitabilityOptions}
                 onValueChange={(value) => selectFilterValue("locationSuitability", value)}
-                placeholder="Semua kesesuaian lokasi"
+                placeholder={operationalFilterPlaceholder ?? "Semua kesesuaian lokasi"}
                 searchPlaceholder="Cari kesesuaian lokasi..."
                 emptyText="Kesesuaian lokasi tidak ditemukan."
-                disabled={filterDisabled}
+                disabled={operationalFilterDisabled}
                 aria-label="Filter kesesuaian lokasi dashboard"
               />
             </div>
-            <div className="grid min-w-0 gap-1 text-xs text-muted-foreground">
-              <span>Sumber Laporan</span>
-              <SearchableSelect
-                value={query.source || ALL_FILTERS}
-                options={sourceOptions}
-                onValueChange={(value) => selectFilterValue("source", value)}
-                placeholder="Semua sumber laporan"
-                searchPlaceholder="Cari sumber laporan..."
-                emptyText="Sumber laporan tidak ditemukan."
-                disabled={filterDisabled || sourceOptions.length <= 1}
-                aria-label="Filter sumber laporan dashboard"
-              />
-            </div>
+            {sourceOptions.length > 2 || query.source ? (
+              <div className="grid min-w-0 gap-1 text-xs text-muted-foreground">
+                <span>Sumber Laporan</span>
+                <SearchableSelect
+                  value={query.source || ALL_FILTERS}
+                  options={sourceOptions}
+                  onValueChange={(value) => selectFilterValue("source", value)}
+                  placeholder={operationalFilterPlaceholder ?? "Semua sumber laporan"}
+                  searchPlaceholder="Cari sumber laporan..."
+                  emptyText="Sumber laporan tidak ditemukan."
+                  disabled={operationalFilterDisabled || sourceOptions.length <= 1}
+                  aria-label="Filter sumber laporan dashboard"
+                />
+              </div>
+            ) : null}
           </div>
         </div>
       </div>

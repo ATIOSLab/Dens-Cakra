@@ -228,8 +228,11 @@ export type ExecutiveDashboardData = {
 
 export type DashboardAreaNode = {
   id: string;
+  code?: string | null;
+  officialCode?: string | null;
   name: string;
   level: string;
+  parentId?: string | null;
   children?: DashboardAreaNode[];
 };
 

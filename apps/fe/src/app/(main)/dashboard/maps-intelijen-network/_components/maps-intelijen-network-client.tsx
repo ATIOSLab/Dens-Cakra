@@ -151,7 +151,7 @@ function buildMapAreaSubtitle(
     return `Jumlah data Kota/Kabupaten ${regencyName}`;
   if (filters.provinceId !== "ALL" && provinceName)
     return `Jumlah data Provinsi ${provinceName}`;
-  return "Jumlah data semua wilayah";
+  return "Jumlah data cakupan aktif";
 }
 
 function buildQuery(
@@ -576,24 +576,28 @@ export function MapsIntelijenNetworkClient() {
   const handleFilterChange = useCallback(
     (patch: Partial<MapNetworkFilters>) => {
       setFilters((current) => {
-        const next = { ...current, ...patch };
+        const normalizedPatch = {
+          ...patch,
+          ...(patch.provinceId === "ALL" && defaultProvinceFilter ? { provinceId: defaultProvinceFilter } : {}),
+        };
+        const next = { ...current, ...normalizedPatch };
 
         if (
-          patch.provinceId !== undefined &&
-          patch.provinceId !== current.provinceId
+          normalizedPatch.provinceId !== undefined &&
+          normalizedPatch.provinceId !== current.provinceId
         ) {
           next.regencyId = "ALL";
           next.districtId = "ALL";
           next.villageId = "ALL";
         } else if (
-          patch.regencyId !== undefined &&
-          patch.regencyId !== current.regencyId
+          normalizedPatch.regencyId !== undefined &&
+          normalizedPatch.regencyId !== current.regencyId
         ) {
           next.districtId = "ALL";
           next.villageId = "ALL";
         } else if (
-          patch.districtId !== undefined &&
-          patch.districtId !== current.districtId
+          normalizedPatch.districtId !== undefined &&
+          normalizedPatch.districtId !== current.districtId
         ) {
           next.villageId = "ALL";
         }
@@ -602,7 +606,7 @@ export function MapsIntelijenNetworkClient() {
       });
       if (patch.dataType) setCardFilter("ALL");
     },
-    [],
+    [defaultProvinceFilter],
   );
 
   const openDetail = useCallback((feature: MapNetworkFeature) => {
