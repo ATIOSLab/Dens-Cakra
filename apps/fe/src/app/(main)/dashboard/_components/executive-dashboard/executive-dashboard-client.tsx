@@ -22,7 +22,11 @@ import {
   PerformanceRankingPanel,
   PriorityReportPanel,
 } from "./executive-dashboard-operations";
-import type { DashboardQueryState, ExecutiveDashboardData, ExecutiveDashboardFilters } from "./executive-dashboard-types";
+import type {
+  DashboardQueryState,
+  ExecutiveDashboardData,
+  ExecutiveDashboardFilters,
+} from "./executive-dashboard-types";
 
 const DEFAULT_QUERY: DashboardQueryState = {
   period: "LAST_30_DAYS",
@@ -78,12 +82,19 @@ function queryParams(query: DashboardQueryState) {
 }
 
 function flattenDashboardAreaTree(root: ExecutiveDashboardFilters["areaTree"] | null | undefined) {
-  const result: Array<{ id: string; name: string; code?: string | null; officialCode?: string | null }> = [];
+  const result: Array<{
+    id: string;
+    name: string;
+    level?: string | null;
+    code?: string | null;
+    officialCode?: string | null;
+  }> = [];
 
   function visit(node: ExecutiveDashboardFilters["areaTree"]) {
     result.push({
       id: node.id,
       name: node.name,
+      level: node.level,
       code: node.code,
       officialCode: node.officialCode,
     });

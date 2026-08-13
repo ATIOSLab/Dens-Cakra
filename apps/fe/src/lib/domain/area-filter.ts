@@ -39,6 +39,7 @@ export type AreaFilterIdentity = {
   code?: string | null;
   officialCode?: string | null;
   name: string;
+  level?: string | null;
 };
 
 const DKI_JAKARTA_PROVINCE_CODE = "31";
@@ -159,10 +160,7 @@ export function buildRegencyFilterOptions(areaScopes: AdministrativeAreaFilterSc
   return [...regencies.values()].sort((left, right) => left.name.localeCompare(right.name, "id-ID"));
 }
 
-export function buildDistrictFilterOptions(
-  areaScopes: AdministrativeAreaFilterScope[],
-  regencyFilter: string,
-) {
+export function buildDistrictFilterOptions(areaScopes: AdministrativeAreaFilterScope[], regencyFilter: string) {
   if (regencyFilter === "ALL") return [];
 
   const regencies = areaScopes.filter((area) => isRegencyLevel(area.level));
@@ -178,7 +176,7 @@ export function buildDistrictFilterOptions(
     districts.set(id, {
       id,
       name: area.name,
-      regencyId: regency ? areaScopeId(regency) : area.parentAreaId ?? null,
+      regencyId: regency ? areaScopeId(regency) : (area.parentAreaId ?? null),
       regencyName: regency ? regency.name : null,
     });
   }
@@ -186,10 +184,7 @@ export function buildDistrictFilterOptions(
   return [...districts.values()].sort((left, right) => left.name.localeCompare(right.name, "id-ID"));
 }
 
-export function buildVillageFilterOptions(
-  areaScopes: AdministrativeAreaFilterScope[],
-  districtFilter: string,
-) {
+export function buildVillageFilterOptions(areaScopes: AdministrativeAreaFilterScope[], districtFilter: string) {
   if (districtFilter === "ALL") return [];
 
   const districts = areaScopes.filter((area) => isDistrictLevel(area.level));
@@ -205,7 +200,7 @@ export function buildVillageFilterOptions(
     villages.set(id, {
       id,
       name: area.name,
-      districtId: district ? areaScopeId(district) : area.parentAreaId ?? null,
+      districtId: district ? areaScopeId(district) : (area.parentAreaId ?? null),
       districtName: district ? district.name : null,
     });
   }
@@ -302,12 +297,27 @@ export function isDkiAreaScope(area: AdministrativeAreaFilterScope) {
 export function isDkiJakartaProvinceOption(area: AreaFilterIdentity) {
   const code = area.officialCode?.trim() || area.code?.trim() || "";
   const name = String(area.name ?? "").toLocaleLowerCase("id-ID");
+  const level = area.level?.toUpperCase();
 
-  return code === DKI_JAKARTA_PROVINCE_CODE || DKI_JAKARTA_NAME_MATCHERS.some((matcher) => name.includes(matcher));
+  return (
+    (!level || isProvinceLevel(level)) &&
+    (code === DKI_JAKARTA_PROVINCE_CODE || DKI_JAKARTA_NAME_MATCHERS.some((matcher) => name.includes(matcher)))
+  );
+}
+
+function isDkiJakartaAreaOption(area: AreaFilterIdentity) {
+  const code = area.officialCode?.trim() || area.code?.trim() || "";
+  const name = String(area.name ?? "").toLocaleLowerCase("id-ID");
+
+  return (
+    code === DKI_JAKARTA_PROVINCE_CODE ||
+    code.startsWith(`${DKI_JAKARTA_PROVINCE_CODE}.`) ||
+    DKI_JAKARTA_NAME_MATCHERS.some((matcher) => name.includes(matcher))
+  );
 }
 
 export function findDkiJakartaProvinceFilterId<T extends AreaFilterIdentity>(areas: T[]) {
-  const dkiProvince = areas.find(isDkiJakartaProvinceOption);
+  const dkiProvince = areas.find(isDkiJakartaProvinceOption) ?? areas.find(isDkiJakartaAreaOption);
   return dkiProvince ? (dkiProvince.areaId ?? dkiProvince.id ?? "") : "";
 }
 

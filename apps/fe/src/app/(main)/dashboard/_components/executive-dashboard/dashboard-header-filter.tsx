@@ -203,12 +203,16 @@ export function DashboardHeaderFilter({
   const selectedDistrict = selectedArea && isDistrict(selectedArea) ? selectedArea : null;
   const provinces = uniqueAreas(flatAreas.filter(isProvince));
   const regencyCities = uniqueAreas(
-    flatAreas.filter((area) => isRegencyCity(area) && (!effectiveProvinceId || area.provinceId === effectiveProvinceId)),
+    flatAreas.filter(
+      (area) => isRegencyCity(area) && (!effectiveProvinceId || area.provinceId === effectiveProvinceId),
+    ),
   );
   const districts = uniqueAreas(
-    flatAreas.filter((area) => isDistrict(area) && Boolean(selectedRegencyCity?.id) && area.parentId === selectedRegencyCity?.id),
+    flatAreas.filter(
+      (area) => isDistrict(area) && Boolean(selectedRegencyCity?.id) && area.parentId === selectedRegencyCity?.id,
+    ),
   );
-  const hasSelectedProvince = Boolean(effectiveProvinceId);
+  const hasSelectedAreaScope = Boolean(effectiveProvinceId || selectedRegencyCity || selectedDistrict);
   const provinceOptions: SearchableSelectOption[] = [
     {
       value: ALL_AREAS,
@@ -244,10 +248,10 @@ export function DashboardHeaderFilter({
     selectedDistrict?.name ??
     selectedRegencyCity?.name ??
     (selectedArea && isProvince(selectedArea) ? selectedArea.name : null) ??
-    (hasSelectedProvince ? allScopeLabel : "wilayah belum dipilih");
+    (hasSelectedAreaScope ? allScopeLabel : "wilayah belum dipilih");
   const filterDisabled = loading || filtersLoading || !filters;
-  const operationalFilterDisabled = filterDisabled || !hasSelectedProvince;
-  const operationalFilterPlaceholder = hasSelectedProvince ? undefined : provincePlaceholder;
+  const operationalFilterDisabled = filterDisabled || !hasSelectedAreaScope;
+  const operationalFilterPlaceholder = hasSelectedAreaScope ? undefined : provincePlaceholder;
   const categoryOptions: SearchableSelectOption[] = [
     { value: ALL_FILTERS, label: "Semua kategori", description: "Laporan Jaring dan Baket" },
     ...sortReportCategories(filters?.categories).map(namedOption),
@@ -499,7 +503,7 @@ export function DashboardHeaderFilter({
               <h3 className="truncate text-sm font-semibold">Filter Operasional</h3>
             </div>
             {filtersLoading ? <Badge variant="secondary">Memuat opsi</Badge> : null}
-            {!filtersLoading && !hasSelectedProvince ? (
+            {!filtersLoading && !hasSelectedAreaScope ? (
               <Badge variant="outline" className="border-amber-500/50 text-amber-300">
                 Pilih wilayah dulu
               </Badge>
