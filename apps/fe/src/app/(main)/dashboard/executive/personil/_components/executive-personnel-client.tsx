@@ -132,7 +132,7 @@ function isPersonnelOnline(
   const lastLocation = item.lastLocation ?? item.assignment?.lastLocation;
   if (!lastLocation || !lastLocation.capturedAt) return false;
 
-  const activeWithinMinutes = freshness?.activeWithinMinutes ?? 30;
+  const _activeWithinMinutes = freshness?.activeWithinMinutes ?? 30;
   const recentWithinHours = freshness?.recentWithinHours ?? 24;
 
   const ageMs = Date.now() - new Date(lastLocation.capturedAt).getTime();
@@ -177,7 +177,7 @@ function assignmentAreaRows(item: PersonnelListItem, queryState: PersonnelListQu
   return hierarchy.fallback ? [{ label: "Wilayah", value: hierarchy.fallback.name }] : [];
 }
 
-function statusClass(status: string) {
+function _statusClass(status: string) {
   if (status === "ACTIVE") {
     return "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 dark:bg-emerald-950/20";
   }
@@ -197,14 +197,14 @@ function pulseByStatus(status: string): "urgent" | "high" | "normal" | "slow" {
   return "slow";
 }
 
-function getStatusDotColor(status: string) {
+function _getStatusDotColor(status: string) {
   if (status === "ACTIVE") return "bg-emerald-500 dark:bg-emerald-400 animate-pulse";
   if (status === "SUSPENDED") return "bg-red-500 dark:bg-red-450";
   if (status === "ARCHIVED") return "bg-slate-500 dark:bg-slate-400";
   return "bg-amber-500 dark:bg-amber-400";
 }
 
-function personnelStatusLabel(status: string) {
+function _personnelStatusLabel(status: string) {
   if (status === "ACTIVE") return "Aktif";
   if (status === "SUSPENDED") return "Ditangguhkan";
   if (status === "ARCHIVED") return "Diarsipkan";

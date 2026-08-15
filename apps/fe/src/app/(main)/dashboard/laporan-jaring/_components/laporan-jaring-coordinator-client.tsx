@@ -6,8 +6,6 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
 import {
-  Activity,
-  ArrowDown,
   Calendar,
   Clock,
   Download,
@@ -17,7 +15,6 @@ import {
   MessageSquare,
   RefreshCw,
   Search,
-  ShieldAlert,
   User,
   X,
 } from "lucide-react";
@@ -64,7 +61,6 @@ import {
   alignJaringReportCategorySummary,
   formatDateTime,
   isJaringReportCategoryFilterActive,
-  JARING_REPORT_CATEGORY_FILTERS,
   type JaringReportCategoryKey,
   verificationStatusBadgeVariant,
   verificationStatusLabel,
@@ -231,7 +227,7 @@ function getJaringGaswilAssignment(jaring: RawJaringItem) {
   };
 }
 
-function resolveInitialReportFilters(searchParams: { get(name: string): string | null }): {
+function resolveInitialReportFilters(_searchParams: { get(name: string): string | null }): {
   status: string;
   stage: ReportStage;
 } {
@@ -471,7 +467,7 @@ export function LaporanJaringCoordinatorClient() {
     stage: "JARING_REPORT",
   };
 
-  function applyCategoryFilter(category: JaringReportCategoryKey) {
+  function applyCategoryFilter(_category: JaringReportCategoryKey) {
     setStatusFilter("ALL");
     setPage(1);
   }
@@ -700,7 +696,7 @@ export function LaporanJaringCoordinatorClient() {
       `"${formatDateTime(r.reportedAt)}"`,
     ]);
 
-    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
+    const csvContent = `data:text/csv;charset=utf-8,${[headers.join(","), ...rows.map((e) => e.join(","))].join("\n")}`;
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
@@ -1374,7 +1370,7 @@ export function LaporanJaringCoordinatorClient() {
               </TableHeader>
               <TableBody>
                 {paginatedReports.map((item) => {
-                  const urgencyStyle = getUrgencyCardStyle(item.urgency);
+                  const _urgencyStyle = getUrgencyCardStyle(item.urgency);
                   const displayStatus = getReportDisplayStatus(item);
                   const refNum = item.referenceNumber || item.jaringAlias || item.jaringCode || item.id.slice(0, 8);
                   const messageCount = item.messages?.length ?? item.counts?.contentParts ?? 0;

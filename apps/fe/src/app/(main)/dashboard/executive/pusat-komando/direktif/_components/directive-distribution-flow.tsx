@@ -111,7 +111,7 @@ function translateStatus(status: string) {
   return values[status.toUpperCase()] ?? status;
 }
 
-function assignmentLabel(assignment: DirectiveTrackingAssignment, fallback: string) {
+function _assignmentLabel(assignment: DirectiveTrackingAssignment, fallback: string) {
   return assignment.assignee?.fullName ?? assignment.assignee?.organizationUnitName ?? fallback;
 }
 

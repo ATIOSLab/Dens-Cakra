@@ -269,7 +269,7 @@ export function MapsIntelijenNetworkClient() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [cardFilter, setCardFilter] = useState<SummaryCardFilter>("ALL");
   const [visualization, setVisualization] = useState<VisualizationMode>("cluster");
-  const [colorMode, setColorMode] = useState<MarkerColorMode>("urgency");
+  const [colorMode, _setColorMode] = useState<MarkerColorMode>("urgency");
   const [heatmapWeight, setHeatmapWeight] = useState<HeatmapWeight>("count");
   const [mapLayer, setMapLayer] = useState<"dark" | "satellite" | "terrain" | "light" | "osm">("dark");
   const [loading, setLoading] = useState(true);

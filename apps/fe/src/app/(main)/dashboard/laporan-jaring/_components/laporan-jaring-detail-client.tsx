@@ -15,7 +15,6 @@ import {
   FileDiff,
   FileEdit,
   History,
-  ImageIcon,
   MapPin,
   Paperclip,
   RefreshCw,
@@ -88,7 +87,7 @@ export function LaporanJaringDetailClient({
   backHref?: string;
   readOnly?: boolean;
 }) {
-  const router = useRouter();
+  const _router = useRouter();
   const [activeReport, setActiveReport] = useState<JaringReportSessionDetail | null>(null);
   const [categories, setCategories] = useState<ReportCategoryOption[]>([]);
   const [loadingDetail, setLoadingDetail] = useState(true);
@@ -234,7 +233,7 @@ export function LaporanJaringDetailClient({
       if (events.length > 0) {
         setSelectedEventId(events[0].id);
       }
-    } catch (err) {
+    } catch (_err) {
       toast.error("Gagal memuat riwayat perubahan.");
     } finally {
       setLoadingHistory(false);

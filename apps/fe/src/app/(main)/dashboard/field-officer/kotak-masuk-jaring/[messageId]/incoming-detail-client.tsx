@@ -2,17 +2,15 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-import Link from "next/link";
 
-import { Calendar, CheckCircle2, Inbox, MapPin, Phone, ShieldAlert, Tag, User } from "lucide-react";
+import { CheckCircle2, MapPin, } from "lucide-react";
 
 import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";
 import { BackButton } from "@/components/ui/back-button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, } from "@/components/ui/card";
 import { EvidenceAttachmentViewer } from "@/features/baket/components/evidence-attachment-viewer";
 import { EvidenceImageViewer } from "@/features/baket/components/evidence-image-viewer";
-import type { FieldOfficerIncoming, FieldOfficerWorkspace } from "@/server/field-ops/types";
+import type { FieldOfficerWorkspace } from "@/server/field-ops/types";
 
 import { LeafletLocationPreview } from "../../_components/leaflet-location-preview";
 

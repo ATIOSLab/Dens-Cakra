@@ -4,12 +4,9 @@ import { useState } from "react";
 
 import {
   AlertCircle,
-  ArrowRight,
-  Check,
   CheckCircle2,
   Clock3,
   FileText,
-  HelpCircle,
   KeyRound,
   RotateCcw,
   Search,

@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+
 
 import { ExecutivePersonnelDetailClient } from "@/app/(main)/dashboard/executive/personil/_components/executive-personnel-detail-client";
 import type { PersonnelDetail } from "@/app/(main)/dashboard/executive/personil/_components/executive-personnel-types";

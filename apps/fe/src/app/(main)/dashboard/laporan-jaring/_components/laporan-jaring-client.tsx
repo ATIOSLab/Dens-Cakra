@@ -5,21 +5,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
-import { Check, ChevronDown, Eye, FileCheck, MapPin, Paperclip, RefreshCw, Search, User, X } from "lucide-react";
+import { Check, ChevronDown, Eye, MapPin, RefreshCw, Search, User, X } from "lucide-react";
 
 import { GaswilEntityLink } from "@/components/domain/gaswil-entity-link";
-import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";
 import { Badge } from "@/components/ui/badge";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, } from "@/components/ui/card";
 import { type ColumnOption, ColumnVisibilityToggle } from "@/components/ui/column-visibility-toggle";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -44,8 +35,6 @@ import {
   isJaringReportCategoryFilterActive,
   JARING_REPORT_CATEGORY_FILTERS,
   type JaringReportCategoryKey,
-  urgencyBadgeClass,
-  urgencyLabel,
   verificationStatusBadgeVariant,
   verificationStatusLabel,
 } from "./laporan-jaring-presentation";
@@ -469,7 +458,7 @@ export function LaporanJaringClient() {
     stage: "JARING_REPORT",
   };
 
-  function applyCategoryFilter(category: JaringReportCategoryKey) {
+  function applyCategoryFilter(_category: JaringReportCategoryKey) {
     setPage(1);
   }
 

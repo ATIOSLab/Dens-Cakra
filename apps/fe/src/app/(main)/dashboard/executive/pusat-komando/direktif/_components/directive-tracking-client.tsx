@@ -14,7 +14,7 @@ type DirectiveTrackingClientProps = {
 };
 
 export function DirectiveTrackingClient({ directive, tracking }: DirectiveTrackingClientProps) {
-  const currentVersion = getCurrentVersion(directive);
+  const _currentVersion = getCurrentVersion(directive);
 
   return (
     <div className="space-y-6">

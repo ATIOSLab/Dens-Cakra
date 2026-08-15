@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
-import { CheckCircle2, ChevronLeft, Grid2X2, List, Printer, RotateCcw, ShieldCheck } from "lucide-react";
+import { CheckCircle2, Grid2X2, List, Printer, RotateCcw, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { SortableTableHeader } from "@/app/(main)/dashboard/_components/sortable-table-header";
@@ -969,7 +969,7 @@ export function IntelligenceProductDetail({
   approvalStep?: unknown;
   executive?: boolean;
 }) {
-  const router = useRouter();
+  const _router = useRouter();
   const product = record(productValue);
   const version = currentVersion(product);
   return (

@@ -2,7 +2,7 @@ import type { ElementType } from "react";
 
 import Link from "next/link";
 
-import { ArrowRight, CheckCircle2, Mail, Route, ShieldCheck, UserCog } from "lucide-react";
+import { ArrowRight, CheckCircle2, Mail, ShieldCheck, UserCog } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

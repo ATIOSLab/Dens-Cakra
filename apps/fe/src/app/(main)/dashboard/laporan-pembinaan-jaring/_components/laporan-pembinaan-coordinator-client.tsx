@@ -19,7 +19,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { type ColumnOption, ColumnVisibilityToggle } from "@/components/ui/column-visibility-toggle";
 import { Input } from "@/components/ui/input";
 import { type JaringOption, JaringSelectPopover } from "@/components/ui/jaring-select-popover";
@@ -359,7 +359,7 @@ export function LaporanPembinaanCoordinatorClient() {
   }, [fetchReports]);
 
   // Map geography for each Jaring
-  const jaringGeographyMap = useMemo(() => {
+  const _jaringGeographyMap = useMemo(() => {
     const map = new Map<string, JaringGeography>();
     for (const jaring of jaringList) {
       map.set(jaring.id, resolveJaringGeography(jaring));

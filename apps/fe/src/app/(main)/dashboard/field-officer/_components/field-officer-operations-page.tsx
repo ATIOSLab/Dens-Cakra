@@ -7,7 +7,6 @@ import Link from "next/link";
 
 import {
   AlertTriangle,
-  BriefcaseBusiness,
   CheckCircle2,
   Clock,
   Columns3,
@@ -21,10 +20,8 @@ import {
   Search,
   Send,
   ShieldCheck,
-  UserRound,
   XCircle,
 } from "lucide-react";
-import { toast } from "sonner";
 
 import { SortableTableHeader } from "@/app/(main)/dashboard/_components/sortable-table-header";
 import { ViewModeToggle } from "@/app/(main)/dashboard/_components/view-mode-toggle";
@@ -44,14 +41,6 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,

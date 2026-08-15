@@ -10,7 +10,6 @@ import {
   Activity,
   AlertCircle,
   AlertTriangle,
-  ArrowLeft,
   ArrowRight,
   BarChart3,
   CheckCircle2,
@@ -65,7 +64,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/table-pagination";
-import { TableToolbar } from "@/components/ui/table-toolbar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { administrativeAreaLabel } from "@/features/baket/administrative-area";
@@ -315,7 +313,7 @@ function Header({ view, data }: { view: OimView; data?: OimPageData }) {
     isProductView(view) && data?.productContext
       ? `${context.label} disusun dari analisis final dan Bahan Keterangan (Baket) sumber.`
       : metaDescription;
-  const router = useRouter();
+  const _router = useRouter();
 
   const root = (data?.areas ?? {}) as Row;
   const topLevel = rows(root.children);
@@ -942,7 +940,7 @@ function Filters({
   );
 }
 
-function paginationNumbers(currentPage: number, totalPages: number) {
+function _paginationNumbers(currentPage: number, totalPages: number) {
   const list: number[] = [];
   const start = Math.max(1, currentPage - 2);
   const end = Math.min(totalPages, currentPage + 2);
@@ -1000,8 +998,8 @@ function BaketList({ data }: { data: OimPageData }) {
   const totalPages = Math.ceil(items.length / rowsPerPage) || 1;
   const safePage = Math.min(page, totalPages);
   const paginatedItems = items.slice((safePage - 1) * rowsPerPage, safePage * rowsPerPage);
-  const startRow = (safePage - 1) * rowsPerPage + 1;
-  const endRow = Math.min(safePage * rowsPerPage, items.length);
+  const _startRow = (safePage - 1) * rowsPerPage + 1;
+  const _endRow = Math.min(safePage * rowsPerPage, items.length);
 
   const paginationControls = (
     <TablePagination
@@ -1240,7 +1238,7 @@ function BaketList({ data }: { data: OimPageData }) {
   );
 }
 
-function ReportStatusTabs({ activeStatus }: { activeStatus?: string }) {
+function _ReportStatusTabs({ activeStatus }: { activeStatus?: string }) {
   const tabs = [
     ["SENT_TO_OIM", "Baru"],
     ["UNDER_VERIFICATION", "Sedang Terverifikasi"],
@@ -1748,8 +1746,8 @@ function AnalysisList({ data }: { data: OimPageData }) {
   const totalPages = Math.ceil(items.length / rowsPerPage) || 1;
   const safePage = Math.min(page, totalPages);
   const paginatedItems = items.slice((safePage - 1) * rowsPerPage, safePage * rowsPerPage);
-  const startRow = (safePage - 1) * rowsPerPage + 1;
-  const endRow = Math.min(safePage * rowsPerPage, items.length);
+  const _startRow = (safePage - 1) * rowsPerPage + 1;
+  const _endRow = Math.min(safePage * rowsPerPage, items.length);
 
   const paginationControls = (
     <TablePagination
@@ -2205,8 +2203,8 @@ function ProductList({ data, approval = false }: { data: OimPageData; approval?:
   const totalPages = Math.ceil(items.length / rowsPerPage) || 1;
   const safePage = Math.min(page, totalPages);
   const paginatedItems = items.slice((safePage - 1) * rowsPerPage, safePage * rowsPerPage);
-  const startRow = (safePage - 1) * rowsPerPage + 1;
-  const endRow = Math.min(safePage * rowsPerPage, items.length);
+  const _startRow = (safePage - 1) * rowsPerPage + 1;
+  const _endRow = Math.min(safePage * rowsPerPage, items.length);
 
   const paginationControls = (
     <TablePagination

@@ -537,14 +537,14 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
             },
           });
         }
-      } catch (err) {
+      } catch (_err) {
         // Suppress any premature map styles loading errors
       }
     } else {
       try {
         if (mapObj.getLayer(layerId)) mapObj.removeLayer(layerId);
         if (mapObj.getSource(sourceId)) mapObj.removeSource(sourceId);
-      } catch (err) {
+      } catch (_err) {
         // Suppress errors during unmount or style changes
       }
     }

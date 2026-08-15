@@ -55,7 +55,7 @@ function getDeviceLabel(userAgent: string | null | undefined) {
 
 export default async function AccountPage() {
   const principal = await requireSession();
-  const roleLabel = getSystemRoleLabel(principal.role);
+  const _roleLabel = getSystemRoleLabel(principal.role);
   const avatar = principal.user.image ?? "";
   const locationLabel = principal.session.locationLabel ?? "Lokasi tidak tersedia";
   const ipAddress = principal.session.ipAddress ?? "IP tidak tersedia";

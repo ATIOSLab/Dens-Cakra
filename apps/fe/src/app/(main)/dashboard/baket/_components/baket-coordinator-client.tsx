@@ -440,7 +440,7 @@ export function BaketCoordinatorClient() {
   }, [filteredReports, page, limit]);
 
   // Quick Date presets
-  const handleQuickToday = () => {
+  const _handleQuickToday = () => {
     const today = new Date().toISOString().slice(0, 10);
     setStartDate(today);
     setEndDate(today);
@@ -494,7 +494,7 @@ export function BaketCoordinatorClient() {
       ];
     });
 
-    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
+    const csvContent = `data:text/csv;charset=utf-8,${[headers.join(","), ...rows.map((e) => e.join(","))].join("\n")}`;
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);

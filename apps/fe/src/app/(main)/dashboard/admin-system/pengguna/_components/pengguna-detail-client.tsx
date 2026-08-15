@@ -609,7 +609,7 @@ export function PenggunaDetailClient({ user, actorUserProfileId }: PenggunaDetai
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3 pt-5">
-              {assignmentTimeline.map((assignment, index) => (
+              {assignmentTimeline.map((assignment, _index) => (
                 <div key={assignment.id} className="rounded-lg border border-border/50 bg-card p-3.5 space-y-2 text-xs">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="font-semibold text-foreground">

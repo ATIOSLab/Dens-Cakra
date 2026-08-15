@@ -4,24 +4,19 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   AlertCircle,
-  AlertTriangle,
   BriefcaseBusiness,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Edit2,
-  FileText,
   FolderTree,
-  MapPin,
   Plus,
   Power,
   RefreshCw,
   Search,
-  ShieldCheck,
   SlidersHorizontal,
   Tags,
   Trash2,
-  UserCheck,
   X,
 } from "lucide-react";
 
@@ -38,7 +33,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -481,7 +476,7 @@ export default function AdminMasterDataPage() {
           setSelectedIds([]);
           await loadActiveEntity();
           setTimeout(() => setSuccess(null), 3000);
-        } catch (bulkError) {
+        } catch (_bulkError) {
           setError("Gagal memproses perubahan status massal.");
         } finally {
           setBusyKey(null);

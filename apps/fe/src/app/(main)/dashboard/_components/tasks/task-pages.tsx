@@ -87,7 +87,7 @@ async function loadOimForwardingOptions(): Promise<OimForwardingOptions> {
 }
 
 async function loadSubordinateCandidates(
-  access: AccessMe,
+  _access: AccessMe,
   roleCode?: "FIELD_COORDINATOR" | "FIELD_OFFICER",
 ): Promise<AssignmentCandidate[]> {
   if (!roleCode) {

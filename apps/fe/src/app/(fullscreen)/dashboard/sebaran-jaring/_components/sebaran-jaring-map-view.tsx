@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef } from "react";
 
-import { ChevronRight, MapPin, X } from "lucide-react";
+import { ChevronRight, X } from "lucide-react";
 import type { Map as MapLibreMap, PopupOptions, StyleSpecification } from "maplibre-gl";
 
 import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";

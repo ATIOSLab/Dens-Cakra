@@ -10,20 +10,17 @@ import {
   BriefcaseBusiness,
   CheckCircle2,
   ChevronDown,
-  ChevronLeft,
   ChevronRight,
   ChevronUp,
   Clock,
   Columns3,
   Eye,
   ImageIcon,
-  LayoutGrid,
   MapPin,
   RefreshCw,
   RotateCcw,
   Search,
   ShieldCheck,
-  Table as TableIcon,
   UserRound,
   X,
   XCircle,
@@ -53,14 +50,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -1646,7 +1635,7 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
   const [reportsLoading, setReportsLoading] = useState(false);
   const [reportsLoaded, setReportsLoaded] = useState(false);
   const [expandedReportIds, setExpandedReportIds] = useState<Set<string>>(new Set());
-  const [reportsViewMode, setReportsViewMode] = useState<"card" | "table">("card");
+  const [_reportsViewMode, _setReportsViewMode] = useState<"card" | "table">("card");
   const [reportsPage, setReportsPage] = useState(1);
   const [reportsLimit, setReportsLimit] = useState(10);
   const [periodPreset, setPeriodPreset] = useState<"ALL" | "TODAY" | "LAST_7_DAYS" | "LAST_30_DAYS" | "CUSTOM">("ALL");
@@ -1689,8 +1678,8 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
     const start = (reportsPage - 1) * reportsLimit;
     return filteredReports.slice(start, start + reportsLimit);
   }, [filteredReports, reportsPage, reportsLimit]);
-  const reportsStartIndex = filteredReports.length === 0 ? 0 : (reportsPage - 1) * reportsLimit + 1;
-  const reportsEndIndex = Math.min(reportsPage * reportsLimit, filteredReports.length);
+  const _reportsStartIndex = filteredReports.length === 0 ? 0 : (reportsPage - 1) * reportsLimit + 1;
+  const _reportsEndIndex = Math.min(reportsPage * reportsLimit, filteredReports.length);
 
   const toggleReportExpand = (id: string) => {
     setExpandedReportIds((prev) => {

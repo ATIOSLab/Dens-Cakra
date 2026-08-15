@@ -8,7 +8,6 @@ import {
   Flame,
   Layers3,
   type LucideIcon,
-  MapPinned,
   ShieldAlert,
 } from "lucide-react";
 

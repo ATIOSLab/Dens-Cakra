@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
-import { ArrowUpRight, FileText, Plus, RadioTower, Search, ShieldCheck, Users } from "lucide-react";
+import { ArrowUpRight, Plus, RadioTower, Search, } from "lucide-react";
 
 import { SortableTableHeader } from "@/app/(main)/dashboard/_components/sortable-table-header";
 import { Badge } from "@/components/ui/badge";
@@ -59,7 +59,7 @@ type PremiumKpiCardProps = {
   className?: string;
 };
 
-function PremiumKpiCard({
+function _PremiumKpiCard({
   title,
   value,
   description,
