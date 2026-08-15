@@ -6,6 +6,7 @@ import {
   type VerificationStatus,
 } from "@/app/(main)/dashboard/laporan-jaring/_components/laporan-jaring-types";
 import {
+  getUrgencyBadgeClass,
   getVerificationStatusBadgeClass,
   getVerificationStatusLabel,
 } from "@/lib/domain/operational-presentation";
@@ -104,13 +105,7 @@ export function getUrgencyCardStyle(urgency?: PriorityLevel | string | null) {
 }
 
 export function getTickerBadgeClass(urgency: string) {
-  if (urgency === "URGENT") {
-    return "border border-rose-500/40 bg-rose-500/20 text-rose-600 dark:text-rose-400";
-  }
-  if (urgency === "HIGH") {
-    return "border border-amber-500/40 bg-amber-500/20 text-amber-600 dark:text-amber-400";
-  }
-  return "border border-sky-500/40 bg-sky-500/20 text-sky-600 dark:text-sky-400";
+  return `border ${getUrgencyBadgeClass(urgency)}`;
 }
 
 export function formatRelativeTime(dateStr: string) {
@@ -426,6 +421,7 @@ export type MapNetworkResponse = {
       agent: number;
       totalReports: number;
       totalBakets: number;
+      jaring: number;
       mappableReports: number;
       mappableBakets: number;
       unlocatedReport: number;
@@ -488,6 +484,7 @@ export const EMPTY_MAP_RESPONSE: MapNetworkResponse = {
       agent: 0,
       totalReports: 0,
       totalBakets: 0,
+      jaring: 0,
       mappableReports: 0,
       mappableBakets: 0,
       unlocatedReport: 0,

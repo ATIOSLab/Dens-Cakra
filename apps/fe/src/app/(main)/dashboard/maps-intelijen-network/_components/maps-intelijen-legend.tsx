@@ -93,20 +93,21 @@ export function MapsIntelijenLegend({
                   </span>
                 );
               })}
-              {([DATA_TYPE_PRESENTATION.baket, DATA_TYPE_PRESENTATION.report] as const).map((presentation) => {
-                const Icon = presentation.icon;
-                return (
-                  <span key={presentation.label} className="inline-flex min-h-7 items-center gap-2">
-                    <span
-                      className="grid size-5 shrink-0 place-items-center rounded-md border bg-background/70"
-                      style={{ borderColor: presentation.mapColor, color: presentation.mapColor }}
-                    >
-                      <Icon className="size-3" aria-hidden />
+              {colorMode !== "category" &&
+                ([DATA_TYPE_PRESENTATION.baket, DATA_TYPE_PRESENTATION.report] as const).map((presentation) => {
+                  const Icon = presentation.icon;
+                  return (
+                    <span key={presentation.label} className="inline-flex min-h-7 items-center gap-2">
+                      <span
+                        className="grid size-5 shrink-0 place-items-center rounded-md border bg-background/70"
+                        style={{ borderColor: presentation.mapColor, color: presentation.mapColor }}
+                      >
+                        <Icon className="size-3" aria-hidden />
+                      </span>
+                      {presentation.label}
                     </span>
-                    {presentation.label}
-                  </span>
-                );
-              })}
+                  );
+                })}
             </div>
           )}
         </div>

@@ -11,21 +11,20 @@ import type { MapNetworkResponse, SummaryCardFilter } from "./maps-intelijen-typ
 
 interface MapsIntelijenStatsProps {
   meta: MapNetworkResponse["meta"];
-  jaringTotal: number;
   active: SummaryCardFilter;
   onChange: (value: SummaryCardFilter) => void;
   loading: boolean;
   periodLabel: string;
 }
 
-export function MapsIntelijenStats({ meta, jaringTotal, active, onChange, loading, periodLabel }: MapsIntelijenStatsProps) {
+export function MapsIntelijenStats({ meta, active, onChange, loading, periodLabel }: MapsIntelijenStatsProps) {
   const reports = meta.summary.reports;
   const total = reports.total ?? 0;
   const cards = [
     {
       key: "ALL" as const,
       label: "Total Jaring",
-      value: jaringTotal,
+      value: meta.counts.jaring ?? 0,
       percentage: null,
       definition: "Jumlah Jaring unik yang memiliki titik berkoordinat sesuai filter aktif.",
       presentation: SUMMARY_CARD_PRESENTATION.ALL,

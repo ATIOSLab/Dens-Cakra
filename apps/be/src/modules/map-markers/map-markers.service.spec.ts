@@ -67,6 +67,7 @@ describe('MapMarkersService', () => {
 
   it('pushes the effective report date range into the Prisma query', async () => {
     const prisma = {
+      jaring: { count: jest.fn().mockResolvedValue(0) },
       reportCategory: { findMany: jest.fn().mockResolvedValue([] as never) },
       whatsAppReportSession: {
         findMany: jest.fn().mockResolvedValue([] as never),
@@ -119,6 +120,7 @@ describe('MapMarkersService', () => {
   it('combines categorized BAKET and scoped personnel into one GeoJSON collection', async () => {
     jest.useFakeTimers().setSystemTime(new Date('2026-07-13T10:00:00.000Z'));
     const prisma = {
+      jaring: { count: jest.fn().mockResolvedValue(0) },
       reportCategory: {
         findMany: jest
           .fn()
@@ -181,6 +183,7 @@ describe('MapMarkersService', () => {
       },
     };
     const scope = {
+      jaringWhere: jest.fn().mockResolvedValue({} as never),
       baketWhere: jest.fn().mockResolvedValue({} as never),
       resolve: jest.fn().mockResolvedValue({
         assignmentIds: ['agent-assignment'],
@@ -270,12 +273,14 @@ describe('MapMarkersService', () => {
 
   it('intersects an explicitly requested assignment with reporting-line scope', async () => {
     const prisma = {
+      jaring: { count: jest.fn().mockResolvedValue(0) },
       reportCategory: { findMany: jest.fn().mockResolvedValue([] as never) },
       jaringCaretakerAssignment: {
         findMany: jest.fn().mockResolvedValue([] as never),
       },
     };
     const scope = {
+      jaringWhere: jest.fn().mockResolvedValue({} as never),
       resolve: jest.fn().mockResolvedValue({
         assignmentIds: ['allowed-assignment'],
       } as never),
@@ -366,6 +371,7 @@ describe('MapMarkersService', () => {
       ],
     };
     const prisma = {
+      jaring: { count: jest.fn().mockResolvedValue(0) },
       reportCategory: { findMany: jest.fn().mockResolvedValue([] as never) },
       whatsAppReportSession: {
         findMany: jest.fn().mockResolvedValue([
@@ -392,6 +398,7 @@ describe('MapMarkersService', () => {
       },
     };
     const scope = {
+      jaringWhere: jest.fn().mockResolvedValue({} as never),
       jaringWhere: jest.fn().mockResolvedValue({ deletedAt: null } as never),
     };
     const spatial = {
@@ -440,7 +447,7 @@ describe('MapMarkersService', () => {
       }),
     );
     expect(result.meta.unlocatedItems).toHaveLength(1);
-    expect(scope.jaringWhere).toHaveBeenCalledTimes(1);
+    expect(scope.jaringWhere).toHaveBeenCalledTimes(2);
     expect(prisma.whatsAppReportSession.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
@@ -509,12 +516,14 @@ describe('MapMarkersService', () => {
       media: [],
     };
     const prisma = {
+      jaring: { count: jest.fn().mockResolvedValue(0) },
       reportCategory: { findMany: jest.fn().mockResolvedValue([] as never) },
       whatsAppReportSession: {
         findMany: jest.fn().mockResolvedValue([report] as never),
       },
     };
     const scope = {
+      jaringWhere: jest.fn().mockResolvedValue({} as never),
       jaringWhere: jest.fn().mockResolvedValue({ deletedAt: null } as never),
     };
     const spatial = {

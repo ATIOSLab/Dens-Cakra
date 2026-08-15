@@ -114,7 +114,7 @@ export class MapMarkersService {
       unlocatedCount: 0,
       totalCount: 0,
     };
-    const [reportResult, baketResult, agentResult, categories] =
+    const [reportResult, baketResult, agentResult, categories, jaringCount] =
       await Promise.all([
         filters.types.has(MapMarkerType.REPORT)
           ? this.getReportFeatures(query, context, filters)
@@ -130,6 +130,9 @@ export class MapMarkersService {
           orderBy: { name: 'asc' },
           select: { id: true, code: true, name: true },
         }),
+        this.scope
+          .jaringWhere(context)
+          .then((where) => this.prisma.jaring.count({ where })),
       ]);
     const features = [
       ...reportResult.features,
@@ -149,6 +152,7 @@ export class MapMarkersService {
           agent: agentResult.features.length,
           totalReports: reportResult.totalCount,
           totalBakets: baketResult.totalCount,
+          jaring: jaringCount,
           mappableReports: Math.max(
             0,
             reportResult.totalCount - reportResult.unlocatedCount,

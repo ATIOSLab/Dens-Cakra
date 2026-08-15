@@ -236,7 +236,7 @@ export function MapsIntelijenCommandHud({
           icon={DOMAIN_VISUALS.jaring.Icon}
           tone="cyan"
         />
-        <CompactMetric label="Baket" value={intelligence.baketTotal} icon={DOMAIN_VISUALS.baket.Icon} tone="amber" />
+        <CompactMetric label="Baket" value={intelligence.baketTotal} icon={DOMAIN_VISUALS.baket.Icon} tone="violet" />
       </div>
     );
   }
@@ -773,14 +773,8 @@ function TickerItem({
   onClick: () => void;
 }) {
   const properties = feature.properties;
-  const rawStatus = properties.urgency ?? "NORMAL";
   const statusLabel = getUrgencyPresentation(properties.urgency).label;
-  const statusClass =
-    rawStatus === "URGENT"
-      ? "border-rose-300 bg-rose-100 text-rose-700"
-      : rawStatus === "HIGH"
-        ? "border-amber-300 bg-amber-100 text-amber-700"
-        : "border-sky-300 bg-sky-100 text-sky-700";
+  const statusClass = getUrgencyPresentation(properties.urgency).badgeClass;
   const area = properties.primaryArea?.name ?? "Wilayah belum ditentukan";
 
   return (
@@ -1092,7 +1086,7 @@ function CompactMetric({
   label: string;
   value: number;
   icon: LucideIcon;
-  tone: "cyan" | "red" | "amber";
+  tone: "cyan" | "red" | "amber" | "violet";
 }) {
   return (
     <div className="min-w-32 rounded-lg border border-slate-700/80 bg-slate-950/90 px-3 py-2 text-slate-100 shadow-lg backdrop-blur-xl">
@@ -1103,6 +1097,7 @@ function CompactMetric({
             tone === "cyan" && "text-cyan-300",
             tone === "red" && "text-red-400",
             tone === "amber" && "text-amber-300",
+            tone === "violet" && "text-violet-300",
           )}
         />
         <span className="text-[9px] text-slate-400 uppercase tracking-[0.1em]">{label}</span>

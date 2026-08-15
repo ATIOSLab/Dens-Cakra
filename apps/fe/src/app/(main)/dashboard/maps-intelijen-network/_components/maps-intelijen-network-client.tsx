@@ -634,18 +634,6 @@ export function MapsIntelijenNetworkClient() {
     [filters.provinceId],
   );
 
-  const activeJaringTotal = useMemo(() => {
-    const jarings = new Set<string>();
-    for (const feature of response.features) {
-      const jaring = feature.properties.jaring;
-      if (jaring?.id) jarings.add(jaring.id);
-      for (const item of feature.properties.jarings ?? []) {
-        if (item.id) jarings.add(item.id);
-      }
-    }
-    return jarings.size;
-  }, [response.features]);
-
   const activePeriodLabel = periodLabel(filters);
   const activeAreaSubtitle = useMemo(
     () => buildMapAreaSubtitle(filters, areaOptions),
@@ -685,7 +673,6 @@ export function MapsIntelijenNetworkClient() {
       ) : null}
       <MapsIntelijenStats
         meta={summaryMeta}
-        jaringTotal={activeJaringTotal}
         active={cardFilter}
         onChange={setCardFilter}
         loading={loading}
