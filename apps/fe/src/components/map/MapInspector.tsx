@@ -20,25 +20,37 @@ export type AreaSummary = {
   emergenciesCount: number;
 };
 
+/**
+ * Dynamic GeoJSON properties bag shared across selection kinds. The values
+ * (strings, numbers, booleans, arrays) are resolved defensively at render
+ * time, so the string-indexed GeoJSON shape is the honest contract here.
+ */
+export type MapSelectionProperties = NonNullable<GeoJSON.GeoJsonProperties>;
+
 export type SelectionType =
   | {
       kind: "personnel";
-      properties: any;
+      properties: MapSelectionProperties;
       coordinates: [number, number];
       loading?: boolean;
       detailError?: string | null;
     }
   | {
       kind: "report";
-      properties: any;
+      properties: MapSelectionProperties;
       coordinates: [number, number];
       loading?: boolean;
       detailError?: string | null;
     }
-  | { kind: "cluster"; properties: any; leaves: GeoJSON.Feature[]; coordinates: [number, number] }
+  | {
+      kind: "cluster";
+      properties: MapSelectionProperties;
+      leaves: GeoJSON.Feature[];
+      coordinates: [number, number];
+    }
   | {
       kind: "area";
-      properties: any;
+      properties: MapSelectionProperties;
       summary: AreaSummary;
       coordinates?: [number, number];
       loading?: boolean;
