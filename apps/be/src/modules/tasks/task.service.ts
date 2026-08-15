@@ -303,18 +303,13 @@ export class TaskService {
           deletedAt: null,
           isActive: true,
         },
-        position: {
+        role: {
           isActive: true,
         },
       },
       include: {
         userProfile: true,
-        position: {
-          include: {
-            role: true,
-            organizationUnit: true,
-          },
-        },
+        role: true,
         areaScopes: {
           where: { validUntil: null },
           include: { area: true },
@@ -323,29 +318,25 @@ export class TaskService {
     });
   }
 
-  private async isPositionDescendantOf(
-    descendantPositionId: string,
-    ancestorPositionId: string,
+  private async isAreaWithinScope(
+    areaIds: string[],
+    context: AuthorizationContext,
   ) {
-    const rows = await this.prisma.$queryRaw<Array<{ id: string }>>(
-      Prisma.sql`
-        WITH RECURSIVE chain AS (
-          SELECT "id", "reportsToPositionId"
-          FROM "Position"
-          WHERE "id" = ${descendantPositionId}
-          UNION ALL
-          SELECT parent."id", parent."reportsToPositionId"
-          FROM "Position" parent
-          JOIN chain ON parent."id" = chain."reportsToPositionId"
-        )
-        SELECT "id"
-        FROM chain
-        WHERE "id" = ${ancestorPositionId}
-        LIMIT 1
-      `,
-    );
+    if (areaIds.length === 0) return false;
 
-    return rows.length > 0;
+    const areaRootIds = context.areaScopes.map((scope) => scope.areaId);
+    if (areaRootIds.length === 0) return true;
+    if (areaIds.some((id) => areaRootIds.includes(id))) return true;
+
+    const allowed = await this.prisma.administrativeAreaClosure.findFirst({
+      where: {
+        ancestorId: { in: areaRootIds },
+        descendantId: { in: areaIds },
+      },
+      select: { descendantId: true },
+    });
+
+    return Boolean(allowed);
   }
 
   private assertRole(
@@ -365,7 +356,7 @@ export class TaskService {
   ) {
     const assignee = await this.loadAssignmentTarget(assigneeAssignmentId);
 
-    if (assignee.position.role.code !== expectedRoleCode) {
+    if (assignee.role.code !== expectedRoleCode) {
       throw new ApiException(
         'TASK_INVALID_ASSIGNEE_ROLE',
         `Assignment target must have role ${expectedRoleCode}.`,
@@ -373,12 +364,10 @@ export class TaskService {
       );
     }
 
-    const isDescendant = await this.isPositionDescendantOf(
-      assignee.positionId,
-      context.primaryAssignmentId,
-    );
+    const assigneeAreaIds = assignee.areaScopes.map((scope) => scope.areaId);
+    const isSubordinate = await this.isAreaWithinScope(assigneeAreaIds, context);
 
-    if (!isDescendant || assignee.positionId === context.primaryAssignmentId) {
+    if (!isSubordinate || assignee.id === context.primaryAssignmentId) {
       throw new ApiException(
         'TASK_ASSIGNEE_NOT_SUBORDINATE',
         'Assignment target must be in the current command chain.',
@@ -842,7 +831,9 @@ export class TaskService {
 
       const completed = tasks.filter((task) => task.status === TaskStatus.COMPLETED).length;
       const inProgress = tasks.filter((task) =>
-        [TaskStatus.ASSIGNED, TaskStatus.IN_PROGRESS].includes(task.status),
+        ([TaskStatus.ASSIGNED, TaskStatus.IN_PROGRESS] as TaskStatus[]).includes(
+          task.status,
+        ),
       ).length;
       return {
         items,
@@ -1512,7 +1503,7 @@ export class TaskService {
             fieldCoordinatorAssignmentId: assignment.assignerAssignmentId,
             fieldCoordinatorName:
               assignment.assigner.userProfile?.fullName ??
-              assignment.assigner.position?.title ??
+              assignment.assigner.role?.name ??
               null,
             fieldOfficerAssignmentId: context.primaryAssignmentId,
             instruction,
