@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 
-import { Award, BarChart3, ShieldAlert, } from "lucide-react";
+import { Award, BarChart3, ShieldAlert } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

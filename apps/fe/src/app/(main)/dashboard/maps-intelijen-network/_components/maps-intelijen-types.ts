@@ -38,7 +38,7 @@ export function verificationStatusLabel(status: VerificationStatus) {
   return getVerificationStatusLabel(status);
 }
 
-export function getMediaUrl(m: any) {
+export function getMediaUrl(m: Record<string, unknown> | null | undefined) {
   if (!m) return "";
   if (m.url && typeof m.url === "string" && m.url.startsWith("http")) return m.url;
   if (m.fileUrl && typeof m.fileUrl === "string" && m.fileUrl.startsWith("http")) return m.fileUrl;

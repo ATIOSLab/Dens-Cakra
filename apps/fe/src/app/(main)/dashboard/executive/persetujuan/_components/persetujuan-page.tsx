@@ -489,7 +489,7 @@ export function PersetujuanPage() {
                 ].map((tab) => (
                   <button
                     key={tab.id}
-                    onClick={() => setDetailTab(tab.id as any)}
+                    onClick={() => setDetailTab(tab.id as typeof detailTab)}
                     className={cn(
                       "border-b-2 px-4 py-3 text-xs font-semibold transition-all duration-200 -mb-px",
                       detailTab === tab.id

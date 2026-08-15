@@ -208,7 +208,7 @@ export function DataTable({
               const areas = Array.isArray(item.areas) ? item.areas : [];
               const scopeLabel =
                 areas
-                  .map((area: any) => text(area?.name, ""))
+                  .map((area: Record<string, unknown>) => text(area?.name, ""))
                   .filter(Boolean)
                   .join(", ") || "Belum ditentukan";
 

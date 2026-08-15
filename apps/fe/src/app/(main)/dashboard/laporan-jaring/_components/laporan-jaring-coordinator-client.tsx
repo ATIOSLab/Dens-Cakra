@@ -1058,7 +1058,7 @@ export function LaporanJaringCoordinatorClient() {
               aria-label="Filter Periode Waktu"
               value={periodPreset}
               onChange={(event) => {
-                setPeriodPreset(event.target.value as any);
+                setPeriodPreset(event.target.value as typeof periodPreset);
                 setPage(1);
               }}
               className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full text-xs")}

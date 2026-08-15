@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -510,8 +510,8 @@ export default function AdminMasterDataPage() {
 
     // Sorting
     list.sort((a, b) => {
-      let valA: any = a[sortField as keyof typeof a] ?? "";
-      let valB: any = b[sortField as keyof typeof b] ?? "";
+      let valA: string | number = (a[sortField as keyof typeof a] as string | number) ?? "";
+      let valB: string | number = (b[sortField as keyof typeof b] as string | number) ?? "";
 
       if (sortField === "usage") {
         valA = usageCount(a, activeEntity);
@@ -615,7 +615,7 @@ export default function AdminMasterDataPage() {
               key={ent.id}
               type="button"
               onClick={() => {
-                setActiveEntity(ent.id as any);
+                setActiveEntity(ent.id as MasterEntity);
               }}
               className={cn(
                 "px-4 py-2.5 text-xs font-mono font-bold flex items-center gap-2 border-b-2 tracking-wide cursor-pointer transition-all focus:outline-none whitespace-nowrap",
@@ -684,7 +684,7 @@ export default function AdminMasterDataPage() {
 
             <div className="flex items-center gap-2">
               <SlidersHorizontal className="size-4 text-muted-foreground/60" />
-              <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val as any)}>
+              <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val as typeof statusFilter)}>
                 <SelectTrigger className="w-[125px] h-8 border-border bg-background dark:bg-slate-900/40 text-xs text-foreground focus-visible:ring-1 focus-visible:ring-cyan-500 dark:focus-visible:ring-cyan-400/30">
                   <SelectValue placeholder="Pilih Status" />
                 </SelectTrigger>

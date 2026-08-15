@@ -881,7 +881,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
             {/* Sort Dropdown */}
             <NativeSelect
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as any)}
+              onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
               className="w-auto min-w-[130px]"
             >
               <option value="newest">Terbaru</option>
@@ -1920,7 +1920,7 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
                   <NativeSelect
                     value={periodPreset}
                     onChange={(e) => {
-                      setPeriodPreset(e.target.value as any);
+                      setPeriodPreset(e.target.value as typeof periodPreset);
                       setReportsPage(1);
                     }}
                     className="h-8 text-xs bg-background min-w-[150px]"

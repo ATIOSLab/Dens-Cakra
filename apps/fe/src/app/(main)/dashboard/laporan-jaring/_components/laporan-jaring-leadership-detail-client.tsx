@@ -318,7 +318,7 @@ export function LaporanJaringLeadershipDetailClient({
               </div>
               {media.length > 0 ? (
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {media.map((item: any) => (
+                  {media.map((item) => (
                     <EvidenceAttachmentViewer
                       key={item.id}
                       src={`/api/files/${item.fileId}`}

@@ -167,7 +167,7 @@ function KpiRecordCardGrid({
           type === "unit"
             ? text(scopeArea.name, "Cakupan belum ditentukan")
             : areas
-                .map((area: any) => text(area?.name, ""))
+                .map((area: Record<string, unknown>) => text(area?.name, ""))
                 .filter(Boolean)
                 .join(", ") || "Belum ditentukan";
         const subtitle =
@@ -274,7 +274,7 @@ export function HierarchyExplorer({
   const [pageSize, setPageSize] = useState(20);
 
   // Reset pagination on tab change or filters change
-  const handleFilterChange = (setter: (val: any) => void, val: any) => {
+  const handleFilterChange = <T,>(setter: (val: T) => void, val: T) => {
     setter(val);
     setCurrentPage(1);
   };
@@ -588,7 +588,7 @@ export function HierarchyExplorer({
 
       const areas = Array.isArray(person.areas) ? person.areas : [];
       const areasStr = areas
-        .map((area: any) => String(area?.name ?? ""))
+        .map((area: Record<string, unknown>) => String(area?.name ?? ""))
         .join(", ")
         .toLowerCase();
 
@@ -695,7 +695,7 @@ export function HierarchyExplorer({
         <Tabs
           value={activeTab}
           onValueChange={(val) => {
-            setActiveTab(val as any);
+            setActiveTab(val as typeof activeTab);
             setLevelFilter("ALL");
             setCurrentPage(1);
           }}

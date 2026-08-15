@@ -3107,7 +3107,7 @@ function TacticalEmptyState({
   description: string;
   onAction?: () => void;
   actionLabel?: string;
-  icon?: React.ComponentType<any>;
+  icon?: React.ComponentType<{ className?: string; strokeWidth?: number | string }>;
 }) {
   return (
     <div className="flex flex-col items-center justify-center space-y-3 rounded-[6px] border border-[var(--tactical-border)] border-dashed bg-black/5 p-8 text-center font-mono dark:bg-white/[0.01]">

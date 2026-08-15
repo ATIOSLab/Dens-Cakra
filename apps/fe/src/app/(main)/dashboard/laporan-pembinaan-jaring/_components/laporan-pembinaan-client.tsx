@@ -384,7 +384,7 @@ export function LaporanPembinaanClient() {
             aria-label="Filter Periode Waktu"
             value={periodeFilter}
             onChange={(e) => {
-              setPeriodeFilter(e.target.value as any);
+              setPeriodeFilter(e.target.value as PeriodeFilterOption);
               setPage(1);
             }}
             className="h-9 w-full border-slate-200 text-xs dark:border-white/10"

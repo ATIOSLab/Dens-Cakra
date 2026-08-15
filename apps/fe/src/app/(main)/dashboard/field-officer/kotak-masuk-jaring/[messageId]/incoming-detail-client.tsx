@@ -2,12 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-
-import { CheckCircle2, MapPin, } from "lucide-react";
+import { CheckCircle2, MapPin } from "lucide-react";
 
 import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";
 import { BackButton } from "@/components/ui/back-button";
-import { Card, CardContent, CardHeader, } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { EvidenceAttachmentViewer } from "@/features/baket/components/evidence-attachment-viewer";
 import { EvidenceImageViewer } from "@/features/baket/components/evidence-image-viewer";
 import type { FieldOfficerWorkspace } from "@/server/field-ops/types";

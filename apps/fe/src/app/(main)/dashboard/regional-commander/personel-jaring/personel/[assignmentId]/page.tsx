@@ -1,5 +1,3 @@
-
-
 import { ExecutivePersonnelDetailClient } from "@/app/(main)/dashboard/executive/personil/_components/executive-personnel-detail-client";
 import type { PersonnelDetail } from "@/app/(main)/dashboard/executive/personil/_components/executive-personnel-types";
 import { apiServerGet } from "@/lib/api/server-client";

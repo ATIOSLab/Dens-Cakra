@@ -10,7 +10,7 @@ import { Check, ChevronDown, Eye, MapPin, RefreshCw, Search, User, X } from "luc
 import { GaswilEntityLink } from "@/components/domain/gaswil-entity-link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, } from "@/components/ui/card";
+import { Card, CardHeader } from "@/components/ui/card";
 import { type ColumnOption, ColumnVisibilityToggle } from "@/components/ui/column-visibility-toggle";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -418,7 +418,9 @@ export function LaporanJaringClient() {
         if (res.ok) {
           const data = await res.json();
           if (Array.isArray(data?.jaring)) {
-            const verifiedOnly = data.jaring.filter((j: any) => j.registrationStatus === "APPROVED");
+            const verifiedOnly = data.jaring.filter(
+              (j: Record<string, unknown>) => j.registrationStatus === "APPROVED",
+            );
             setWorkspaceJarings(verifiedOnly);
           }
         }
