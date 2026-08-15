@@ -2775,7 +2775,7 @@ function _MetricBadge({
 }
 
 function TacticalSection({
-  code,
+  code: _code,
   title,
   description,
   children,

@@ -4421,9 +4421,9 @@ export function TaskDetailClient({
   task,
   editHref,
   assignmentHref,
-  hideTargetAreas = false,
-  hideAssignments = false,
-  assignmentTitle = "Penugasan",
+  hideTargetAreas: _hideTargetAreas = false,
+  hideAssignments: _hideAssignments = false,
+  assignmentTitle: _assignmentTitle = "Penugasan",
 }: TaskDetailClientProps) {
   const router = useRouter();
   const showStructuredUuk = hasStructuredUukSections(task);

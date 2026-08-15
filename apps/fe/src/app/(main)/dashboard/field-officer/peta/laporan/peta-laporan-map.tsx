@@ -491,7 +491,7 @@ export function PetaLaporanMap() {
                         size="sm"
                         variant="outline"
                       >
-                        <a href={mapsUrl(report.latitude!, report.longitude!)} rel="noreferrer" target="_blank">
+                        <a href={mapsUrl(report.latitude ?? 0, report.longitude ?? 0)} rel="noreferrer" target="_blank">
                           <ExternalLink className="mr-2 size-3.5" />
                           Buka di Maps
                         </a>

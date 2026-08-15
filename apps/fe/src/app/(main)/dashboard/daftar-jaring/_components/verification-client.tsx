@@ -1448,7 +1448,7 @@ type JaringReportItem = {
 
 export function JaringReportCardItem({
   rep,
-  jaringId,
+  jaringId: _jaringId,
   isExpanded,
   onToggleExpand,
   detailHref,

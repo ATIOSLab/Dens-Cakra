@@ -92,13 +92,6 @@ function formatDateTime(value?: string | null) {
   }
 }
 
-interface JaringAdministrativeArea {
-  id: string;
-  name: string;
-  level: string;
-  parent?: JaringAdministrativeArea | null;
-}
-
 type AdministrativeAreaScope = {
   areaId: string;
   code: string;
