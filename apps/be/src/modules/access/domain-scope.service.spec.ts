@@ -1,4 +1,3 @@
-import { OrganizationType } from '../../common/constants/legacy-operational-code.js';
 import { jest } from '@jest/globals';
 import {
   AdministrativeLevel,
@@ -144,7 +143,7 @@ describe('DomainScopeService', () => {
       roleCode: RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER,
       organizationUnitId: 'subdit',
       organizationUnitName: 'Subdit',
-      organizationUnitType: OrganizationType.SUBDIRECTORATE,
+      organizationUnitType: CommandRouteType.DIRECTORATE,
       commandRouteType: CommandRouteType.DIRECTORATE,
       areaScopes: [
         {

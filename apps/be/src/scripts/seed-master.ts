@@ -1,4 +1,4 @@
-import { OrganizationType, PositionCode } from '../common/constants/legacy-operational-code.js';
+import { PositionCode } from '../common/constants/legacy-operational-code.js';
 import {
   AdministrativeLevel,
   AreaScopeMode,
@@ -42,7 +42,7 @@ const positionAreaPolicies = [
   {
     positionCode: PositionCode.KABAGOPS,
     administrativeLevel: AdministrativeLevel.PROVINCE,
-    scopeMode: AreaScopeMode.INHERIT_UNIT,
+    scopeMode: AreaScopeMode.EXPLICIT,
     minimumAreas: 1,
     maximumAreas: 1,
   },

@@ -61,8 +61,6 @@ export class SystemController {
   enums(@Query() q: EnumQuery) {
     const allowlist = new Set([
       'RoleCode',
-      'PositionCode',
-      'OrganizationType',
       'AdministrativeLevel',
       'PriorityLevel',
       'DirectiveStatus',

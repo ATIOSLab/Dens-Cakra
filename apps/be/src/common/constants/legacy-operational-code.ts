@@ -11,16 +11,3 @@ export const PositionCode = {
 } as const;
 
 export type PositionCode = (typeof PositionCode)[keyof typeof PositionCode];
-
-export const OrganizationType = {
-  DEPUTI: 'DEPUTI',
-  DIRECTORATE: 'DIRECTORATE',
-  SUBDIRECTORATE: 'SUBDIRECTORATE',
-  BINDA: 'BINDA',
-  BAGOPS: 'BAGOPS',
-  FIELD_COORDINATION_UNIT: 'FIELD_COORDINATION_UNIT',
-  OTHER: 'OTHER',
-} as const;
-
-export type OrganizationType =
-  (typeof OrganizationType)[keyof typeof OrganizationType];
