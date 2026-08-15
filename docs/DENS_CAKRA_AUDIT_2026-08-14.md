@@ -137,7 +137,27 @@ Saat override `any` tersebut **dibuang** (perbaikan yang benar secara prinsip), 
 
 Rekomendasi: selesaikan migrasi di 4 service ini terlebih dahulu (dengan konfirmasi mapping), baru aktifkan type safety ketat (hapus `[key: string]: any`).
 
-### Hasil investigasi lanjutan migrasi (2026-08-15)
+### STATUS MIGRASI: SELESAI (2026-08-15)
+
+Migrasi `Position`/`OrganizationUnit` → `Role`/`UserOperationalAssignment` + `UserAreaScope` **tuntas**:
+
+- `prisma.service.ts` — `[key: string]: any` + getter model `any` **dihapus**; type safety aktif penuh (base class PrismaClient yang sudah bertipe dipakai).
+- `task.service.ts` — command chain: Kabinda (REGIONAL_COMMANDER, branch BINDA) → Korwil → Gaswil, via `AdministrativeAreaClosure`.
+- `directive.service.ts` — `position.findMany` → `userOperationalAssignment.findMany`; `position.title/code/organizationUnit/reportsTo` → `role.name/code`, `branch`, area scope; `reportsToPositionId`/`seatCode` → null (alur pelaporan belum ada padanan).
+- `intelligence-products.service.ts` — `position.title/organizationUnit/reportsTo` → `role.name/branch`; supervisor peta → null (fitur alur pelaporan ditunda).
+- `rbac.service.ts` — `_count.positions` → `_count.operationalAssignments`.
+- `request-context.middleware.ts` — koersi `entityId`.
+
+**Validasi**: `nest build` lolos **dengan type safety aktif**; 169 test (26 suite) lulus.
+
+**Sisa (bukan bug, hanya perapian tipe):** ~150 `TS7006` (implicit any) di dev config (`noImplicitAny: true`) tersebar di `integrations` (67), `access`, `executive-personnel`, `jaring`, dst. — tidak menghalangi build (`noImplicitAny: false`). `positions`/`organization` (modul lama) tetap dikecualikan dari build.
+
+**Keputusan domain yang diterapkan (mohon review):**
+1. Command chain = role + cakupan area (via `AdministrativeAreaClosure`).
+2. `organizationUnit` = `branch` + area (`organizationUnitName` = `${branch} ${area.name}`).
+3. Alur pelaporan (`reportsTo`) = **belum ada padanan** → supervisor peta & pohon pelaporan jadi `null`. Fitur ini perlu keputusan lanjutan.
+
+## 5. Rekomendasi Lanjutan (di luar scope saat ini)
 
 Model lama `Position` (dari `modules/positions/dto/position.dto.ts` yang dikecualikan build): `seatCode`, `code` (PositionCode), `title`, `roleId/roleCode`, `organizationUnitId`, `reportsToPositionId`, `areaScopeIds`. Penggantinya: `Role` (code/name) + `UserOperationalAssignment` (roleId, branch) + `UserAreaScope`.
 
