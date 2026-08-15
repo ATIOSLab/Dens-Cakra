@@ -1,7 +1,3 @@
-import {
-  OrganizationType,
-  PositionCode,
-} from '../../common/constants/legacy-operational-code.js';
 import { Injectable } from '@nestjs/common';
 import {
   CommandRouteType,
@@ -1116,14 +1112,7 @@ export class DirectiveService {
               isActive: true,
               validUntil: null,
               ...(recipient.targetAssignmentId
-                ? { positionId: recipient.targetAssignmentId }
-                : {}),
-              ...(recipient.targetAssignmentId
-                ? {
-                    position: {
-                      organizationUnitId: recipient.targetAssignmentId,
-                    },
-                  }
+                ? { id: recipient.targetAssignmentId }
                 : {}),
             },
             select: { userProfileId: true },
@@ -1333,12 +1322,7 @@ export class DirectiveService {
             createdByAssignment: {
               include: {
                 userProfile: true,
-                position: {
-                  include: {
-                    organizationUnit: true,
-                    role: true,
-                  },
-                },
+                role: true,
               },
             },
             versions: {
@@ -1348,12 +1332,7 @@ export class DirectiveService {
                 createdByAssignment: {
                   include: {
                     userProfile: true,
-                    position: {
-                      include: {
-                        organizationUnit: true,
-                        role: true,
-                      },
-                    },
+                    role: true,
                   },
                 },
               },
@@ -1381,54 +1360,40 @@ export class DirectiveService {
     };
     const routingPositions =
       routingAreaIds.length > 0
-        ? await this.prisma.position.findMany({
+        ? await this.prisma.userOperationalAssignment.findMany({
             where: {
               isActive: true,
-              code: {
-                in: [
-                  RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER,
-                  RoleCode.REGIONAL_COMMANDER,
-                  RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER,
-                  RoleCode.FIELD_COORDINATOR,
-                  PositionCode.STAF_SUBDIT,
-                  RoleCode.FIELD_COORDINATOR,
-                  RoleCode.FIELD_OFFICER,
-                ],
+              role: {
+                code: {
+                  in: [
+                    RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER,
+                    RoleCode.REGIONAL_COMMANDER,
+                    RoleCode.FIELD_COORDINATOR,
+                    RoleCode.FIELD_OFFICER,
+                  ],
+                },
               },
               branch: {
                 in: [CommandRouteType.DIRECTORATE, CommandRouteType.BINDA],
               },
-              areaCoverages: {
+              areaScopes: {
                 some: {
                   validUntil: null,
                   area: routingAreaWhere,
                 },
               },
             },
-            orderBy: [{ branch: 'asc' }, { seatCode: 'asc' }],
+            orderBy: [{ branch: 'asc' }, { roleId: 'asc' }],
             include: {
-              organizationUnit: true,
               role: true,
-              areaCoverages: {
+              userProfile: true,
+              areaScopes: {
                 where: {
                   validUntil: null,
                   area: routingAreaWhere,
                 },
                 orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
                 include: { area: true },
-              },
-              assignments: {
-                where: {
-                  isActive: true,
-                  validUntil: null,
-                  userProfile: {
-                    deletedAt: null,
-                    isActive: true,
-                  },
-                },
-                orderBy: [{ isPrimary: 'desc' }, { validFrom: 'desc' }],
-                take: 1,
-                include: { userProfile: true },
               },
             },
           })
@@ -1455,12 +1420,7 @@ export class DirectiveService {
         createdByAssignment: {
           include: {
             userProfile: true,
-            position: {
-              include: {
-                organizationUnit: true,
-                role: true,
-              },
-            },
+            role: true,
           },
         },
         uukStrVersion: {
@@ -1488,12 +1448,7 @@ export class DirectiveService {
             assigner: {
               include: {
                 userProfile: true,
-                position: {
-                  include: {
-                    organizationUnit: true,
-                    role: true,
-                  },
-                },
+                role: true,
                 areaScopes: {
                   where: { validUntil: null },
                   include: {
@@ -1505,12 +1460,7 @@ export class DirectiveService {
             assignee: {
               include: {
                 userProfile: true,
-                position: {
-                  include: {
-                    organizationUnit: true,
-                    role: true,
-                  },
-                },
+                role: true,
                 areaScopes: {
                   where: { validUntil: null },
                   include: {
@@ -1587,28 +1537,29 @@ export class DirectiveService {
       isPrimary: Boolean(scope.isPrimary),
     });
 
-    const mapAssignmentActor = (assignment: any) =>
-      assignment
-        ? {
-            assignmentId: assignment.id,
-            fullName: assignment.userProfile?.fullName ?? null,
-            username: assignment.userProfile?.username ?? null,
-            positionId: assignment.position?.id ?? null,
-            positionCode: assignment.position?.code ?? null,
-            positionTitle: assignment.position?.title ?? null,
-            branch: assignment.position?.branch ?? null,
-            organizationUnitId:
-              assignment.position?.organizationUnit?.id ?? null,
-            organizationUnitCode:
-              assignment.position?.organizationUnit?.code ?? null,
-            organizationUnitName:
-              assignment.position?.organizationUnit?.name ?? null,
-            organizationUnitType:
-              assignment.position?.organizationUnit?.type ?? null,
-            roleCode: assignment.position?.role?.code ?? null,
-            areaScopes: (assignment.areaScopes ?? []).map(mapAreaScope),
-          }
-        : null;
+    const mapAssignmentActor = (assignment: any) => {
+      if (!assignment) return null;
+
+      const primaryArea = (assignment.areaScopes ?? [])[0]?.area;
+
+      return {
+        assignmentId: assignment.id,
+        fullName: assignment.userProfile?.fullName ?? null,
+        username: assignment.userProfile?.username ?? null,
+        positionId: assignment.id,
+        positionCode: assignment.role?.code ?? null,
+        positionTitle: assignment.role?.name ?? null,
+        branch: assignment.branch ?? null,
+        organizationUnitId: primaryArea?.id ?? null,
+        organizationUnitCode: primaryArea?.code ?? null,
+        organizationUnitName: primaryArea
+          ? `${assignment.branch} ${primaryArea.name}`
+          : (assignment.branch ?? null),
+        organizationUnitType: assignment.branch ?? null,
+        roleCode: assignment.role?.code ?? null,
+        areaScopes: (assignment.areaScopes ?? []).map(mapAreaScope),
+      };
+    };
 
     const summarizeAssignments = (assignments: any[]) => ({
       total: assignments.length,
@@ -1665,7 +1616,7 @@ export class DirectiveService {
     const mappedTasks = filteredTasks.map((task: any) => {
       const fieldCoordinatorAssignments = task.assignments.filter(
         (assignment: any) =>
-          assignment.assignee?.position?.role?.code ===
+          assignment.assignee?.role?.code ===
           RoleCode.FIELD_COORDINATOR,
       );
 
@@ -1675,7 +1626,7 @@ export class DirectiveService {
             (candidate: any) =>
               candidate.assignerAssignmentId ===
                 assignment.assigneeAssignmentId &&
-              candidate.assignee?.position?.role?.code ===
+              candidate.assignee?.role?.code ===
                 RoleCode.FIELD_OFFICER,
           );
 
@@ -1700,19 +1651,15 @@ export class DirectiveService {
           assignmentId: task.createdByAssignment?.id ?? null,
           fullName: task.createdByAssignment?.userProfile?.fullName ?? null,
           username: task.createdByAssignment?.userProfile?.username ?? null,
-          positionId: task.createdByAssignment?.position?.id ?? null,
-          positionCode: task.createdByAssignment?.position?.code ?? null,
-          positionTitle: task.createdByAssignment?.position?.title ?? null,
-          branch: task.createdByAssignment?.position?.branch ?? null,
-          organizationUnitId:
-            task.createdByAssignment?.position?.organizationUnit?.id ?? null,
-          organizationUnitCode:
-            task.createdByAssignment?.position?.organizationUnit?.code ?? null,
-          organizationUnitName:
-            task.createdByAssignment?.position?.organizationUnit?.name ?? null,
-          organizationUnitType:
-            task.createdByAssignment?.position?.organizationUnit?.type ?? null,
-          roleCode: task.createdByAssignment?.position?.role?.code ?? null,
+          positionId: task.createdByAssignment?.id ?? null,
+          positionCode: task.createdByAssignment?.role?.code ?? null,
+          positionTitle: task.createdByAssignment?.role?.name ?? null,
+          branch: task.createdByAssignment?.branch ?? null,
+          organizationUnitId: null,
+          organizationUnitCode: null,
+          organizationUnitName: task.createdByAssignment?.branch ?? null,
+          organizationUnitType: task.createdByAssignment?.branch ?? null,
+          roleCode: task.createdByAssignment?.role?.code ?? null,
         },
         targetAreas: task.targetAreas.map((target: any) => ({
           areaId: target.areaId,
@@ -1774,10 +1721,7 @@ export class DirectiveService {
     );
 
     const regionalChains = version.recipients.map((recipient: any) => {
-      const recipientUnitId =
-        recipient.targetAssignmentId ??
-        recipient.targetAssignment?.organizationUnit?.id ??
-        null;
+      const recipientUnitId = recipient.targetAssignmentId ?? null;
       const forwarding =
         orderedForwardings.find(
           (item) => item.ownerAssignmentId === recipientUnitId,
@@ -1836,27 +1780,21 @@ export class DirectiveService {
                 username:
                   forwarding.createdByAssignment?.userProfile?.username ?? null,
                 positionId:
-                  forwarding.createdByAssignment?.position?.id ?? null,
+                  forwarding.createdByAssignment?.id ?? null,
                 positionCode:
-                  forwarding.createdByAssignment?.position?.code ?? null,
+                  forwarding.createdByAssignment?.role?.code ?? null,
                 positionTitle:
-                  forwarding.createdByAssignment?.position?.title ?? null,
+                  forwarding.createdByAssignment?.role?.name ?? null,
                 branch:
-                  forwarding.createdByAssignment?.position?.branch ?? null,
-                organizationUnitId:
-                  forwarding.createdByAssignment?.position?.organizationUnit
-                    ?.id ?? null,
-                organizationUnitCode:
-                  forwarding.createdByAssignment?.position?.organizationUnit
-                    ?.code ?? null,
+                  forwarding.createdByAssignment?.branch ?? null,
+                organizationUnitId: null,
+                organizationUnitCode: null,
                 organizationUnitName:
-                  forwarding.createdByAssignment?.position?.organizationUnit
-                    ?.name ?? null,
+                  forwarding.createdByAssignment?.branch ?? null,
                 organizationUnitType:
-                  forwarding.createdByAssignment?.position?.organizationUnit
-                    ?.type ?? null,
+                  forwarding.createdByAssignment?.branch ?? null,
                 roleCode:
-                  forwarding.createdByAssignment?.position?.role?.code ?? null,
+                  forwarding.createdByAssignment?.role?.code ?? null,
               },
               currentVersion: currentUukVersion
                 ? {
@@ -1871,8 +1809,8 @@ export class DirectiveService {
                         currentUukVersion.createdByAssignment?.userProfile
                           ?.fullName ?? null,
                       positionTitle:
-                        currentUukVersion.createdByAssignment?.position
-                          ?.title ?? null,
+                        currentUukVersion.createdByAssignment?.role?.name ??
+                        null,
                     },
                   }
                 : null,
@@ -1998,30 +1936,32 @@ export class DirectiveService {
         name: target.area.name,
         level: target.area.level,
       })),
-      routingHierarchy: routingPositions.map((position) => {
-        const assignment = position.assignments[0] ?? null;
+      routingHierarchy: routingPositions.map((assignment) => {
+        const primaryArea = assignment.areaScopes[0]?.area ?? null;
 
         return {
-          positionId: position.id,
-          reportsToPositionId: position.reportsToPositionId,
-          seatCode: position.seatCode,
-          positionCode: position.code,
-          positionTitle: position.title,
-          branch: position.branch,
-          roleCode: position.role.code,
-          organizationUnitId: position.organizationUnit.id,
-          organizationUnitCode: position.organizationUnit.code,
-          organizationUnitName: position.organizationUnit.name,
-          organizationUnitType: position.organizationUnit.type,
-          assignmentId: assignment?.id ?? null,
-          fullName: assignment?.userProfile?.fullName ?? null,
-          username: assignment?.userProfile?.username ?? null,
-          areaScopes: position.areaCoverages.map((coverage) => ({
-            areaId: coverage.areaId,
-            code: coverage.area.officialCode ?? coverage.area.code,
-            name: coverage.area.name,
-            level: coverage.area.level,
-            isPrimary: Boolean(coverage.isPrimary),
+          positionId: assignment.id,
+          reportsToPositionId: null,
+          seatCode: null,
+          positionCode: assignment.role.code,
+          positionTitle: assignment.role.name,
+          branch: assignment.branch,
+          roleCode: assignment.role.code,
+          organizationUnitId: primaryArea?.id ?? null,
+          organizationUnitCode: primaryArea?.code ?? null,
+          organizationUnitName: primaryArea
+            ? `${assignment.branch} ${primaryArea.name}`
+            : null,
+          organizationUnitType: assignment.branch,
+          assignmentId: assignment.id,
+          fullName: assignment.userProfile?.fullName ?? null,
+          username: assignment.userProfile?.username ?? null,
+          areaScopes: assignment.areaScopes.map((scope) => ({
+            areaId: scope.areaId,
+            code: scope.area.officialCode ?? scope.area.code,
+            name: scope.area.name,
+            level: scope.area.level,
+            isPrimary: Boolean(scope.isPrimary),
           })),
         };
       }),

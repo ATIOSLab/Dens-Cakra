@@ -19,7 +19,6 @@ export class PrismaService
   extends PrismaClient
   implements OnModuleInit, OnModuleDestroy
 {
-  [key: string]: any;
   private readonly logger = new Logger(PrismaService.name);
 
   constructor() {
@@ -65,10 +64,6 @@ export class PrismaService
         );
       });
     }
-  }
-
-  private delegate(name: string): any {
-    return Reflect.get(PrismaClient.prototype, name, this);
   }
 
   private removedModel(name: string): any {
@@ -118,146 +113,6 @@ export class PrismaService
 
   get bindaProfile(): any {
     return this.removedModel('BindaProfile');
-  }
-
-  get user(): any {
-    return this.delegate('user');
-  }
-
-  get userProfile(): any {
-    return this.delegate('userProfile');
-  }
-
-  get userOperationalAssignment(): any {
-    return this.delegate('userOperationalAssignment');
-  }
-
-  get userAreaScope(): any {
-    return this.delegate('userAreaScope');
-  }
-
-  get role(): any {
-    return this.delegate('role');
-  }
-
-  get administrativeArea(): any {
-    return this.delegate('administrativeArea');
-  }
-
-  get administrativeAreaClosure(): any {
-    return this.delegate('administrativeAreaClosure');
-  }
-
-  get directive(): any {
-    return this.delegate('directive');
-  }
-
-  get directiveVersion(): any {
-    return this.delegate('directiveVersion');
-  }
-
-  get directiveRecipient(): any {
-    return this.delegate('directiveRecipient');
-  }
-
-  get uukStr(): any {
-    return this.delegate('uukStr');
-  }
-
-  get uukStrVersion(): any {
-    return this.delegate('uukStrVersion');
-  }
-
-  get task(): any {
-    return this.delegate('task');
-  }
-
-  get taskAssignment(): any {
-    return this.delegate('taskAssignment');
-  }
-
-  get jaring(): any {
-    return this.delegate('jaring');
-  }
-
-  get jaringCaretakerAssignment(): any {
-    return this.delegate('jaringCaretakerAssignment');
-  }
-
-  get whatsAppMessage(): any {
-    return this.delegate('whatsAppMessage');
-  }
-
-  get whatsAppRoutingLog(): any {
-    return this.delegate('whatsAppRoutingLog');
-  }
-
-  get whatsAppReportSession(): any {
-    return this.delegate('whatsAppReportSession');
-  }
-
-  get whatsAppDeviceActivityLog(): any {
-    return this.delegate('whatsAppDeviceActivityLog');
-  }
-
-  get whatsAppNotificationRecipient(): any {
-    return this.delegate('whatsAppNotificationRecipient');
-  }
-
-  get baket(): any {
-    return this.delegate('baket');
-  }
-
-  get baketVersion(): any {
-    return this.delegate('baketVersion');
-  }
-
-  get baketVerification(): any {
-    return this.delegate('baketVerification');
-  }
-
-  get baketCoverageCheck(): any {
-    return this.delegate('baketCoverageCheck');
-  }
-
-  get analysisCase(): any {
-    return this.delegate('analysisCase');
-  }
-
-  get analysisVersion(): any {
-    return this.delegate('analysisVersion');
-  }
-
-  get intelligenceProduct(): any {
-    return this.delegate('intelligenceProduct');
-  }
-
-  get productVersion(): any {
-    return this.delegate('productVersion');
-  }
-
-  get productApprovalStep(): any {
-    return this.delegate('productApprovalStep');
-  }
-
-  get productDistribution(): any {
-    return this.delegate('productDistribution');
-  }
-
-  get emergencyIncident(): any {
-    return this.delegate('emergencyIncident');
-  }
-
-  get alert(): any {
-    return this.delegate('alert');
-  }
-
-  get personnelLocationPing(): any {
-    return this.delegate('personnelLocationPing');
-  }
-
-  get auditLog(): any {
-    return this.delegate('auditLog');
   }
 
   async onModuleInit(): Promise<void> {

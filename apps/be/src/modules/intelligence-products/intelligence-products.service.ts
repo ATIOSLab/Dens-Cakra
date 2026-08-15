@@ -5093,9 +5093,7 @@ export class IntelligenceProductsService {
         },
         assignee: {
           include: {
-            position: {
-              include: { organizationUnit: true },
-            },
+            role: true,
           },
         },
       },
@@ -5107,10 +5105,10 @@ export class IntelligenceProductsService {
     for (const assignment of assignments) {
       const key =
         query.groupBy === 'position'
-          ? assignment.assignee.position.title
+          ? assignment.assignee.role.name
           : query.groupBy === 'area'
             ? (assignment.task.targetAreas[0]?.area.name ?? 'UNSCOPED')
-            : assignment.assignee.position.organizationUnit.name;
+            : assignment.assignee.branch;
       if (!grouped.has(key)) {
         grouped.set(key, { total: 0, completed: 0, overdue: 0 });
       }
@@ -5923,7 +5921,7 @@ export class IntelligenceProductsService {
         ...this.buildCommonDateWhere('createdAt', query.from, query.to),
       },
       include: {
-        ownerAssignment: true,
+        ownerAssignment: { include: { role: true } },
         targetAreas: {
           include: { area: true },
           orderBy: { isPrimary: 'desc' },
@@ -5973,7 +5971,7 @@ export class IntelligenceProductsService {
           status: item.task.status,
           priority: item.task.priority,
           ownerAssignmentId: item.task.ownerAssignmentId,
-          ownerAssignmentName: item.task.ownerAssignment.name,
+          ownerAssignmentName: item.task.ownerAssignment.role?.name ?? null,
           areaId: item.area!.id,
           areaName: item.area!.name,
         },
@@ -6788,10 +6786,9 @@ export class IntelligenceProductsService {
         id: { in: scope.assignmentIds },
         isActive: true,
         OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
-        position: {
+        role: {
           code: RoleCode.FIELD_OFFICER,
           isActive: true,
-          ...(query.unitId ? { organizationUnitId: query.unitId } : {}),
         },
         ...(query.areaId
           ? {
@@ -6803,25 +6800,11 @@ export class IntelligenceProductsService {
       },
       include: {
         userProfile: true,
+        role: true,
         areaScopes: {
           where: { validUntil: null },
           include: { area: true },
           orderBy: [{ isPrimary: 'desc' }, { validFrom: 'desc' }],
-        },
-        position: {
-          include: {
-            organizationUnit: true,
-            reportsTo: {
-              include: {
-                organizationUnit: true,
-                assignments: {
-                  where: { isActive: true, validUntil: null },
-                  take: 1,
-                  include: { userProfile: true },
-                },
-              },
-            },
-          },
         },
       },
       orderBy: { createdAt: 'asc' },
@@ -6866,9 +6849,7 @@ export class IntelligenceProductsService {
         : fallbackArea?.centroidLongitude
           ? Number(fallbackArea.centroidLongitude)
           : null;
-      const supervisorAssignment =
-        assignment.position.reportsTo?.assignments[0] ?? null;
-
+      const primaryArea = assignment.areaScopes[0]?.area ?? null;
       return {
         type: 'Feature',
         id: ping?.id ?? `assignment:${assignment.id}`,
@@ -6888,16 +6869,14 @@ export class IntelligenceProductsService {
           areaName: ping?.area?.name ?? fallbackArea?.name ?? null,
           userProfileId: assignment.userProfile.id,
           userName: assignment.userProfile.fullName,
-          positionTitle: assignment.position.title,
-          unitName: assignment.position.organizationUnit.name,
-          supervisorAssignmentId: supervisorAssignment?.id ?? null,
-          supervisorName:
-            supervisorAssignment?.userProfile.fullName ??
-            assignment.position.reportsTo?.title ??
-            null,
-          supervisorPositionTitle: assignment.position.reportsTo?.title ?? null,
-          supervisorUnitName:
-            assignment.position.reportsTo?.organizationUnit.name ?? null,
+          positionTitle: assignment.role.name,
+          unitName: primaryArea
+            ? `${assignment.branch} ${primaryArea.name}`
+            : assignment.branch,
+          supervisorAssignmentId: null,
+          supervisorName: null,
+          supervisorPositionTitle: null,
+          supervisorUnitName: null,
           canSeeStealth: false,
         },
       };
@@ -6920,13 +6899,6 @@ export class IntelligenceProductsService {
           ? { capturedAt: { gte: new Date(query.capturedAfter) } }
           : {}),
         ...(query.includeStealth ? {} : { isStealth: false }),
-        ...(query.unitId
-          ? {
-              operationalAssignment: {
-                position: { organizationUnitId: query.unitId },
-              },
-            }
-          : {}),
       },
       orderBy: [{ capturedAt: 'desc' }, { id: 'desc' }],
       include: {
@@ -6934,9 +6906,7 @@ export class IntelligenceProductsService {
         operationalAssignment: {
           include: {
             userProfile: true,
-            position: {
-              include: { organizationUnit: true },
-            },
+            role: true,
           },
         },
       },
@@ -6964,8 +6934,8 @@ export class IntelligenceProductsService {
         areaName: ping.area?.name ?? null,
         userProfileId: ping.operationalAssignment.userProfile.id,
         userName: ping.operationalAssignment.userProfile.fullName,
-        positionTitle: ping.operationalAssignment.position.title,
-        unitName: ping.operationalAssignment.position.organizationUnit.name,
+        positionTitle: ping.operationalAssignment.role.name,
+        unitName: ping.operationalAssignment.branch,
         canSeeStealth:
           query.includeStealth && context.roleCode !== RoleCode.FIELD_OFFICER,
       },
