@@ -155,7 +155,7 @@ Migrasi `Position`/`OrganizationUnit` → `Role`/`UserOperationalAssignment` + `
 **Keputusan domain yang diterapkan (mohon review):**
 1. Command chain = role + cakupan area (via `AdministrativeAreaClosure`).
 2. `organizationUnit` = `branch` + area (`organizationUnitName` = `${branch} ${area.name}`).
-3. Alur pelaporan (`reportsTo`) = **belum ada padanan** → supervisor peta & pohon pelaporan jadi `null`. Fitur ini perlu keputusan lanjutan.
+3. Alur pelaporan (`reportsTo`) = **derivasi** dari role + cakupan area (`DomainScopeService.resolveCommandSupervisors` + `command-chain.ts`), menggantikan pohon `Position.reportsToPositionId`. Supervisor peta & `reportsToPositionId` pada hierarki direktif kini terisi, bukan null.
 
 ## 5. Rekomendasi Lanjutan (di luar scope saat ini)
 
