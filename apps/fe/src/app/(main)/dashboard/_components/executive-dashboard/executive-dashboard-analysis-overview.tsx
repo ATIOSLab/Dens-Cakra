@@ -212,6 +212,10 @@ export function ExecutiveDashboardAnalysisOverview({
       ? "Supervisi DKI berbasis kota/kabupaten administratif sesuai penugasan admin."
       : data.scope.scopeDescription;
 
+  const canViewIntelligenceProducts = role !== "field_coordinator";
+  const isLeadershipRole =
+    role === "executive" || role === "regional_commander" || role === "operational_intelligence_manager";
+
   return (
     <section aria-labelledby="analysis-overview-heading" className="space-y-4">
       <Card className="overflow-hidden border-[var(--dc-border-subtle)] bg-[linear-gradient(135deg,var(--card),color-mix(in_srgb,var(--dc-primary)_6%,var(--card)))] shadow-[var(--dc-shadow-card)]">
@@ -258,15 +262,17 @@ export function ExecutiveDashboardAnalysisOverview({
               <h3 className="text-sm font-semibold">Prioritas Analisis</h3>
             </div>
             <div className="space-y-2">
-              <SignalRow
-                label="Perhatian Pimpinan"
-                value={data.overview.attention.length}
-                description="Laporan atau tindak lanjut yang perlu dicermati lebih dulu."
-                href="#leadership-attention"
-                tone="warning"
-                icon={AlertTriangle}
-                buildHref={(href) => href}
-              />
+              {isLeadershipRole && (
+                <SignalRow
+                  label="Perhatian Pimpinan"
+                  value={data.overview.attention.length}
+                  description="Laporan atau tindak lanjut yang perlu dicermati lebih dulu."
+                  href="#leadership-attention"
+                  tone="warning"
+                  icon={AlertTriangle}
+                  buildHref={(href) => href}
+                />
+              )}
               <SignalRow
                 label="Laporan Mendesak"
                 value={urgentReports}
@@ -364,15 +370,17 @@ export function ExecutiveDashboardAnalysisOverview({
               tone="success"
               buildHref={buildHref}
             />
-            <SummaryMetric
-              label={DOMAIN_TERMS.intelligenceReport}
-              value={productTotal}
-              helper={productHelper}
-              href="/dashboard/produk-intelijen"
-              icon={DOMAIN_VISUALS.intelligenceReport.Icon}
-              tone="success"
-              buildHref={buildHref}
-            />
+            {canViewIntelligenceProducts && (
+              <SummaryMetric
+                label={DOMAIN_TERMS.intelligenceReport}
+                value={productTotal}
+                helper={productHelper}
+                href="/dashboard/produk-intelijen"
+                icon={DOMAIN_VISUALS.intelligenceReport.Icon}
+                tone="success"
+                buildHref={buildHref}
+              />
+            )}
           </div>
         </div>
       </div>
