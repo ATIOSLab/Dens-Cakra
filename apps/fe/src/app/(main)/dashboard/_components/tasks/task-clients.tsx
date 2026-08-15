@@ -1527,7 +1527,7 @@ function SubordinateAssignmentsList({ assignments }: { assignments: TaskAssignme
                   className="font-bold font-sans text-[var(--dc-text-primary)]"
                 />
                 <span className="font-mono text-[10px] text-muted-foreground/50">
-                  ({assignment.assignee?.position?.title ?? "Petugas Wilayah"})
+                  ({assignment.assignee?.role?.name ?? "Petugas Wilayah"})
                 </span>
               </div>
               <div className="text-[11px] text-muted-foreground leading-relaxed">
@@ -1629,8 +1629,8 @@ export function FieldCoordinatorAssignmentDetailClient({
   const filteredAssignments = useMemo(() => {
     return subordinateAssignments
       .filter((a) => {
-        const name = a.assignee?.userProfile?.fullName ?? a.assignee?.position?.title ?? "Petugas Wilayah (Gaswil)";
-        const location = a.assignee?.position?.organizationUnit?.name ?? "";
+        const name = a.assignee?.userProfile?.fullName ?? a.assignee?.role?.name ?? "Petugas Wilayah (Gaswil)";
+        const location = a.assignee?.branch ?? "";
         const matchesSearch =
           name.toLowerCase().includes(searchQuery.toLowerCase()) ||
           location.toLowerCase().includes(searchQuery.toLowerCase());
@@ -1650,8 +1650,8 @@ export function FieldCoordinatorAssignmentDetailClient({
       })
       .sort((a, b) => {
         if (sortBy === "nama") {
-          const nameA = a.assignee?.userProfile?.fullName ?? a.assignee?.position?.title ?? "Petugas Wilayah (Gaswil)";
-          const nameB = b.assignee?.userProfile?.fullName ?? b.assignee?.position?.title ?? "Petugas Wilayah (Gaswil)";
+          const nameA = a.assignee?.userProfile?.fullName ?? a.assignee?.role?.name ?? "Petugas Wilayah (Gaswil)";
+          const nameB = b.assignee?.userProfile?.fullName ?? b.assignee?.role?.name ?? "Petugas Wilayah (Gaswil)";
           return nameA.localeCompare(nameB);
         }
         if (sortBy === "deadline") {
@@ -1784,8 +1784,8 @@ export function FieldCoordinatorAssignmentDetailClient({
           <div className="divide-y divide-white/[0.04] overflow-hidden rounded-[6px] border border-white/[0.08] bg-white/[0.005]">
             {paginatedAssignments.map((assignment) => {
               const name = assignment.assignee?.userProfile?.fullName ?? "Petugas Wilayah (Gaswil)";
-              const position = assignment.assignee?.position?.title ?? "Petugas Wilayah (Gaswil)";
-              const region = assignment.assignee?.position?.organizationUnit?.name ?? "Aceh";
+              const position = assignment.assignee?.role?.name ?? "Petugas Wilayah (Gaswil)";
+              const region = assignment.assignee?.branch ?? "Aceh";
               const isOverdue = isAssignmentOverdue(assignment);
 
               return (
@@ -2306,7 +2306,7 @@ export function FieldCoordinatorMonitoringClient({
                                   className="font-bold font-sans text-[var(--dc-text-primary)]"
                                 />
                                 <span className="truncate font-mono text-[9px] text-muted-foreground/40">
-                                  ({assignment.assignee?.position?.title ?? "Petugas Wilayah (Gaswil)"})
+                                  ({assignment.assignee?.role?.name ?? "Petugas Wilayah (Gaswil)"})
                                 </span>
                               </div>
                               <div className="truncate text-[10px] text-muted-foreground">
@@ -2480,8 +2480,8 @@ export function FieldCoordinatorMonitoringDetailClient({
   const filteredAssignments = useMemo(() => {
     return subordinateAssignments
       .filter((a) => {
-        const name = a.assignee?.userProfile?.fullName ?? a.assignee?.position?.title ?? "Petugas Wilayah (Gaswil)";
-        const location = a.assignee?.position?.organizationUnit?.name ?? "";
+        const name = a.assignee?.userProfile?.fullName ?? a.assignee?.role?.name ?? "Petugas Wilayah (Gaswil)";
+        const location = a.assignee?.branch ?? "";
         const matchesSearch =
           name.toLowerCase().includes(searchQuery.toLowerCase()) ||
           location.toLowerCase().includes(searchQuery.toLowerCase());
@@ -2501,8 +2501,8 @@ export function FieldCoordinatorMonitoringDetailClient({
       })
       .sort((a, b) => {
         if (sortBy === "nama") {
-          const nameA = a.assignee?.userProfile?.fullName ?? a.assignee?.position?.title ?? "Petugas Wilayah (Gaswil)";
-          const nameB = b.assignee?.userProfile?.fullName ?? b.assignee?.position?.title ?? "Petugas Wilayah (Gaswil)";
+          const nameA = a.assignee?.userProfile?.fullName ?? a.assignee?.role?.name ?? "Petugas Wilayah (Gaswil)";
+          const nameB = b.assignee?.userProfile?.fullName ?? b.assignee?.role?.name ?? "Petugas Wilayah (Gaswil)";
           return nameA.localeCompare(nameB);
         }
         if (sortBy === "deadline") {
@@ -2621,8 +2621,8 @@ export function FieldCoordinatorMonitoringDetailClient({
           <div className="divide-y divide-white/[0.04] overflow-hidden rounded-[6px] border border-white/[0.08] bg-white/[0.005]">
             {paginatedAssignments.map((assignment) => {
               const name = assignment.assignee?.userProfile?.fullName ?? "Petugas Wilayah (Gaswil)";
-              const position = assignment.assignee?.position?.title ?? "Petugas Wilayah (Gaswil)";
-              const region = assignment.assignee?.position?.organizationUnit?.name ?? "Aceh";
+              const position = assignment.assignee?.role?.name ?? "Petugas Wilayah (Gaswil)";
+              const region = assignment.assignee?.branch ?? "Aceh";
               const isOverdue = isAssignmentOverdue(assignment);
               const latestLog = latestProgressLog(assignment);
 
@@ -3294,7 +3294,7 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       result = result.filter(
-        (c) => c.userProfile?.fullName?.toLowerCase().includes(q) || c.position?.title?.toLowerCase().includes(q),
+        (c) => c.userProfile?.fullName?.toLowerCase().includes(q) || c.role?.name?.toLowerCase().includes(q),
       );
     }
 
@@ -3313,8 +3313,8 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
     // 4. Sort
     result.sort((a, b) => {
       if (sortBy === "name") {
-        const nameA = a.userProfile?.fullName || a.position?.title || "";
-        const nameB = b.userProfile?.fullName || b.position?.title || "";
+        const nameA = a.userProfile?.fullName || a.role?.name || "";
+        const nameB = b.userProfile?.fullName || b.role?.name || "";
         return nameA.localeCompare(nameB);
       }
       const areaA = a.areaScopes?.[0]?.area.name || "";
@@ -3715,11 +3715,11 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
                               <div className="min-w-0 flex-1 space-y-0.5">
                                 <div className="truncate font-bold text-foreground text-sm">
                                   {candidate.userProfile?.fullName ||
-                                    candidate.position?.title ||
+                                    candidate.role?.name ||
                                     "Koordinator Wilayah (Korwil)"}
                                 </div>
                                 <div className="truncate font-mono text-[11px] text-muted-foreground/60 uppercase">
-                                  {candidate.position?.title || "-"}
+                                  {candidate.role?.name || "-"}
                                 </div>
                                 <div className="truncate font-mono text-[10px] text-muted-foreground/50 uppercase">
                                   WILAYAH: {candidate.areaScopes?.[0]?.area.name || "-"}
@@ -3813,14 +3813,14 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
                                 </td>
                                 <td className="p-3 font-bold text-foreground">
                                   {candidate.userProfile?.fullName ||
-                                    candidate.position?.title ||
+                                    candidate.role?.name ||
                                     "Koordinator Wilayah (Korwil)"}
                                 </td>
                                 <td className="p-3 text-[11px] uppercase">
                                   {candidate.areaScopes?.[0]?.area.name || "-"}
                                 </td>
                                 <td className="p-3 text-[11px] text-muted-foreground/60 uppercase">
-                                  {candidate.position?.title || "-"}
+                                  {candidate.role?.name || "-"}
                                 </td>
                               </tr>
                             );
@@ -4722,7 +4722,7 @@ export function AssignmentBoardClient({
                   <SelectContent>
                     {candidates.map((candidate) => (
                       <SelectItem key={candidate.id} value={candidate.id}>
-                        {candidate.userProfile?.fullName ?? candidate.position?.title ?? candidate.id}
+                        {candidate.userProfile?.fullName ?? candidate.role?.name ?? candidate.id}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -4946,7 +4946,7 @@ export function FieldOfficerAssignmentsClient({
                 <span>{assignment.task?.title ?? "Task"}</span>
                 <Badge variant={badgeVariant(assignment.status)}>{assignmentStatusLabel(assignment.status)}</Badge>
               </CardTitle>
-              <CardDescription>{assignment.assignee?.position?.title ?? "Petugas Wilayah (Gaswil)"}</CardDescription>
+              <CardDescription>{assignment.assignee?.role?.name ?? "Petugas Wilayah (Gaswil)"}</CardDescription>
               <CardAction>
                 <Button asChild size="sm" variant="outline">
                   <Link href={`/dashboard/field-officer/tugas-saya/${assignment.id}`}>Buka</Link>

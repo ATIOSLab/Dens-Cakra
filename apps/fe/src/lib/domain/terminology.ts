@@ -50,7 +50,6 @@ export const DOMAIN_TERMS = {
   whatsappNotificationSettings: "Notifikasi WhatsApp",
   smtpSettings: "Pengaturan SMTP",
   roleAccessSettings: "Role dan Hak Akses",
-  positionReportingLine: "Jabatan dan Alur Pelaporan",
   adminAccountAccessGroup: "Akun & Akses",
   adminStructureScopeGroup: "Struktur & Cakupan",
   adminReferenceDataGroup: "Referensi Data",

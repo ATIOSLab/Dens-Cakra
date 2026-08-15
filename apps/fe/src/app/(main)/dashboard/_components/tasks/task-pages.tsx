@@ -9,7 +9,7 @@ import type {
   TaskSummary,
 } from "@/features/tasks/types";
 import type { UukDetail, UukSummary } from "@/features/uuk-str/types";
-import { apiServerFetchEnvelope, apiServerGet } from "@/lib/api/server-client";
+import { apiServerGet } from "@/lib/api/server-client";
 import { requireRole } from "@/lib/auth/server-session";
 import { SYSTEM_ROLES } from "@/navigation/sidebar/system-roles";
 
@@ -47,9 +47,6 @@ type AccessMe = {
   };
 };
 
-const ASSIGNMENT_PAGE_LIMIT = 100;
-const ASSIGNMENT_POSITION_CHUNK_SIZE = 40;
-
 type CoordinatorTaskView = TaskSummary & {
   subordinateAssignments: TaskAssignmentDetail[];
   coordinatorAssignmentId?: string | null;
@@ -74,16 +71,6 @@ function normalizeAreaTree(areaTree: AreaNode | AreaNode[] | null | undefined): 
   return Array.isArray(areaTree) ? areaTree : [areaTree];
 }
 
-function chunkValues<T>(values: T[], size: number) {
-  const chunks: T[][] = [];
-
-  for (let index = 0; index < values.length; index += size) {
-    chunks.push(values.slice(index, index + size));
-  }
-
-  return chunks;
-}
-
 async function loadOimForwardingOptions(): Promise<OimForwardingOptions> {
   const [access, areaTree] = await Promise.all([
     apiServerGet<AccessMe>("/access/me"),
@@ -103,45 +90,13 @@ async function loadSubordinateCandidates(
   access: AccessMe,
   roleCode?: "FIELD_COORDINATOR" | "FIELD_OFFICER",
 ): Promise<AssignmentCandidate[]> {
-  const validAt = new Date().toISOString();
-  const subordinates = await apiServerGet<Array<{ id: string }>>(
-    `/positions/${access.authorizationContext.positionId}/subordinates`,
-    {
-      recursive: true,
-      depth: 5,
-    },
-  );
-  const subordinateIds = subordinates.map((item) => item.id);
-
-  if (!subordinateIds.length) {
+  if (!roleCode) {
     return [];
   }
 
-  const assignments: AssignmentCandidate[] = [];
-
-  for (const positionIds of chunkValues(subordinateIds, ASSIGNMENT_POSITION_CHUNK_SIZE)) {
-    let page = 1;
-    let totalPages = 1;
-
-    do {
-      const response = await apiServerFetchEnvelope<AssignmentCandidate[]>("/position-assignments", {
-        query: {
-          ...(roleCode ? { roleCode } : {}),
-          positionIds,
-          isActive: true,
-          limit: ASSIGNMENT_PAGE_LIMIT,
-          page,
-          validAt,
-        },
-      });
-
-      assignments.push(...response.data);
-      totalPages = response.meta?.pagination?.totalPages ?? 1;
-      page += 1;
-    } while (page <= totalPages);
-  }
-
-  return assignments;
+  return apiServerGet<AssignmentCandidate[]>("/access/assignable-assignments", {
+    roleCode,
+  });
 }
 
 async function loadIncomingOimSources(sortBy?: string, sortOrder?: string): Promise<OimIncomingForwardingSource[]> {

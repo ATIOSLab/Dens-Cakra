@@ -13,6 +13,17 @@ export type TaskAssignmentPerson = {
     fullName?: string | null;
     username?: string | null;
   } | null;
+  role?: {
+    code?: string;
+    name?: string;
+  } | null;
+  branch?: string | null;
+  areaScopes?: Array<{
+    area?: {
+      id?: string;
+      name?: string;
+    } | null;
+  }>;
   position?: PositionOption | null;
 };
 
@@ -133,6 +144,11 @@ export type AssignmentCandidate = {
     id?: string;
     fullName?: string | null;
   } | null;
+  role?: {
+    code?: string;
+    name?: string;
+  } | null;
+  branch?: string | null;
   position?: PositionOption | null;
   areaScopes?: Array<{
     area: {

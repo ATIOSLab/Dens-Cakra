@@ -54,13 +54,6 @@ const adminModuleGroups: AdminModuleGroup[] = [
     description: "Relasi jabatan, alur pelaporan, dan aturan cakupan supervisi.",
     modules: [
       {
-        title: DOMAIN_TERMS.positionReportingLine,
-        label: "Relasi jabatan, role, fungsi, unit organisasi, dan atasan langsung.",
-        href: "/dashboard/admin-system/jabatan-reporting-line",
-        Icon: Route,
-        iconClass: DOMAIN_VISUALS.admin.iconClass,
-      },
-      {
         title: "Wilayah Supervisi DKI",
         label: "Konfigurasi cakupan Direktorat/Ditwil berbasis Kota/Kabupaten DKI.",
         href: "/dashboard/admin-system/supervisi-dki",

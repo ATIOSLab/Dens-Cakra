@@ -316,12 +316,6 @@ export const sidebarItems: NavGroup[] = [
         roles: ADMIN_SYSTEM_ROLE,
         subItems: [
           {
-            id: "admin-system-position-reporting-line",
-            title: DOMAIN_TERMS.positionReportingLine,
-            url: "/dashboard/admin-system/jabatan-reporting-line",
-            roles: ADMIN_SYSTEM_ROLE,
-          },
-          {
             id: "admin-system-dki-supervision",
             title: "Wilayah Supervisi DKI",
             url: "/dashboard/admin-system/supervisi-dki",

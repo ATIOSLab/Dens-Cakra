@@ -6,7 +6,6 @@ import type {
   ProvinceBoundaryCollection,
   ProvinceOption,
   RegionalAssignmentOption,
-  RegionalMasterOverview,
 } from "@/features/directives/types";
 import { ApiClientError } from "@/lib/api/errors";
 import { apiServerGet } from "@/lib/api/server-client";
@@ -22,15 +21,11 @@ type ProvinceAreaResource = ProvinceOption;
 
 type PositionAssignmentResource = {
   id: string;
-  position?: {
-    id: string;
+  role?: {
     code?: string;
-    title?: string;
-    organizationUnit?: {
-      id: string;
-      name: string;
-    } | null;
+    name?: string;
   } | null;
+  branch?: string | null;
   userProfile?: {
     fullName?: string | null;
     username?: string | null;
@@ -67,18 +62,18 @@ async function safeOptionalServerGet<T>(path: string, query: Record<string, stri
 
 function normalizeRegionalAssignments(assignments: PositionAssignmentResource[]): RegionalAssignmentOption[] {
   return assignments.flatMap((assignment) => {
-    if (!assignment.position?.id || !assignment.position.organizationUnit?.id) {
-      return [];
-    }
+    const primaryArea = assignment.areaScopes?.[0]?.area;
 
     return [
       {
         id: assignment.id,
-        positionId: assignment.position.id,
-        positionTitle: assignment.position.title ?? "Kepala BIN Daerah (Kabinda)",
-        positionCode: assignment.position.code ?? "REGIONAL_COMMANDER",
-        organizationUnitId: assignment.position.organizationUnit.id,
-        organizationUnitName: assignment.position.organizationUnit.name,
+        positionId: assignment.id,
+        positionTitle: assignment.role?.name ?? "Kepala BIN Daerah (Kabinda)",
+        positionCode: assignment.role?.code ?? "REGIONAL_COMMANDER",
+        organizationUnitId: primaryArea?.id ?? assignment.id,
+        organizationUnitName: primaryArea
+          ? `${assignment.branch ?? ""} ${primaryArea.name}`
+          : (assignment.branch ?? ""),
         assigneeName: assignment.userProfile?.fullName ?? null,
         assigneeUsername: assignment.userProfile?.username ?? null,
         areaScopes: (assignment.areaScopes ?? []).flatMap((scope) =>
@@ -100,10 +95,9 @@ function normalizeRegionalAssignments(assignments: PositionAssignmentResource[])
 }
 
 async function loadDirectiveBuilderOptions() {
-  const today = new Date().toISOString();
   const access = await apiServerGet<AccessContextResource>("/access/me");
 
-  const [provinces, provinceBoundaries, regionalAssignments, regionalMasters] = await Promise.all([
+  const [provinces, provinceBoundaries, regionalAssignments] = await Promise.all([
     safeOptionalServerGet<ProvinceAreaResource[]>("/administrative-areas", {
       level: "PROVINCE",
       isActive: true,
@@ -115,13 +109,9 @@ async function loadDirectiveBuilderOptions() {
       zoom: 4,
       limit: 200,
     }),
-    safeOptionalServerGet<PositionAssignmentResource[]>("/position-assignments", {
+    safeOptionalServerGet<PositionAssignmentResource[]>("/access/assignable-assignments", {
       roleCode: "REGIONAL_COMMANDER",
-      isActive: true,
-      validAt: today,
-      limit: 100,
     }),
-    safeOptionalServerGet<RegionalMasterOverview>("/organization-units/regional-masters", {}),
   ]);
 
   return {
@@ -129,7 +119,7 @@ async function loadDirectiveBuilderOptions() {
     provinces: provinces ?? [],
     provinceBoundaries: provinceBoundaries ?? createEmptyProvinceBoundaryCollection(),
     regionalAssignments: normalizeRegionalAssignments(regionalAssignments ?? []),
-    regionalMasters: regionalMasters ?? null,
+    regionalMasters: null,
   };
 }
 
