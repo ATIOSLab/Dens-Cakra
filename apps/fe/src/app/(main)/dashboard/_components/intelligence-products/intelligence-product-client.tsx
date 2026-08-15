@@ -580,10 +580,9 @@ function ProductBrowser({
                 disabled={safePage <= 1}
                 onClick={() => setPage((value) => Math.max(1, value - 1))}
               >
-                Previous
+                Sebelumnya
               </Button>
-              {paginationNumbers(safePage, totalPages).map((pageNumber) => (
-                <Button
+              {paginationNumbers(safePage, totalPages).map((pageNumber) => (                <Button
                   key={pageNumber}
                   variant={pageNumber === safePage ? "default" : "outline"}
                   size="icon"
@@ -597,7 +596,7 @@ function ProductBrowser({
                 disabled={safePage >= totalPages}
                 onClick={() => setPage((value) => Math.min(totalPages, value + 1))}
               >
-                Next
+                Berikutnya
               </Button>
             </div>
           </div>

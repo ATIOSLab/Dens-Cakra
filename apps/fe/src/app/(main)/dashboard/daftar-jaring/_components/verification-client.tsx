@@ -651,7 +651,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
                 : "border-slate-200/80 dark:border-white/10 hover:border-sky-500/40 hover:bg-slate-50/50 dark:hover:bg-slate-900/50",
             )}
           >
-            <div className="flex size-10 items-center justify-center rounded-md bg-sky-500/10 text-sky-600 dark:text-[#38BDF8] shrink-0">
+            <div className="flex size-10 items-center justify-center rounded-md bg-sky-500/10 text-sky-600 dark:text-sky-400 shrink-0">
               <DOMAIN_VISUALS.jaring.Icon className="size-5" />
             </div>
             <div>
@@ -1512,7 +1512,7 @@ export function JaringReportCardItem({
       >
         <div className="min-w-0 flex-1 space-y-1">
           <div className="flex items-center gap-2">
-            <span className="font-mono text-xs text-sky-600 dark:text-[#38BDF8] font-bold shrink-0">{refNum}</span>
+            <span className="font-mono text-xs text-sky-600 dark:text-sky-400 font-bold shrink-0">{refNum}</span>
             <Badge variant="outline" className="text-[10px] font-mono shrink-0">
               {rep.status ?? rep.currentState ?? "SUBMITTED"}
             </Badge>
@@ -1554,7 +1554,7 @@ export function JaringReportCardItem({
           {photos.length > 0 && (
             <div className="space-y-1.5">
               <div className="text-[11px] font-medium text-muted-foreground flex items-center gap-1.5">
-                <ImageIcon className="size-3.5 text-sky-600 dark:text-[#38BDF8]" />
+                <ImageIcon className="size-3.5 text-sky-600 dark:text-sky-400" />
                 Lampiran Foto ({photos.length})
               </div>
               <div className="flex flex-wrap gap-2 pt-1">
@@ -1602,7 +1602,7 @@ export function JaringReportCardItem({
               asChild
               size="sm"
               variant="outline"
-              className="h-8 gap-1.5 text-xs font-medium border-sky-500/30 text-sky-600 hover:bg-sky-500/10 dark:text-[#38BDF8] shrink-0"
+              className="h-8 gap-1.5 text-xs font-medium border-sky-500/30 text-sky-600 hover:bg-sky-500/10 dark:text-sky-400 shrink-0"
               onClick={(e) => e.stopPropagation()}
             >
               <Link href={targetHref}>
@@ -1774,7 +1774,7 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
             className="h-8 w-fit rounded-[6px] border-slate-200 bg-white font-medium text-muted-foreground transition-all duration-150 ease-out hover:bg-slate-100 hover:text-foreground dark:border-blue-400/12 dark:bg-[#111827] dark:hover:bg-blue-400/5"
           >
             <Link href="/dashboard/daftar-jaring">
-              <ArrowLeft className="mr-1.5 size-3.5 stroke-[1.5] text-sky-600 dark:text-[#38BDF8]" />
+              <ArrowLeft className="mr-1.5 size-3.5 stroke-[1.5] text-sky-600 dark:text-sky-400" />
               Kembali
             </Link>
           </Button>
@@ -1894,7 +1894,7 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
             </DetailSection>
 
             <DetailSection
-              icon={<BriefcaseBusiness className="size-4.5 shrink-0 stroke-[1.5] text-sky-600 dark:text-[#38BDF8]" />}
+              icon={<BriefcaseBusiness className="size-4.5 shrink-0 stroke-[1.5] text-sky-600 dark:text-sky-400" />}
               title="Pekerjaan & Karir"
             >
               <DetailRow label="Pekerjaan">{item.occupation?.name ?? "-"}</DetailRow>
@@ -1903,7 +1903,7 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
             </DetailSection>
 
             <DetailSection
-              icon={<ShieldCheck className="size-4.5 shrink-0 stroke-[1.5] text-sky-600 dark:text-[#38BDF8]" />}
+              icon={<ShieldCheck className="size-4.5 shrink-0 stroke-[1.5] text-sky-600 dark:text-sky-400" />}
               title="Afiliasi & Catatan"
             >
               <DetailRow label="Organisasi">{item.organizationName ?? "-"}</DetailRow>
@@ -2003,7 +2003,7 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
 
             {reportsLoading ? (
               <div className="flex py-12 justify-center items-center gap-2 text-xs text-muted-foreground font-mono">
-                <RefreshCw className="size-4 animate-spin text-sky-600 dark:text-[#38BDF8]" />
+                <RefreshCw className="size-4 animate-spin text-sky-600 dark:text-sky-400" />
                 Memuat laporan jaring...
               </div>
             ) : filteredReports.length > 0 ? (
@@ -2081,7 +2081,7 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
         <Card className="mx-auto max-w-3xl overflow-hidden rounded-[10px] border border-slate-200 bg-white shadow-sm transition-all duration-150 ease-out dark:border-blue-400/12 dark:bg-[#111827]">
           <CardHeader className="px-5 pt-4 pb-3">
             <div className="flex w-full items-center gap-3 border-b border-slate-200 pb-2.5 dark:border-blue-400/12">
-              <ShieldCheck className="size-4.5 shrink-0 stroke-[1.5] text-sky-600 dark:text-[#38BDF8]" />
+              <ShieldCheck className="size-4.5 shrink-0 stroke-[1.5] text-sky-600 dark:text-sky-400" />
               <h2 className="shrink-0 font-bold text-[14px] text-slate-800 uppercase tracking-[0.08em] dark:text-[#F8FAFC]">
                 Keputusan Registrasi
               </h2>
@@ -2214,7 +2214,7 @@ function DetailTabButton({ active, children, onClick }: { active: boolean; child
       className={cn(
         "cursor-pointer border-b-2 px-4 py-2 font-semibold text-xs transition-all duration-150",
         active
-          ? "border-sky-600 bg-sky-50 text-sky-600 dark:border-[#38BDF8] dark:bg-blue-400/5 dark:text-[#38BDF8]"
+          ? "border-sky-600 bg-sky-50 text-sky-600 dark:border-sky-400 dark:bg-blue-400/5 dark:text-sky-400"
           : "border-transparent text-muted-foreground hover:text-foreground",
       )}
     >
@@ -2225,7 +2225,7 @@ function DetailTabButton({ active, children, onClick }: { active: boolean; child
 
 function DetailSection({ icon, title, children }: { icon: ReactNode; title: string; children: ReactNode }) {
   return (
-    <Card className="overflow-hidden rounded-[10px] border border-slate-200 border-t-2 border-t-sky-500/40 bg-white shadow-sm transition-all duration-150 ease-out hover:-translate-y-[2px] hover:shadow-md dark:border-blue-400/12 dark:border-t-[#38BDF8]/40 dark:bg-[#111827] dark:hover:shadow-[0_4px_20px_rgba(0,0,0,0.4)]">
+    <Card className="overflow-hidden rounded-[10px] border border-slate-200 border-t-2 border-t-sky-500/40 bg-white shadow-sm transition-all duration-150 ease-out hover:-translate-y-[2px] hover:shadow-md dark:border-blue-400/12 dark:border-t-sky-400/40 dark:bg-[#111827] dark:hover:shadow-[0_4px_20px_rgba(0,0,0,0.4)]">
       <CardHeader className="px-5 pt-4 pb-3">
         <div className="flex w-full items-center gap-3 border-b border-slate-200 pb-2.5 dark:border-blue-400/12">
           {icon}

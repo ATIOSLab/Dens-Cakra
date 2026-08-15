@@ -727,7 +727,7 @@ export function PersetujuanPage() {
                     size="sm"
                   >
                     <RotateCcw className="size-3.5" />
-                    Kembalikan untuk Revisi
+                    Kembalikan untuk perbaikan
                   </Button>
                   <Button onClick={handleOpenApproveModal} className="h-9 text-xs" variant="success" size="sm">
                     <UserCheck className="size-3.5" />
@@ -766,6 +766,7 @@ export function PersetujuanPage() {
                 }}
                 className="size-8"
                 type="button"
+                aria-label="Tutup"
               >
                 <X className="size-4" />
               </Button>
@@ -824,7 +825,7 @@ export function PersetujuanPage() {
             <CardHeader className="flex flex-row items-start justify-between pb-3">
               <div>
                 <CardTitle className="text-base font-bold text-rose-500 flex items-center gap-2">
-                  <RotateCcw className="size-4" /> Kembalikan untuk Revisi
+                  <RotateCcw className="size-4" /> Kembalikan untuk perbaikan
                 </CardTitle>
                 <CardDescription className="text-xs mt-1">
                   Catatan revisi wajib diisi untuk memberikan arahan perbaikan teknis/taktis naskah kepada jaring

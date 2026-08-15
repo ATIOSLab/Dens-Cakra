@@ -75,7 +75,7 @@ import { EvidenceImageViewer } from "@/features/baket/components/evidence-image-
 import { apiBrowserFetch, apiBrowserMutation } from "@/lib/api/browser-client";
 import { findDkiJakartaProvinceFilterId } from "@/lib/domain/area-filter";
 import { sortReportCategories } from "@/lib/domain/report-category-order";
-import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
+import { DOMAIN_VISUALS, URGENCY_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 
 import type { OimPageData, OimProductContext, OimView } from "./oim-types";
@@ -134,7 +134,7 @@ const VIEW_META: Record<OimView, [string, string, LucideIcon]> = {
     "Gabungkan beberapa Baket, susun analisis, lalu simpan sebagai draf atau final.",
     BarChart3,
   ],
-  "analysis-edit": ["Edit Analisis", "Perbarui versi aktif sebelum difinalkan.", BarChart3],
+  "analysis-edit": ["Ubah Analisis", "Perbarui versi aktif sebelum difinalkan.", BarChart3],
   "analysis-version": ["Versi Analisis", "Snapshot final tidak dapat diubah.", BarChart3],
   products: ["Laporan Intelijen", "Laporan Intelijen yang bersumber dari analisis final.", DOMAIN_VISUALS.intelligenceReport.Icon],
   "product-list": [
@@ -171,7 +171,7 @@ const VIEW_META: Record<OimView, [string, string, LucideIcon]> = {
     RadioTower,
   ],
   "monitoring-task": ["Monitoring Tugas", "Perkembangan lapangan dan laporan terkait.", RadioTower],
-  "monitoring-report": ["Baket Lapangan", "Detail Baket dari konteks monitoring.", FileSearch],
+  "monitoring-report": ["Bahan Keterangan (Baket)", "Detail Baket dari konteks monitoring.", FileSearch],
   "monitoring-personnel": [
     "Profil Operasional Personel",
     "Beban kerja, tenggat, cakupan, dan posisi terakhir.",
@@ -269,11 +269,19 @@ function StatusBadge({ value }: { value?: string }) {
   );
 }
 
+function urgencyBadgeStyleFromColor(markerColor: string): React.CSSProperties {
+  return {
+    color: markerColor,
+    backgroundColor: `${markerColor}15`,
+    borderColor: `${markerColor}30`,
+  };
+}
+
 const URGENCY_BADGE_STYLES: Record<string, React.CSSProperties> = {
-  URGENT: { color: "#EF4444", backgroundColor: "#EF444415", borderColor: "#EF444430" },
-  HIGH: { color: "#F59E0B", backgroundColor: "#F59E0B15", borderColor: "#F59E0B30" },
-  NORMAL: { color: "#3B82F6", backgroundColor: "#3B82F615", borderColor: "#3B82F630" },
-  LOW: { color: "#64748B", backgroundColor: "#64748B15", borderColor: "#64748B30" },
+  URGENT: urgencyBadgeStyleFromColor(URGENCY_VISUALS.URGENT.markerColor),
+  HIGH: urgencyBadgeStyleFromColor(URGENCY_VISUALS.HIGH.markerColor),
+  NORMAL: urgencyBadgeStyleFromColor(URGENCY_VISUALS.NORMAL.markerColor),
+  LOW: urgencyBadgeStyleFromColor(URGENCY_VISUALS.LOW.markerColor),
 };
 
 function urgencyBadgeStyle(value?: string) {

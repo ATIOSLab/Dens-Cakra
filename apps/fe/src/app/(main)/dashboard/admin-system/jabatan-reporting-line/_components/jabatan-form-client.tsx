@@ -29,6 +29,7 @@ import { Switch } from "@/components/ui/switch";
 import { isDkiJakartaProvinceArea } from "@/features/baket/administrative-area";
 import type { RegionalMasterOverview } from "@/features/directives/types";
 import { apiBrowserFetch, apiBrowserMutation } from "@/lib/api/browser-client";
+import { DC_TYPOGRAPHY } from "@/lib/domain/visual-system";
 
 import {
   type AreaSearchResult,
@@ -524,10 +525,8 @@ export function JabatanFormClient({ mode, position }: Props) {
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-2">
-          <Badge variant="outline">{isCreate ? "Tambah Jabatan" : "Edit Jabatan"}</Badge>
-          <h1 className="font-heading text-2xl font-semibold tracking-tight">
-            {isCreate ? "Buat master jabatan" : position?.title}
-          </h1>
+          <Badge variant="outline">{isCreate ? "Tambah Jabatan" : "Ubah Jabatan"}</Badge>
+          <h1 className={DC_TYPOGRAPHY.pageTitle}>{isCreate ? "Buat master jabatan" : position?.title}</h1>
           <p className="max-w-4xl text-sm text-muted-foreground">
             {isCreate
               ? "Pilih tipe jabatan, unit, penempatan, dan wilayah agar jabatan siap dipakai saat penyediaan pengguna."
@@ -549,7 +548,9 @@ export function JabatanFormClient({ mode, position }: Props) {
             <Save className="size-4" />
             Data jabatan
           </CardTitle>
-          <CardDescription>Master jabatan menjadi sumber unit, penempatan, dan cakupan wilayah pengguna.</CardDescription>
+          <CardDescription>
+            Master jabatan menjadi sumber unit, penempatan, dan cakupan wilayah pengguna.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <FieldGroup>

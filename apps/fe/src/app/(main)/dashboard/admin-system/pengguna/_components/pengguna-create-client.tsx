@@ -44,6 +44,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { isDkiJakartaProvinceArea, isDkiJakartaRegencyCityArea } from "@/features/baket/administrative-area";
 import { apiBrowserFetch, apiBrowserMutation } from "@/lib/api/browser-client";
 import { DOMAIN_TERMS } from "@/lib/domain/terminology";
+import { DC_TYPOGRAPHY } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 
 import { type CreateUserFormValues, createUserSchema } from "./pengguna-schemas";
@@ -457,7 +458,7 @@ export function PenggunaCreateClient() {
           </Badge>
         </div>
         <div className="space-y-1">
-          <h1 className="font-heading text-2xl font-bold tracking-tight">Akun pengguna berhasil dibuat</h1>
+          <h1 className={DC_TYPOGRAPHY.pageTitle}>Akun pengguna berhasil dibuat</h1>
           <p className="text-sm text-muted-foreground">
             Pengguna baru telah terdaftar di sistem. Catat password awal di bawah ini sebelum menutup halaman.
           </p>
@@ -568,7 +569,7 @@ export function PenggunaCreateClient() {
           Daftar Pengguna
         </Link>
         <div className="flex items-center gap-3">
-          <h1 className="font-heading text-2xl font-bold tracking-tight">Tambah Pengguna</h1>
+          <h1 className={DC_TYPOGRAPHY.pageTitle}>Tambah Pengguna</h1>
           <Badge variant="outline" className="text-xs font-normal">
             Provisioning
           </Badge>
@@ -905,9 +906,7 @@ export function PenggunaCreateClient() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Kembali ke Form</AlertDialogCancel>
-            <AlertDialogAction onClick={() => router.push(USERS_ROUTE)}>
-              Ya, Batalkan
-            </AlertDialogAction>
+            <AlertDialogAction onClick={() => router.push(USERS_ROUTE)}>Ya, Batalkan</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -43,6 +43,7 @@ import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { isDkiJakartaProvinceArea, isDkiJakartaRegencyCityArea } from "@/features/baket/administrative-area";
 import { apiBrowserFetch, apiBrowserMutation } from "@/lib/api/browser-client";
 import { DOMAIN_TERMS } from "@/lib/domain/terminology";
+import { DC_TYPOGRAPHY } from "@/lib/domain/visual-system";
 
 import type { AreaSearchResult, CommandRouteType, RoleCode, UserDetail } from "./pengguna-types";
 import {
@@ -450,9 +451,7 @@ export function PenggunaDetailClient({ user, actorUserProfileId }: PenggunaDetai
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="font-heading text-2xl font-bold tracking-tight">
-                {user.fullName ?? user.authUser.name ?? user.authUser.email}
-              </h1>
+              <h1 className={DC_TYPOGRAPHY.pageTitle}>{user.fullName ?? user.authUser.name ?? user.authUser.email}</h1>
               {user.status === "ACTIVE" && (
                 <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/20 text-xs">
                   Aktif

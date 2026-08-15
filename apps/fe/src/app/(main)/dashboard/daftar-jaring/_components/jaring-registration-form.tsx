@@ -613,7 +613,7 @@ export function JaringRegistrationForm({ jaringId }: JaringRegistrationFormProps
       <PageHeader
         title={
           isEditMode
-            ? `Edit Data Jaring${editingJaring ? ` ${editingJaring.aliasName}` : ""}`
+            ? `Ubah Data Jaring${editingJaring ? ` ${editingJaring.aliasName}` : ""}`
             : "Registrasi Jaring Baru"
         }
         description={

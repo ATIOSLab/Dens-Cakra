@@ -85,7 +85,7 @@ export default async function AccountPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <UserRound className="size-4 text-cyan-600 dark:text-[#14B8FF]" />
+                <UserRound className="size-4 text-cyan-600 dark:text-cyan-400" />
                 Informasi Akun & Username
               </CardTitle>
               <CardDescription>Ubah username dan nama akun yang sedang aktif.</CardDescription>
@@ -102,7 +102,7 @@ export default async function AccountPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <MonitorSmartphone className="size-4 text-cyan-600 dark:text-[#14B8FF]" />
+                <MonitorSmartphone className="size-4 text-cyan-600 dark:text-cyan-400" />
                 Sesi Aktif
               </CardTitle>
               <CardDescription>Informasi perangkat dan masa berlaku sesi saat ini.</CardDescription>
@@ -133,7 +133,7 @@ export default async function AccountPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <ShieldCheck className="size-4 text-cyan-600 dark:text-[#14B8FF]" />
+                <ShieldCheck className="size-4 text-cyan-600 dark:text-cyan-400" />
                 Ubah Kata Sandi
               </CardTitle>
               <CardDescription>Kata sandi diganti untuk akun yang sedang aktif.</CardDescription>

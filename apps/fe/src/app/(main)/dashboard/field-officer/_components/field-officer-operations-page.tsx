@@ -69,7 +69,7 @@ import { EvidenceImageViewer } from "@/features/baket/components/evidence-image-
 import { apiBrowserFetch } from "@/lib/api/browser-client";
 import { sortReportCategories } from "@/lib/domain/report-category-order";
 import { DOMAIN_TERMS } from "@/lib/domain/terminology";
-import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
+import { DC_TYPOGRAPHY, DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 import type {
   FieldOfficerIncoming,
@@ -1132,9 +1132,7 @@ export function FieldOfficerOperationsPage({
       {/* HEADER SECTION */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="font-heading font-bold text-3xl tracking-tight text-foreground">
-            Daftar Jaring (Petugas Wilayah)
-          </h1>
+          <h1 className={DC_TYPOGRAPHY.pageTitle}>Daftar Jaring (Petugas Wilayah)</h1>
           <p className="mt-1 text-muted-foreground text-sm max-w-2xl">
             Kelola, pantau, dan verifikasi data Daftar Jaring serta komunikasi operasional di wilayah tugas Anda.
           </p>
@@ -1148,7 +1146,7 @@ export function FieldOfficerOperationsPage({
             disabled={isLoading}
             className="w-fit h-9 gap-2 text-xs"
           >
-            <RefreshCw className={cn("size-4 text-sky-600 dark:text-[#38BDF8]", isLoading && "animate-spin")} />
+            <RefreshCw className={cn("size-4 text-sky-600 dark:text-sky-400", isLoading && "animate-spin")} />
             Muat Ulang
           </Button>
 
@@ -1931,9 +1929,9 @@ export function FieldOfficerOperationsPage({
                                     disabled={isBusy === `validate:${message.id}`}
                                     onClick={() =>
                                       requestConfirmation({
-                                      title: "KONFIRMASI PEMERIKSAAN",
-                                      description: "Jalankan pemeriksaan ulang untuk laporan masuk ini sekarang?",
-                                      confirmLabel: "YA, PERIKSA",
+                                        title: "KONFIRMASI PEMERIKSAAN",
+                                        description: "Jalankan pemeriksaan ulang untuk laporan masuk ini sekarang?",
+                                        confirmLabel: "YA, PERIKSA",
                                         onConfirm: () => {
                                           void validateIncoming(message.id);
                                         },
@@ -1941,7 +1939,7 @@ export function FieldOfficerOperationsPage({
                                     }
                                     className="h-8 cursor-pointer rounded-[4px] bg-[#16A34A] px-2 font-mono font-semibold text-white text-[10px] uppercase transition hover:bg-[#15803D] disabled:opacity-50 sm:px-3"
                                   >
-                                  Periksa
+                                    Periksa
                                   </button>
                                   <button
                                     type="button"
@@ -2032,12 +2030,13 @@ export function FieldOfficerOperationsPage({
                     aria-label="Filter kategori baket"
                   >
                     <option value="">Semua kategori</option>
-                    {sortReportCategories(workspace.reportCategories.filter((item) => item.isActive))
-                      .map((category) => (
+                    {sortReportCategories(workspace.reportCategories.filter((item) => item.isActive)).map(
+                      (category) => (
                         <option key={category.id} value={category.id}>
                           {category.name}
                         </option>
-                      ))}
+                      ),
+                    )}
                   </select>
 
                   <Input
@@ -2731,7 +2730,7 @@ function MetricCard({
   };
 
   const iconBg = {
-    blue: "bg-sky-500/10 text-sky-600 dark:text-[#38BDF8]",
+    blue: "bg-sky-500/10 text-sky-600 dark:text-sky-400",
     amber: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
     green: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
     red: "bg-rose-500/10 text-rose-600 dark:text-rose-400",
@@ -3311,12 +3310,11 @@ function BaketCandidateForm({
                   <SelectValue placeholder="PILIH KATEGORI" />
                 </SelectTrigger>
                 <SelectContent>
-                  {sortReportCategories(categories.filter((item) => item.isActive))
-                    .map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.name.toUpperCase()}
-                      </SelectItem>
-                    ))}
+                  {sortReportCategories(categories.filter((item) => item.isActive)).map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name.toUpperCase()}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

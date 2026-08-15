@@ -64,7 +64,7 @@ export function Pagination({ currentPage, totalItems, pageSize, onPageChange }: 
           className="border-[var(--dc-border-strong)] bg-background text-xs rounded-md h-8 px-3"
         >
           <ChevronLeft className="size-3.5 mr-1" />
-          Previous
+          Sebelumnya
         </Button>
 
         {/* Page indices */}
@@ -106,7 +106,7 @@ export function Pagination({ currentPage, totalItems, pageSize, onPageChange }: 
           disabled={currentPage === totalPages}
           className="border-[var(--dc-border-strong)] bg-background text-xs rounded-md h-8 px-3"
         >
-          Next
+          Berikutnya
           <ChevronRight className="size-3.5 ml-1" />
         </Button>
       </div>

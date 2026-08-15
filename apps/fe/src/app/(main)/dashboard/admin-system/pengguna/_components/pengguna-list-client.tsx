@@ -26,6 +26,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { apiBrowserFetch, apiBrowserFetchEnvelope } from "@/lib/api/browser-client";
 import type { PaginationMeta } from "@/lib/api/types";
+import { DC_TYPOGRAPHY } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 
 import type { AreaSearchResult, UserDetail, UserListFacets, UserListItem, UserListQueryState } from "./pengguna-types";
@@ -272,7 +273,11 @@ export function PenggunaListClient({
   const pendingCount = facets?.status?.PENDING ?? 0;
   const suspendedCount = facets?.status?.SUSPENDED ?? 0;
   const lockedCount = facets?.security?.locked ?? 0;
-  const totalUsers = Math.max(clientPagination?.total ?? 0, activeCount + pendingCount + suspendedCount, clientItems.length);
+  const totalUsers = Math.max(
+    clientPagination?.total ?? 0,
+    activeCount + pendingCount + suspendedCount,
+    clientItems.length,
+  );
   const totalPages = clientPagination?.totalPages ?? 1;
   const activeFilterCount = [q, status, unitId, roleCode, activeArea?.id].filter(Boolean).length;
 
@@ -286,7 +291,7 @@ export function PenggunaListClient({
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <h1 className="font-heading text-2xl font-bold tracking-tight">Manajemen Pengguna</h1>
+            <h1 className={DC_TYPOGRAPHY.pageTitle}>Manajemen Pengguna</h1>
             <Badge variant="secondary" className="text-xs font-normal">
               {clientPagination?.total ?? clientItems.length} Pengguna
             </Badge>

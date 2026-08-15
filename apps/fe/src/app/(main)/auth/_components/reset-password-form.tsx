@@ -110,7 +110,7 @@ export function ResetPasswordForm({ token, tokenError }: ResetPasswordFormProps)
                   autoComplete="new-password"
                   aria-invalid={fieldState.invalid}
                   disabled={isPending || !token}
-                  className="pl-9 pr-9 rounded-[8px] border-border bg-background dark:bg-slate-900/35 focus-visible:ring-1 focus-visible:ring-cyan-500 dark:focus-visible:ring-[#14B8FF]/30 placeholder:text-muted-foreground/30 text-sm h-11"
+                  className="pl-9 pr-9 rounded-[8px] border-border bg-background dark:bg-slate-900/35 focus-visible:ring-1 focus-visible:ring-cyan-500 dark:focus-visible:ring-cyan-400/30 placeholder:text-muted-foreground/30 text-sm h-11"
                 />
                 <button
                   type="button"
@@ -145,7 +145,7 @@ export function ResetPasswordForm({ token, tokenError }: ResetPasswordFormProps)
                   autoComplete="new-password"
                   aria-invalid={fieldState.invalid}
                   disabled={isPending || !token}
-                  className="pl-9 pr-9 rounded-[8px] border-border bg-background dark:bg-slate-900/35 focus-visible:ring-1 focus-visible:ring-cyan-500 dark:focus-visible:ring-[#14B8FF]/30 placeholder:text-muted-foreground/30 text-sm h-11"
+                  className="pl-9 pr-9 rounded-[8px] border-border bg-background dark:bg-slate-900/35 focus-visible:ring-1 focus-visible:ring-cyan-500 dark:focus-visible:ring-cyan-400/30 placeholder:text-muted-foreground/30 text-sm h-11"
                 />
                 <button
                   type="button"
@@ -163,7 +163,7 @@ export function ResetPasswordForm({ token, tokenError }: ResetPasswordFormProps)
       </FieldGroup>
 
       <Button 
-        className="w-full h-11 bg-cyan-600 text-white dark:bg-[#14B8FF] dark:text-slate-950 hover:bg-cyan-500 dark:hover:bg-cyan-400 font-bold font-sans rounded-[8px] cursor-pointer shadow-sm mt-2 transition-colors flex items-center justify-center gap-2"
+        className="w-full h-11 bg-cyan-600 text-white dark:bg-cyan-400 dark:text-slate-950 hover:bg-cyan-500 dark:hover:bg-cyan-400 font-bold font-sans rounded-[8px] cursor-pointer shadow-sm mt-2 transition-colors flex items-center justify-center gap-2"
         type="submit" 
         disabled={isPending || !token}
       >

@@ -984,7 +984,7 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
                           onClick={() => setPersonnelPage(personnelPage - 1)}
                           className="h-7 text-[10px] rounded cursor-pointer border-border/60 hover:bg-accent"
                         >
-                          &lt; Previous
+                          &lt; Sebelumnya
                         </Button>
 
                         <div className="flex items-center gap-1">
@@ -1022,7 +1022,7 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
                           onClick={() => setPersonnelPage(personnelPage + 1)}
                           className="h-7 text-[10px] rounded cursor-pointer border-border/60 hover:bg-accent"
                         >
-                          Next &gt;
+                          Berikutnya &gt;
                         </Button>
                       </div>
                     </div>
@@ -1362,7 +1362,7 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
                           onClick={() => setJaringPage(jaringPage - 1)}
                           className="h-7 text-[10px] rounded cursor-pointer border-border/60 hover:bg-accent"
                         >
-                          &lt; Previous
+                          &lt; Sebelumnya
                         </Button>
 
                         <div className="flex items-center gap-1">
@@ -1400,7 +1400,7 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
                           onClick={() => setJaringPage(jaringPage + 1)}
                           className="h-7 text-[10px] rounded cursor-pointer border-border/60 hover:bg-accent"
                         >
-                          Next &gt;
+                          Berikutnya &gt;
                         </Button>
                       </div>
                     </div>

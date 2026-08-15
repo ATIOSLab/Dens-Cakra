@@ -14,6 +14,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Field, FieldContent, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { apiBrowserMutation } from "@/lib/api/browser-client";
+import { DC_TYPOGRAPHY } from "@/lib/domain/visual-system";
 
 import { type EditUserFormValues, editUserSchema } from "./pengguna-schemas";
 import type { UserDetail } from "./pengguna-types";
@@ -74,7 +75,7 @@ export function PenggunaEditClient({ user }: PenggunaEditClientProps) {
           Detail Pengguna
         </Link>
         <div className="flex items-center gap-3">
-          <h1 className="font-heading text-2xl font-bold tracking-tight">Edit Metadata Pengguna</h1>
+          <h1 className={DC_TYPOGRAPHY.pageTitle}>Ubah Metadata Pengguna</h1>
           <Badge variant="outline" className="text-xs font-normal">
             {getRoleLabel(user.authUser.role)}
           </Badge>

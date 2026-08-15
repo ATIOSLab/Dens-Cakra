@@ -33,7 +33,7 @@ export function AccountSwitcher() {
         <button
           type="button"
           className="flex size-9 items-center justify-center rounded-full border border-[var(--dc-border-subtle)] bg-card text-foreground shadow-[var(--dc-shadow-card)] transition-colors hover:bg-muted md:size-8"
-          aria-label={`Open account menu for ${activeUser.name}`}
+          aria-label={`Buka menu akun untuk ${activeUser.name}`}
         >
           <Avatar className="size-7 rounded-full md:size-6">
             <AvatarImage src={activeUser.avatar || undefined} alt={activeUser.name} />

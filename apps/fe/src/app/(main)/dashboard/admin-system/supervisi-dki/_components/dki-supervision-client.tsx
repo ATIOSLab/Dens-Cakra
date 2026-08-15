@@ -13,6 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { apiBrowserFetch, apiBrowserMutation } from "@/lib/api/browser-client";
+import { DC_TYPOGRAPHY } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 
 type DkiCity = {
@@ -183,7 +184,7 @@ export function DkiSupervisionClient({ initialData }: DkiSupervisionClientProps)
             Admin Sistem
           </Badge>
           <div>
-            <h1 className="font-heading text-3xl font-bold tracking-tight text-foreground">Wilayah Supervisi DKI</h1>
+            <h1 className={DC_TYPOGRAPHY.pageTitle}>Wilayah Supervisi DKI</h1>
             <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">
               Atur cakupan supervisi Direktorat/Ditwil untuk Kota/Kabupaten administratif di Provinsi DKI Jakarta.
             </p>

@@ -582,7 +582,7 @@ export default function AdminMasterDataPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-border/40 pb-5">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <Badge className="bg-cyan-500/10 text-cyan-600 dark:text-[#14B8FF] border border-cyan-500/20 dark:border-[#14B8FF]/20 font-mono tracking-wider text-[9px] uppercase">
+            <Badge className="bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20 dark:border-cyan-400/20 font-mono tracking-wider text-[9px] uppercase">
               ADMIN SISTEM
             </Badge>
           </div>
@@ -625,7 +625,7 @@ export default function AdminMasterDataPage() {
               className={cn(
                 "px-4 py-2.5 text-xs font-mono font-bold flex items-center gap-2 border-b-2 tracking-wide cursor-pointer transition-all focus:outline-none whitespace-nowrap",
                 isActive
-                  ? "border-[#14B8FF] text-cyan-600 dark:text-[#14B8FF] bg-secondary/30 dark:bg-white/[0.01]"
+                  ? "border-cyan-400 text-cyan-600 dark:text-cyan-400 bg-secondary/30 dark:bg-white/[0.01]"
                   : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/20 dark:hover:bg-white/[0.01]",
               )}
             >
@@ -671,7 +671,7 @@ export default function AdminMasterDataPage() {
             <div className="relative w-full max-w-sm">
               <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground/50" />
               <Input
-                className="pl-9 rounded-[6px] border-border bg-background dark:bg-slate-900/40 text-xs focus-visible:ring-1 focus-visible:ring-cyan-500 dark:focus-visible:ring-[#14B8FF]/30 placeholder:text-muted-foreground/45 text-foreground"
+                className="pl-9 rounded-[6px] border-border bg-background dark:bg-slate-900/40 text-xs focus-visible:ring-1 focus-visible:ring-cyan-500 dark:focus-visible:ring-cyan-400/30 placeholder:text-muted-foreground/45 text-foreground"
                 placeholder={`Cari nama, kode, atau deskripsi ${entityLabel(activeEntity).toLowerCase()}...`}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -690,7 +690,7 @@ export default function AdminMasterDataPage() {
             <div className="flex items-center gap-2">
               <SlidersHorizontal className="size-4 text-muted-foreground/60" />
               <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val as any)}>
-                <SelectTrigger className="w-[125px] h-8 border-border bg-background dark:bg-slate-900/40 text-xs text-foreground focus-visible:ring-1 focus-visible:ring-cyan-500 dark:focus-visible:ring-[#14B8FF]/30">
+                <SelectTrigger className="w-[125px] h-8 border-border bg-background dark:bg-slate-900/40 text-xs text-foreground focus-visible:ring-1 focus-visible:ring-cyan-500 dark:focus-visible:ring-cyan-400/30">
                   <SelectValue placeholder="Pilih Status" />
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border text-foreground">
@@ -714,7 +714,7 @@ export default function AdminMasterDataPage() {
             </Button>
 
             <Button
-              className="h-8 rounded-[6px] bg-[#14B8FF] text-white dark:text-slate-950 font-bold hover:bg-cyan-400 cursor-pointer text-xs"
+              className="h-8 rounded-[6px] bg-cyan-400 text-white dark:text-slate-950 font-bold hover:bg-cyan-400 cursor-pointer text-xs"
               onClick={startCreate}
             >
               <Plus className="mr-1.5 size-3.5" /> Tambah Data
@@ -758,7 +758,7 @@ export default function AdminMasterDataPage() {
                   onClick={startCreate}
                   variant="outline"
                   size="sm"
-                  className="mt-4 rounded-[6px] border-[#14B8FF]/20 text-[#14B8FF] hover:bg-[#14B8FF]/10"
+                  className="mt-4 rounded-[6px] border-cyan-400/20 text-cyan-400 hover:bg-cyan-400/10"
                 >
                   <Plus className="mr-2 size-3.5" /> Tambah Data
                 </Button>
@@ -804,7 +804,7 @@ export default function AdminMasterDataPage() {
                         key={item.id}
                         className={cn(
                           "hover:bg-secondary/20 dark:hover:bg-white/[0.02] transition-colors group",
-                          isSelected && "bg-cyan-500/5 dark:bg-[#14B8FF]/5",
+                          isSelected && "bg-cyan-500/5 dark:bg-cyan-400/5",
                         )}
                       >
                         <td className="p-4 text-center">
@@ -846,7 +846,7 @@ export default function AdminMasterDataPage() {
                             <button
                               type="button"
                               onClick={() => startEdit(item)}
-                              title="Edit Data"
+                              title="Ubah Data"
                               className="size-7 rounded-[4px] border border-border bg-background dark:bg-slate-900/50 flex items-center justify-center hover:border-cyan-500/50 hover:text-cyan-600 dark:hover:text-cyan-400 transition-all cursor-pointer text-muted-foreground hover:text-foreground"
                             >
                               <Edit2 className="size-3.5" />
@@ -901,7 +901,7 @@ export default function AdminMasterDataPage() {
                 <Select value={String(rowsPerPage)} onValueChange={(val) => setRowsPerPage(Number(val))}>
                   <SelectTrigger
                     size="sm"
-                    className="w-[65px] border-border bg-background dark:bg-slate-900/40 text-xs text-foreground focus-visible:ring-1 focus-visible:ring-[#14B8FF]/20"
+                    className="w-[65px] border-border bg-background dark:bg-slate-900/40 text-xs text-foreground focus-visible:ring-1 focus-visible:ring-cyan-400/20"
                   >
                     <SelectValue placeholder={String(rowsPerPage)} />
                   </SelectTrigger>
@@ -921,6 +921,7 @@ export default function AdminMasterDataPage() {
                 className="size-7 rounded-[4px] border-border bg-background dark:bg-slate-900/40 text-muted-foreground hover:bg-secondary/40"
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
+                aria-label="Halaman sebelumnya"
               >
                 <ChevronLeft className="size-4" />
               </Button>
@@ -935,7 +936,7 @@ export default function AdminMasterDataPage() {
                     className={cn(
                       "size-7 rounded-[4px] border px-0 text-xs font-bold",
                       isCurrent
-                        ? "border-cyan-500/30 dark:border-[#14B8FF]/30 bg-cyan-500/10 dark:bg-[#14B8FF]/10 text-cyan-600 dark:text-[#14B8FF]"
+                        ? "border-cyan-500/30 dark:border-cyan-400/30 bg-cyan-500/10 dark:bg-cyan-400/10 text-cyan-600 dark:text-cyan-400"
                         : "border-border bg-background dark:bg-slate-900/40 text-muted-foreground hover:bg-secondary/40",
                     )}
                     onClick={() => setCurrentPage(pageNum)}
@@ -951,6 +952,7 @@ export default function AdminMasterDataPage() {
                 className="size-7 rounded-[4px] border-border bg-background dark:bg-slate-900/40 text-muted-foreground hover:bg-secondary/40"
                 onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
+                aria-label="Halaman berikutnya"
               >
                 <ChevronRight className="size-4" />
               </Button>
@@ -962,7 +964,7 @@ export default function AdminMasterDataPage() {
       {/* BULK ACTION FLOATING COMMAND BAR */}
       {selectedIds.length > 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-[#0B1220] text-white px-5 py-3 rounded-full shadow-lg border border-white/10 flex items-center gap-4 animate-in fade-in slide-in-from-bottom-5 duration-200">
-          <span className="text-xs font-mono font-bold text-[#14B8FF]">{selectedIds.length} item terpilih</span>
+          <span className="text-xs font-mono font-bold text-cyan-400">{selectedIds.length} item terpilih</span>
           <div className="h-4 w-px bg-white/10" />
           <div className="flex items-center gap-2">
             <Button
@@ -1043,7 +1045,7 @@ export default function AdminMasterDataPage() {
         <DialogContent className="w-full sm:max-w-[480px] bg-card p-6 flex flex-col gap-6 border border-border shadow-lg rounded-xl">
           <DialogHeader className="border-b border-border/40 pb-4">
             <DialogTitle className="text-base font-bold text-foreground font-sans uppercase tracking-wider flex items-center gap-2">
-              <FolderTree className="size-5 text-[#14B8FF]" />
+              <FolderTree className="size-5 text-cyan-400" />
               {editingItem ? "Edit" : "Tambah"} {entityLabel(activeEntity, true)}
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground font-sans">
@@ -1079,7 +1081,7 @@ export default function AdminMasterDataPage() {
                   "rounded-[6px] bg-background dark:bg-slate-900/35 text-sm h-10",
                   formErrors.name
                     ? "border-destructive focus-visible:ring-1 focus-visible:ring-destructive focus-visible:border-destructive"
-                    : "border-border focus-visible:ring-1 focus-visible:ring-cyan-500 dark:focus-visible:ring-[#14B8FF]/30 placeholder:text-muted-foreground/30",
+                    : "border-border focus-visible:ring-1 focus-visible:ring-cyan-500 dark:focus-visible:ring-cyan-400/30 placeholder:text-muted-foreground/30",
                 )}
                 placeholder={entityPlaceholder(activeEntity)}
                 value={form.name}
@@ -1109,7 +1111,7 @@ export default function AdminMasterDataPage() {
               </label>
               <Textarea
                 id="master-data-description"
-                className="rounded-[6px] border-border bg-background dark:bg-slate-900/35 focus-visible:ring-1 focus-visible:ring-cyan-500 dark:focus-visible:ring-[#14B8FF]/30 placeholder:text-muted-foreground/30 text-sm min-h-[140px] resize-none"
+                className="rounded-[6px] border-border bg-background dark:bg-slate-900/35 focus-visible:ring-1 focus-visible:ring-cyan-500 dark:focus-visible:ring-cyan-400/30 placeholder:text-muted-foreground/30 text-sm min-h-[140px] resize-none"
                 placeholder="Keterangan atau deskripsi mengenai data referensi ini..."
                 value={form.description}
                 onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
@@ -1155,7 +1157,7 @@ export default function AdminMasterDataPage() {
             </Button>
             <Button
               type="button"
-              className="flex-1 rounded-[6px] bg-[#14B8FF] text-white dark:text-slate-950 font-bold hover:bg-cyan-400 cursor-pointer h-10 text-xs"
+              className="flex-1 rounded-[6px] bg-cyan-400 text-white dark:text-slate-950 font-bold hover:bg-cyan-400 cursor-pointer h-10 text-xs"
               disabled={busyKey === "save"}
               onClick={saveEntity}
             >

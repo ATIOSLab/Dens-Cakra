@@ -32,7 +32,7 @@ import {
 } from "@/lib/domain/date-time";
 import { resolveJaringIdentity } from "@/lib/domain/jaring-identity";
 import { sortReportCategories } from "@/lib/domain/report-category-order";
-import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
+import { DC_TYPOGRAPHY, DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 
 import {
@@ -102,6 +102,7 @@ export function BaketOfficerClient() {
   const [bakets, setBakets] = useState<BaketRecord[]>([]);
   const [categories, setCategories] = useState<ReportCategoryItem[]>([]);
   const [loadingList, setLoadingList] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Column visibility state
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({});
@@ -149,6 +150,7 @@ export function BaketOfficerClient() {
 
   async function fetchBakets(overrideStart?: string, overrideEnd?: string) {
     setLoadingList(true);
+    setLoadError(null);
     try {
       const allItems: BaketRecord[] = [];
       let currentPage = 1;
@@ -171,13 +173,17 @@ export function BaketOfficerClient() {
         >(`/bakets?${params.toString()}`);
         const pageItems = Array.isArray(res) ? res : res?.items || [];
         allItems.push(...pageItems);
-        totalPages = Array.isArray(res) ? (pageItems.length < 100 ? currentPage : currentPage + 1) : Math.max(1, res.pagination?.totalPages ?? 1);
+        totalPages = Array.isArray(res)
+          ? pageItems.length < 100
+            ? currentPage
+            : currentPage + 1
+          : Math.max(1, res.pagination?.totalPages ?? 1);
         currentPage += 1;
       } while (currentPage <= totalPages);
 
       setBakets(Array.from(new Map(allItems.map((item) => [item.id, item])).values()));
     } catch (err) {
-      console.error("Gagal memuat daftar Baket:", err);
+      setLoadError(err instanceof Error && err.message ? err.message : "Daftar Baket gagal dimuat.");
     } finally {
       setLoadingList(false);
     }
@@ -303,7 +309,7 @@ export function BaketOfficerClient() {
       {/* HEADER */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="font-heading font-bold text-3xl tracking-tight text-foreground">Bahan Keterangan (Baket)</h1>
+          <h1 className={DC_TYPOGRAPHY.pageTitle}>Bahan Keterangan (Baket)</h1>
           <p className="mt-1 text-muted-foreground text-sm max-w-2xl">
             Daftar Bahan Keterangan (Baket) yang telah dipilih, diberi kategori, urgensi, dan diproses sebagai bahan
             operasional.
@@ -517,9 +523,7 @@ export function BaketOfficerClient() {
                   </TableHead>
                 )}
                 {isColVisible("namaJaring") && (
-                  <TableHead className="min-w-[150px] text-xs font-semibold uppercase tracking-wider">
-                    Sumber
-                  </TableHead>
+                  <TableHead className="min-w-[150px] text-xs font-semibold uppercase tracking-wider">Sumber</TableHead>
                 )}
                 {isColVisible("kodeJaring") && (
                   <TableHead className="min-w-[120px] text-xs font-semibold uppercase tracking-wider">
@@ -552,9 +556,7 @@ export function BaketOfficerClient() {
                   </TableHead>
                 )}
                 {isColVisible("statusVerifikasi") && (
-                  <TableHead className="w-48 text-xs font-semibold uppercase tracking-wider">
-                    Status Validasi
-                  </TableHead>
+                  <TableHead className="w-48 text-xs font-semibold uppercase tracking-wider">Status Validasi</TableHead>
                 )}
                 {isColVisible("tanggalBaket") && (
                   <TableHead className="w-44 text-xs font-semibold uppercase tracking-wider">Tanggal Baket</TableHead>
@@ -570,6 +572,17 @@ export function BaketOfficerClient() {
                       <RefreshCw className="size-4 animate-spin text-emerald-600 dark:text-emerald-400" />
                       Memuat data Baket...
                     </div>
+                  </TableCell>
+                </TableRow>
+              ) : loadError ? (
+                <TableRow>
+                  <TableCell colSpan={13} className="py-12 text-center space-y-3">
+                    <DOMAIN_VISUALS.baket.Icon className="size-8 mx-auto text-muted-foreground/40" />
+                    <p className="text-xs text-muted-foreground">{loadError}</p>
+                    <Button variant="outline" size="sm" onClick={() => void fetchBakets()}>
+                      <RefreshCw className="size-4 mr-2" />
+                      Coba Lagi
+                    </Button>
                   </TableCell>
                 </TableRow>
               ) : paginatedReports.length > 0 ? (
@@ -595,7 +608,7 @@ export function BaketOfficerClient() {
                       {isColVisible("refNum") && (
                         <TableCell>
                           <div className="flex items-center gap-1.5">
-                            <span className="font-mono font-bold text-xs text-sky-600 dark:text-[#38BDF8]">
+                            <span className="font-mono font-bold text-xs text-sky-600 dark:text-sky-400">
                               {getBaketReferenceLabel(item)}
                             </span>
                           </div>
@@ -619,7 +632,7 @@ export function BaketOfficerClient() {
                       )}
                       {isColVisible("kodeJaring") && (
                         <TableCell>
-                          <span className="font-mono text-xs text-sky-600 dark:text-[#38BDF8] font-bold">
+                          <span className="font-mono text-xs text-sky-600 dark:text-sky-400 font-bold">
                             {identity.code}
                           </span>
                         </TableCell>

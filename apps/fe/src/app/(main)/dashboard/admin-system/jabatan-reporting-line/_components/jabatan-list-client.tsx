@@ -18,6 +18,7 @@ import { TablePagination } from "@/components/ui/table-pagination";
 import { apiBrowserFetchEnvelope } from "@/lib/api/browser-client";
 import type { PaginationMeta } from "@/lib/api/types";
 import { DOMAIN_TERMS } from "@/lib/domain/terminology";
+import { DC_TYPOGRAPHY } from "@/lib/domain/visual-system";
 
 import { POSITION_CODE_OPTIONS, ROLE_CODE_OPTIONS } from "../../pengguna/_components/pengguna-types";
 import type { JabatanListQueryState, JabatanResource } from "./jabatan-types";
@@ -594,7 +595,7 @@ export function JabatanListClient({ items, pagination, queryState }: Props) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-2">
           <Badge variant="outline">Master Jabatan</Badge>
-          <h1 className="font-heading text-2xl font-semibold tracking-tight">{DOMAIN_TERMS.positionReportingLine}</h1>
+          <h1 className={DC_TYPOGRAPHY.pageTitle}>{DOMAIN_TERMS.positionReportingLine}</h1>
           <p className="max-w-4xl text-sm text-muted-foreground">
             Kelola jabatan sebagai slot personel lengkap dengan role, unit organisasi, cabang komando, dan wilayah
             tanggung jawab.

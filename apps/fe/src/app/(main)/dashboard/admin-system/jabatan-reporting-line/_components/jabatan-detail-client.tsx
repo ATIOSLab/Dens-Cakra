@@ -8,6 +8,7 @@ import { BackButton } from "@/components/ui/back-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { DC_TYPOGRAPHY } from "@/lib/domain/visual-system";
 
 import { POSITION_CODE_OPTIONS } from "../../pengguna/_components/pengguna-types";
 import type { JabatanResource } from "./jabatan-types";
@@ -41,7 +42,7 @@ export function JabatanDetailClient({ position }: Props) {
               {position.isActive ? "Aktif" : "Nonaktif"}
             </Badge>
           </div>
-          <h1 className="font-heading text-2xl font-semibold tracking-tight">{position.title}</h1>
+          <h1 className={DC_TYPOGRAPHY.pageTitle}>{position.title}</h1>
           <p className="max-w-4xl text-sm text-muted-foreground">
             {position.seatCode} - {position.organizationUnit?.name ?? "-"}
           </p>

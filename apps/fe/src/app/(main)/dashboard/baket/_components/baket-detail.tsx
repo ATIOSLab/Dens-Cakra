@@ -18,7 +18,7 @@ import { Separator } from "@/components/ui/separator";
 import { BaketAdministrativeArea } from "@/features/baket/components/baket-administrative-area";
 import { EvidenceAttachmentViewer } from "@/features/baket/components/evidence-attachment-viewer";
 import { resolveJaringIdentity } from "@/lib/domain/jaring-identity";
-import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
+import { DC_TYPOGRAPHY, DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 
 import {
   type BaketRecord,
@@ -91,9 +91,7 @@ export function BaketDetail({ baket }: BaketDetailProps) {
               <DOMAIN_VISUALS.baket.Icon className="size-5" />
             </span>
             <div className="min-w-0">
-              <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground">
-                {getBaketDisplayTitle(baket)}
-              </h1>
+              <h1 className={DC_TYPOGRAPHY.pageTitle}>{getBaketDisplayTitle(baket)}</h1>
               <p className="mt-1 font-mono text-xs text-muted-foreground">{getBaketReferenceLabel(baket)}</p>
             </div>
           </div>
@@ -193,15 +191,7 @@ export function BaketDetail({ baket }: BaketDetailProps) {
   );
 }
 
-function MetaRow({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: LucideIcon;
-  label: string;
-  value: string;
-}) {
+function MetaRow({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string }) {
   return (
     <div className="flex items-start gap-2">
       <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />

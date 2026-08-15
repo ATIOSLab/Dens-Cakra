@@ -58,7 +58,7 @@ import {
 } from "@/lib/domain/date-time";
 import { resolveJaringIdentity } from "@/lib/domain/jaring-identity";
 import { sortReportCategories } from "@/lib/domain/report-category-order";
-import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
+import { DC_TYPOGRAPHY, DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 
 import {
@@ -370,10 +370,7 @@ export function BaketCoordinatorClient() {
     return buildProvinceFilterOptions(areaScopes);
   }, [areaScopes]);
 
-  const defaultProvinceFilter = useMemo(
-    () => findDkiJakartaProvinceFilterId(provinceOptions),
-    [provinceOptions],
-  );
+  const defaultProvinceFilter = useMemo(() => findDkiJakartaProvinceFilterId(provinceOptions), [provinceOptions]);
 
   useEffect(() => {
     if (
@@ -525,7 +522,7 @@ export function BaketCoordinatorClient() {
       {/* HEADER */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="font-heading font-bold text-3xl tracking-tight text-foreground">Bahan Keterangan (Baket)</h1>
+          <h1 className={DC_TYPOGRAPHY.pageTitle}>Bahan Keterangan (Baket)</h1>
           <p className="mt-1 text-muted-foreground text-sm max-w-2xl">
             Daftar Bahan Keterangan (Baket) yang telah dipilih, diberi kategori, urgensi, dan diproses sebagai bahan
             operasional.
@@ -633,7 +630,10 @@ export function BaketCoordinatorClient() {
               value={categoryFilter}
               options={[
                 { value: "ALL", label: "Semua Kategori" },
-                ...sortReportCategories(categories).map((cat) => ({ value: cat.id, label: `${cat.name} (${cat.code})` })),
+                ...sortReportCategories(categories).map((cat) => ({
+                  value: cat.id,
+                  label: `${cat.name} (${cat.code})`,
+                })),
               ]}
               onValueChange={(value) => {
                 setCategoryFilter(value);
@@ -1007,9 +1007,7 @@ export function BaketCoordinatorClient() {
                     <TableHead className="text-xs font-bold uppercase tracking-wider">Lokasi Baket</TableHead>
                   )}
                   {isColVisible("wilayahPenempatan") && (
-                    <TableHead className="text-xs font-bold uppercase tracking-wider">
-                      Wilayah Sumber
-                    </TableHead>
+                    <TableHead className="text-xs font-bold uppercase tracking-wider">Wilayah Sumber</TableHead>
                   )}
                   {isColVisible("urgensi") && (
                     <TableHead className="text-xs font-bold uppercase tracking-wider text-center">Urgensi</TableHead>
@@ -1142,7 +1140,7 @@ export function BaketCoordinatorClient() {
                           variant="outline"
                           size="sm"
                           asChild
-                          className="h-8 px-2.5 text-xs rounded-lg gap-1.5 font-medium border-sky-500/30 text-sky-600 hover:bg-sky-500/10 dark:text-[#38BDF8]"
+                          className="h-8 px-2.5 text-xs rounded-lg gap-1.5 font-medium border-sky-500/30 text-sky-600 hover:bg-sky-500/10 dark:text-sky-400"
                         >
                           <Link href={getBaketHref(item)}>
                             <Eye className="size-3.5" />

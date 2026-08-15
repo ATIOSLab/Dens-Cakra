@@ -22,6 +22,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { apiBrowserMutation } from "@/lib/api/browser-client";
 import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 
+import { coachingReportSchema } from "./coaching-report-schema";
+
 interface JaringOption {
   id: string;
   aliasName: string;
@@ -80,38 +82,25 @@ export function CreateCoachingReportDialog({
     e.preventDefault();
     setErrorMessage(null);
 
-    if (!jaringId) {
-      setErrorMessage("Silakan pilih Jaring terlebih dahulu.");
-      return;
-    }
-    if (!title.trim()) {
-      setErrorMessage("Judul laporan pembinaan wajib diisi.");
-      return;
-    }
-    if (title.trim().length > 300) {
-      setErrorMessage("Judul laporan maksimal 300 karakter.");
-      return;
-    }
-    if (!content.trim()) {
-      setErrorMessage("Isi laporan pembinaan wajib diisi.");
-      return;
-    }
-    if (content.trim().length > 10000) {
-      setErrorMessage("Isi laporan maksimal 10.000 karakter.");
-      return;
-    }
-    if (!reportedAt) {
-      setErrorMessage("Tanggal dan waktu pelaporan wajib diisi.");
+    const parsed = coachingReportSchema.safeParse({
+      jaringId,
+      title,
+      content,
+      reportedAt,
+    });
+
+    if (!parsed.success) {
+      setErrorMessage(parsed.error.issues[0]?.message ?? "Data formulir tidak valid.");
       return;
     }
 
-    const isoDate = new Date(reportedAt).toISOString();
+    const isoDate = new Date(parsed.data.reportedAt).toISOString();
 
     setSubmitting(true);
     try {
-      await apiBrowserMutation("POST", `/jaring/${jaringId}/coaching-reports`, {
-        title: title.trim(),
-        content: content.trim(),
+      await apiBrowserMutation("POST", `/jaring/${parsed.data.jaringId}/coaching-reports`, {
+        title: parsed.data.title,
+        content: parsed.data.content,
         reportedAt: isoDate,
       });
 

@@ -14,6 +14,7 @@ export function SessionHeartbeat() {
       void fetch("/api/v1/me/session-heartbeat", {
         method: "POST",
         cache: "no-store",
+        credentials: "include",
         keepalive: true,
       });
     };

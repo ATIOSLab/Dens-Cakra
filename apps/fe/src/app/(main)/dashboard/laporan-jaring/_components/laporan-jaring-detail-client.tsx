@@ -307,7 +307,7 @@ export function LaporanJaringDetailClient({
             />
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-mono font-bold text-sm text-sky-600 dark:text-[#38BDF8]">
+                <span className="font-mono font-bold text-sm text-sky-600 dark:text-sky-400">
                   {activeReport?.referenceNumber || laporanId}
                 </span>
                 {activeReport?.displayStatus ? (
@@ -345,7 +345,7 @@ export function LaporanJaringDetailClient({
               disabled={!activeReport}
               className="h-9 gap-1.5 text-xs rounded-lg"
             >
-              <History className="size-4 text-sky-600 dark:text-[#38BDF8]" />
+              <History className="size-4 text-sky-600 dark:text-sky-400" />
               Riwayat Perubahan & Audit Log
             </Button>
           </div>
@@ -355,7 +355,7 @@ export function LaporanJaringDetailClient({
       {loadingDetail ? (
         <Card className="p-16 text-center border border-slate-200/80 dark:border-white/10">
           <div className="flex flex-col items-center gap-3">
-            <RefreshCw className="size-8 animate-spin text-sky-600 dark:text-[#38BDF8]" />
+            <RefreshCw className="size-8 animate-spin text-sky-600 dark:text-sky-400" />
             <p className="text-xs font-mono text-muted-foreground">Memuat detail laporan...</p>
           </div>
         </Card>
@@ -371,7 +371,7 @@ export function LaporanJaringDetailClient({
               <Card className="border border-slate-200/80 dark:border-white/10 bg-card rounded-xl shadow-xs overflow-hidden">
                 <CardHeader className="p-4 md:p-5 border-b border-slate-200/80 dark:border-white/10 bg-slate-50/50 dark:bg-slate-900/40">
                   <div className="flex items-center gap-3">
-                    <div className="flex size-8 items-center justify-center rounded-lg bg-sky-500/10 text-sky-600 dark:text-[#38BDF8] font-bold text-xs">
+                    <div className="flex size-8 items-center justify-center rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 font-bold text-xs">
                       1
                     </div>
                     <div>
@@ -406,7 +406,7 @@ export function LaporanJaringDetailClient({
 
                     <div className="p-3 rounded-lg border border-slate-200/80 dark:border-white/10 bg-slate-50/40 dark:bg-slate-900/30 space-y-1 md:col-span-2">
                       <span className="text-muted-foreground font-medium flex items-center gap-1.5">
-                        <Clock className="size-3.5 text-sky-600 dark:text-[#38BDF8]" />
+                        <Clock className="size-3.5 text-sky-600 dark:text-sky-400" />
                         Waktu Dikirim:
                       </span>
                       <p className="font-mono text-sm text-foreground">{formatDateTime(activeReport.reportedAt)}</p>
@@ -430,7 +430,7 @@ export function LaporanJaringDetailClient({
                     <div className="md:col-span-2 space-y-2 p-3.5 rounded-lg border border-slate-200/80 dark:border-white/10 bg-slate-50/40 dark:bg-slate-900/30">
                       <div className="flex items-center justify-between">
                         <span className="font-semibold text-xs text-foreground flex items-center gap-1.5">
-                          <MapPin className="size-4 text-sky-600 dark:text-[#38BDF8]" />
+                          <MapPin className="size-4 text-sky-600 dark:text-sky-400" />
                           Informasi Lokasi & Koordinat GPS
                         </span>
 
@@ -439,7 +439,7 @@ export function LaporanJaringDetailClient({
                             href={`https://maps.google.com/?q=${activeReport.location.latitude},${activeReport.location.longitude}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-xs font-semibold text-sky-600 dark:text-[#38BDF8] hover:underline"
+                            className="inline-flex items-center gap-1 text-xs font-semibold text-sky-600 dark:text-sky-400 hover:underline"
                           >
                             Buka Google Maps <ExternalLink className="size-3" />
                           </a>
@@ -478,7 +478,7 @@ export function LaporanJaringDetailClient({
                     <div className="md:col-span-2 space-y-3 pt-2">
                       <div className="flex items-center justify-between p-3 rounded-lg border border-slate-200/80 dark:border-white/10 bg-card shadow-2xs">
                         <div className="flex items-center gap-2">
-                          <Paperclip className="size-4 text-sky-600 dark:text-[#38BDF8]" />
+                          <Paperclip className="size-4 text-sky-600 dark:text-sky-400" />
                           <span className="font-semibold text-xs text-foreground">
                             Lampiran Media ({mediaList.length} Berkas)
                           </span>
@@ -493,7 +493,7 @@ export function LaporanJaringDetailClient({
                             variant="outline"
                             size="sm"
                             onClick={() => setShowMediaPreview(!showMediaPreview)}
-                            className="h-8 gap-1.5 text-xs rounded-lg border-sky-500/30 text-sky-600 hover:bg-sky-500/10 dark:text-[#38BDF8]"
+                            className="h-8 gap-1.5 text-xs rounded-lg border-sky-500/30 text-sky-600 hover:bg-sky-500/10 dark:text-sky-400"
                           >
                             {showMediaPreview ? (
                               <>
@@ -543,7 +543,7 @@ export function LaporanJaringDetailClient({
                       </div>
                     ) : (
                       <div className="pt-3 border-t border-slate-200/80 dark:border-white/10 flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-xs font-semibold text-sky-600 dark:text-[#38BDF8]">
+                        <div className="flex items-center gap-2 text-xs font-semibold text-sky-600 dark:text-sky-400">
                           <CheckCircle2 className="size-4 shrink-0 text-sky-500" />
                           <span>Laporan sudah siap dijadikan Baket.</span>
                         </div>
@@ -768,7 +768,7 @@ export function LaporanJaringDetailClient({
           <DialogHeader className="p-4 md:px-6 md:py-4 border-b border-slate-200/80 dark:border-white/10 bg-slate-50/80 dark:bg-slate-900/50">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="flex size-9 items-center justify-center rounded-xl bg-sky-500/10 text-sky-600 dark:text-[#38BDF8]">
+                <div className="flex size-9 items-center justify-center rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400">
                   <History className="size-5" />
                 </div>
                 <div>
@@ -804,7 +804,7 @@ export function LaporanJaringDetailClient({
               <div className="flex-1 overflow-y-auto p-3 space-y-2">
                 {loadingHistory ? (
                   <div className="flex py-16 flex-col items-center justify-center gap-2 text-xs text-muted-foreground font-mono">
-                    <RefreshCw className="size-5 animate-spin text-sky-600 dark:text-[#38BDF8]" />
+                    <RefreshCw className="size-5 animate-spin text-sky-600 dark:text-sky-400" />
                     Memuat riwayat...
                   </div>
                 ) : filteredEvents.length > 0 ? (
@@ -906,7 +906,7 @@ export function LaporanJaringDetailClient({
                   {selectedEvent.beforeData || selectedEvent.afterData ? (
                     <div className="space-y-3">
                       <div className="flex items-center gap-2">
-                        <FileDiff className="size-4 text-sky-600 dark:text-[#38BDF8]" />
+                        <FileDiff className="size-4 text-sky-600 dark:text-sky-400" />
                         <h4 className="font-mono text-xs font-bold uppercase tracking-wider text-foreground">
                           Perubahan Data
                         </h4>
