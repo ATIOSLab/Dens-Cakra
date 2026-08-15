@@ -1,4 +1,3 @@
-import { OrganizationType, PositionCode } from '../../common/constants/legacy-operational-code.js';
 import {
   Injectable } from '@nestjs/common';
 import {

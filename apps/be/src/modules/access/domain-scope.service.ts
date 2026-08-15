@@ -274,6 +274,31 @@ export class DomainScopeService {
     };
   }
 
+  async listAssignableAssignments(
+    context: AuthorizationContext,
+    roleCode: RoleCode,
+  ) {
+    const scope = await this.resolve(context);
+    return this.prisma.userOperationalAssignment.findMany({
+      where: {
+        id: { in: scope.assignmentIds },
+        isActive: true,
+        OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
+        role: { code: roleCode, isActive: true },
+      },
+      include: {
+        role: true,
+        userProfile: true,
+        areaScopes: {
+          where: { validUntil: null },
+          include: { area: true },
+          orderBy: [{ isPrimary: 'desc' }, { validFrom: 'desc' }],
+        },
+      },
+      orderBy: [{ createdAt: 'asc' }],
+    });
+  }
+
   async assertArea(context: AuthorizationContext, areaId: string) {
     const areaRootIds = context.areaScopes.map((scope) => scope.areaId);
     if (areaRootIds.length === 0 || areaRootIds.includes(areaId)) return;

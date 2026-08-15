@@ -66,55 +66,6 @@ export class PrismaService
     }
   }
 
-  private removedModel(name: string): any {
-    return new Proxy(
-      {},
-      {
-        get() {
-          throw new Error(
-            `${name} has been removed from the schema. Use UserOperationalAssignment and UserAreaScope instead.`,
-          );
-        },
-      },
-    );
-  }
-
-  get position(): any {
-    return this.removedModel('Position');
-  }
-
-  get positionAreaCoverage(): any {
-    return this.removedModel('PositionAreaCoverage');
-  }
-
-  get organizationUnit(): any {
-    return this.removedModel('OrganizationUnit');
-  }
-
-  get organizationUnitClosure(): any {
-    return this.removedModel('OrganizationUnitClosure');
-  }
-
-  get organizationRoleSeat(): any {
-    return this.removedModel('OrganizationRoleSeat');
-  }
-
-  get organizationAreaCoverage(): any {
-    return this.removedModel('OrganizationAreaCoverage');
-  }
-
-  get directorateProfile(): any {
-    return this.removedModel('DirectorateProfile');
-  }
-
-  get directorateCoverage(): any {
-    return this.removedModel('DirectorateCoverage');
-  }
-
-  get bindaProfile(): any {
-    return this.removedModel('BindaProfile');
-  }
-
   async onModuleInit(): Promise<void> {
     await this.$connect();
   }
