@@ -15,6 +15,7 @@ import {
   ShieldAlert,
   SlidersHorizontal,
 } from "lucide-react";
+import type { MapLayerMouseEvent } from "maplibre-gl";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,14 +35,14 @@ import { apiBrowserFetch } from "@/lib/api/browser-client";
 import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 
-import { MapInspector, type SelectionType } from "./MapInspector";
+import { type AreaSummary, MapInspector, type SelectionType } from "./MapInspector";
 import { MapLegend, REPORT_URGENCY_COLORS, REPORT_URGENCY_LABELS } from "./MapLegend";
 import { usePersonnelMap } from "./usePersonnelMap";
 import { getCoordinates, getPersonnelStatus } from "./utils/mapHelpers";
 
 const INDONESIA_CENTER: [number, number] = [117.5, -2.5];
-const EMPTY_COLLECTION = { type: "FeatureCollection", features: [] };
-const EMPTY_REPORT_COLLECTION: NationalMapFeatureCollection = { type: "FeatureCollection", features: [] };
+const EMPTY_COLLECTION: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };
+const EMPTY_REPORT_COLLECTION: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };
 const CARTO_MAP_STYLE = "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json";
 const OPENSTREETMAP_STYLE = "https://tiles.openfreemap.org/styles/bright";
 const OPENSTREETMAP_3D_STYLE = "https://tiles.openfreemap.org/styles/liberty";
@@ -53,15 +54,6 @@ const MAP_STYLES = {
 type MapStyleKey = keyof typeof MAP_STYLES;
 type ObjectFilter = "ALL" | "PERSONNEL" | "REPORTS";
 type UnitBranchFilter = "ALL" | "BINDA" | "DIRECTORATE";
-type NationalMapFeature = {
-  id?: string | number;
-  geometry?: { coordinates?: unknown };
-  properties?: Record<string, unknown>;
-};
-type NationalMapFeatureCollection = {
-  type: "FeatureCollection";
-  features: NationalMapFeature[];
-};
 
 type AdministrativeAreaOption = {
   id: string;
@@ -133,7 +125,9 @@ function getReportAreaName(properties: Record<string, unknown>) {
 
 function getReportCategoryName(properties: Record<string, unknown>) {
   return (
-    stringOrNull(properties.reportCategoryName) ?? stringOrNull(record(properties.category).name) ?? "Kategori Baket belum ditetapkan"
+    stringOrNull(properties.reportCategoryName) ??
+    stringOrNull(record(properties.category).name) ??
+    "Kategori Baket belum ditetapkan"
   );
 }
 
@@ -230,7 +224,11 @@ function getNominatimFocus(result: NominatimResult | undefined): AreaFocus | nul
   return { kind: "center", center: [longitude, latitude] };
 }
 
-function mergePersonnelDetails(featureProperties: any, assignmentValue: unknown, pingValue: unknown) {
+function mergePersonnelDetails(
+  featureProperties: Record<string, unknown>,
+  assignmentValue: unknown,
+  pingValue: unknown,
+) {
   const assignment = record(assignmentValue);
   const profile = record(assignment.userProfile);
   const authUser = record(profile.authUser);
@@ -284,7 +282,7 @@ function mergePersonnelDetails(featureProperties: any, assignmentValue: unknown,
   };
 }
 
-function mergeReportDetails(featureProperties: any, detailValue: unknown) {
+function mergeReportDetails(featureProperties: Record<string, unknown>, detailValue: unknown) {
   const detail = record(detailValue);
   const versions = Array.isArray(detail.versions) ? detail.versions.map(record) : [];
   const currentVersionNumber = numberOrNull(detail.currentVersionNumber);
@@ -300,15 +298,12 @@ function mergeReportDetails(featureProperties: any, detailValue: unknown) {
   return {
     ...featureProperties,
     status: stringOrNull(detail.status) ?? featureProperties.status,
-    displayTitle:
-      stringOrNull(currentVersion.displayTitle) ?? featureProperties.displayTitle,
+    displayTitle: stringOrNull(currentVersion.displayTitle) ?? featureProperties.displayTitle,
     urgency: stringOrNull(currentVersion.urgency) ?? featureProperties.urgency,
     originalContent: stringOrNull(currentVersion.originalContent),
     normalizedContent: stringOrNull(currentVersion.normalizedContent),
     reportedAt:
-      stringOrNull(currentVersion.reportedAt) ??
-      stringOrNull(currentVersion.createdAt) ??
-      featureProperties.reportedAt,
+      stringOrNull(currentVersion.reportedAt) ?? stringOrNull(currentVersion.createdAt) ?? featureProperties.reportedAt,
     areaName:
       stringOrNull(eventArea.name) ??
       stringOrNull(featureProperties.areaName) ??
@@ -346,12 +341,12 @@ export function NationalMap() {
   });
 
   // Layer Collections
-  const [boundaries, setBoundaries] = useState<any>(EMPTY_COLLECTION);
-  const [reports, setReports] = useState<any>(EMPTY_COLLECTION);
-  const [reportCatalog, setReportCatalog] = useState<NationalMapFeatureCollection>(EMPTY_REPORT_COLLECTION);
-  const [personnel, setPersonnel] = useState<any>(EMPTY_COLLECTION);
-  const [alerts, setAlerts] = useState<any>(EMPTY_COLLECTION);
-  const [emergencies, setEmergencies] = useState<any>(EMPTY_COLLECTION);
+  const [boundaries, setBoundaries] = useState<GeoJSON.FeatureCollection>(EMPTY_COLLECTION);
+  const [reports, setReports] = useState<GeoJSON.FeatureCollection>(EMPTY_COLLECTION);
+  const [reportCatalog, setReportCatalog] = useState<GeoJSON.FeatureCollection>(EMPTY_REPORT_COLLECTION);
+  const [personnel, setPersonnel] = useState<GeoJSON.FeatureCollection>(EMPTY_COLLECTION);
+  const [alerts, setAlerts] = useState<GeoJSON.FeatureCollection>(EMPTY_COLLECTION);
+  const [emergencies, setEmergencies] = useState<GeoJSON.FeatureCollection>(EMPTY_COLLECTION);
 
   // UI / Layer toggles
   const [layers, setLayers] = useState({
@@ -424,11 +419,11 @@ export function NationalMap() {
       const query = { bbox, zoom: queryZoom, limit: 5000, areaId: activeAreaId };
 
       const [boundariesRes, reportsRes, alertsRes, emergenciesRes, personnelRes] = await Promise.all([
-        apiBrowserFetch("/map/boundaries", { query }),
-        apiBrowserFetch("/map/reports", { query }),
-        apiBrowserFetch("/map/alerts", { query }),
-        apiBrowserFetch("/map/emergencies", { query }),
-        apiBrowserFetch("/personnel-location-map", { query: { areaId: activeAreaId } }),
+        apiBrowserFetch<GeoJSON.FeatureCollection>("/map/boundaries", { query }),
+        apiBrowserFetch<GeoJSON.FeatureCollection>("/map/reports", { query }),
+        apiBrowserFetch<GeoJSON.FeatureCollection>("/map/alerts", { query }),
+        apiBrowserFetch<GeoJSON.FeatureCollection>("/map/emergencies", { query }),
+        apiBrowserFetch<GeoJSON.FeatureCollection>("/personnel-location-map", { query: { areaId: activeAreaId } }),
       ]);
 
       setBoundaries(boundariesRes || EMPTY_COLLECTION);
@@ -445,7 +440,7 @@ export function NationalMap() {
 
   const fetchReportCatalog = useCallback(async () => {
     try {
-      const catalog = await apiBrowserFetch<NationalMapFeatureCollection>("/map/reports", {
+      const catalog = await apiBrowserFetch<GeoJSON.FeatureCollection>("/map/reports", {
         query: {
           bbox: "94,-12,142,7",
           zoom: 4,
@@ -521,8 +516,8 @@ export function NationalMap() {
   }, []);
 
   // Filtered personnel data based on active search and dropdown filters
-  const filteredPersonnelData = useMemo(() => {
-    const features = (personnel?.features || []).filter((feature: any) => {
+  const filteredPersonnelData = useMemo<GeoJSON.FeatureCollection>(() => {
+    const features = (personnel?.features || []).filter((feature: GeoJSON.Feature) => {
       if (selectedObjectType === "REPORTS") return false;
       const props = feature.properties || {};
       const status = getPersonnelStatus(props, emergencies?.features || []);
@@ -552,7 +547,7 @@ export function NationalMap() {
   }, [personnel, emergencies, searchQuery, selectedStatus, selectedUnitBranch, selectedObjectType]);
 
   const filterReportCollection = useCallback(
-    (collection: NationalMapFeatureCollection) => {
+    (collection: GeoJSON.FeatureCollection): GeoJSON.FeatureCollection => {
       const features = collection.features.filter((feature) => {
         if (selectedObjectType === "PERSONNEL") return false;
         const props = feature.properties || {};
@@ -593,7 +588,7 @@ export function NationalMap() {
     if (!searchQuery.trim()) return [];
     const q = searchQuery.toLowerCase().trim();
     return (personnel?.features || [])
-      .filter((f: any) => {
+      .filter((f: GeoJSON.Feature) => {
         const props = f.properties || {};
         return (props.userName || "").toLowerCase().includes(q) || (props.unitName || "").toLowerCase().includes(q);
       })
@@ -604,15 +599,15 @@ export function NationalMap() {
   const mapInstance = mapRef.current?.getMap();
 
   const handleSelectPersonnel = useCallback(
-    async (feature: any) => {
+    async (feature: GeoJSON.Feature) => {
       const coordinates = getCoordinates(feature);
       const assignmentId = stringOrNull(feature?.properties?.assignmentId);
       if (!coordinates || !assignmentId) return;
 
       const requestId = ++personnelRequestId.current;
       const initialProperties = {
-        ...feature.properties,
-        status: getPersonnelStatus(feature.properties, emergencies?.features || []),
+        ...(feature.properties ?? {}),
+        status: getPersonnelStatus(feature.properties ?? {}, emergencies?.features || []),
       };
 
       setSelection({
@@ -696,7 +691,7 @@ export function NationalMap() {
   });
 
   // Handle boundary clicks
-  const selectBoundary = useCallback(async (feature: any) => {
+  const selectBoundary = useCallback(async (feature: GeoJSON.Feature) => {
     const areaId = feature.properties?.areaId;
     if (!areaId) return;
     personnelRequestId.current += 1;
@@ -719,9 +714,15 @@ export function NationalMap() {
 
     setSelection({
       kind: "area",
-      properties: feature.properties,
+      properties: feature.properties ?? {},
       coordinates: areaCenter,
-      summary: {},
+      summary: {
+        personnelCount: 0,
+        reportsCount: 0,
+        alertsCount: 0,
+        unitsCount: 0,
+        emergenciesCount: 0,
+      } satisfies AreaSummary,
       loading: true,
       detailError: null,
     });
@@ -729,7 +730,7 @@ export function NationalMap() {
     try {
       const summary = record(await apiBrowserFetch("/map/area-summary", { query: { areaId } }));
       const summaryKpis = record(summary.kpis);
-      setSelection((current: any) => {
+      setSelection((current: SelectionType | null) => {
         if (!current || current.kind !== "area" || current.properties.areaId !== areaId) return current;
         return {
           ...current,
@@ -760,7 +761,7 @@ export function NationalMap() {
   }, []);
 
   const handleBoundaryClick = useCallback(
-    ({ feature, rawEvent }: any) => {
+    ({ feature, rawEvent }: { feature: GeoJSON.Feature; rawEvent: MapLayerMouseEvent }) => {
       const map = mapRef.current?.getMap();
       const clickedPersonnel = map?.getLayer("personnel-points")
         ? map.queryRenderedFeatures(rawEvent.point, { layers: ["personnel-points"] })
@@ -773,15 +774,15 @@ export function NationalMap() {
   );
 
   // Handle click on search result item
-  const handleSelectSearchResult = (feature: any) => {
-    const coords = feature.geometry?.coordinates;
+  const handleSelectSearchResult = (feature: GeoJSON.Feature) => {
+    const coords = getCoordinates(feature);
     if (coords) {
-      setSearchQuery(feature.properties.userName || "");
+      setSearchQuery(stringOrNull(feature.properties?.userName) || "");
       void handleSelectPersonnel(feature);
     }
   };
 
-  const handleSelectReport = useCallback(async (feature: any) => {
+  const handleSelectReport = useCallback(async (feature: GeoJSON.Feature) => {
     const coordinates = getCoordinates(feature);
     const baketId = stringOrNull(feature?.properties?.baketId);
     if (!coordinates || !baketId) return;
@@ -1058,7 +1059,8 @@ export function NationalMap() {
 
   const highRisk = useMemo(() => {
     const items = [...(alerts?.features || []), ...(emergencies?.features || [])];
-    return items.filter((f: any) => ["HIGH", "CRITICAL", "EMERGENCY"].includes(f.properties?.severity)).length;
+    return items.filter((f: GeoJSON.Feature) => ["HIGH", "CRITICAL", "EMERGENCY"].includes(f.properties?.severity))
+      .length;
   }, [alerts, emergencies]);
 
   const visibleReportFeatures = filteredReportCatalogData.features.slice(0, visibleReportCount);
@@ -1104,7 +1106,12 @@ export function NationalMap() {
       {/* Metric Cards Section */}
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[
-          { key: "reports" as const, label: "Baket terpetakan", value: counts.reports, icon: DOMAIN_VISUALS.baket.Icon },
+          {
+            key: "reports" as const,
+            label: "Baket terpetakan",
+            value: counts.reports,
+            icon: DOMAIN_VISUALS.baket.Icon,
+          },
           {
             key: "personnel" as const,
             label: "Petugas Wilayah (Gaswil)",
@@ -1155,15 +1162,15 @@ export function NationalMap() {
               {/* Search Suggestions Dropdown */}
               {searchSuggestions.length > 0 && (
                 <div className="absolute left-0 right-0 mt-1 z-50 bg-background/95 backdrop-blur-md border border-border shadow-md rounded-[4px] overflow-hidden">
-                  {searchSuggestions.map((f: any) => (
+                  {searchSuggestions.map((f: GeoJSON.Feature) => (
                     <button
                       type="button"
-                      key={f.id || f.properties.assignmentId}
+                      key={f.id || f.properties?.assignmentId}
                       onClick={() => handleSelectSearchResult(f)}
                       className="w-full text-left px-3 py-2 text-[11px] hover:bg-accent hover:text-accent-foreground flex items-center justify-between border-b border-border/20 last:border-0 cursor-pointer"
                     >
-                      <span>{f.properties.userName}</span>
-                      <span className="text-[9px] font-mono text-muted-foreground">{f.properties.unitName}</span>
+                      <span>{f.properties?.userName}</span>
+                      <span className="text-[9px] font-mono text-muted-foreground">{f.properties?.unitName}</span>
                     </button>
                   ))}
                 </div>
@@ -1265,7 +1272,9 @@ export function NationalMap() {
                   onChange={(e) => void handleRegencyChange(e.target.value)}
                   disabled={!selectedProvinceId || areaOptionsLoading}
                 >
-                  <option value="">{selectedProvinceId ? "Semua Kota/Kabupaten" : "Pilih Provinsi/Binda dahulu"}</option>
+                  <option value="">
+                    {selectedProvinceId ? "Semua Kota/Kabupaten" : "Pilih Provinsi/Binda dahulu"}
+                  </option>
                   {regencies.map((area) => (
                     <option key={area.id} value={area.id}>
                       {area.name}
@@ -1353,7 +1362,6 @@ export function NationalMap() {
                   ))}
                 </select>
               </div>
-
             </div>
           )}
         </Card>
@@ -1409,7 +1417,7 @@ export function NationalMap() {
 
                 {/* Boundaries Layer */}
                 <MapGeoJSON
-                  data={boundaries as any}
+                  data={boundaries}
                   promoteId="areaId"
                   interactive
                   fillPaint={{ "fill-color": "#10b981", "fill-opacity": 0.05 }}
@@ -1419,7 +1427,7 @@ export function NationalMap() {
                 />
 
                 {layers.reports
-                  ? filteredReportsData.features.map((feature: any) => (
+                  ? filteredReportsData.features.map((feature: GeoJSON.Feature) => (
                       <ReportMarker
                         key={String(feature.id || feature.properties?.baketId)}
                         feature={feature}
@@ -1450,7 +1458,7 @@ export function NationalMap() {
 
             {visibleReportFeatures.length > 0 ? (
               <div className="grid gap-3 md:grid-cols-2">
-                {visibleReportFeatures.map((feature: NationalMapFeature) => (
+                {visibleReportFeatures.map((feature: GeoJSON.Feature) => (
                   <ReportCard
                     key={String(feature.id ?? feature.properties?.baketId)}
                     feature={feature}
@@ -1506,7 +1514,7 @@ export function NationalMap() {
   );
 }
 
-function ReportCard({ feature, onSelect }: { feature: NationalMapFeature; onSelect: () => void }) {
+function ReportCard({ feature, onSelect }: { feature: GeoJSON.Feature; onSelect: () => void }) {
   const properties = record(feature.properties);
   const title = stringOrNull(properties.displayTitle) ?? "Baket terpetakan";
   const status = stringOrNull(properties.status) ?? "";
@@ -1562,7 +1570,7 @@ function ReportCard({ feature, onSelect }: { feature: NationalMapFeature; onSele
   );
 }
 
-function ReportMarker({ feature, onSelect }: { feature: any; onSelect: () => void }) {
+function ReportMarker({ feature, onSelect }: { feature: GeoJSON.Feature; onSelect: () => void }) {
   const [isHovered, setIsHovered] = useState(false);
   const coordinates = getCoordinates(feature);
   if (!coordinates) return null;

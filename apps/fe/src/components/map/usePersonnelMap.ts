@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 
-import type { GeoJSONSource, Map as MapLibreMap } from "maplibre-gl";
+import type { GeoJSONSource, LayerSpecification, MapLayerMouseEvent, Map as MapLibreMap } from "maplibre-gl";
 
 import { PersonnelCircleLayerSpec, PersonnelHighlightLayerSpec, PersonnelPulseLayerSpec } from "./PersonnelLayer";
 import { getPersonnelStatus } from "./utils/mapHelpers";
@@ -8,10 +8,10 @@ import { getPersonnelStatus } from "./utils/mapHelpers";
 type UsePersonnelMapProps = {
   map: MapLibreMap | null;
   isReady: boolean;
-  personnelData: any; // Raw FeatureCollection
-  emergencies: any[]; // List of emergency alerts to associate with personnel
+  personnelData: GeoJSON.FeatureCollection | null; // Raw FeatureCollection
+  emergencies: GeoJSON.Feature[]; // List of emergency alerts to associate with personnel
   selectedPersonnelId: string | null;
-  onSelectPersonnel: (feature: any) => void;
+  onSelectPersonnel: (feature: GeoJSON.Feature) => void;
   visibleLayers: {
     personnel: boolean;
   };
@@ -65,12 +65,12 @@ export function usePersonnelMap({
     let disposed = false;
 
     // Process GeoJSON features to add derived personnel status attributes
-    const processedFeatures = (personnelData?.features || []).map((feature: any) => {
-      const status = getPersonnelStatus(feature.properties, emergencies);
+    const processedFeatures = (personnelData?.features || []).map((feature: GeoJSON.Feature) => {
+      const status = getPersonnelStatus(feature.properties ?? {}, emergencies);
       return {
         ...feature,
         properties: {
-          ...feature.properties,
+          ...(feature.properties ?? {}),
           status, // ACTIVE, SUPERVISOR, DUTY, EMERGENCY, OFFLINE
         },
       };
@@ -112,13 +112,13 @@ export function usePersonnelMap({
 
         // Render every assignment as an individual point at every zoom level.
         if (!hasMapLayer(map, "personnel-active-pulse")) {
-          map.addLayer(PersonnelPulseLayerSpec(sourceId) as any);
+          map.addLayer(PersonnelPulseLayerSpec(sourceId) as LayerSpecification);
         }
         if (!hasMapLayer(map, "personnel-points")) {
-          map.addLayer(PersonnelCircleLayerSpec(sourceId) as any);
+          map.addLayer(PersonnelCircleLayerSpec(sourceId) as LayerSpecification);
         }
         if (!hasMapLayer(map, "personnel-highlight")) {
-          map.addLayer(PersonnelHighlightLayerSpec(sourceId) as any);
+          map.addLayer(PersonnelHighlightLayerSpec(sourceId) as LayerSpecification);
         }
 
         // Synchronize data via setData
@@ -167,7 +167,7 @@ export function usePersonnelMap({
   useEffect(() => {
     if (!map || !isReady) return;
 
-    const onPersonnelClick = (e: any) => {
+    const onPersonnelClick = (e: MapLayerMouseEvent) => {
       e.originalEvent?.stopPropagation();
       const feature = e.features?.[0];
       if (feature) {

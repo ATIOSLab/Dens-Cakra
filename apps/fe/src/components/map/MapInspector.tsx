@@ -3,16 +3,7 @@
 import type React from "react";
 import { useMemo } from "react";
 
-import {
-  AlertTriangle,
-  CheckCircle2,
-  Clock,
-  Compass,
-  LoaderCircle,
-  MapPinned,
-  ShieldAlert,
-  User,
-} from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock, Compass, LoaderCircle, MapPinned, ShieldAlert, User } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,6 +11,14 @@ import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 
 import { REPORT_URGENCY_COLORS, REPORT_URGENCY_LABELS } from "./MapLegend";
 import { type PersonnelStatus, STATUS_COLORS, STATUS_LABELS } from "./utils/mapHelpers";
+
+export type AreaSummary = {
+  personnelCount: number;
+  reportsCount: number;
+  alertsCount: number;
+  unitsCount: number;
+  emergenciesCount: number;
+};
 
 export type SelectionType =
   | {
@@ -36,11 +35,11 @@ export type SelectionType =
       loading?: boolean;
       detailError?: string | null;
     }
-  | { kind: "cluster"; properties: any; leaves: any[]; coordinates: [number, number] }
+  | { kind: "cluster"; properties: any; leaves: GeoJSON.Feature[]; coordinates: [number, number] }
   | {
       kind: "area";
       properties: any;
-      summary: any;
+      summary: AreaSummary;
       coordinates?: [number, number];
       loading?: boolean;
       detailError?: string | null;
@@ -217,7 +216,9 @@ function ReportInspector({ selection }: { selection: Extract<SelectionType, { ki
     <div className="space-y-3 font-mono">
       <div className="mb-2 flex items-center gap-2 border-border/20 border-b pb-2">
         <DOMAIN_VISUALS.baket.Icon className={`size-4 shrink-0 ${DOMAIN_VISUALS.baket.iconClass}`} />
-        <span className="font-bold font-sans text-foreground text-sm">{properties.displayTitle || "Baket terpetakan"}</span>
+        <span className="font-bold font-sans text-foreground text-sm">
+          {properties.displayTitle || "Baket terpetakan"}
+        </span>
       </div>
 
       {selection.loading && (

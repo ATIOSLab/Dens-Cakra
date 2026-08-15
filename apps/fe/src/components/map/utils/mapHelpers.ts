@@ -16,10 +16,33 @@ export const STATUS_LABELS: Record<PersonnelStatus, string> = {
   OFFLINE: "Tidak Aktif",
 };
 
+export type PersonnelProperties = {
+  hasLiveLocation?: boolean;
+  capturedAt?: string | null;
+  status?: string;
+  isEmergency?: boolean;
+  assignmentId?: string;
+  userProfileId?: string;
+  userName?: string;
+  positionTitle?: string;
+  isSupervisor?: boolean;
+  isOnDuty?: boolean;
+  isDuty?: boolean;
+};
+
+export type EmergencyProperties = {
+  assignmentId?: string;
+  userId?: string;
+  userName?: string;
+};
+
 /**
  * Derives the operational status of a personnel feature.
  */
-export function getPersonnelStatus(properties: any, emergencies: any[] = []): PersonnelStatus {
+export function getPersonnelStatus(
+  properties: PersonnelProperties,
+  emergencies: Array<{ properties?: EmergencyProperties | null }> = [],
+): PersonnelStatus {
   // 1. Offline checks
   if (!properties.hasLiveLocation || !properties.capturedAt) {
     return "OFFLINE";
@@ -33,9 +56,9 @@ export function getPersonnelStatus(properties: any, emergencies: any[] = []): Pe
   // 2. Emergency checks
   const isEmergency =
     properties.status === "EMERGENCY" ||
-    properties.isEmergency ||
+    Boolean(properties.isEmergency) ||
     emergencies.some(
-      (e: any) =>
+      (e) =>
         e.properties?.assignmentId === properties.assignmentId ||
         e.properties?.userId === properties.userProfileId ||
         e.properties?.userName === properties.userName,
@@ -45,7 +68,7 @@ export function getPersonnelStatus(properties: any, emergencies: any[] = []): Pe
   }
 
   // 3. Supervisor checks
-  const title = (properties.positionTitle || "").toLowerCase();
+  const title = (properties.positionTitle ?? "").toLowerCase();
   const isSupervisor =
     title.includes("supervisor") ||
     title.includes("koordinator") ||
@@ -53,18 +76,18 @@ export function getPersonnelStatus(properties: any, emergencies: any[] = []): Pe
     title.includes("commander") ||
     title.includes("lead") ||
     title.includes("pimpinan") ||
-    properties.isSupervisor;
+    Boolean(properties.isSupervisor);
   if (isSupervisor) {
     return "SUPERVISOR";
   }
 
   // 4. On Duty checks
   const isDuty =
-    properties.isOnDuty ||
-    properties.isDuty ||
+    Boolean(properties.isOnDuty) ||
+    Boolean(properties.isDuty) ||
     title.includes("petugas") ||
     title.includes("lapangan") ||
-    properties.assignmentId;
+    Boolean(properties.assignmentId);
   if (isDuty) {
     return "DUTY";
   }
@@ -75,8 +98,12 @@ export function getPersonnelStatus(properties: any, emergencies: any[] = []): Pe
 /**
  * Safe parser for coordinates
  */
-export function getCoordinates(feature: any): [number, number] | null {
-  const value = feature?.geometry?.coordinates;
+export function getCoordinates(
+  feature: GeoJSON.Feature | { geometry?: { coordinates?: unknown } | null } | null | undefined,
+): [number, number] | null {
+  const geometry = feature?.geometry;
+  if (!geometry || !("coordinates" in geometry)) return null;
+  const value = geometry.coordinates;
   if (!Array.isArray(value) || value.length < 2) return null;
   const longitude = Number(value[0]);
   const latitude = Number(value[1]);
