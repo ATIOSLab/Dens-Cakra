@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import {
+  CommandRouteType,
   DirectiveStatus,
   JaringStatus,
   Prisma,
@@ -345,6 +346,14 @@ export class TaskService {
     message: string,
   ) {
     if (!allowedRoles.includes(context.roleCode)) {
+      throw new ApiException('TASK_ROLE_FORBIDDEN', message, 403);
+    }
+  }
+
+  private assertBindaCommander(context: AuthorizationContext, message: string) {
+    this.assertRole(context, [RoleCode.REGIONAL_COMMANDER], message);
+
+    if (context.commandRouteType !== CommandRouteType.BINDA) {
       throw new ApiException('TASK_ROLE_FORBIDDEN', message, 403);
     }
   }
@@ -909,10 +918,9 @@ export class TaskService {
   }
 
   async create(body: CreateTaskDto, context: AuthorizationContext) {
-    this.assertRole(
+    this.assertBindaCommander(
       context,
-      [RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER],
-      'Hanya Manajer Intelijen Operasional (OIM) yang dapat membuat tugas operasional.',
+      'Hanya Kepala BIN Daerah (Kabinda) yang dapat membuat tugas operasional.',
     );
 
     if (body.ownerAssignmentId !== context.primaryAssignmentId) {
@@ -965,7 +973,7 @@ export class TaskService {
       if (!directiveVersion) {
         throw new ApiException(
           'TASK_SOURCE_OUT_OF_SCOPE',
-          'Sumber arahan strategis tidak tersedia dalam cakupan wilayah Manajer Intelijen Operasional (OIM) saat ini.',
+          'Sumber arahan strategis tidak tersedia dalam cakupan wilayah Kepala BIN Daerah (Kabinda) saat ini.',
           403,
         );
       }
@@ -1015,7 +1023,7 @@ export class TaskService {
       if (!uukStrVersion) {
         throw new ApiException(
           'TASK_SOURCE_OUT_OF_SCOPE',
-          'STR regional ini belum masuk ke cakupan wilayah OIM saat ini.',
+          'STR regional ini belum masuk ke cakupan wilayah Kepala BIN Daerah (Kabinda) saat ini.',
           403,
         );
       }
@@ -1050,10 +1058,9 @@ export class TaskService {
     body: CreateTaskDto,
     context: AuthorizationContext,
   ) {
-    this.assertRole(
+    this.assertBindaCommander(
       context,
-      [RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER],
-      'Hanya Manajer Intelijen Operasional (OIM) yang dapat membuat tugas turunan.',
+      'Hanya Kepala BIN Daerah (Kabinda) yang dapat membuat tugas turunan.',
     );
 
     const parent = await this.taskDetail(taskId, context);
@@ -1093,10 +1100,9 @@ export class TaskService {
     body: UpdateTaskDto,
     context: AuthorizationContext,
   ) {
-    this.assertRole(
+    this.assertBindaCommander(
       context,
-      [RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER],
-      'Hanya Manajer Intelijen Operasional (OIM) yang dapat mengubah draf tugas.',
+      'Hanya Kepala BIN Daerah (Kabinda) yang dapat mengubah draf tugas.',
     );
 
     const task = await this.taskDetail(taskId, context);
@@ -1107,7 +1113,7 @@ export class TaskService {
     ) {
       throw new ApiException(
         'TASK_NOT_MUTABLE',
-        'Hanya rantai Manajer Intelijen Operasional (OIM) pemilik yang dapat mengubah tugas ini.',
+        'Hanya Kepala BIN Daerah (Kabinda) pemilik yang dapat mengubah tugas ini.',
         403,
       );
     }
@@ -1137,10 +1143,9 @@ export class TaskService {
     body: TargetAreasDto,
     context: AuthorizationContext,
   ) {
-    this.assertRole(
+    this.assertBindaCommander(
       context,
-      [RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER],
-      'Hanya Manajer Intelijen Operasional (OIM) yang dapat mengubah wilayah sasaran tugas.',
+      'Hanya Kepala BIN Daerah (Kabinda) yang dapat mengubah wilayah sasaran tugas.',
     );
 
     const task = await this.taskDetail(taskId, context);
@@ -1151,7 +1156,7 @@ export class TaskService {
     ) {
       throw new ApiException(
         'TASK_NOT_MUTABLE',
-        'Hanya rantai Manajer Intelijen Operasional (OIM) pemilik yang dapat mengubah tugas ini.',
+        'Hanya Kepala BIN Daerah (Kabinda) pemilik yang dapat mengubah tugas ini.',
         403,
       );
     }
@@ -1201,14 +1206,17 @@ export class TaskService {
 
     let expectedRoleCode: RoleCode;
 
-    if (context.roleCode === RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER) {
+    if (
+      context.roleCode === RoleCode.REGIONAL_COMMANDER &&
+      context.commandRouteType === CommandRouteType.BINDA
+    ) {
       if (
         task.ownerAssignmentId !== context.primaryAssignmentId &&
         task.createdByAssignmentId !== context.primaryAssignmentId
       ) {
         throw new ApiException(
           'TASK_ASSIGN_OUT_OF_SCOPE',
-          'Hanya rantai Manajer Intelijen Operasional (OIM) pemilik yang dapat mendistribusikan tugas ini.',
+          'Hanya Kepala BIN Daerah (Kabinda) pemilik yang dapat mendistribusikan tugas ini.',
           403,
         );
       }
@@ -1234,7 +1242,7 @@ export class TaskService {
     } else {
       throw new ApiException(
         'TASK_ROLE_FORBIDDEN',
-        'Hanya Manajer Intelijen Operasional (OIM) dan Koordinator Wilayah (Korwil) yang dapat mendistribusikan tugas.',
+        'Hanya Kepala BIN Daerah (Kabinda) dan Koordinator Wilayah (Korwil) yang dapat mendistribusikan tugas.',
         403,
       );
     }
@@ -1566,14 +1574,17 @@ export class TaskService {
 
     let expectedRoleCode: RoleCode;
 
-    if (context.roleCode === RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER) {
+    if (
+      context.roleCode === RoleCode.REGIONAL_COMMANDER &&
+      context.commandRouteType === CommandRouteType.BINDA
+    ) {
       if (
         old.task.ownerAssignmentId !== context.primaryAssignmentId &&
         old.task.createdByAssignmentId !== context.primaryAssignmentId
       ) {
         throw new ApiException(
           'TASK_REASSIGN_OUT_OF_SCOPE',
-          'Hanya rantai Manajer Intelijen Operasional (OIM) pemilik yang dapat mengalihkan pengiriman Koordinator Wilayah (Korwil).',
+          'Hanya Kepala BIN Daerah (Kabinda) pemilik yang dapat mengalihkan pengiriman Koordinator Wilayah (Korwil).',
           403,
         );
       }
@@ -1590,7 +1601,7 @@ export class TaskService {
     } else {
       throw new ApiException(
         'TASK_ROLE_FORBIDDEN',
-        'Hanya Manajer Intelijen Operasional (OIM) dan Koordinator Wilayah (Korwil) yang dapat mengalihkan tugas.',
+        'Hanya Kepala BIN Daerah (Kabinda) dan Koordinator Wilayah (Korwil) yang dapat mengalihkan tugas.',
         403,
       );
     }
@@ -1640,10 +1651,9 @@ export class TaskService {
   }
 
   async cancel(taskId: string, body: ReasonDto, context: AuthorizationContext) {
-    this.assertRole(
+    this.assertBindaCommander(
       context,
-      [RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER],
-      'Hanya Manajer Intelijen Operasional (OIM) yang dapat membatalkan tugas pada tahap ini.',
+      'Hanya Kepala BIN Daerah (Kabinda) yang dapat membatalkan tugas pada tahap ini.',
     );
 
     const task = await this.taskDetail(taskId, context);
@@ -1654,7 +1664,7 @@ export class TaskService {
     ) {
       throw new ApiException(
         'TASK_CANCEL_OUT_OF_SCOPE',
-        'Hanya rantai Manajer Intelijen Operasional (OIM) pemilik yang dapat membatalkan tugas ini.',
+        'Hanya Kepala BIN Daerah (Kabinda) pemilik yang dapat membatalkan tugas ini.',
         403,
       );
     }
