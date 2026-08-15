@@ -109,7 +109,7 @@ const STR_SCENARIOS: readonly StrScenario[] = [
       'Siapa aktor utama, simpul penghubung, dan kelompok pendukung yang terindikasi aktif melakukan konsolidasi?',
       'Apa agenda, tuntutan, estimasi waktu, titik kumpul, rute pergerakan, dan target lokasi kegiatan?',
       'Bagaimana narasi yang berkembang di media sosial dan apakah narasi tersebut berkorelasi dengan aktivitas lapangan?',
-      'Apa indikator eskalasi yang membutuhkan laporan cepat kepada Manajer Intelijen Operasional (OIM) dan Komandan Regional?',
+      'Apa indikator eskalasi yang membutuhkan laporan cepat kepada Manajer Intelijen Operasional (OIM) dan Kepala BIN Daerah (Kabinda)?',
     ],
     collection: [
       'Mengumpulkan laporan awal dari Petugas Wilayah (Gaswil) pada titik pemerintahan, ruang publik, kampus, komunitas, dan simpul transportasi.',
@@ -123,7 +123,7 @@ const STR_SCENARIOS: readonly StrScenario[] = [
       'Kesalahan penilaian terhadap aktor dan agenda dapat menimbulkan respons yang tidak proporsional.',
     ],
     mechanisms: [
-      'Komandan Regional menetapkan prioritas pemantauan dan menyampaikan batasan informasi yang wajib dilaporkan.',
+      'Kepala BIN Daerah (Kabinda) menetapkan prioritas pemantauan dan menyampaikan batasan informasi yang wajib dilaporkan.',
       'Manajer Intelijen Operasional (OIM) menerjemahkan STR menjadi tugas harian, membagi fokus area, dan memastikan validasi silang setiap temuan penting.',
       'Koordinator Wilayah (Korwil) mengatur ritme laporan Petugas Wilayah (Gaswil) dan memastikan titik pantau tidak tumpang tindih.',
       'Petugas Wilayah (Gaswil) melaporkan fakta lapangan, waktu, lokasi, sumber, bukti pendukung, dan tingkat keyakinan informasi.',
@@ -176,7 +176,7 @@ const STR_SCENARIOS: readonly StrScenario[] = [
       'Gangguan pada simpul logistik strategis dapat berdampak pada wilayah lain di luar area pantau utama.',
     ],
     mechanisms: [
-      'Komandan Regional menetapkan komoditas prioritas dan wilayah pembanding.',
+      'Kepala BIN Daerah (Kabinda) menetapkan komoditas prioritas dan wilayah pembanding.',
       'Manajer Intelijen Operasional (OIM) mengatur format laporan harga, stok, sumber, dan bukti pendukung agar data mudah dibandingkan.',
       'Koordinator Wilayah (Korwil) memastikan Petugas Wilayah (Gaswil) mengambil data dari beberapa titik yang mewakili kondisi wilayah.',
       'Petugas Wilayah (Gaswil) mengirim temuan awal, foto lokasi bila tersedia, dan catatan validasi sumber.',
@@ -229,7 +229,7 @@ const STR_SCENARIOS: readonly StrScenario[] = [
       'Ketegangan antar kelompok dapat muncul bila isu pelayanan dikaitkan dengan identitas atau kepentingan tertentu.',
     ],
     mechanisms: [
-      'Komandan Regional menetapkan isu sosial prioritas dan batas wilayah pemantauan.',
+      'Kepala BIN Daerah (Kabinda) menetapkan isu sosial prioritas dan batas wilayah pemantauan.',
       'Manajer Intelijen Operasional (OIM) menyiapkan kebutuhan informasi mengenai aktor, narasi, dampak warga, dan respons otoritas.',
       'Koordinator Wilayah (Korwil) menyusun jadwal pengecekan lokasi dan pembagian sumber informasi.',
       'Petugas Wilayah (Gaswil) mengirim laporan faktual tanpa menyimpulkan aktor atau motif sebelum ada verifikasi.',
@@ -282,7 +282,7 @@ const STR_SCENARIOS: readonly StrScenario[] = [
       'Kurangnya informasi lapangan dapat menyebabkan keterlambatan koordinasi dengan unsur wilayah.',
     ],
     mechanisms: [
-      'Komandan Regional menetapkan kegiatan budaya prioritas berdasarkan skala, lokasi, dan sensitivitas isu.',
+      'Kepala BIN Daerah (Kabinda) menetapkan kegiatan budaya prioritas berdasarkan skala, lokasi, dan sensitivitas isu.',
       'Manajer Intelijen Operasional (OIM) membagi kebutuhan informasi menjadi data penyelenggara, massa, lokasi, dan potensi dampak.',
       'Koordinator Wilayah (Korwil) memastikan Petugas Wilayah (Gaswil) memantau titik masuk, pusat kegiatan, dan lingkungan sekitar.',
       'Petugas Wilayah (Gaswil) melaporkan fakta secara proporsional dan menjaga sensitivitas terhadap kegiatan masyarakat.',
@@ -335,7 +335,7 @@ const STR_SCENARIOS: readonly StrScenario[] = [
       'Informasi sensitif mengenai fasilitas strategis harus dikendalikan agar tidak memperluas risiko keamanan.',
     ],
     mechanisms: [
-      'Komandan Regional menetapkan daftar objek vital prioritas dan batasan informasi yang boleh dikumpulkan.',
+      'Kepala BIN Daerah (Kabinda) menetapkan daftar objek vital prioritas dan batasan informasi yang boleh dikumpulkan.',
       'Manajer Intelijen Operasional (OIM) menyiapkan indikator perubahan aktivitas yang perlu dilaporkan dan ambang eskalasi.',
       'Koordinator Wilayah (Korwil) mengatur pembagian titik pantau agar tidak mengganggu operasional fasilitas.',
       'Petugas Wilayah (Gaswil) menyampaikan laporan faktual dengan memperhatikan keamanan sumber dan kerahasiaan informasi.',
@@ -388,7 +388,7 @@ const STR_SCENARIOS: readonly StrScenario[] = [
       'Pola lintas wilayah dapat terlewat bila laporan Petugas Wilayah (Gaswil) tidak dikonsolidasikan oleh Koordinator Wilayah (Korwil).',
     ],
     mechanisms: [
-      'Komandan Regional menetapkan indikator peringatan dini dan prioritas lokasi rawan.',
+      'Kepala BIN Daerah (Kabinda) menetapkan indikator peringatan dini dan prioritas lokasi rawan.',
       'Manajer Intelijen Operasional (OIM) memastikan setiap laporan memiliki penilaian validitas, urgensi, dan rekomendasi tindak lanjut.',
       'Koordinator Wilayah (Korwil) memonitor kepatuhan laporan petugas dan mengoordinasikan pembaruan cepat.',
       'Petugas Wilayah (Gaswil) mengirim laporan awal, perkembangan, dan penutupan peristiwa sesuai format yang ditetapkan.',
@@ -450,7 +450,7 @@ function rolePositionTitle(roleCode: RoleCode, branch: CommandRouteType) {
   if (roleCode === RoleCode.REGIONAL_COMMANDER) {
     return branch === CommandRouteType.DIRECTORATE
       ? 'Direktur Supervisi'
-      : 'Komandan Regional';
+      : 'Kepala BIN Daerah (Kabinda)';
   }
 
   if (roleCode === RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER) {

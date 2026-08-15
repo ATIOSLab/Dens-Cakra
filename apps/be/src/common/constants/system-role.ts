@@ -18,7 +18,7 @@ export const SYSTEM_ROLE_CATALOG = [
   },
   {
     key: SYSTEM_ROLES.REGIONAL_COMMANDER,
-    label: 'Komandan Regional',
+    label: 'Kepala BIN Daerah (Kabinda)',
     summary:
       'Menjabarkan direktif, mengendalikan operasi wilayah, serta melakukan review dan persetujuan regional.',
   },

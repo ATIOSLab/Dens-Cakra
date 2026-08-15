@@ -2482,7 +2482,7 @@ export class IntelligenceProductsService {
       workflow.productVersion.createdByAssignmentId,
       NotificationType.PRODUCT,
       'Produk disetujui',
-      `Produk ${workflow.productVersion.product.title} telah disetujui Komandan Regional dan tersedia untuk Deputi II.`,
+      `Produk ${workflow.productVersion.product.title} telah disetujui Kepala BIN Daerah (Kabinda) dan tersedia untuk Deputi II.`,
       `/products/${workflow.productVersion.productId}`,
     );
     await this.audit(

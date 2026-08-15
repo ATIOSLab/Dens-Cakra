@@ -414,7 +414,7 @@ export function JawabanLapanganPage() {
         status: "Diproses",
         verification: "Dieskalasikan ke Manajer Intelijen Operasional (OIM)",
       },
-      "Eskalasi ke Manajer Intelijen Operasional dikirim dari Komandan Regional.",
+      "Eskalasi ke Manajer Intelijen Operasional dikirim dari Kepala BIN Daerah (Kabinda).",
       `${selectedAnswer.id} sudah dieskalasikan ke OIM untuk verifikasi lanjutan.`,
     );
     setActiveStatus("Diproses");
@@ -457,7 +457,7 @@ export function JawabanLapanganPage() {
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <Badge variant="outline">Komandan Regional</Badge>
+            <Badge variant="outline">Kepala BIN Daerah (Kabinda)</Badge>
             <Badge className="border-primary/20 bg-primary/10 text-primary hover:bg-primary/15" variant="outline">
               Tinjau Jawaban Lapangan (Baket)
             </Badge>
@@ -800,7 +800,7 @@ export function JawabanLapanganPage() {
             {/* Tabbed Action Center (VERIFY, DEVELOP, REJECT) */}
             <div className="space-y-2">
               <span className="block font-semibold text-[10px] text-muted-foreground uppercase">
-                Tindakan Komandan Regional
+                Tindakan Kepala BIN Daerah (Kabinda)
               </span>
 
               <Tabs defaultValue="verify" className="w-full">
@@ -820,7 +820,7 @@ export function JawabanLapanganPage() {
                 <TabsContent value="verify" className="space-y-3 pt-2">
                   <div className="space-y-2.5 rounded-lg border border-border/40 bg-muted/10 p-3">
                     <p className="text-[11px] text-muted-foreground leading-relaxed">
-                      Komandan dapat menandai Baket sebagai terverifikasi atau langsung meneruskan laporan ini
+                      Kepala BIN Daerah (Kabinda) dapat menandai Baket sebagai terverifikasi atau langsung meneruskan laporan ini
                       (eskalasi) ke Manajer Intelijen Operasional (OIM) untuk kompilasi.
                     </p>
                     <div className="grid grid-cols-2 gap-2">

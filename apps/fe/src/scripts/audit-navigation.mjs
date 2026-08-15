@@ -115,7 +115,7 @@ const deprecatedUiTerms = new Map([
   ["Jaring Lapangan", "Jaring"],
   ["Field Officer", "Petugas Wilayah (Gaswil)"],
   ["Field Coordinator", "Koordinator Wilayah (Korwil)"],
-  ["Regional Commander", "Komandan Regional"],
+  ["Regional Commander", "Kepala BIN Daerah (Kabinda)"],
   ["Operational Intelligence Manager", "Manajer Intelijen Operasional"],
   ["Incoming information", "Informasi masuk"],
   ["Edit Draft", "Ubah Draf"],
@@ -177,7 +177,7 @@ const deprecatedUiTerms = new Map([
 const rawDeprecatedUiTerms = new Map([
   ["Field Officer", "Petugas Wilayah (Gaswil)"],
   ["Field Coordinator", "Koordinator Wilayah (Korwil)"],
-  ["Regional Commander", "Komandan Regional"],
+  ["Regional Commander", "Kepala BIN Daerah (Kabinda)"],
   ["Operational Intelligence Manager", "Manajer Intelijen Operasional"],
   ["Jaring Lapangan", "Jaring"],
   ["WhatsApp View", "Tampilan WhatsApp"],

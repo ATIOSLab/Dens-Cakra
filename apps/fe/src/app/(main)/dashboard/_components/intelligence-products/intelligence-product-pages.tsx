@@ -58,7 +58,7 @@ export async function ExecutiveProductListPage({ sortBy, sortOrder }: { sortBy?:
     <IntelligenceProductList
       data={products}
       title="Produk Intelijen"
-      description="Produk yang telah disetujui Komandan Regional dan tersedia untuk Deputi II."
+      description="Produk yang telah disetujui Kepala BIN Daerah (Kabinda) dan tersedia untuk Deputi II."
       basePath="/dashboard/executive/produk-intelijen"
     />
   );

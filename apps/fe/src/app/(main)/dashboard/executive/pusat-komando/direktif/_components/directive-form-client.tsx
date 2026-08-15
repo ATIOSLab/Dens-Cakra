@@ -151,7 +151,7 @@ function buildAllModePreviewRows(
           scopeCode: item.provinceCode,
           targetLabel: recipient.positionTitle,
           targetSubLabel: recipient.organizationUnitName,
-          targetKind: "Komandan Regional",
+          targetKind: "Kepala BIN Daerah (Kabinda)",
           coverageNames: [item.provinceName],
           targetPositionId: recipient.positionId,
         }))
@@ -161,8 +161,8 @@ function buildAllModePreviewRows(
             scopeLabel: item.provinceName,
             scopeCode: item.provinceCode,
             targetLabel: null,
-            targetSubLabel: "Belum ada Komandan Regional yang terhubung.",
-            targetKind: "Komandan Regional",
+            targetSubLabel: "Belum ada Kepala BIN Daerah (Kabinda) yang terhubung.",
+            targetKind: "Kepala BIN Daerah (Kabinda)",
             coverageNames: [item.provinceName],
             missing: true,
           },
@@ -843,7 +843,7 @@ export function DirectiveFormClient({
             <CardHeader>
               <CardTitle>Pratinjau Distribusi</CardTitle>
               <CardDescription>
-                Mode `Semua` menurunkan distribusi ke Komandan Regional. Mode `Binda` dan `Direktorat` langsung
+                Mode `Semua` menurunkan distribusi ke Kepala BIN Daerah (Kabinda). Mode `Binda` dan `Direktorat` langsung
                 menargetkan organisasi yang dipilih dari peta.
               </CardDescription>
             </CardHeader>

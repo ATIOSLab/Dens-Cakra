@@ -4,7 +4,7 @@ export function KomandoRegionalPage() {
   return (
     <DensModulePage
       title="Komando Regional"
-      roleLabel="Komandan Regional"
+      roleLabel="Kepala BIN Daerah (Kabinda)"
       description="Halaman ini menyiapkan kontrol operasional wilayah, kondisi unit subordinat, dan arahan lintas operasi."
       highlights={[
         "Ringkasan operasi aktif pada wilayah tanggung jawab.",

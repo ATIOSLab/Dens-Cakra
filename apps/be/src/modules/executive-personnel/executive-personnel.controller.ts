@@ -138,7 +138,7 @@ export class FieldCoordinatorPersonnelController {
   }
 }
 
-@ApiTags('Personel Komandan Regional')
+@ApiTags('Personel Kepala BIN Daerah (Kabinda)')
 @UseGuards(SessionGuard, DomainAccessGuard)
 @Controller('regional-commander/personnel')
 export class RegionalCommanderPersonnelController {
@@ -148,7 +148,7 @@ export class RegionalCommanderPersonnelController {
   @ApiContract({
     operationId: 'apiRegionalCommanderPersonnel001',
     contractId: 'API-REGIONAL-COMMANDER-PERSONNEL-001',
-    summary: 'Daftar petugas wilayah dalam hierarki Komandan Regional',
+    summary: 'Daftar petugas wilayah dalam hierarki Kepala BIN Daerah (Kabinda)',
     roles: ['regional_commander'],
   })
   async list(
@@ -166,7 +166,7 @@ export class RegionalCommanderPersonnelController {
   @ApiContract({
     operationId: 'apiRegionalCommanderPersonnel002',
     contractId: 'API-REGIONAL-COMMANDER-PERSONNEL-002',
-    summary: 'Peta petugas wilayah dalam hierarki Komandan Regional',
+    summary: 'Peta petugas wilayah dalam hierarki Kepala BIN Daerah (Kabinda)',
     roles: ['regional_commander'],
   })
   async map(
@@ -184,7 +184,7 @@ export class RegionalCommanderPersonnelController {
   @ApiContract({
     operationId: 'apiRegionalCommanderPersonnel003',
     contractId: 'API-REGIONAL-COMMANDER-PERSONNEL-003',
-    summary: 'Filter wilayah bertingkat sesuai cakupan Komandan Regional',
+    summary: 'Filter wilayah bertingkat sesuai cakupan Kepala BIN Daerah (Kabinda)',
     roles: ['regional_commander'],
   })
   async areaFilters(
@@ -200,7 +200,7 @@ export class RegionalCommanderPersonnelController {
   @ApiContract({
     operationId: 'apiRegionalCommanderPersonnel004',
     contractId: 'API-REGIONAL-COMMANDER-PERSONNEL-004',
-    summary: 'Detail petugas wilayah dalam hierarki Komandan Regional',
+    summary: 'Detail petugas wilayah dalam hierarki Kepala BIN Daerah (Kabinda)',
     roles: ['regional_commander'],
   })
   async detail(

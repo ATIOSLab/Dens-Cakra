@@ -796,7 +796,7 @@ function ProductDocument({ product }: { product: DataRecord }) {
       <div className="mt-8">
         <JournalTable items={items} />
       </div>
-      <p className="mt-14 text-right text-xs">Autentikasi: persetujuan Komandan Regional</p>
+      <p className="mt-14 text-right text-xs">Autentikasi: persetujuan Kepala BIN Daerah (Kabinda)</p>
       <p className="mt-16 text-center font-bold text-xs">{statusLabel(product.classification)}</p>
     </article>
   );
@@ -896,7 +896,7 @@ function ApprovalActions({ step }: { step: DataRecord }) {
   return (
     <Card className="print:hidden">
       <CardHeader>
-        <CardTitle>Keputusan Komandan Regional</CardTitle>
+        <CardTitle>Keputusan Kepala BIN Daerah (Kabinda)</CardTitle>
         <CardDescription>Persetujuan adalah keputusan final sebelum produk tersedia untuk Deputi II.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -977,7 +977,7 @@ export function IntelligenceProductDetail({
         <div>
           <BackButton className="print:hidden mb-2.5" />
           <p className="font-semibold text-muted-foreground text-xs uppercase tracking-[0.18em]">
-            {executive ? "Deputi II" : approvalStep ? "Komandan Regional" : "Produk Intelijen"}
+            {executive ? "Deputi II" : approvalStep ? "Kepala BIN Daerah (Kabinda)" : "Produk Intelijen"}
           </p>
           <div className="mt-2 flex flex-wrap gap-2">
             <StatusBadge value={product.classification} />

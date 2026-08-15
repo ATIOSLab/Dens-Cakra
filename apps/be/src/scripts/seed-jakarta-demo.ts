@@ -1493,8 +1493,8 @@ async function seedProducts(params: {
                 ? params.regionalCommander.id
                 : params.operationalManager.id,
               note: isComplete
-                ? 'Produk telah disetujui Komandan Regional.'
-                : 'Produk diajukan untuk persetujuan Komandan Regional.',
+                ? 'Produk telah disetujui Kepala BIN Daerah (Kabinda).'
+                : 'Produk diajukan untuk persetujuan Kepala BIN Daerah (Kabinda).',
               metadata: { seeded: true, provinceCode: JAKARTA_PROVINCE_CODE },
               createdAt: isComplete
                 ? (decidedAt ?? createdAt)
@@ -1511,7 +1511,7 @@ async function seedProducts(params: {
             : 'Persetujuan produk DKI Jakarta',
           message: isComplete
             ? `${title} telah Anda setujui.`
-            : `${title} menunggu keputusan Komandan Regional.`,
+            : `${title} menunggu keputusan Kepala BIN Daerah (Kabinda).`,
           link: `/dashboard/regional-commander/laporan-intelijen`,
           createdAt: addHours(createdAt, 2),
           readAt: isComplete ? decidedAt : null,
@@ -1570,7 +1570,7 @@ async function seedProducts(params: {
           userProfileId: params.executive.userProfileId,
           type: NotificationType.PRODUCT,
           title: 'Produk intelijen DKI Jakarta tersedia',
-          message: `${title} telah disetujui Komandan Regional dan tersedia untuk dibaca pimpinan.`,
+          message: `${title} telah disetujui Kepala BIN Daerah (Kabinda) dan tersedia untuk dibaca pimpinan.`,
           link: `/dashboard/executive/laporan-intelijen`,
           createdAt: addHours(createdAt, 7),
           readAt:

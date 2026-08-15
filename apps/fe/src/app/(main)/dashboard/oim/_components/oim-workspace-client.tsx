@@ -162,9 +162,9 @@ const VIEW_META: Record<OimView, [string, string, LucideIcon]> = {
     "Snapshot Laporan Intelijen untuk audit dan cetak.",
     DOMAIN_VISUALS.intelligenceReport.Icon,
   ],
-  approval: ["Pengajuan Persetujuan", "Laporan Intelijen final yang menunggu keputusan Komandan Regional.", Send],
-  "approval-detail": ["Persiapan Pengajuan", "Finalkan Laporan Intelijen dan kunci versi untuk Komandan Regional.", Send],
-  "workflow-detail": ["Linimasa Persetujuan", "Status keputusan Komandan Regional.", Send],
+  approval: ["Pengajuan Persetujuan", "Laporan Intelijen final yang menunggu keputusan Kepala BIN Daerah (Kabinda).", Send],
+  "approval-detail": ["Persiapan Pengajuan", "Finalkan Laporan Intelijen dan kunci versi untuk Kepala BIN Daerah (Kabinda).", Send],
+  "workflow-detail": ["Linimasa Persetujuan", "Status keputusan Kepala BIN Daerah (Kabinda).", Send],
   monitoring: [
     "Monitoring Lapangan",
     "Beban kerja, tenggat, cakupan, laporan, personel, dan insiden pada rantai komando.",
@@ -2600,7 +2600,7 @@ function ProductBuilder({ data }: { data: OimPageData }) {
           title,
           version: {
             templateId: template.id,
-            routingTo: "Komandan Regional",
+            routingTo: "Kepala BIN Daerah (Kabinda)",
             routingFrom: "Manajer Intelijen Operasional",
             subject: title,
             content: productContent,
@@ -2613,7 +2613,7 @@ function ProductBuilder({ data }: { data: OimPageData }) {
             versionId: version.id,
             confirmation: "SUBMIT",
           });
-          toast.success(`${context.label} final dikirim ke Komandan Regional`);
+          toast.success(`${context.label} final dikirim ke Kepala BIN Daerah (Kabinda)`);
         } else {
           toast.success(`Draf ${context.label} tersimpan`);
         }
@@ -3270,7 +3270,7 @@ function ProductDetail({ item, approval = false }: { item?: unknown; approval?: 
       <Card className="h-fit">
         <CardHeader>
           <CardTitle>{approval ? "Pra-pengajuan" : "Kontrol Laporan Intelijen"}</CardTitle>
-          <CardDescription>{"Alur: OIM -> Komandan Regional -> Deputi II (baca setelah disetujui)."}</CardDescription>
+          <CardDescription>{"Alur: OIM -> Kepala BIN Daerah (Kabinda) -> Deputi II (baca setelah disetujui)."}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <div>

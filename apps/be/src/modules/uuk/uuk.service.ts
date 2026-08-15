@@ -541,7 +541,7 @@ export class UukService {
     this.assertRole(
       context,
       [RoleCode.REGIONAL_COMMANDER],
-      'Hanya Komandan Regional yang dapat membuat penjabaran UUK/STR.',
+      'Hanya Kepala BIN Daerah (Kabinda) yang dapat membuat penjabaran UUK/STR.',
     );
 
     if (body.ownerAssignmentId !== context.primaryAssignmentId) {
@@ -675,7 +675,7 @@ export class UukService {
     this.assertRole(
       context,
       [RoleCode.REGIONAL_COMMANDER],
-      'Hanya Komandan Regional yang dapat merevisi UUK/STR.',
+      'Hanya Kepala BIN Daerah (Kabinda) yang dapat merevisi UUK/STR.',
     );
 
     void uukStrId;
@@ -696,7 +696,7 @@ export class UukService {
     this.assertRole(
       context,
       [RoleCode.REGIONAL_COMMANDER],
-      'Hanya Komandan Regional yang dapat mengubah draf UUK/STR.',
+      'Hanya Kepala BIN Daerah (Kabinda) yang dapat mengubah draf UUK/STR.',
     );
 
     void versionId;
@@ -713,7 +713,7 @@ export class UukService {
     this.assertRole(
       context,
       [RoleCode.REGIONAL_COMMANDER],
-      'Hanya Komandan Regional yang dapat mengubah bagian UUK/STR.',
+      'Hanya Kepala BIN Daerah (Kabinda) yang dapat mengubah bagian UUK/STR.',
     );
 
     void versionId;
@@ -730,7 +730,7 @@ export class UukService {
     this.assertRole(
       context,
       [RoleCode.REGIONAL_COMMANDER],
-      'Hanya Komandan Regional yang dapat menerbitkan UUK/STR.',
+      'Hanya Kepala BIN Daerah (Kabinda) yang dapat menerbitkan UUK/STR.',
     );
 
     if (body.confirmation !== 'PUBLISH') {
@@ -783,7 +783,7 @@ export class UukService {
     this.assertRole(
       context,
       [RoleCode.REGIONAL_COMMANDER],
-      'Hanya Komandan Regional yang dapat membatalkan UUK/STR.',
+      'Hanya Kepala BIN Daerah (Kabinda) yang dapat membatalkan UUK/STR.',
     );
 
     const uuk = await this.detail(uukStrId, context);

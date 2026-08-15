@@ -263,7 +263,7 @@ export function UukListClient({ directives, uuks }: UukListClientProps) {
       <div>
         <h1 className="font-semibold text-2xl tracking-tight">STR Masuk dan Penerusan Regional</h1>
         <p className="text-muted-foreground text-sm">
-          Komandan Regional menerima STR dari Deputi II, lalu meneruskan STR yang sama ke rantai komando di bawahnya
+          Kepala BIN Daerah (Kabinda) menerima STR dari Deputi II, lalu meneruskan STR yang sama ke rantai komando di bawahnya
           dengan penajaman arahan regional.
         </p>
       </div>
@@ -703,7 +703,7 @@ export function UukEditorClient({ ownerUnitId, directives, initialDirectiveVersi
       <div>
         <h1 className="font-semibold text-2xl tracking-tight">Baca dan Teruskan STR Regional</h1>
         <p className="text-muted-foreground text-sm">
-          Komandan Regional hanya membaca STR dari Deputi II lalu meneruskannya ke OIM dalam rantai komando yang sama,
+          Kepala BIN Daerah (Kabinda) hanya membaca STR dari Deputi II lalu meneruskannya ke OIM dalam rantai komando yang sama,
           tanpa mengubah isi STR.
         </p>
       </div>
@@ -815,9 +815,9 @@ export function UukEditorClient({ ownerUnitId, directives, initialDirectiveVersi
         <CardContent className="space-y-4">
           <Alert className="border-border/70 bg-muted/20">
             <BookOpenText className="size-4" />
-            <AlertTitle>Tidak ada perubahan isi di level Komandan Regional</AlertTitle>
+            <AlertTitle>Tidak ada perubahan isi di level Kepala BIN Daerah (Kabinda)</AlertTitle>
             <AlertDescription>
-              Setelah STR diterbitkan dari Deputi II, tindakan Komandan Regional hanya membaca lalu meneruskan. Isi STR
+              Setelah STR diterbitkan dari Deputi II, tindakan Kepala BIN Daerah (Kabinda) hanya membaca lalu meneruskan. Isi STR
               tetap sama sampai dipakai OIM sebagai dasar tindak lanjut operasional.
             </AlertDescription>
           </Alert>
@@ -970,8 +970,8 @@ export function UukDetailClient({ uuk }: UukDetailClientProps) {
       <div className="flex items-start gap-2.5 rounded-[6px] border border-white/[0.06] bg-white/[0.02] p-2.5 text-muted-foreground text-xs leading-normal">
         <Lock className="mt-0.5 size-4 shrink-0 text-[var(--dc-primary)]" />
         <div>
-          <span className="font-bold text-[var(--dc-text-primary)]">Isi STR terkunci di level regional.</span> Komandan
-          Regional tidak melakukan edit atau revisi isi. Halaman ini hanya menjadi bukti bahwa STR sudah diteruskan
+          <span className="font-bold text-[var(--dc-text-primary)]">Isi STR terkunci di level regional.</span> Kepala BIN Daerah (Kabinda)
+          tidak melakukan edit atau revisi isi. Halaman ini hanya menjadi bukti bahwa STR sudah diteruskan
           dalam rantai komando yang sama.
         </div>
       </div>
@@ -1022,7 +1022,7 @@ export function UukDetailClient({ uuk }: UukDetailClientProps) {
                 arahan operasional termasuk sasaran penyelidikan, rencana pengumpulan, dan mekanisme koordinasi.
               </li>
               <li>
-                Isi STR terkunci sepenuhnya di level Komandan Regional guna menjaga integritas informasi operasional
+                Isi STR terkunci sepenuhnya di level Kepala BIN Daerah (Kabinda) guna menjaga integritas informasi operasional
                 asli dalam rantai komando.
               </li>
             </ul>

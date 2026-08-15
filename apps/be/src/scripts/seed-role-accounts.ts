@@ -382,7 +382,7 @@ async function syncRoleLabels() {
   const roleLabels = new Map<RoleCode, string>([
     [RoleCode.ADMIN_SYSTEM, 'Admin Sistem'],
     [RoleCode.EXECUTIVE, 'Deputi II'],
-    [RoleCode.REGIONAL_COMMANDER, 'Komandan Regional'],
+    [RoleCode.REGIONAL_COMMANDER, 'Kepala BIN Daerah (Kabinda)'],
     [RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER, 'Manajer Intelijen Operasional'],
     [RoleCode.FIELD_COORDINATOR, 'Koordinator Wilayah (Korwil)'],
     [RoleCode.FIELD_OFFICER, 'Petugas Wilayah (Gaswil)'],

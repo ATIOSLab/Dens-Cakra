@@ -4,7 +4,7 @@ export function MonitoringTugasPage() {
   return (
     <DensModulePage
       title="Monitoring Tugas"
-      roleLabel="Komandan Regional"
+      roleLabel="Kepala BIN Daerah (Kabinda)"
       description="Halaman ini disiapkan untuk memantau progres penugasan, keterlambatan, dan beban kerja lintas unit."
       highlights={[
         "Status tugas, tenggat, dan unit pelaksana.",

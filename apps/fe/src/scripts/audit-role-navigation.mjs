@@ -23,7 +23,7 @@ const roleLabels = {
   [roleValues.FIELD_COORDINATOR]: "Koordinator Wilayah (Korwil)",
   [roleValues.FIELD_OFFICER]: "Petugas Wilayah (Gaswil)",
   [roleValues.OPERATIONAL_INTELLIGENCE_MANAGER]: "Manajer Intelijen Operasional",
-  [roleValues.REGIONAL_COMMANDER]: "Komandan Regional",
+  [roleValues.REGIONAL_COMMANDER]: "Kepala BIN Daerah (Kabinda)",
 };
 
 const homeRoutes = {

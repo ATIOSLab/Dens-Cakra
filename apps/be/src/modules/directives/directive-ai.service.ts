@@ -202,7 +202,7 @@ export class DirectiveAiService {
       ].join('\n'),
       COLLECTION_PLAN: [
         '1. Mengumpulkan informasi awal dari sumber terbuka, laporan lapangan, dan data internal yang tersedia.',
-        '2. Memvalidasi informasi melalui koordinasi berjenjang antara Komandan Regional, Manajer Intelijen Operasional (OIM), Koordinator Wilayah (Korwil), dan Petugas Wilayah (Gaswil).',
+        '2. Memvalidasi informasi melalui koordinasi berjenjang antara Kepala BIN Daerah (Kabinda), Manajer Intelijen Operasional (OIM), Koordinator Wilayah (Korwil), dan Petugas Wilayah (Gaswil).',
         `3. Memprioritaskan pengumpulan pada titik rawan di ${areaLabel}.`,
         '4. Menyusun pembaruan berkala berisi temuan, penilaian, dan kebutuhan tindak lanjut.',
       ].join('\n'),
@@ -211,7 +211,7 @@ export class DirectiveAiService {
         'Risiko utama mencakup perluasan jaringan, perpindahan aktivitas antarwilayah, kesenjangan informasi, dan keterlambatan respons lapangan.',
       ].join('\n'),
       IMPLEMENTATION_MECHANISM: [
-        '1. Komandan Regional menjabarkan STR menjadi arahan operasional regional.',
+        '1. Kepala BIN Daerah (Kabinda) menjabarkan STR menjadi arahan operasional regional.',
         '2. Manajer Intelijen Operasional (OIM) menyusun kebutuhan informasi dan rencana pengumpulan.',
         '3. Koordinator Wilayah (Korwil) mengoordinasikan penugasan lapangan.',
         '4. Petugas Wilayah (Gaswil) melaksanakan pengumpulan dan pelaporan sesuai area tanggung jawab.',

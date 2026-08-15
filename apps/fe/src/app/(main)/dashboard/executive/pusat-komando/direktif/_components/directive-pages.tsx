@@ -75,7 +75,7 @@ function normalizeRegionalAssignments(assignments: PositionAssignmentResource[])
       {
         id: assignment.id,
         positionId: assignment.position.id,
-        positionTitle: assignment.position.title ?? "Komandan Regional",
+        positionTitle: assignment.position.title ?? "Kepala BIN Daerah (Kabinda)",
         positionCode: assignment.position.code ?? "REGIONAL_COMMANDER",
         organizationUnitId: assignment.position.organizationUnit.id,
         organizationUnitName: assignment.position.organizationUnit.name,

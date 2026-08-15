@@ -8,7 +8,7 @@
  */
 export const DOMAIN_TERMS = {
   executiveRole: "Deputi II",
-  regionalCommanderRole: "Komandan Regional",
+  regionalCommanderRole: "Kepala BIN Daerah (Kabinda)",
   operationalIntelligenceManagerRole: "Manajer Intelijen Operasional",
   operationalIntelligenceManagerShort: "OIM",
   fieldCoordinatorRole: "Koordinator Wilayah (Korwil)",

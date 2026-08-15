@@ -482,7 +482,7 @@ function TrackingFlowCanvas({ directive, tracking, variant = "full" }: TrackingF
           recipient.targetPosition?.assigneeName ||
           recipient.targetPosition?.title ||
           recipient.targetUnit?.name ||
-          "Komandan Regional",
+          "Kepala BIN Daerah (Kabinda)",
         ...regionalState,
         readAt: recipient.readAt,
         acknowledgedAt: recipient.acknowledgedAt,

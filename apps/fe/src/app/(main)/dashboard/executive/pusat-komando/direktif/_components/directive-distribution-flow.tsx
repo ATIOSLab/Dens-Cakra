@@ -194,7 +194,7 @@ function createStageDetails(directive: DirectiveDetail, tracking: DirectiveTrack
     // ==========================================
     {
       id: "regional_binda",
-      role: "Komandan Regional",
+      role: "Kepala BIN Daerah (Kabinda)",
       title: "Kabinda",
       status: statusFromCounts(regionalBindaCount, regionalBindaForwarded, regionalBindaFailed),
       statusLabel:
@@ -284,7 +284,7 @@ function createStageDetails(directive: DirectiveDetail, tracking: DirectiveTrack
     // ==========================================
     {
       id: "regional_dir",
-      role: "Komandan Regional",
+      role: "Kepala BIN Daerah (Kabinda)",
       title: "Direktur Wilayah",
       status: statusFromCounts(regionalDirCount, regionalDirForwarded, regionalDirFailed),
       statusLabel: STATUS_STYLES[statusFromCounts(regionalDirCount, regionalDirForwarded, regionalDirFailed)].label,
