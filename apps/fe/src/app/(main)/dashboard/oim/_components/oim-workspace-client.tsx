@@ -790,7 +790,7 @@ function Filters({
           placeholder="Cari judul, isi, nomor laporan..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="h-10 border-border bg-background text-sm text-foreground"
+          className="h-9 border-border bg-background text-sm text-foreground"
         />
 
         {/* Kota/Kabupaten Select */}
@@ -808,7 +808,7 @@ function Filters({
           placeholder="Semua Kota/Kabupaten"
           searchPlaceholder="Cari Kota/Kabupaten..."
           emptyText="Kota/Kabupaten tidak ditemukan."
-          className="h-10 border-border bg-background text-sm text-foreground"
+          className="h-9 border-border bg-background text-sm text-foreground"
         />
 
         {/* Kecamatan Select */}
@@ -828,14 +828,14 @@ function Filters({
           placeholder={regencyId ? "Semua Kecamatan" : "Pilih Kota/Kabupaten dahulu"}
           searchPlaceholder="Cari Kecamatan..."
           emptyText="Kecamatan tidak ditemukan."
-          className="h-10 border-border bg-background text-sm text-foreground"
+          className="h-9 border-border bg-background text-sm text-foreground"
         />
 
         {/* Status Select */}
         <Select value={status || "ALL"} onValueChange={(val) => setStatus(val === "ALL" ? "" : val)}>
           <SelectTrigger
             aria-label="Filter status"
-            className="h-10 border-border bg-background text-sm text-foreground"
+            className="h-9 border-border bg-background text-sm text-foreground"
           >
             <SelectValue placeholder="Seluruh status" />
           </SelectTrigger>
@@ -853,7 +853,7 @@ function Filters({
         <Select value={urgency || "ALL"} onValueChange={(val) => setUrgency(val === "ALL" ? "" : val)}>
           <SelectTrigger
             aria-label="Filter urgensi"
-            className="h-10 border-border bg-background text-sm text-foreground"
+            className="h-9 border-border bg-background text-sm text-foreground"
           >
             <SelectValue placeholder="Semua urgensi" />
           </SelectTrigger>
@@ -870,7 +870,7 @@ function Filters({
           <Select value={classification || "ALL"} onValueChange={(val) => setClassification(val === "ALL" ? "" : val)}>
             <SelectTrigger
               aria-label="Filter klasifikasi"
-              className="h-10 border-border bg-background text-sm text-foreground"
+              className="h-9 border-border bg-background text-sm text-foreground"
             >
               <SelectValue placeholder="Semua klasifikasi" />
             </SelectTrigger>
@@ -897,7 +897,7 @@ function Filters({
             placeholder="Semua kategori"
             searchPlaceholder="Cari kategori..."
             emptyText="Kategori tidak ditemukan."
-            className="h-10 border-border bg-background text-sm text-foreground"
+            className="h-9 border-border bg-background text-sm text-foreground"
           />
         ) : null}
 
@@ -911,7 +911,7 @@ function Filters({
               aria-label="Periode mulai"
               value={periodStart}
               onChange={(e) => setPeriodStart(e.target.value)}
-              className="h-10 border-border bg-background text-sm text-foreground"
+              className="h-9 border-border bg-background text-sm text-foreground"
             />
           </label>
           <label htmlFor="oim-period-end" className="space-y-1">
@@ -923,7 +923,7 @@ function Filters({
               aria-label="Periode selesai"
               value={periodEnd}
               onChange={(e) => setPeriodEnd(e.target.value)}
-              className="h-10 border-border bg-background text-sm text-foreground"
+              className="h-9 border-border bg-background text-sm text-foreground"
             />
           </label>
         </div>
@@ -1564,7 +1564,7 @@ function VerificationEditor({ item }: { item?: unknown }) {
                 disabled={locked}
                 value={reliability}
                 onChange={(event) => setReliability(event.target.value)}
-                className="mt-2 h-10 w-full rounded-lg border bg-background px-3"
+                className="mt-2 h-9 w-full rounded-lg border bg-background px-3"
               >
                 <option value="">Pilih A–F</option>
                 {["A", "B", "C", "D", "E", "F"].map((value) => (
@@ -1578,7 +1578,7 @@ function VerificationEditor({ item }: { item?: unknown }) {
                 disabled={locked}
                 value={credibility}
                 onChange={(event) => setCredibility(event.target.value)}
-                className="mt-2 h-10 w-full rounded-lg border bg-background px-3"
+                className="mt-2 h-9 w-full rounded-lg border bg-background px-3"
               >
                 <option value="">Pilih 1–6</option>
                 {[

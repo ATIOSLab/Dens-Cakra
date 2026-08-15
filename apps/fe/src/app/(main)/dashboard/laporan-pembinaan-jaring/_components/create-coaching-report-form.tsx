@@ -203,7 +203,7 @@ export function CreateCoachingReportForm() {
                   value={jaringId}
                   onChange={(e) => setJaringId(e.target.value)}
                   disabled={submitting}
-                  className="w-full text-sm h-10 bg-background"
+                  className="w-full text-sm h-9 bg-background"
                 >
                   {jarings.map((j) => {
                     const label = [
@@ -251,7 +251,7 @@ export function CreateCoachingReportForm() {
                     onChange={(e) => setTitle(e.target.value)}
                     maxLength={300}
                     disabled={submitting}
-                    className="text-sm h-10 bg-background"
+                    className="text-sm h-9 bg-background"
                   />
                   <div className="text-[10px] text-muted-foreground text-right">{title.length}/300</div>
                 </div>
@@ -267,7 +267,7 @@ export function CreateCoachingReportForm() {
                     value={reportedAt}
                     onChange={(e) => setReportedAt(e.target.value)}
                     disabled={submitting}
-                    className="text-sm h-10 bg-background"
+                    className="text-sm h-9 bg-background"
                   />
                 </div>
               </div>

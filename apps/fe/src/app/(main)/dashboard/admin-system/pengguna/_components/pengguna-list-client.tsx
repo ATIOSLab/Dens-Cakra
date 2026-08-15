@@ -362,7 +362,7 @@ export function PenggunaListClient({
               id="user-search"
               value={q}
               onChange={(event) => setQ(event.target.value)}
-              className="h-10 pl-9 text-sm"
+              className="h-9 pl-9 text-sm"
               placeholder="Cari nama, username, email, atau nomor HP..."
             />
           </div>
@@ -372,7 +372,7 @@ export function PenggunaListClient({
             value={status}
             onChange={(event) => setStatus(event.target.value)}
             aria-label="Filter status pengguna"
-            className="h-10 w-full text-sm sm:w-[150px]"
+            className="h-9 w-full text-sm sm:w-[150px]"
           >
             <NativeSelectOption value="">Semua status</NativeSelectOption>
             {USER_STATUS_OPTIONS.map((option) => (
@@ -387,7 +387,7 @@ export function PenggunaListClient({
             value={unitId}
             onChange={(event) => setUnitId(event.target.value)}
             aria-label="Filter unit pengguna"
-            className="h-10 w-full text-sm sm:w-[150px]"
+            className="h-9 w-full text-sm sm:w-[150px]"
           >
             <NativeSelectOption value="">Semua unit</NativeSelectOption>
             {UNIT_ENUM_OPTIONS.map((option) => (
@@ -402,7 +402,7 @@ export function PenggunaListClient({
             value={roleCode}
             onChange={(event) => setRoleCode(event.target.value)}
             aria-label="Filter role pengguna"
-            className="h-10 w-full text-sm sm:w-[170px]"
+            className="h-9 w-full text-sm sm:w-[170px]"
           >
             <NativeSelectOption value="">Semua role</NativeSelectOption>
             {ROLE_CODE_OPTIONS.map((option) => (
@@ -418,7 +418,7 @@ export function PenggunaListClient({
             variant={showAreaFilter ? "secondary" : "outline"}
             size="sm"
             onClick={() => setShowAreaFilter(!showAreaFilter)}
-            className="h-10 gap-1.5 text-sm"
+            className="h-9 gap-1.5 text-sm"
           >
             <Globe className="size-3.5" />
             Wilayah
@@ -449,7 +449,7 @@ export function PenggunaListClient({
                 value={areaQuery}
                 onChange={(event) => setAreaQuery(event.target.value)}
                 placeholder="Ketik nama atau kode area..."
-                className="h-10 text-sm"
+                className="h-9 text-sm"
               />
               {activeArea && (
                 <div className="flex items-center justify-between rounded-md bg-muted/60 px-3 py-1.5 text-xs">

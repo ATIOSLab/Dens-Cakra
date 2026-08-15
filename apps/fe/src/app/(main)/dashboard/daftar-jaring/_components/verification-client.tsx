@@ -933,7 +933,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
               setPage(1);
             }}
             placeholder="Cari alias, nama, nomor HP, pekerjaan, Petugas Wilayah (Gaswil), atau wilayah penugasan..."
-            className={cn(DC_CONTROLS.input, "h-10 pl-10 pr-9")}
+            className={cn(DC_CONTROLS.input, "pl-10 pr-9")}
           />
           {search ? (
             <button

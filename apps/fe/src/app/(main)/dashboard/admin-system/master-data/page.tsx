@@ -1078,7 +1078,7 @@ export default function AdminMasterDataPage() {
                 aria-invalid={Boolean(formErrors.name)}
                 aria-describedby={formErrors.name ? "master-data-name-error" : undefined}
                 className={cn(
-                  "rounded-[6px] bg-background dark:bg-slate-900/35 text-sm h-10",
+                  "rounded-[6px] bg-background dark:bg-slate-900/35 text-sm h-9",
                   formErrors.name
                     ? "border-destructive focus-visible:ring-1 focus-visible:ring-destructive focus-visible:border-destructive"
                     : "border-border focus-visible:ring-1 focus-visible:ring-cyan-500 dark:focus-visible:ring-cyan-400/30 placeholder:text-muted-foreground/30",

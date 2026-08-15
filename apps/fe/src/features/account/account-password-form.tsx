@@ -133,7 +133,7 @@ export function AccountPasswordForm() {
                   autoComplete="current-password"
                   disabled={isPending}
                   aria-invalid={fieldState.invalid}
-                  className="h-10 pr-10 pl-9"
+                  className="h-9 pr-10 pl-9"
                 />
                 <Button
                   type="button"
@@ -173,7 +173,7 @@ export function AccountPasswordForm() {
                   autoComplete="new-password"
                   disabled={isPending}
                   aria-invalid={fieldState.invalid}
-                  className="h-10 pr-10 pl-9"
+                  className="h-9 pr-10 pl-9"
                 />
                 <Button
                   type="button"
@@ -213,7 +213,7 @@ export function AccountPasswordForm() {
                   autoComplete="new-password"
                   disabled={isPending}
                   aria-invalid={fieldState.invalid}
-                  className="h-10 pr-10 pl-9"
+                  className="h-9 pr-10 pl-9"
                 />
                 <Button
                   type="button"

@@ -1239,7 +1239,7 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
   const isDirectoryLayout = config.layoutVariant === "directory";
   const showTabNavigation = showMapTab || config.showExecutiveSummary;
   const dynamicFilterClassName = cn(
-    "h-10 w-full border px-3 text-foreground outline-none transition-all",
+    "h-9 w-full border px-3 text-foreground outline-none transition-all",
     isDirectoryLayout
       ? "rounded-lg border-border bg-background text-sm focus:border-primary focus:ring-2 focus:ring-primary/15"
       : "rounded-none border-[var(--dc-border-subtle)] bg-[var(--dc-canvas)] font-mono text-xs focus:border-[var(--dc-primary)] focus:shadow-[0_0_8px_color-mix(in_srgb,var(--dc-primary)_15%,transparent)] focus:ring-1 focus:ring-[var(--dc-primary)]/20 dark:border-slate-800 dark:bg-slate-950/80",
@@ -1346,7 +1346,7 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
                   defaultValue={queryState.q}
                   placeholder={config.searchPlaceholder}
                   className={cn(
-                    "h-10 w-full border pr-3 pl-9 text-foreground outline-none transition-all",
+                    "h-9 w-full border pr-3 pl-9 text-foreground outline-none transition-all",
                     isDirectoryLayout
                       ? "rounded-lg border-border bg-background text-sm placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/15"
                       : "rounded-none border-[var(--dc-border-subtle)] bg-[var(--dc-canvas)] font-mono text-xs placeholder:text-[var(--dc-text-muted)] focus:border-[var(--dc-primary)] focus:shadow-[0_0_8px_color-mix(in_srgb,var(--dc-primary)_15%,transparent)] focus:ring-1 focus:ring-[var(--dc-primary)]/20 dark:border-slate-800 dark:bg-slate-950/80",

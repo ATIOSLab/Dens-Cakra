@@ -339,7 +339,7 @@ export function LaporanPembinaanClient() {
                 setSearch(e.target.value);
                 setPage(1);
               }}
-              className="h-10 bg-background pl-9 text-sm"
+              className="h-9 bg-background pl-9 text-sm"
             />
           </div>
 

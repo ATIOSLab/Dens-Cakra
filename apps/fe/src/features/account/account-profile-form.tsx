@@ -131,7 +131,7 @@ export function AccountProfileForm({ initialUsername, initialName, email }: Acco
                   autoComplete="username"
                   disabled={isPending}
                   aria-invalid={fieldState.invalid}
-                  className="h-10 pl-9"
+                  className="h-9 pl-9"
                 />
               </div>
               <p className="text-[12px] text-muted-foreground">
@@ -165,7 +165,7 @@ export function AccountProfileForm({ initialUsername, initialName, email }: Acco
                   autoComplete="name"
                   disabled={isPending}
                   aria-invalid={fieldState.invalid}
-                  className="h-10 pl-9"
+                  className="h-9 pl-9"
                 />
               </div>
               {fieldState.error?.message ? (
@@ -189,7 +189,7 @@ export function AccountProfileForm({ initialUsername, initialName, email }: Acco
               type="email"
               value={email}
               disabled
-              className="h-10 pl-9 bg-muted/30 text-muted-foreground cursor-not-allowed"
+              className="h-9 pl-9 bg-muted/30 text-muted-foreground cursor-not-allowed"
             />
           </div>
         </div>
