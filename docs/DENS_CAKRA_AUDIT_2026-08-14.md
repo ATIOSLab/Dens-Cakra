@@ -90,7 +90,7 @@ Setiap fase ditutup dengan validasi lint/build/test yang relevan dan catatan di 
 
 ## 4. Risiko Tersisa (setelah rencana ini)
 
-- **Type safety BE tidak sepenuhnya ditegakkan**: `tsconfig.build.json` mengeset `noImplicitAny: false` dan mengecualikan `src/scripts/**`, `**/*spec.ts`, `organization/**`, `positions/**`. Banyak implicit-`any` dan beberapa komparasi tipe yang tampak tidak mungkin (`TS2367`) masih ada di `tsc -p tsconfig.json`. Perlu proyek khusus untuk mengaktifkan strict secara bertahap.
+- **Type safety BE — TERSELESAIKAN**: `[key: string]: any` di `PrismaService` dihapus, migrasi `Position`→`Role` tuntas, dan `noImplicitAny: true` aktif di `tsconfig.build.json`. Build production lolos strict; 169 test hijau. Sisa `TS7006` hanya di file `*.spec.ts` dan modul `positions`/`organization` (dikecualikan build).
 - **clamav tidak terpasang di Dockerfile** → fallback scan menandai file `CLEAN` (dengan `skipped: true`). Antivirus belum menjadi kontrol efektif. Rekomendasi: pasang clamav di image, lalu ubah fallback jadi `QUARANTINED`/`UNSCANNED`.
 - **Global auth guard (`@Public()`) perlu smoke test runtime** — validasi baru di level type + build, belum dijalankan terhadap aplikasi berjalan (butuh DB & deployment).
 - **Hue warna domain sky vs cyan**: token `markerColor #0ea5e9` sebenarnya adalah `sky-500` di Tailwind, sedangkan label token memakai "cyan". `text-sky-600` yang tersebar belum diubah ke cyan karena perlu keputusan produk soal hue final.
