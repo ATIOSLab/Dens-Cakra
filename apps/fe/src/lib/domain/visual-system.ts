@@ -188,8 +188,6 @@ export const DC_CONTROLS = {
     "h-9 rounded-md border border-input bg-background/40 px-3 text-sm leading-5 text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 disabled:pointer-events-none disabled:opacity-50 dark:bg-input/25 dark:hover:bg-input/45",
   selectTrigger:
     "h-9 rounded-md border border-input bg-background/40 px-2.5 text-sm leading-5 text-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 disabled:pointer-events-none disabled:opacity-50 dark:bg-input/25 dark:hover:bg-input/45",
-  selectItem:
-    "min-h-8 rounded-md px-2.5 py-1.5 text-sm leading-5 hover:bg-accent focus:bg-accent/80",
-  card:
-    "rounded-md border border-border/80 bg-card text-card-foreground shadow-[var(--dc-shadow-card)]",
+  selectItem: "min-h-8 rounded-md px-2.5 py-1.5 text-sm leading-5 hover:bg-accent focus:bg-accent/80",
+  card: "rounded-md border border-border/80 bg-card text-card-foreground shadow-[var(--dc-shadow-card)]",
 } as const;

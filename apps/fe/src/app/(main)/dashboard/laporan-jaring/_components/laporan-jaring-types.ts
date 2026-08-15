@@ -8,11 +8,7 @@ export type VerificationStatus =
   | "METADATA_RECORDED"
   | "BAKET_CREATED";
 
-export type JaringReportProcessStatus =
-  | "IN_PROGRESS_BY_JARING"
-  | "NOT_SUBMITTED"
-  | "READY_FOR_BAKET"
-  | "BAKET_CREATED";
+export type JaringReportProcessStatus = "IN_PROGRESS_BY_JARING" | "NOT_SUBMITTED" | "READY_FOR_BAKET" | "BAKET_CREATED";
 
 export type PriorityLevel = "LOW" | "NORMAL" | "HIGH" | "URGENT";
 

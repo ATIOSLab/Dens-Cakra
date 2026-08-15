@@ -44,7 +44,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton asChild size="lg" className="h-14 focus-visible:ring-2 focus-visible:ring-sky-300">
               <Link prefetch={false} href={homeUrl}>
-                <AppLogo size="md" priority className="border-[var(--sidebar-active-border)] bg-[var(--sidebar-active)]" />
+                <AppLogo
+                  size="md"
+                  priority
+                  className="border-[var(--sidebar-active-border)] bg-[var(--sidebar-active)]"
+                />
                 <span className="font-semibold text-[var(--sidebar-text)] text-base tracking-[0.08em]">DENS CAKRA</span>
               </Link>
             </SidebarMenuButton>

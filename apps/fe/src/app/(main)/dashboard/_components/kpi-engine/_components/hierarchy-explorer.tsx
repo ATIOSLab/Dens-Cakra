@@ -53,9 +53,11 @@ function hierarchyLevel(value: DataRecord) {
 }
 
 function scopeArea(value: DataRecord) {
-  return (value.scopeArea && typeof value.scopeArea === "object" && !Array.isArray(value.scopeArea)
-    ? (value.scopeArea as DataRecord)
-    : {}) as DataRecord;
+  return (
+    value.scopeArea && typeof value.scopeArea === "object" && !Array.isArray(value.scopeArea)
+      ? (value.scopeArea as DataRecord)
+      : {}
+  ) as DataRecord;
 }
 
 function scopeAreaId(value: DataRecord) {
@@ -452,59 +454,66 @@ export function HierarchyExplorer({
     [bindaFilter, gaswilFilter, korwilFilter, unitById, visibleHierarchyLevel],
   );
 
-  const personnelMatchesHierarchy = useCallback((person: DataRecord) => {
-    if (bindaFilter === "ALL" && korwilFilter === "ALL" && gaswilFilter === "ALL") return true;
+  const personnelMatchesHierarchy = useCallback(
+    (person: DataRecord) => {
+      if (bindaFilter === "ALL" && korwilFilter === "ALL" && gaswilFilter === "ALL") return true;
 
-    const gaswilUnit = unitById.get(`gaswil:${text(person.id, "")}`);
-    if (gaswilUnit && unitMatchesHierarchy(gaswilUnit)) return true;
+      const gaswilUnit = unitById.get(`gaswil:${text(person.id, "")}`);
+      if (gaswilUnit && unitMatchesHierarchy(gaswilUnit)) return true;
 
-    const areas = Array.isArray(person.areas) ? person.areas : [];
-    const personAreaIds = areas
-      .map((area) => text((area as DataRecord)?.id, ""))
-      .filter(Boolean);
-    return personAreaIds.some((areaId) => filteredHierarchyAreaIds.has(areaId));
-  }, [bindaFilter, filteredHierarchyAreaIds, gaswilFilter, korwilFilter, unitById, unitMatchesHierarchy]);
+      const areas = Array.isArray(person.areas) ? person.areas : [];
+      const personAreaIds = areas.map((area) => text((area as DataRecord)?.id, "")).filter(Boolean);
+      return personAreaIds.some((areaId) => filteredHierarchyAreaIds.has(areaId));
+    },
+    [bindaFilter, filteredHierarchyAreaIds, gaswilFilter, korwilFilter, unitById, unitMatchesHierarchy],
+  );
 
-  const compareByHierarchy = useCallback((left: DataRecord, right: DataRecord) => {
-    const leftLevel = HIERARCHY_LEVEL_ORDER.get(hierarchyLevel(left)) ?? 99;
-    const rightLevel = HIERARCHY_LEVEL_ORDER.get(hierarchyLevel(right)) ?? 99;
-    if (leftLevel !== rightLevel) return leftLevel - rightLevel;
+  const compareByHierarchy = useCallback(
+    (left: DataRecord, right: DataRecord) => {
+      const leftLevel = HIERARCHY_LEVEL_ORDER.get(hierarchyLevel(left)) ?? 99;
+      const rightLevel = HIERARCHY_LEVEL_ORDER.get(hierarchyLevel(right)) ?? 99;
+      if (leftLevel !== rightLevel) return leftLevel - rightLevel;
 
-    const leftBinda = scopeAreaName(ancestorUnit(left, "BINDA", unitById) ?? left);
-    const rightBinda = scopeAreaName(ancestorUnit(right, "BINDA", unitById) ?? right);
-    const bindaCompare = leftBinda.localeCompare(rightBinda, "id-ID");
-    if (bindaCompare !== 0) return bindaCompare;
+      const leftBinda = scopeAreaName(ancestorUnit(left, "BINDA", unitById) ?? left);
+      const rightBinda = scopeAreaName(ancestorUnit(right, "BINDA", unitById) ?? right);
+      const bindaCompare = leftBinda.localeCompare(rightBinda, "id-ID");
+      if (bindaCompare !== 0) return bindaCompare;
 
-    const leftKorwil = scopeAreaName(ancestorUnit(left, "KORWIL", unitById) ?? left);
-    const rightKorwil = scopeAreaName(ancestorUnit(right, "KORWIL", unitById) ?? right);
-    const korwilCompare = leftKorwil.localeCompare(rightKorwil, "id-ID");
-    if (korwilCompare !== 0) return korwilCompare;
+      const leftKorwil = scopeAreaName(ancestorUnit(left, "KORWIL", unitById) ?? left);
+      const rightKorwil = scopeAreaName(ancestorUnit(right, "KORWIL", unitById) ?? right);
+      const korwilCompare = leftKorwil.localeCompare(rightKorwil, "id-ID");
+      if (korwilCompare !== 0) return korwilCompare;
 
-    return (
-      scopeAreaName(left).localeCompare(scopeAreaName(right), "id-ID") ||
-      text(left.name, "").localeCompare(text(right.name, ""), "id-ID")
-    );
-  }, [unitById]);
+      return (
+        scopeAreaName(left).localeCompare(scopeAreaName(right), "id-ID") ||
+        text(left.name, "").localeCompare(text(right.name, ""), "id-ID")
+      );
+    },
+    [unitById],
+  );
 
-  const comparePersonnelByHierarchy = useCallback((left: DataRecord, right: DataRecord) => {
-    const leftUnit = unitById.get(`gaswil:${text(left.id, "")}`);
-    const rightUnit = unitById.get(`gaswil:${text(right.id, "")}`);
+  const comparePersonnelByHierarchy = useCallback(
+    (left: DataRecord, right: DataRecord) => {
+      const leftUnit = unitById.get(`gaswil:${text(left.id, "")}`);
+      const rightUnit = unitById.get(`gaswil:${text(right.id, "")}`);
 
-    if (leftUnit && rightUnit) {
-      const unitCompare = compareByHierarchy(leftUnit, rightUnit);
-      if (unitCompare !== 0) return unitCompare;
-    }
+      if (leftUnit && rightUnit) {
+        const unitCompare = compareByHierarchy(leftUnit, rightUnit);
+        if (unitCompare !== 0) return unitCompare;
+      }
 
-    const leftLevel = HIERARCHY_LEVEL_ORDER.get(hierarchyLevel(left)) ?? 99;
-    const rightLevel = HIERARCHY_LEVEL_ORDER.get(hierarchyLevel(right)) ?? 99;
-    if (leftLevel !== rightLevel) return leftLevel - rightLevel;
+      const leftLevel = HIERARCHY_LEVEL_ORDER.get(hierarchyLevel(left)) ?? 99;
+      const rightLevel = HIERARCHY_LEVEL_ORDER.get(hierarchyLevel(right)) ?? 99;
+      if (leftLevel !== rightLevel) return leftLevel - rightLevel;
 
-    const leftArea = Array.isArray(left.areas) ? text((left.areas[0] as DataRecord)?.name, "") : "";
-    const rightArea = Array.isArray(right.areas) ? text((right.areas[0] as DataRecord)?.name, "") : "";
-    return (
-      leftArea.localeCompare(rightArea, "id-ID") || text(left.name, "").localeCompare(text(right.name, ""), "id-ID")
-    );
-  }, [compareByHierarchy, unitById]);
+      const leftArea = Array.isArray(left.areas) ? text((left.areas[0] as DataRecord)?.name, "") : "";
+      const rightArea = Array.isArray(right.areas) ? text((right.areas[0] as DataRecord)?.name, "") : "";
+      return (
+        leftArea.localeCompare(rightArea, "id-ID") || text(left.name, "").localeCompare(text(right.name, ""), "id-ID")
+      );
+    },
+    [compareByHierarchy, unitById],
+  );
 
   // Filter & Sort Units
   const filteredSortedUnits = useMemo(() => {

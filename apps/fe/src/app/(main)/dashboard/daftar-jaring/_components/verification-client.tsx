@@ -295,8 +295,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
   const router = useRouter();
   const searchParams = useSearchParams();
   const { activeRole } = useRoleWorkspace();
-  const canPerformAction =
-    activeRole !== SYSTEM_ROLES.EXECUTIVE && activeRole !== SYSTEM_ROLES.REGIONAL_COMMANDER;
+  const canPerformAction = activeRole !== SYSTEM_ROLES.EXECUTIVE && activeRole !== SYSTEM_ROLES.REGIONAL_COMMANDER;
   const [items, setItems] = useState<RegistrationJaring[]>(initialItems);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>(() => {
@@ -363,10 +362,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
     return sortedAreaOptions(options);
   }, [items]);
 
-  const defaultProvinceFilter = useMemo(
-    () => findDkiJakartaProvinceFilterId(uniqueProvinces),
-    [uniqueProvinces],
-  );
+  const defaultProvinceFilter = useMemo(() => findDkiJakartaProvinceFilterId(uniqueProvinces), [uniqueProvinces]);
 
   useEffect(() => {
     if (didApplyDefaultProvinceFilter.current || !defaultProvinceFilter || provinceFilter !== "ALL") return;
@@ -414,7 +410,11 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
     if (districtFilter === "ALL") return [];
     const options = new Map<string, AreaFilterOption>();
     for (const item of items) {
-      if (matchesProvince(item, provinceFilter) && matchesCity(item, cityFilter) && matchesDistrict(item, districtFilter)) {
+      if (
+        matchesProvince(item, provinceFilter) &&
+        matchesCity(item, cityFilter) &&
+        matchesDistrict(item, districtFilter)
+      ) {
         addAreaOption(options, jaringVillage(item));
         for (const cov of item.areaCoverages) {
           if (cov.area?.level === "VILLAGE" || cov.area?.level === "URBAN_VILLAGE") {
@@ -506,7 +506,16 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
       districtOptions: uniqueDistricts,
       villageOptions: uniqueVillages,
     });
-  }, [cityFilter, districtFilter, provinceFilter, uniqueCities, uniqueDistricts, uniqueProvinces, uniqueVillages, villageFilter]);
+  }, [
+    cityFilter,
+    districtFilter,
+    provinceFilter,
+    uniqueCities,
+    uniqueDistricts,
+    uniqueProvinces,
+    uniqueVillages,
+    villageFilter,
+  ]);
 
   // Final filtered items with status filter applied
   const filteredItems = useMemo(() => {
@@ -628,8 +637,8 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
         <div className="max-w-3xl">
           <h1 className={DC_TYPOGRAPHY.pageTitle}>Daftar Jaring</h1>
           <p className="mt-1.5 max-w-2xl text-muted-foreground text-sm">
-            Kelola data Jaring, wilayah penempatan, Petugas Wilayah (Gaswil), status registrasi, dan aktivitas
-            pelaporan 90 hari.
+            Kelola data Jaring, wilayah penempatan, Petugas Wilayah (Gaswil), status registrasi, dan aktivitas pelaporan
+            90 hari.
           </p>
           <p className="mt-2 text-sm font-medium text-foreground">{areaSubtitle}</p>
         </div>
@@ -711,15 +720,12 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
               <p className="font-medium text-[11px] text-muted-foreground uppercase tracking-wider">
                 {DOMAIN_TERMS.jaringInactive90Days}
               </p>
-              <p className="font-bold text-slate-600 text-xl tracking-normal dark:text-slate-300">
-                {summary.inactive}
-              </p>
+              <p className="font-bold text-slate-600 text-xl tracking-normal dark:text-slate-300">{summary.inactive}</p>
               <p className="mt-1 font-mono font-semibold text-[11px] text-muted-foreground tabular-nums">
                 {formatPercent(inactiveJaringShare)}% dari total
               </p>
             </div>
           </button>
-
         </div>
       </div>
 
@@ -1005,9 +1011,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
                     </TableHead>
                   ) : null}
                   {isColumnVisible("photo") ? (
-                    <TableHead className={cn(DC_TYPOGRAPHY.tableHeader, "w-12 py-3.5 text-center")}>
-                      Foto
-                    </TableHead>
+                    <TableHead className={cn(DC_TYPOGRAPHY.tableHeader, "w-12 py-3.5 text-center")}>Foto</TableHead>
                   ) : null}
                   {isColumnVisible("name") ? (
                     <TableHead className={cn(DC_TYPOGRAPHY.tableHeader, "min-w-[190px] py-3.5")}>
@@ -1040,19 +1044,13 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
                     </TableHead>
                   ) : null}
                   {isColumnVisible("address") ? (
-                    <TableHead className={cn(DC_TYPOGRAPHY.tableHeader, "min-w-[260px] py-3.5")}>
-                      Alamat
-                    </TableHead>
+                    <TableHead className={cn(DC_TYPOGRAPHY.tableHeader, "min-w-[260px] py-3.5")}>Alamat</TableHead>
                   ) : null}
                   {isColumnVisible("district") ? (
-                    <TableHead className={cn(DC_TYPOGRAPHY.tableHeader, "min-w-[170px] py-3.5")}>
-                      Kecamatan
-                    </TableHead>
+                    <TableHead className={cn(DC_TYPOGRAPHY.tableHeader, "min-w-[170px] py-3.5")}>Kecamatan</TableHead>
                   ) : null}
                   {isColumnVisible("occupation") ? (
-                    <TableHead className={cn(DC_TYPOGRAPHY.tableHeader, "min-w-[190px] py-3.5")}>
-                      Pekerjaan
-                    </TableHead>
+                    <TableHead className={cn(DC_TYPOGRAPHY.tableHeader, "min-w-[190px] py-3.5")}>Pekerjaan</TableHead>
                   ) : null}
                   {isColumnVisible("status") ? (
                     <TableHead className={cn(DC_TYPOGRAPHY.tableHeader, "min-w-[150px] py-3.5 text-center")}>
@@ -1637,8 +1635,7 @@ export function JaringReportCardItem({
 export function JaringVerificationDetailClient({ item }: { item: RegistrationJaring }) {
   const router = useRouter();
   const { activeRole } = useRoleWorkspace();
-  const canPerformAction =
-    activeRole !== SYSTEM_ROLES.EXECUTIVE && activeRole !== SYSTEM_ROLES.REGIONAL_COMMANDER;
+  const canPerformAction = activeRole !== SYSTEM_ROLES.EXECUTIVE && activeRole !== SYSTEM_ROLES.REGIONAL_COMMANDER;
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [pendingAction, setPendingAction] = useState<"approve" | "reject" | null>(null);
@@ -1923,9 +1920,7 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
           <div className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b dark:border-blue-400/12 border-slate-200 pb-3">
               <h3 className="font-semibold text-sm text-foreground flex items-center gap-2">
-                <DOMAIN_VISUALS.jaringReport.Icon
-                  className={`size-4 ${DOMAIN_VISUALS.jaringReport.iconClass}`}
-                />
+                <DOMAIN_VISUALS.jaringReport.Icon className={`size-4 ${DOMAIN_VISUALS.jaringReport.iconClass}`} />
                 Daftar Laporan Jaring ({filteredReports.length})
               </h3>
 

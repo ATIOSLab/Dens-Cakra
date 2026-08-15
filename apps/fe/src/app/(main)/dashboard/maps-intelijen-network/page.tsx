@@ -6,9 +6,6 @@ import { MapsIntelijenNetworkClient } from "./_components/maps-intelijen-network
 export const dynamic = "force-dynamic";
 
 export default async function MapsIntelijenNetworkPage() {
-  await requireRole(
-    SYSTEM_ROLES.REGIONAL_COMMANDER,
-    SYSTEM_ROLES.EXECUTIVE,
-  );
+  await requireRole(SYSTEM_ROLES.REGIONAL_COMMANDER, SYSTEM_ROLES.EXECUTIVE);
   return <MapsIntelijenNetworkClient />;
 }

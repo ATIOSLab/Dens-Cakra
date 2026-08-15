@@ -328,7 +328,8 @@ function getRoleCodeFromAuthRole(role?: string | null) {
 }
 
 function getAssignmentRoleCode(assignment?: UserPositionAssignment | null, authRole?: string | null) {
-  const rawRoleCode = assignment?.role?.code ?? assignment?.position?.role?.code ?? assignment?.seat?.role?.code ?? null;
+  const rawRoleCode =
+    assignment?.role?.code ?? assignment?.position?.role?.code ?? assignment?.seat?.role?.code ?? null;
   if (isKnownRoleCode(rawRoleCode)) return rawRoleCode;
   return getRoleCodeFromAuthRole(authRole);
 }
@@ -466,13 +467,15 @@ export function getAssignmentRbacSummary(
         roleCode,
         roleLabel,
         lineLabel: isDirectorate ? DOMAIN_TERMS.centralSupervisionLine : DOMAIN_TERMS.commandTerritorialLine,
-        functionLabel: isDirectorate ? "Direktorat/Ditwil" : `${DOMAIN_TERMS.regionalUnit} - ${DOMAIN_TERMS.regionalLeader}`,
+        functionLabel: isDirectorate
+          ? "Direktorat/Ditwil"
+          : `${DOMAIN_TERMS.regionalUnit} - ${DOMAIN_TERMS.regionalLeader}`,
         branchLabel,
-        scopeRequirement: isDirectorate
-          ? "Provinsi non-DKI atau Kota/Kabupaten DKI"
-          : "Provinsi komando Binda",
+        scopeRequirement: isDirectorate ? "Provinsi non-DKI atau Kota/Kabupaten DKI" : "Provinsi komando Binda",
       },
-      isDirectorate ? hasValidDirectorateScope(areaScopes) : branch === "BINDA" && hasOnlyAreaLevels(areaScopes, ["PROVINCE"]),
+      isDirectorate
+        ? hasValidDirectorateScope(areaScopes)
+        : branch === "BINDA" && hasOnlyAreaLevels(areaScopes, ["PROVINCE"]),
       isDirectorate
         ? `Direktorat/Ditwil memakai supervisi provinsi non-DKI atau kota/kabupaten DKI. Cakupan saat ini: ${formatAreaLevels(areaScopes)}.`
         : `Kabinda/Binda wajib jalur BINDA dengan cakupan Provinsi. Cakupan saat ini: ${formatAreaLevels(areaScopes)}.`,
@@ -488,11 +491,11 @@ export function getAssignmentRbacSummary(
         lineLabel: isDirectorate ? DOMAIN_TERMS.centralSupervisionLine : DOMAIN_TERMS.commandTerritorialLine,
         functionLabel: isDirectorate ? DOMAIN_TERMS.anevDirectorate : DOMAIN_TERMS.anevBinda,
         branchLabel,
-        scopeRequirement: isDirectorate
-          ? "Provinsi non-DKI atau Kota/Kabupaten DKI"
-          : "Provinsi komando Binda",
+        scopeRequirement: isDirectorate ? "Provinsi non-DKI atau Kota/Kabupaten DKI" : "Provinsi komando Binda",
       },
-      isDirectorate ? hasValidDirectorateScope(areaScopes) : branch === "BINDA" && hasOnlyAreaLevels(areaScopes, ["PROVINCE"]),
+      isDirectorate
+        ? hasValidDirectorateScope(areaScopes)
+        : branch === "BINDA" && hasOnlyAreaLevels(areaScopes, ["PROVINCE"]),
       isDirectorate
         ? `Anev Direktorat mengikuti scope supervisi Direktorat/Ditwil. Cakupan saat ini: ${formatAreaLevels(areaScopes)}.`
         : `Anev Binda wajib jalur BINDA dengan cakupan Provinsi. Cakupan saat ini: ${formatAreaLevels(areaScopes)}.`,

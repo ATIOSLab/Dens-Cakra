@@ -4,18 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import Link from "next/link";
 
-import {
-  Calendar,
-  ChevronRight,
-  Eye,
-  FileText,
-  MapPin,
-  Plus,
-  RefreshCw,
-  ScrollText,
-  Search,
-  User,
-} from "lucide-react";
+import { Calendar, ChevronRight, Eye, FileText, MapPin, Plus, RefreshCw, ScrollText, Search, User } from "lucide-react";
 
 import { ViewModeToggle } from "@/app/(main)/dashboard/_components/view-mode-toggle";
 import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";

@@ -32,9 +32,7 @@ export function KpiSummary({ score, grade, personnelCount, evidence }: KpiSummar
       <Card className="relative overflow-hidden border-[var(--dc-border-subtle)] bg-[var(--dc-surface)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--dc-primary-soft)] hover:shadow-md">
         <CardContent className="p-5">
           <div className="flex items-center justify-between">
-            <span className={cn(DC_TYPOGRAPHY.tableHeader, "text-[var(--dc-text-secondary)]")}>
-              Skor Terukur
-            </span>
+            <span className={cn(DC_TYPOGRAPHY.tableHeader, "text-[var(--dc-text-secondary)]")}>Skor Terukur</span>
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--dc-primary-soft)] text-[var(--dc-primary)]">
               <PerformanceIcon className="size-4" aria-hidden />
             </span>
@@ -53,9 +51,7 @@ export function KpiSummary({ score, grade, personnelCount, evidence }: KpiSummar
       <Card className="relative overflow-hidden border-[var(--dc-border-subtle)] bg-[var(--dc-surface)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--dc-primary-soft)] hover:shadow-md">
         <CardContent className="p-5">
           <div className="flex items-center justify-between">
-            <span className={cn(DC_TYPOGRAPHY.tableHeader, "text-[var(--dc-text-secondary)]")}>
-              Grade Kinerja
-            </span>
+            <span className={cn(DC_TYPOGRAPHY.tableHeader, "text-[var(--dc-text-secondary)]")}>Grade Kinerja</span>
             <span
               className={cn(
                 "flex h-8 w-8 items-center justify-center rounded-lg text-white",
@@ -93,9 +89,7 @@ export function KpiSummary({ score, grade, personnelCount, evidence }: KpiSummar
       <Card className="relative overflow-hidden border-[var(--dc-border-subtle)] bg-[var(--dc-surface)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--dc-primary-soft)] hover:shadow-md">
         <CardContent className="p-5">
           <div className="flex items-center justify-between">
-            <span className={cn(DC_TYPOGRAPHY.tableHeader, "text-[var(--dc-text-secondary)]")}>
-              Personel Dinilai
-            </span>
+            <span className={cn(DC_TYPOGRAPHY.tableHeader, "text-[var(--dc-text-secondary)]")}>Personel Dinilai</span>
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400">
               <GaswilIcon className="size-4" aria-hidden />
             </span>
@@ -116,9 +110,7 @@ export function KpiSummary({ score, grade, personnelCount, evidence }: KpiSummar
       <Card className="relative overflow-hidden border-[var(--dc-border-subtle)] bg-[var(--dc-surface)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--dc-primary-soft)] hover:shadow-md">
         <CardContent className="p-5">
           <div className="flex items-center justify-between">
-            <span className={cn(DC_TYPOGRAPHY.tableHeader, "text-[var(--dc-text-secondary)]")}>
-              Bukti Penilaian
-            </span>
+            <span className={cn(DC_TYPOGRAPHY.tableHeader, "text-[var(--dc-text-secondary)]")}>Bukti Penilaian</span>
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--dc-warning-soft)] text-[var(--dc-warning)]">
               <FileCheck2 className="size-4" aria-hidden />
             </span>

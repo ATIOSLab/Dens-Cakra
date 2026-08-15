@@ -2962,7 +2962,10 @@ export function OimIncomingForwardingListClient({ sources, tasks }: OimIncomingF
               value={filterClassification || "ALL"}
               onValueChange={(val) => setFilterClassification(val === "ALL" ? "" : val)}
             >
-              <SelectTrigger aria-label="Filter klasifikasi STR" className="h-9 border-border bg-background/50 text-xs focus:ring-0">
+              <SelectTrigger
+                aria-label="Filter klasifikasi STR"
+                className="h-9 border-border bg-background/50 text-xs focus:ring-0"
+              >
                 {filterClassification ? (
                   <span
                     className={`inline-flex rounded-md px-2 py-0.5 ${classificationBadgeClass(filterClassification)}`}
@@ -3551,8 +3554,8 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
             </div>
             <div className="space-y-2 border-white/[0.08] border-t pt-3">
               <div className="text-[10px] text-muted-foreground leading-normal">
-                Catatan ini akan otomatis terlampir pada notifikasi tugas operasional di seluruh Koordinator Wilayah (Korwil)
-                penerima.
+                Catatan ini akan otomatis terlampir pada notifikasi tugas operasional di seluruh Koordinator Wilayah
+                (Korwil) penerima.
               </div>
               <Textarea
                 value={assignmentNote}
@@ -3577,8 +3580,8 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
                 <Clock className="size-3.5" /> BACA STR DULU SEBELUM DISTRIBUSI
               </div>
               <div>
-                Penerusan ke Koordinator Wilayah (Korwil) hanya dapat diakses setelah Anda mengonfirmasi bahwa Anda telah
-                membaca STR pada checklist konfirmasi di atas.
+                Penerusan ke Koordinator Wilayah (Korwil) hanya dapat diakses setelah Anda mengonfirmasi bahwa Anda
+                telah membaca STR pada checklist konfirmasi di atas.
               </div>
             </div>
           ) : (
@@ -3659,7 +3662,9 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
                   <div className="flex w-full flex-wrap items-center justify-between gap-3 font-mono text-xs xl:w-auto xl:justify-end">
                     <div className="text-muted-foreground/80">
                       DIPILIH:{" "}
-                      <span className="font-bold text-primary">{selectedAssigneeIds.length} Koordinator Wilayah (Korwil)</span>{" "}
+                      <span className="font-bold text-primary">
+                        {selectedAssigneeIds.length} Koordinator Wilayah (Korwil)
+                      </span>{" "}
                       / {eligibleCandidates.length}
                     </div>
 
@@ -3836,7 +3841,8 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
                       Menampilkan{" "}
                       <span className="font-bold text-foreground">{totalCandidatesCount > 0 ? startIndex + 1 : 0}</span>
                       –<span className="font-bold text-foreground">{endIndex}</span> dari{" "}
-                      <span className="font-bold text-foreground">{totalCandidatesCount}</span> Koordinator Wilayah (Korwil)
+                      <span className="font-bold text-foreground">{totalCandidatesCount}</span> Koordinator Wilayah
+                      (Korwil)
                     </div>
 
                     <div className="flex items-center gap-3">
@@ -3953,8 +3959,8 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
               <AlertDialogHeader>
                 <AlertDialogTitle>Teruskan STR?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Apakah Anda yakin ingin meneruskan STR ini ke {selectedAssigneeIds.length} Koordinator Wilayah (Korwil) yang
-                  dipilih?
+                  Apakah Anda yakin ingin meneruskan STR ini ke {selectedAssigneeIds.length} Koordinator Wilayah
+                  (Korwil) yang dipilih?
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -4051,7 +4057,8 @@ export function TaskBuilderClient({ mode, options, task }: TaskBuilderClientProp
           {mode === "create" ? "Penyusun Tugas Operasional" : "Ubah Draf Tugas"}
         </h1>
         <p className="text-muted-foreground text-sm">
-          Tugas OIM hanya dapat didistribusikan ke Koordinator Wilayah (Korwil) sebelum diteruskan ke Petugas Wilayah (Gaswil).
+          Tugas OIM hanya dapat didistribusikan ke Koordinator Wilayah (Korwil) sebelum diteruskan ke Petugas Wilayah
+          (Gaswil).
         </p>
       </div>
 

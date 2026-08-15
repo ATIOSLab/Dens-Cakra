@@ -84,14 +84,15 @@ export function DensModulePage({
         <Card>
           <CardHeader>
             <CardTitle>Cakupan Modul</CardTitle>
-            <CardDescription>
-              Ringkasan fungsi yang direncanakan untuk modul ini.
-            </CardDescription>
+            <CardDescription>Ringkasan fungsi yang direncanakan untuk modul ini.</CardDescription>
           </CardHeader>
           <CardContent>
             <ul className="space-y-2 text-muted-foreground text-sm">
               {highlights.map((item) => (
-                <li key={item} className="flex items-start gap-2 rounded-md border bg-muted/25 px-3 py-2 text-foreground/80">
+                <li
+                  key={item}
+                  className="flex items-start gap-2 rounded-md border bg-muted/25 px-3 py-2 text-foreground/80"
+                >
                   <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-500" />
                   {item}
                 </li>
@@ -103,14 +104,15 @@ export function DensModulePage({
         <Card>
           <CardHeader>
             <CardTitle>Tahapan Aktivasi</CardTitle>
-            <CardDescription>
-              Tahapan yang perlu diselesaikan sebelum modul dapat digunakan.
-            </CardDescription>
+            <CardDescription>Tahapan yang perlu diselesaikan sebelum modul dapat digunakan.</CardDescription>
           </CardHeader>
           <CardContent>
             <ul className="space-y-2 text-muted-foreground text-sm">
               {nextSteps.map((item) => (
-                <li key={item} className="flex items-start gap-2 rounded-md border border-dashed bg-background/50 px-3 py-2">
+                <li
+                  key={item}
+                  className="flex items-start gap-2 rounded-md border border-dashed bg-background/50 px-3 py-2"
+                >
                   <CircleDashed className="mt-0.5 size-4 shrink-0 text-amber-500" />
                   {item}
                 </li>

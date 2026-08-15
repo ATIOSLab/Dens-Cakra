@@ -528,10 +528,7 @@ export function CommandIntelligenceClient({ initialData, initialError, role }: C
     bearing: 0,
   });
   const [pointer, setPointer] = useState({ latitude: -2.5, longitude: 117.5 });
-  const defaultAreaId = useMemo(
-    () => findDkiJakartaProvinceFilterId(data?.filters.areas ?? []),
-    [data?.filters.areas],
-  );
+  const defaultAreaId = useMemo(() => findDkiJakartaProvinceFilterId(data?.filters.areas ?? []), [data?.filters.areas]);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -615,9 +612,7 @@ export function CommandIntelligenceClient({ initialData, initialError, role }: C
   const updateFilter = useCallback(
     <Key extends keyof FieldIntelligenceFilters>(key: Key, value: FieldIntelligenceFilters[Key]) => {
       const nextValue =
-        key === "areaId" && value === "ALL" && defaultAreaId
-          ? (defaultAreaId as FieldIntelligenceFilters[Key])
-          : value;
+        key === "areaId" && value === "ALL" && defaultAreaId ? (defaultAreaId as FieldIntelligenceFilters[Key]) : value;
       setFilters((current) => ({ ...current, [key]: nextValue, page: key === "page" ? Number(value) : 1 }));
     },
     [defaultAreaId],

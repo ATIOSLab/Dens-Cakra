@@ -503,10 +503,7 @@ export function LaporanJaringCoordinatorClient() {
     return buildProvinceFilterOptions(areaScopes);
   }, [areaScopes]);
 
-  const defaultProvinceFilter = useMemo(
-    () => findDkiJakartaProvinceFilterId(provinceOptions),
-    [provinceOptions],
-  );
+  const defaultProvinceFilter = useMemo(() => findDkiJakartaProvinceFilterId(provinceOptions), [provinceOptions]);
 
   const regencyOptions = useMemo(() => {
     return buildRegencyFilterOptions(areaScopes, provinceOptions.length > 0 ? provinceFilter : "ALL");

@@ -2,22 +2,14 @@
 
 import Link from "next/link";
 
-import {
-  ArrowRight,
-  CircleAlert,
-  type LucideIcon,
-} from "lucide-react";
+import { ArrowRight, CircleAlert, type LucideIcon } from "lucide-react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DOMAIN_TERMS } from "@/lib/domain/terminology";
 import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 
-import {
-  dashboardStatusColor,
-  formatDashboardNumber,
-  formatDashboardPercent,
-} from "./executive-dashboard-format";
+import { dashboardStatusColor, formatDashboardNumber, formatDashboardPercent } from "./executive-dashboard-format";
 import type { ExecutiveDashboardData } from "./executive-dashboard-types";
 
 type Segment = {

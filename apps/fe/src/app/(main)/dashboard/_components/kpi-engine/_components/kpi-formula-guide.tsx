@@ -57,7 +57,8 @@ function getIndicatorStatus(score: number | null) {
 
 export function KpiFormulaGuide({ definitions, indicators, evidence }: KpiFormulaGuideProps) {
   const indicatorByCode = new Map(indicators.map((indicator) => [indicator.code, indicator]));
-  const measuredIndicators = evidence.measuredIndicators ?? indicators.filter((indicator) => indicator.score !== null).length;
+  const measuredIndicators =
+    evidence.measuredIndicators ?? indicators.filter((indicator) => indicator.score !== null).length;
   const totalJaring = evidence.jaring ?? 0;
   const activeJaring = evidence.activeJaring90Days ?? 0;
   const jaringReports = evidence.jaringReports ?? 0;
@@ -203,9 +204,7 @@ function EvidenceItem({ label, value }: { readonly label: string; readonly value
   return (
     <div className="rounded-md border border-[var(--dc-border-subtle)] bg-background/40 px-3 py-2">
       <p className="font-mono text-[10px] text-[var(--dc-text-muted)] uppercase tracking-wider">{label}</p>
-      <p className="mt-1 font-bold font-mono text-[var(--dc-text-primary)] text-sm">
-        {value.toLocaleString("id-ID")}
-      </p>
+      <p className="mt-1 font-bold font-mono text-[var(--dc-text-primary)] text-sm">{value.toLocaleString("id-ID")}</p>
     </div>
   );
 }

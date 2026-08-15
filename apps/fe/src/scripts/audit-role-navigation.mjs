@@ -440,9 +440,7 @@ for (const target of sidebarTargets) {
 }
 
 for (const [role, homeRoute] of Object.entries(homeRoutes)) {
-  const matchingTarget = sidebarTargetsByRole
-    .get(role)
-    ?.some((target) => target.url.split(/[?#]/, 1)[0] === homeRoute);
+  const matchingTarget = sidebarTargetsByRole.get(role)?.some((target) => target.url.split(/[?#]/, 1)[0] === homeRoute);
   const pageRoute = findPageRoute(homeRoute);
 
   if (!matchingTarget || !pageRoute || !pageRoute.roles.includes(role)) {
@@ -468,7 +466,9 @@ if (gaswilMenuIndex < 0 || jaringMenuIndex < 0) {
 }
 
 if (!sidebarSourceText.includes('label: "Personel & Jaring"')) {
-  structuralNavigationIssues.push("Menu Petugas Wilayah (Gaswil) dan Jaring harus dikelompokkan dalam Personel & Jaring.");
+  structuralNavigationIssues.push(
+    "Menu Petugas Wilayah (Gaswil) dan Jaring harus dikelompokkan dalam Personel & Jaring.",
+  );
 }
 
 if (entityIdsBlock.includes('"field-coordinator-jaring"') || entityIdsBlock.includes("'field-coordinator-jaring'")) {

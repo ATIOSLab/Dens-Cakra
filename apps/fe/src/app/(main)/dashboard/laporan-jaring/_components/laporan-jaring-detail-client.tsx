@@ -362,8 +362,7 @@ export function LaporanJaringDetailClient({
       ) : activeReport ? (
         (() => {
           const hasFormulatedMetadata =
-            activeReport.processStatus === "BAKET_CREATED" ||
-            Boolean(activeReport.baket?.latestVersion);
+            activeReport.processStatus === "BAKET_CREATED" || Boolean(activeReport.baket?.latestVersion);
 
           return (
             <div className="space-y-6">
@@ -375,12 +374,10 @@ export function LaporanJaringDetailClient({
                       1
                     </div>
                     <div>
-                        <CardTitle className="text-sm font-bold uppercase tracking-wide">
-                          Laporan Jaring Sumber
-                        </CardTitle>
-                        <CardDescription className="text-xs">
-                          Laporan yang sudah dikirim dapat langsung dijadikan Baket sesuai cakupan hak akses.
-                        </CardDescription>
+                      <CardTitle className="text-sm font-bold uppercase tracking-wide">Laporan Jaring Sumber</CardTitle>
+                      <CardDescription className="text-xs">
+                        Laporan yang sudah dikirim dapat langsung dijadikan Baket sesuai cakupan hak akses.
+                      </CardDescription>
                     </div>
                   </div>
                 </CardHeader>
@@ -567,9 +564,7 @@ export function LaporanJaringDetailClient({
                           2
                         </div>
                         <div>
-                          <CardTitle className="text-sm font-bold uppercase tracking-wide">
-                            Pembuatan Baket
-                          </CardTitle>
+                          <CardTitle className="text-sm font-bold uppercase tracking-wide">Pembuatan Baket</CardTitle>
                           <CardDescription className="text-xs">
                             {readOnly || activeReport.baket
                               ? "Kategori, urgensi, dan narasi Baket yang sudah dibuat dari Laporan Jaring."
@@ -621,9 +616,7 @@ export function LaporanJaringDetailClient({
                         </div>
 
                         <div className="md:col-span-2 space-y-1">
-                          <span className="text-muted-foreground font-medium block">
-                            Formulasi Isi Baket:
-                          </span>
+                          <span className="text-muted-foreground font-medium block">Formulasi Isi Baket:</span>
                           <div className="p-3.5 rounded-lg border border-slate-200/80 bg-slate-50 dark:border-white/10 dark:bg-slate-950/40 font-mono text-xs whitespace-pre-wrap text-foreground leading-relaxed">
                             {activeReport.content || "-"}
                           </div>
@@ -747,9 +740,7 @@ export function LaporanJaringDetailClient({
                           className="h-9 gap-1.5 text-xs rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-700"
                         >
                           <FileEdit className="size-4" />
-                          {isSavingMetadata
-                            ? "Menyimpan Informasi Lanjutan..."
-                            : "Simpan & Buat Baket"}
+                          {isSavingMetadata ? "Menyimpan Informasi Lanjutan..." : "Simpan & Buat Baket"}
                         </Button>
                       </div>
                     </CardContent>

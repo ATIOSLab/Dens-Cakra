@@ -134,9 +134,7 @@ export function AccountProfileForm({ initialUsername, initialName, email }: Acco
                   className="h-9 pl-9"
                 />
               </div>
-              <p className="text-[12px] text-muted-foreground">
-                Digunakan untuk login dan identitas sandi akun.
-              </p>
+              <p className="text-[12px] text-muted-foreground">Digunakan untuk login dan identitas sandi akun.</p>
               {fieldState.error?.message ? (
                 <p className="font-normal text-destructive text-sm" role="alert">
                   {fieldState.error.message}

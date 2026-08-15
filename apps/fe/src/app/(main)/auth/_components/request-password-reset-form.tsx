@@ -46,9 +46,7 @@ export function RequestPasswordResetForm() {
         return;
       }
 
-      setSuccessMessage(
-        "Jika email terdaftar, kami telah mengirimkan tautan reset password ke inbox Anda.",
-      );
+      setSuccessMessage("Jika email terdaftar, kami telah mengirimkan tautan reset password ke inbox Anda.");
       form.reset();
     });
   };
@@ -56,11 +54,14 @@ export function RequestPasswordResetForm() {
   return (
     <form noValidate onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col gap-4">
       {formError ? (
-        <Alert variant="destructive" className="rounded-xl border-red-500/20 bg-red-500/5 text-red-600 dark:text-red-400">
+        <Alert
+          variant="destructive"
+          className="rounded-xl border-red-500/20 bg-red-500/5 text-red-600 dark:text-red-400"
+        >
           <AlertDescription className="text-xs">{formError}</AlertDescription>
         </Alert>
       ) : null}
-      
+
       {successMessage ? (
         <Alert className="rounded-xl border-emerald-500/20 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400">
           <AlertDescription className="text-xs">{successMessage}</AlertDescription>
@@ -73,7 +74,10 @@ export function RequestPasswordResetForm() {
           name="email"
           render={({ field, fieldState }) => (
             <Field className="gap-1.5" data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor="forgot-password-email" className="text-xs font-mono font-bold text-muted-foreground/80 uppercase">
+              <FieldLabel
+                htmlFor="forgot-password-email"
+                className="text-xs font-mono font-bold text-muted-foreground/80 uppercase"
+              >
                 Email Address
               </FieldLabel>
               <div className="relative">
@@ -95,9 +99,9 @@ export function RequestPasswordResetForm() {
         />
       </FieldGroup>
 
-      <Button 
+      <Button
         className="w-full h-11 bg-cyan-600 text-white dark:bg-cyan-400 dark:text-slate-950 hover:bg-cyan-500 dark:hover:bg-cyan-400 font-bold font-sans rounded-[8px] cursor-pointer shadow-sm mt-2 transition-colors flex items-center justify-center gap-2"
-        type="submit" 
+        type="submit"
         disabled={isPending}
       >
         {isPending ? (
@@ -110,9 +114,9 @@ export function RequestPasswordResetForm() {
         )}
       </Button>
 
-      <Link 
-        prefetch={false} 
-        href="/auth/login" 
+      <Link
+        prefetch={false}
+        href="/auth/login"
         className="text-center text-xs text-muted-foreground hover:text-foreground transition-colors mt-2"
       >
         Kembali ke Login

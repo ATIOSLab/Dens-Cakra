@@ -1,5 +1,4 @@
-const classificationBadgeBase =
-  "border font-mono text-[10px] font-bold uppercase tracking-wider";
+const classificationBadgeBase = "border font-mono text-[10px] font-bold uppercase tracking-wider";
 
 const classificationBadgeClasses: Record<string, string> = {
   BIASA: "border-sky-500/35 bg-sky-500/10 text-sky-700 dark:text-sky-300",

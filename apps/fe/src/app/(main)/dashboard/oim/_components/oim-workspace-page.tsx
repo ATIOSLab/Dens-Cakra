@@ -131,27 +131,27 @@ export async function OimWorkspacePage({ view, params = {}, searchParams = {}, p
     if (!productTypeFilterReady) {
       data.products = { items: [], pagination: { page: 1, limit: 25, total: 0, totalPages: 0 } };
     } else {
-    listRequests.push(
-      safe(
-        "produk",
-        apiServerGet("/products", {
-          page,
-          limit: 25,
-          areaId,
-          search: commonQuery.search,
-          status: commonQuery.status,
-          periodFrom: commonQuery.from,
-          periodTo: commonQuery.to,
-          classification: typeof searchParams.classification === "string" ? searchParams.classification : undefined,
-          productTypeId: scopedProductTypeId,
-          sortBy,
-          sortOrder,
+      listRequests.push(
+        safe(
+          "produk",
+          apiServerGet("/products", {
+            page,
+            limit: 25,
+            areaId,
+            search: commonQuery.search,
+            status: commonQuery.status,
+            periodFrom: commonQuery.from,
+            periodTo: commonQuery.to,
+            classification: typeof searchParams.classification === "string" ? searchParams.classification : undefined,
+            productTypeId: scopedProductTypeId,
+            sortBy,
+            sortOrder,
+          }),
+          errors,
+        ).then((value) => {
+          data.products = value;
         }),
-        errors,
-      ).then((value) => {
-        data.products = value;
-      }),
-    );
+      );
     }
   }
   if (["products", "product-new", "product-edit"].includes(view) && !data.productTypes)

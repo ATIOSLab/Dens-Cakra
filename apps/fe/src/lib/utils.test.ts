@@ -4,9 +4,7 @@ import { escapeHtml, getInitials } from "@/lib/utils";
 
 describe("escapeHtml", () => {
   it("melarikan karakter HTML berbahaya", () => {
-    expect(escapeHtml('<script>alert("x")</script>')).toBe(
-      "&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;",
-    );
+    expect(escapeHtml('<script>alert("x")</script>')).toBe("&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;");
   });
 
   it("melarikan ampersand dan kutip tunggal", () => {

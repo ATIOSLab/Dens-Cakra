@@ -40,7 +40,10 @@ const expectedRouteRoles = [
       "REGIONAL_COMMANDER",
     ],
   },
-  { prefix: "/dashboard/daftar-jaring", roles: ["EXECUTIVE", "FIELD_OFFICER", "FIELD_COORDINATOR", "REGIONAL_COMMANDER"] },
+  {
+    prefix: "/dashboard/daftar-jaring",
+    roles: ["EXECUTIVE", "FIELD_OFFICER", "FIELD_COORDINATOR", "REGIONAL_COMMANDER"],
+  },
   {
     prefix: "/dashboard/laporan-jaring",
     roles: [
@@ -147,12 +150,7 @@ function resolveRelativeImport(fromFile, specifier) {
   const base = specifier.startsWith("@/")
     ? path.join(sourceRoot, specifier.slice(2))
     : path.resolve(path.dirname(fromFile), specifier);
-  const candidates = [
-    `${base}.tsx`,
-    `${base}.ts`,
-    path.join(base, "index.tsx"),
-    path.join(base, "index.ts"),
-  ];
+  const candidates = [`${base}.tsx`, `${base}.ts`, path.join(base, "index.tsx"), path.join(base, "index.ts")];
 
   return candidates.find((candidate) => fs.existsSync(candidate)) ?? null;
 }
@@ -195,7 +193,11 @@ function collectGuardFiles(pageFile) {
 }
 
 function rolesInSource(source) {
-  return new Set([...source.matchAll(/SYSTEM_ROLES\.([A-Z_]+)/g)].map((match) => match[1]).filter((role) => roleNames.includes(role)));
+  return new Set(
+    [...source.matchAll(/SYSTEM_ROLES\.([A-Z_]+)/g)]
+      .map((match) => match[1])
+      .filter((role) => roleNames.includes(role)),
+  );
 }
 
 function expectedForRoute(route) {

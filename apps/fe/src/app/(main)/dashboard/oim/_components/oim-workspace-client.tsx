@@ -136,7 +136,11 @@ const VIEW_META: Record<OimView, [string, string, LucideIcon]> = {
   ],
   "analysis-edit": ["Ubah Analisis", "Perbarui versi aktif sebelum difinalkan.", BarChart3],
   "analysis-version": ["Versi Analisis", "Snapshot final tidak dapat diubah.", BarChart3],
-  products: ["Laporan Intelijen", "Laporan Intelijen yang bersumber dari analisis final.", DOMAIN_VISUALS.intelligenceReport.Icon],
+  products: [
+    "Laporan Intelijen",
+    "Laporan Intelijen yang bersumber dari analisis final.",
+    DOMAIN_VISUALS.intelligenceReport.Icon,
+  ],
   "product-list": [
     "Daftar Laporan Intelijen",
     "Alur draf, revisi, pengajuan, dan versi Laporan Intelijen.",
@@ -162,8 +166,16 @@ const VIEW_META: Record<OimView, [string, string, LucideIcon]> = {
     "Snapshot Laporan Intelijen untuk audit dan cetak.",
     DOMAIN_VISUALS.intelligenceReport.Icon,
   ],
-  approval: ["Pengajuan Persetujuan", "Laporan Intelijen final yang menunggu keputusan Kepala BIN Daerah (Kabinda).", Send],
-  "approval-detail": ["Persiapan Pengajuan", "Finalkan Laporan Intelijen dan kunci versi untuk Kepala BIN Daerah (Kabinda).", Send],
+  approval: [
+    "Pengajuan Persetujuan",
+    "Laporan Intelijen final yang menunggu keputusan Kepala BIN Daerah (Kabinda).",
+    Send,
+  ],
+  "approval-detail": [
+    "Persiapan Pengajuan",
+    "Finalkan Laporan Intelijen dan kunci versi untuk Kepala BIN Daerah (Kabinda).",
+    Send,
+  ],
   "workflow-detail": ["Linimasa Persetujuan", "Status keputusan Kepala BIN Daerah (Kabinda).", Send],
   monitoring: [
     "Monitoring Lapangan",
@@ -309,7 +321,8 @@ function Header({ view, data }: { view: OimView; data?: OimPageData }) {
   const topLevel = rows(root.children);
   const provinces = topLevel.filter((area) => area.level === "PROVINCE");
   const defaultProvinceId = findDkiJakartaProvinceFilterId(provinces.map(areaFilterIdentity));
-  const provinceName = provinces.find((area) => area.id === defaultProvinceId)?.name || provinces[0]?.name || "REGIONAL";
+  const provinceName =
+    provinces.find((area) => area.id === defaultProvinceId)?.name || provinces[0]?.name || "REGIONAL";
 
   const hasBackButton = [
     "report-detail",
@@ -833,10 +846,7 @@ function Filters({
 
         {/* Status Select */}
         <Select value={status || "ALL"} onValueChange={(val) => setStatus(val === "ALL" ? "" : val)}>
-          <SelectTrigger
-            aria-label="Filter status"
-            className="h-9 border-border bg-background text-sm text-foreground"
-          >
+          <SelectTrigger aria-label="Filter status" className="h-9 border-border bg-background text-sm text-foreground">
             <SelectValue placeholder="Seluruh status" />
           </SelectTrigger>
           <SelectContent position="popper" className="max-h-[300px] overflow-y-auto">
@@ -2340,7 +2350,9 @@ function ProductList({ data, approval = false }: { data: OimPageData; approval?:
                     <CardContent className="grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
                       <div className="flex items-start gap-3">
                         <div className="grid size-10 place-items-center rounded-lg bg-primary/10">
-                          <DOMAIN_VISUALS.intelligenceReport.Icon className={`size-5 ${DOMAIN_VISUALS.intelligenceReport.iconClass}`} />
+                          <DOMAIN_VISUALS.intelligenceReport.Icon
+                            className={`size-5 ${DOMAIN_VISUALS.intelligenceReport.iconClass}`}
+                          />
                         </div>
                         <div>
                           <div className="flex flex-wrap gap-2">
@@ -2401,9 +2413,7 @@ function ProductList({ data, approval = false }: { data: OimPageData; approval?:
             <h3 className="text-[15px] font-bold text-slate-900 dark:text-white uppercase tracking-wider">
               TIDAK ADA LAPORAN
             </h3>
-            <p className="text-[13px] text-slate-600 dark:text-[#94A3B8]">
-              Belum ada {context.label} yang terdaftar.
-            </p>
+            <p className="text-[13px] text-slate-600 dark:text-[#94A3B8]">Belum ada {context.label} yang terdaftar.</p>
           </div>
         </div>
       )}
@@ -3270,7 +3280,9 @@ function ProductDetail({ item, approval = false }: { item?: unknown; approval?: 
       <Card className="h-fit">
         <CardHeader>
           <CardTitle>{approval ? "Pra-pengajuan" : "Kontrol Laporan Intelijen"}</CardTitle>
-          <CardDescription>{"Alur: OIM -> Kepala BIN Daerah (Kabinda) -> Deputi II (baca setelah disetujui)."}</CardDescription>
+          <CardDescription>
+            {"Alur: OIM -> Kepala BIN Daerah (Kabinda) -> Deputi II (baca setelah disetujui)."}
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <div>

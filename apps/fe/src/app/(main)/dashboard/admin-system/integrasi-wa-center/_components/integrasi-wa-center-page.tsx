@@ -649,7 +649,10 @@ export function AdminWaCenterPage() {
                 <Button variant="outline" onClick={() => setIsAddOpen(false)}>
                   Batal
                 </Button>
-                <Button disabled={selectedAreas.length === 0 || busyKey === "create"} onClick={() => void handleCreate()}>
+                <Button
+                  disabled={selectedAreas.length === 0 || busyKey === "create"}
+                  onClick={() => void handleCreate()}
+                >
                   Simpan
                 </Button>
               </DialogFooter>
@@ -727,8 +730,10 @@ export function AdminWaCenterPage() {
               {group.channels.map((channel) => {
                 const isConnected = channel.connectionStatus === "CONNECTED";
                 const scopeAreas = channelScopeAreas(channel);
-                const phoneNumber = channel.sessionJid?.split("@")[0] ?? channel.botPhoneNumber ?? "Nomor belum terbaca";
-                const lastSignalAt = channel.lastConnectedAt ?? channel.lastDisconnectedAt ?? channel.lastHealthAt ?? channel.updatedAt;
+                const phoneNumber =
+                  channel.sessionJid?.split("@")[0] ?? channel.botPhoneNumber ?? "Nomor belum terbaca";
+                const lastSignalAt =
+                  channel.lastConnectedAt ?? channel.lastDisconnectedAt ?? channel.lastHealthAt ?? channel.updatedAt;
 
                 return (
                   <Card key={channel.id} className={cn(DC_CONTROLS.card, "overflow-hidden")}>
@@ -856,7 +861,9 @@ export function AdminWaCenterPage() {
                                   <div className="flex flex-col items-center gap-4 text-muted-foreground">
                                     <Activity className="size-8 animate-spin" />
                                     <p>
-                                      {channel.connectionStatus === "CONNECTING" ? "Menghubungkan..." : "Meminta QR Code..."}
+                                      {channel.connectionStatus === "CONNECTING"
+                                        ? "Menghubungkan..."
+                                        : "Meminta QR Code..."}
                                     </p>
                                   </div>
                                 )}

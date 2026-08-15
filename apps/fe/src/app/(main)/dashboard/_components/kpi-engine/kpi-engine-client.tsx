@@ -90,10 +90,7 @@ export function KpiEngineClient({ data, mode }: { data: unknown; mode: "regional
   const rawSummaryIndicators = list(summary.indicators);
   const definitions = rawDefinitions.map(indicatorDefinition).filter((item) => item.code);
   const summaryIndicators = rawSummaryIndicators.map(indicatorScore).filter((item) => item.code);
-  const definitionsByCode = useMemo(
-    () => new Map(definitions.map((item) => [item.code, item])),
-    [definitions],
-  );
+  const definitionsByCode = useMemo(() => new Map(definitions.map((item) => [item.code, item])), [definitions]);
   const units = list(payload.units);
   const personnel = list(payload.personnel);
   const _recommendations = Array.isArray(payload.recommendations)
@@ -162,9 +159,7 @@ export function KpiEngineClient({ data, mode }: { data: unknown; mode: "regional
       {/* HEADER SECTION */}
       <header className="flex flex-col gap-3 border-[var(--dc-divider)] border-b pb-6 xl:flex-row xl:items-end xl:justify-between">
         <div className="space-y-2">
-          <h1 className={cn(DC_TYPOGRAPHY.pageTitle, "mt-1 text-2xl")}>
-            Kinerja & Evaluasi Berjenjang
-          </h1>
+          <h1 className={cn(DC_TYPOGRAPHY.pageTitle, "mt-1 text-2xl")}>Kinerja & Evaluasi Berjenjang</h1>
           <p className="max-w-3xl text-[var(--dc-text-secondary)] text-sm leading-relaxed">
             Kinerja dihitung berjenjang dari Jaring, Petugas Wilayah (Gaswil), Koordinator Wilayah (Korwil), hingga BIN
             Daerah (Binda) berdasarkan aktivitas laporan, mutu data, validitas informasi, kontribusi Baket, dan respons
@@ -255,10 +250,7 @@ export function KpiEngineClient({ data, mode }: { data: unknown; mode: "regional
         <h3 className="font-bold text-[var(--dc-text-muted)] text-xs uppercase tracking-wider">
           Indikator Kinerja Utama
         </h3>
-        <KpiIndicator
-          indicators={summaryIndicators}
-          definitionsByCode={definitionsByCode}
-        />
+        <KpiIndicator indicators={summaryIndicators} definitionsByCode={definitionsByCode} />
       </div>
 
       {/* HIERARCHY KPI EXPLORER (FULL WIDTH) */}

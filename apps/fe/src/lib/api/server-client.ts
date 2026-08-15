@@ -110,11 +110,7 @@ const cachedApiServerGet = cache(async (path: string, queryKey: string) => {
 });
 
 export async function apiServerGet<T>(path: string, query?: QueryParams) {
-  const queryKey = JSON.stringify(
-    Object.entries(query ?? {}).sort(([left], [right]) =>
-      left.localeCompare(right),
-    ),
-  );
+  const queryKey = JSON.stringify(Object.entries(query ?? {}).sort(([left], [right]) => left.localeCompare(right)));
   return cachedApiServerGet(path, queryKey) as Promise<T>;
 }
 

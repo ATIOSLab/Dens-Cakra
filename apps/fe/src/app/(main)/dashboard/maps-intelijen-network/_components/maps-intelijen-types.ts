@@ -392,7 +392,9 @@ export function getMapFeatureReference(feature: MapNetworkFeature) {
 
 export function getMapFeatureTimestamp(feature: MapNetworkFeature) {
   const properties = feature.properties;
-  return properties.capturedAt ?? properties.receivedAt ?? properties.reportedAt ?? properties.locationCapturedAt ?? null;
+  return (
+    properties.capturedAt ?? properties.receivedAt ?? properties.reportedAt ?? properties.locationCapturedAt ?? null
+  );
 }
 
 export function getMapFeatureDetailHref(feature: MapNetworkFeature) {

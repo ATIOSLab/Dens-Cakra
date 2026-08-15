@@ -582,7 +582,8 @@ function ProductBrowser({
               >
                 Sebelumnya
               </Button>
-              {paginationNumbers(safePage, totalPages).map((pageNumber) => (                <Button
+              {paginationNumbers(safePage, totalPages).map((pageNumber) => (
+                <Button
                   key={pageNumber}
                   variant={pageNumber === safePage ? "default" : "outline"}
                   size="icon"

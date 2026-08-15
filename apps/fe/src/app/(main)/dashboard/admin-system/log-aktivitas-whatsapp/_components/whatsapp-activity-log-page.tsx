@@ -49,7 +49,14 @@ type ActivityResponse = {
   summary: { active: number; disconnected: number; error: number };
   filters: {
     channels: Array<{ id: string; code: string; name: string }>;
-    scopeAreas: Array<{ id: string; code: string; officialCode: string | null; name: string; level: string; parentName: string | null }>;
+    scopeAreas: Array<{
+      id: string;
+      code: string;
+      officialCode: string | null;
+      name: string;
+      level: string;
+      parentName: string | null;
+    }>;
     phoneNumbers: string[];
     connectionStatuses: string[];
     eventTypes: string[];
@@ -185,7 +192,9 @@ export function WhatsappActivityLogPage() {
           <div>
             <p className="text-sm text-muted-foreground">Admin Sistem</p>
             <h1 className={DC_TYPOGRAPHY.pageTitle}>Log Aktivitas WhatsApp</h1>
-            <p className={DC_TYPOGRAPHY.body}>Pantau kapan nomor WhatsApp aktif, logout, terputus, atau error pada sesi server.</p>
+            <p className={DC_TYPOGRAPHY.body}>
+              Pantau kapan nomor WhatsApp aktif, logout, terputus, atau error pada sesi server.
+            </p>
           </div>
           <Button onClick={() => void loadLogs()} disabled={loading} variant="outline">
             <RefreshCw className={cn("mr-2 size-4", loading && "animate-spin")} />
@@ -198,19 +207,28 @@ export function WhatsappActivityLogPage() {
         <Card className={DC_CONTROLS.card}>
           <CardContent className="flex items-center gap-4 p-4">
             <Signal className="size-9 text-emerald-300" />
-            <div><p className={DC_TYPOGRAPHY.metadata}>AKTIF</p><p className="text-2xl font-semibold">{summary.active}</p></div>
+            <div>
+              <p className={DC_TYPOGRAPHY.metadata}>AKTIF</p>
+              <p className="text-2xl font-semibold">{summary.active}</p>
+            </div>
           </CardContent>
         </Card>
         <Card className={DC_CONTROLS.card}>
           <CardContent className="flex items-center gap-4 p-4">
             <WifiOff className="size-9 text-amber-300" />
-            <div><p className={DC_TYPOGRAPHY.metadata}>TERPUTUS / LOGOUT</p><p className="text-2xl font-semibold">{summary.disconnected}</p></div>
+            <div>
+              <p className={DC_TYPOGRAPHY.metadata}>TERPUTUS / LOGOUT</p>
+              <p className="text-2xl font-semibold">{summary.disconnected}</p>
+            </div>
           </CardContent>
         </Card>
         <Card className={DC_CONTROLS.card}>
           <CardContent className="flex items-center gap-4 p-4">
             <ShieldAlert className="size-9 text-rose-300" />
-            <div><p className={DC_TYPOGRAPHY.metadata}>ERROR</p><p className="text-2xl font-semibold">{summary.error}</p></div>
+            <div>
+              <p className={DC_TYPOGRAPHY.metadata}>ERROR</p>
+              <p className="text-2xl font-semibold">{summary.error}</p>
+            </div>
           </CardContent>
         </Card>
       </section>
@@ -219,24 +237,77 @@ export function WhatsappActivityLogPage() {
         <div className="grid gap-3 lg:grid-cols-4">
           <div className="relative lg:col-span-2">
             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input className="pl-9" placeholder="Cari nomor, kanal, wilayah, session..." value={filters.q} onChange={(event) => updateFilter("q", event.target.value)} />
+            <Input
+              className="pl-9"
+              placeholder="Cari nomor, kanal, wilayah, session..."
+              value={filters.q}
+              onChange={(event) => updateFilter("q", event.target.value)}
+            />
           </div>
-          <Input type="datetime-local" value={filters.from} onChange={(event) => updateFilter("from", event.target.value)} />
-          <Input type="datetime-local" value={filters.to} onChange={(event) => updateFilter("to", event.target.value)} />
-          <FilterSelect value={filters.channelId} onChange={(value) => updateFilter("channelId", value)} placeholder="Semua kanal">
-            {(data?.filters.channels ?? []).map((channel) => <SelectItem key={channel.id} value={channel.id}>{channel.name}</SelectItem>)}
+          <Input
+            type="datetime-local"
+            value={filters.from}
+            onChange={(event) => updateFilter("from", event.target.value)}
+          />
+          <Input
+            type="datetime-local"
+            value={filters.to}
+            onChange={(event) => updateFilter("to", event.target.value)}
+          />
+          <FilterSelect
+            value={filters.channelId}
+            onChange={(value) => updateFilter("channelId", value)}
+            placeholder="Semua kanal"
+          >
+            {(data?.filters.channels ?? []).map((channel) => (
+              <SelectItem key={channel.id} value={channel.id}>
+                {channel.name}
+              </SelectItem>
+            ))}
           </FilterSelect>
-          <FilterSelect value={filters.scopeAreaId} onChange={(value) => updateFilter("scopeAreaId", value)} placeholder="Semua wilayah">
-            {(data?.filters.scopeAreas ?? []).map((area) => <SelectItem key={area.id} value={area.id}>{area.parentName ? `${area.parentName} / ${area.name}` : area.name}</SelectItem>)}
+          <FilterSelect
+            value={filters.scopeAreaId}
+            onChange={(value) => updateFilter("scopeAreaId", value)}
+            placeholder="Semua wilayah"
+          >
+            {(data?.filters.scopeAreas ?? []).map((area) => (
+              <SelectItem key={area.id} value={area.id}>
+                {area.parentName ? `${area.parentName} / ${area.name}` : area.name}
+              </SelectItem>
+            ))}
           </FilterSelect>
-          <FilterSelect value={filters.phoneNumber} onChange={(value) => updateFilter("phoneNumber", value)} placeholder="Semua nomor">
-            {(data?.filters.phoneNumbers ?? []).map((phone) => <SelectItem key={phone} value={phone}>{phone}</SelectItem>)}
+          <FilterSelect
+            value={filters.phoneNumber}
+            onChange={(value) => updateFilter("phoneNumber", value)}
+            placeholder="Semua nomor"
+          >
+            {(data?.filters.phoneNumbers ?? []).map((phone) => (
+              <SelectItem key={phone} value={phone}>
+                {phone}
+              </SelectItem>
+            ))}
           </FilterSelect>
-          <FilterSelect value={filters.connectionStatus} onChange={(value) => updateFilter("connectionStatus", value)} placeholder="Semua status">
-            {(data?.filters.connectionStatuses ?? []).map((status) => <SelectItem key={status} value={status}>{statusLabel(status)}</SelectItem>)}
+          <FilterSelect
+            value={filters.connectionStatus}
+            onChange={(value) => updateFilter("connectionStatus", value)}
+            placeholder="Semua status"
+          >
+            {(data?.filters.connectionStatuses ?? []).map((status) => (
+              <SelectItem key={status} value={status}>
+                {statusLabel(status)}
+              </SelectItem>
+            ))}
           </FilterSelect>
-          <FilterSelect value={filters.eventType} onChange={(value) => updateFilter("eventType", value)} placeholder="Semua peristiwa">
-            {(data?.filters.eventTypes ?? []).map((eventType) => <SelectItem key={eventType} value={eventType}>{eventLabel(eventType)}</SelectItem>)}
+          <FilterSelect
+            value={filters.eventType}
+            onChange={(value) => updateFilter("eventType", value)}
+            placeholder="Semua peristiwa"
+          >
+            {(data?.filters.eventTypes ?? []).map((eventType) => (
+              <SelectItem key={eventType} value={eventType}>
+                {eventLabel(eventType)}
+              </SelectItem>
+            ))}
           </FilterSelect>
         </div>
       </section>
@@ -247,12 +318,36 @@ export function WhatsappActivityLogPage() {
           <table className="w-full min-w-[1100px] border-collapse">
             <thead className="border-b border-border/70 bg-muted/25">
               <tr>
-                <SortableHeader label="Waktu" active={sortKey === "occurredAt"} onClick={() => toggleSort("occurredAt")} />
-                <SortableHeader label="Nomor" active={sortKey === "phoneNumber"} onClick={() => toggleSort("phoneNumber")} />
-                <SortableHeader label="Status" active={sortKey === "connectionStatus"} onClick={() => toggleSort("connectionStatus")} />
-                <SortableHeader label="Peristiwa" active={sortKey === "eventType"} onClick={() => toggleSort("eventType")} />
-                <SortableHeader label="Kanal" active={sortKey === "channelName"} onClick={() => toggleSort("channelName")} />
-                <SortableHeader label="Wilayah" active={sortKey === "scopeArea"} onClick={() => toggleSort("scopeArea")} />
+                <SortableHeader
+                  label="Waktu"
+                  active={sortKey === "occurredAt"}
+                  onClick={() => toggleSort("occurredAt")}
+                />
+                <SortableHeader
+                  label="Nomor"
+                  active={sortKey === "phoneNumber"}
+                  onClick={() => toggleSort("phoneNumber")}
+                />
+                <SortableHeader
+                  label="Status"
+                  active={sortKey === "connectionStatus"}
+                  onClick={() => toggleSort("connectionStatus")}
+                />
+                <SortableHeader
+                  label="Peristiwa"
+                  active={sortKey === "eventType"}
+                  onClick={() => toggleSort("eventType")}
+                />
+                <SortableHeader
+                  label="Kanal"
+                  active={sortKey === "channelName"}
+                  onClick={() => toggleSort("channelName")}
+                />
+                <SortableHeader
+                  label="Wilayah"
+                  active={sortKey === "scopeArea"}
+                  onClick={() => toggleSort("scopeArea")}
+                />
                 <th className={cn(DC_TYPOGRAPHY.tableHeader, "px-4 py-3 text-left")}>Pengelola</th>
                 <th className={cn(DC_TYPOGRAPHY.tableHeader, "px-4 py-3 text-left")}>Keterangan</th>
               </tr>
@@ -262,26 +357,61 @@ export function WhatsappActivityLogPage() {
                 <tr key={item.id} className="hover:bg-muted/20">
                   <td className="px-4 py-3 text-sm">{formatDateTime(item.occurredAt)}</td>
                   <td className="px-4 py-3 font-mono text-sm">{item.phoneNumber ?? "-"}</td>
-                  <td className="px-4 py-3"><Badge className={statusTone(item.connectionStatus)}>{statusLabel(item.connectionStatus)}</Badge></td>
+                  <td className="px-4 py-3">
+                    <Badge className={statusTone(item.connectionStatus)}>{statusLabel(item.connectionStatus)}</Badge>
+                  </td>
                   <td className="px-4 py-3 text-sm">{eventLabel(item.eventType)}</td>
-                  <td className="px-4 py-3 text-sm"><div className="font-medium">{item.channelName}</div><div className="text-xs text-muted-foreground">{item.channelCode}</div></td>
-                  <td className="px-4 py-3 text-sm">{item.scopeArea ? (item.scopeArea.parentName ? `${item.scopeArea.parentName} / ${item.scopeArea.name}` : item.scopeArea.name) : "-"}</td>
+                  <td className="px-4 py-3 text-sm">
+                    <div className="font-medium">{item.channelName}</div>
+                    <div className="text-xs text-muted-foreground">{item.channelCode}</div>
+                  </td>
+                  <td className="px-4 py-3 text-sm">
+                    {item.scopeArea
+                      ? item.scopeArea.parentName
+                        ? `${item.scopeArea.parentName} / ${item.scopeArea.name}`
+                        : item.scopeArea.name
+                      : "-"}
+                  </td>
                   <td className="px-4 py-3 text-sm">{item.coordinator?.name ?? "-"}</td>
-                  <td className="max-w-[320px] px-4 py-3 text-sm text-muted-foreground">{item.errorMessage ?? item.reason ?? item.sessionJid ?? "-"}</td>
+                  <td className="max-w-[320px] px-4 py-3 text-sm text-muted-foreground">
+                    {item.errorMessage ?? item.reason ?? item.sessionJid ?? "-"}
+                  </td>
                 </tr>
               ))}
               {!loading && sortedItems.length === 0 ? (
-                <tr><td colSpan={8} className="px-4 py-10 text-center text-sm text-muted-foreground">Belum ada log aktivitas WhatsApp sesuai filter.</td></tr>
+                <tr>
+                  <td colSpan={8} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                    Belum ada log aktivitas WhatsApp sesuai filter.
+                  </td>
+                </tr>
               ) : null}
             </tbody>
           </table>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/70 p-4 text-sm text-muted-foreground">
-          <span>{loading ? "Memuat data..." : `Menampilkan ${sortedItems.length} dari ${data?.meta.total ?? 0} log.`}</span>
+          <span>
+            {loading ? "Memuat data..." : `Menampilkan ${sortedItems.length} dari ${data?.meta.total ?? 0} log.`}
+          </span>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" disabled={page <= 1 || loading} onClick={() => setPage((current) => Math.max(1, current - 1))}>Sebelumnya</Button>
-            <span className="font-mono text-xs">Halaman {data?.meta.page ?? page} / {data?.meta.totalPages ?? 1}</span>
-            <Button variant="outline" size="sm" disabled={loading || page >= (data?.meta.totalPages ?? 1)} onClick={() => setPage((current) => current + 1)}>Berikutnya</Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page <= 1 || loading}
+              onClick={() => setPage((current) => Math.max(1, current - 1))}
+            >
+              Sebelumnya
+            </Button>
+            <span className="font-mono text-xs">
+              Halaman {data?.meta.page ?? page} / {data?.meta.totalPages ?? 1}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={loading || page >= (data?.meta.totalPages ?? 1)}
+              onClick={() => setPage((current) => current + 1)}
+            >
+              Berikutnya
+            </Button>
           </div>
         </div>
       </section>
@@ -294,7 +424,17 @@ export function WhatsappActivityLogPage() {
   );
 }
 
-function FilterSelect({ value, onChange, placeholder, children }: { value: string; onChange: (value: string) => void; placeholder: string; children: ReactNode }) {
+function FilterSelect({
+  value,
+  onChange,
+  placeholder,
+  children,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  children: ReactNode;
+}) {
   return (
     <Select value={value} onValueChange={onChange}>
       <SelectTrigger className="w-full">
@@ -311,7 +451,15 @@ function FilterSelect({ value, onChange, placeholder, children }: { value: strin
 function SortableHeader({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
     <th className="px-4 py-3 text-left">
-      <button type="button" onClick={onClick} className={cn(DC_TYPOGRAPHY.tableHeader, "inline-flex items-center gap-2 hover:text-foreground", active && "text-foreground")}>
+      <button
+        type="button"
+        onClick={onClick}
+        className={cn(
+          DC_TYPOGRAPHY.tableHeader,
+          "inline-flex items-center gap-2 hover:text-foreground",
+          active && "text-foreground",
+        )}
+      >
         {label}
         <ArrowDownUp className="size-3" />
       </button>

@@ -272,7 +272,10 @@ export default async function KeamananAuditPage({ searchParams }: { searchParams
         </CardHeader>
         <CardContent>
           <form action="/dashboard/admin-system/keamanan-audit" className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <label htmlFor="audit-search" className="grid gap-1.5 text-xs font-medium text-muted-foreground xl:col-span-2">
+            <label
+              htmlFor="audit-search"
+              className="grid gap-1.5 text-xs font-medium text-muted-foreground xl:col-span-2"
+            >
               Pencarian menyeluruh
               <div className="relative">
                 <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
@@ -346,7 +349,12 @@ export default async function KeamananAuditPage({ searchParams }: { searchParams
             </label>
             <label htmlFor="audit-request-id" className="grid gap-1.5 text-xs font-medium text-muted-foreground">
               Request ID
-              <Input id="audit-request-id" name="requestId" defaultValue={filters.requestId} placeholder="Correlation ID" />
+              <Input
+                id="audit-request-id"
+                name="requestId"
+                defaultValue={filters.requestId}
+                placeholder="Correlation ID"
+              />
             </label>
             <label htmlFor="audit-route" className="grid gap-1.5 text-xs font-medium text-muted-foreground">
               Route / endpoint

@@ -247,8 +247,8 @@ export function PetaLaporanMap() {
         });
 
         const jaring = jaringById.get(report.jaringId);
-        const photoUrl = jaring?.profilePhotoUrl ||
-          (jaring?.profilePhotoFileId ? `/api/files/${jaring.profilePhotoFileId}` : null);
+        const photoUrl =
+          jaring?.profilePhotoUrl || (jaring?.profilePhotoFileId ? `/api/files/${jaring.profilePhotoFileId}` : null);
         marker.bindPopup(`
           ${photoUrl ? `<img src="${escapeHtml(photoUrl)}" alt="Foto Jaring" width="44" height="44" style="border-radius:9999px;object-fit:cover;margin-bottom:8px" />` : ""}
           <strong>${escapeHtml(report.displayTitle ?? "Laporan Jaring")}</strong><br />

@@ -139,7 +139,9 @@ export function WhatsappNotificationSettingsPage() {
         <div>
           <p className="text-sm text-muted-foreground">Admin Sistem</p>
           <h1 className={DC_TYPOGRAPHY.pageTitle}>Notifikasi WhatsApp</h1>
-          <p className={DC_TYPOGRAPHY.body}>Atur email yang menerima pemberitahuan saat sesi WhatsApp aktif, logout, terputus, atau error.</p>
+          <p className={DC_TYPOGRAPHY.body}>
+            Atur email yang menerima pemberitahuan saat sesi WhatsApp aktif, logout, terputus, atau error.
+          </p>
         </div>
         <Button onClick={() => void loadRecipients()} disabled={loading} variant="outline">
           <RefreshCw className={cn("mr-2 size-4", loading && "animate-spin")} />
@@ -183,7 +185,11 @@ export function WhatsappNotificationSettingsPage() {
         </div>
         <div className="flex items-end">
           <Button onClick={() => void addRecipients()} disabled={busyId === "create"}>
-            {busyId === "create" ? <Save className="mr-2 size-4 animate-pulse" /> : <MailPlus className="mr-2 size-4" />}
+            {busyId === "create" ? (
+              <Save className="mr-2 size-4 animate-pulse" />
+            ) : (
+              <MailPlus className="mr-2 size-4" />
+            )}
             Simpan
           </Button>
         </div>
@@ -208,12 +214,41 @@ export function WhatsappNotificationSettingsPage() {
                 <tr key={recipient.id} className="hover:bg-muted/20">
                   <td className="px-4 py-3 font-mono text-sm">{recipient.email}</td>
                   <td className="px-4 py-3 text-sm">{recipient.label || "-"}</td>
-                  <td className="px-4 py-3"><Toggle checked={recipient.isActive} disabled={busyId === recipient.id} onChange={(checked) => updateRecipient(recipient.id, { isActive: checked })} /></td>
-                  <td className="px-4 py-3"><Toggle checked={recipient.notifyOnConnected} disabled={busyId === recipient.id} onChange={(checked) => updateRecipient(recipient.id, { notifyOnConnected: checked })} /></td>
-                  <td className="px-4 py-3"><Toggle checked={recipient.notifyOnDisconnected} disabled={busyId === recipient.id} onChange={(checked) => updateRecipient(recipient.id, { notifyOnDisconnected: checked })} /></td>
-                  <td className="px-4 py-3"><Toggle checked={recipient.notifyOnError} disabled={busyId === recipient.id} onChange={(checked) => updateRecipient(recipient.id, { notifyOnError: checked })} /></td>
+                  <td className="px-4 py-3">
+                    <Toggle
+                      checked={recipient.isActive}
+                      disabled={busyId === recipient.id}
+                      onChange={(checked) => updateRecipient(recipient.id, { isActive: checked })}
+                    />
+                  </td>
+                  <td className="px-4 py-3">
+                    <Toggle
+                      checked={recipient.notifyOnConnected}
+                      disabled={busyId === recipient.id}
+                      onChange={(checked) => updateRecipient(recipient.id, { notifyOnConnected: checked })}
+                    />
+                  </td>
+                  <td className="px-4 py-3">
+                    <Toggle
+                      checked={recipient.notifyOnDisconnected}
+                      disabled={busyId === recipient.id}
+                      onChange={(checked) => updateRecipient(recipient.id, { notifyOnDisconnected: checked })}
+                    />
+                  </td>
+                  <td className="px-4 py-3">
+                    <Toggle
+                      checked={recipient.notifyOnError}
+                      disabled={busyId === recipient.id}
+                      onChange={(checked) => updateRecipient(recipient.id, { notifyOnError: checked })}
+                    />
+                  </td>
                   <td className="px-4 py-3 text-right">
-                    <Button size="sm" variant="outline" disabled={busyId === recipient.id} onClick={() => void removeRecipient(recipient.id)}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={busyId === recipient.id}
+                      onClick={() => void removeRecipient(recipient.id)}
+                    >
                       <Trash2 className="mr-2 size-4" />
                       Hapus
                     </Button>
@@ -221,7 +256,11 @@ export function WhatsappNotificationSettingsPage() {
                 </tr>
               ))}
               {!loading && recipients.length === 0 ? (
-                <tr><td colSpan={7} className="px-4 py-10 text-center text-sm text-muted-foreground">Belum ada email penerima notifikasi WhatsApp.</td></tr>
+                <tr>
+                  <td colSpan={7} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                    Belum ada email penerima notifikasi WhatsApp.
+                  </td>
+                </tr>
               ) : null}
             </tbody>
           </table>
@@ -248,6 +287,14 @@ function SummaryCard({ label, value }: { label: string; value: number }) {
   );
 }
 
-function Toggle({ checked, disabled, onChange }: { checked: boolean; disabled: boolean; onChange: (checked: boolean) => void }) {
+function Toggle({
+  checked,
+  disabled,
+  onChange,
+}: {
+  checked: boolean;
+  disabled: boolean;
+  onChange: (checked: boolean) => void;
+}) {
   return <Switch checked={checked} disabled={disabled} onCheckedChange={(value) => void onChange(value)} />;
 }

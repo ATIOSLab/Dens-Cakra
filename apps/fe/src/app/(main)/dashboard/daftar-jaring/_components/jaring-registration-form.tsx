@@ -641,9 +641,9 @@ export function JaringRegistrationForm({ jaringId }: JaringRegistrationFormProps
             Pengajuan Ulang Data Jaring
           </AlertTitle>
           <AlertDescription>
-            Jaring ini saat ini berstatus <strong>Disetujui</strong>. Menyimpan perubahan data ini akan
-            mengajukan ulang data Jaring sehingga statusnya kembali menjadi{" "}
-            <strong>Menunggu Tinjauan</strong> dan memerlukan persetujuan ulang.
+            Jaring ini saat ini berstatus <strong>Disetujui</strong>. Menyimpan perubahan data ini akan mengajukan ulang
+            data Jaring sehingga statusnya kembali menjadi <strong>Menunggu Tinjauan</strong> dan memerlukan persetujuan
+            ulang.
           </AlertDescription>
         </Alert>
       ) : null}

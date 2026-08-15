@@ -118,11 +118,7 @@ export function SearchToolbar({
     option("EMPTY", "Belum Cukup Bukti", "Skor belum tersedia"),
   ];
   const sortOptions = [
-    option(
-      "HIERARCHY_ASC",
-      "Urutan Hierarki",
-      "Provinsi/Binda, kota/kabupaten/Korwil, kecamatan/Gaswil, lalu Jaring",
-    ),
+    option("HIERARCHY_ASC", "Urutan Hierarki", "Provinsi/Binda, kota/kabupaten/Korwil, kecamatan/Gaswil, lalu Jaring"),
     option("SCORE_DESC", "Skor Tertinggi"),
     option("SCORE_ASC", "Skor Terendah"),
     option("NAME_ASC", "Nama A-Z"),

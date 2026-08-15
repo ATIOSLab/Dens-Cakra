@@ -353,8 +353,8 @@ export function JaringDistributionClient({
         : adminLevel === "PROVINCE"
           ? "Provinsi"
           : selectedCity
-          ? "Kota/Kabupaten"
-          : "Provinsi";
+            ? "Kota/Kabupaten"
+            : "Provinsi";
 
     return { regionName, levelName };
   }, [selectedVillage, selectedDistrict, adminLevel, cities, selectedCity]);

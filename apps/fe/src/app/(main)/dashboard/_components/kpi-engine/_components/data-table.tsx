@@ -97,9 +97,7 @@ export function DataTable({
                       Kinerja {renderSortIcon("name")}
                     </button>
                   </TableHead>
-                  <TableHead className="min-w-[120px] font-semibold text-[var(--dc-text-secondary)]">
-                    Tingkat
-                  </TableHead>
+                  <TableHead className="min-w-[120px] font-semibold text-[var(--dc-text-secondary)]">Tingkat</TableHead>
                   <TableHead className="min-w-[100px] text-right font-semibold text-[var(--dc-text-secondary)]">
                     Jaring
                   </TableHead>
@@ -119,9 +117,7 @@ export function DataTable({
                   <TableHead className="min-w-[160px] font-semibold text-[var(--dc-text-secondary)]">
                     Penempatan
                   </TableHead>
-                  <TableHead className="min-w-[120px] font-semibold text-[var(--dc-text-secondary)]">
-                    Cakupan
-                  </TableHead>
+                  <TableHead className="min-w-[120px] font-semibold text-[var(--dc-text-secondary)]">Cakupan</TableHead>
                 </>
               )}
               <TableHead className="w-24 text-center">

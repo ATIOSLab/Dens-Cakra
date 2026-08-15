@@ -4,11 +4,7 @@ import { useEffect, useMemo, useRef } from "react";
 
 import type { GeoJSONSource, MapLayerMouseEvent, Map as MapLibreMap, MapMouseEvent } from "maplibre-gl";
 
-import {
-  DATA_TYPE_PRESENTATION,
-  getMarkerPresentation,
-  getUrgencyPresentation,
-} from "./maps-intelijen-presentation";
+import { DATA_TYPE_PRESENTATION, getMarkerPresentation, getUrgencyPresentation } from "./maps-intelijen-presentation";
 import type { HeatmapWeight, MapNetworkFeature, MarkerColorMode, VisualizationMode } from "./maps-intelijen-types";
 
 const SOURCE_ID = "dc-intelligent-network";

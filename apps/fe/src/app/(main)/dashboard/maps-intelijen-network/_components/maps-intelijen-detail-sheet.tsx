@@ -4,15 +4,7 @@ import type { ComponentType, ReactNode } from "react";
 
 import Link from "next/link";
 
-import {
-  BadgeCheck,
-  Clock3,
-  ExternalLink,
-  ImageIcon,
-  MapPin,
-  Paperclip,
-  Video,
-} from "lucide-react";
+import { BadgeCheck, Clock3, ExternalLink, ImageIcon, MapPin, Paperclip, Video } from "lucide-react";
 
 import { useOptionalRoleWorkspace } from "@/app/(main)/dashboard/_components/sidebar/role-workspace-provider";
 import { resolveGaswilDetailHref } from "@/components/domain/gaswil-entity-link";
@@ -47,10 +39,7 @@ import {
   type MapNetworkFeature,
 } from "./maps-intelijen-types";
 
-const REPORT_PROCESS_PRESENTATION: Record<
-  "BAKET_CREATED" | "READY_FOR_BAKET",
-  MapSemanticPresentation
-> = {
+const REPORT_PROCESS_PRESENTATION: Record<"BAKET_CREATED" | "READY_FOR_BAKET", MapSemanticPresentation> = {
   BAKET_CREATED: {
     ...getCoordinateSourcePresentation("SYSTEM_DERIVED"),
     label: "Baket Dibuat",
@@ -89,42 +78,29 @@ export function MapsIntelijenDetailSheet({
       : null);
   const dataTypePresentation = getFeatureTypePresentation(properties);
   const urgencyPresentation = getUrgencyPresentation(properties.urgency);
-  const coordinatePresentation = getCoordinateSourcePresentation(
-    properties.coordinateSource,
-  );
+  const coordinatePresentation = getCoordinateSourcePresentation(properties.coordinateSource);
   const relatedBaketPresentation = getFeatureTypePresentation({
     markerType: "baket",
     urgency: properties.urgency,
   });
   const RelatedBaketIcon = relatedBaketPresentation.icon;
-  const jarings = properties.jarings?.length
-    ? properties.jarings
-    : properties.jaring
-      ? [properties.jaring]
-      : [];
+  const jarings = properties.jarings?.length ? properties.jarings : properties.jaring ? [properties.jaring] : [];
   const reportProcessPresentation =
     REPORT_PROCESS_PRESENTATION[
       properties.verificationStatus === "BAKET_CREATED" || properties.verificationStatus === "METADATA_RECORDED"
         ? "BAKET_CREATED"
         : "READY_FOR_BAKET"
     ];
-  const actualLocation =
-    properties.matchedAreas?.length
-      ? [
-          ...new Set(
-            properties.matchedAreas
-              .map((area) => area.name?.trim())
-              .filter((name): name is string => Boolean(name)),
-          ),
-        ].join(", ")
-      : properties.primaryArea
-        ? formatFullAreaName(properties.primaryArea)
-        : "Lokasi aktual belum teridentifikasi";
-  const actualLocationLabel = isAgent
-    ? "Lokasi Personel"
-    : isBaket
-      ? "Lokasi Aktual Baket"
-      : "Lokasi Aktual Laporan";
+  const actualLocation = properties.matchedAreas?.length
+    ? [
+        ...new Set(
+          properties.matchedAreas.map((area) => area.name?.trim()).filter((name): name is string => Boolean(name)),
+        ),
+      ].join(", ")
+    : properties.primaryArea
+      ? formatFullAreaName(properties.primaryArea)
+      : "Lokasi aktual belum teridentifikasi";
+  const actualLocationLabel = isAgent ? "Lokasi Personel" : isBaket ? "Lokasi Aktual Baket" : "Lokasi Aktual Laporan";
   const latitude = feature.geometry.coordinates[1];
   const longitude = feature.geometry.coordinates[0];
   const googleMapsHref = `https://www.google.com/maps?q=${latitude},${longitude}`;
@@ -139,32 +115,21 @@ export function MapsIntelijenDetailSheet({
         <DialogHeader className="border-b bg-muted/20 p-5 pr-14 text-left">
           <div className="flex flex-wrap gap-2">
             <MapSemanticBadge presentation={dataTypePresentation} />
-            {!isAgent ? (
-              <MapSemanticBadge presentation={urgencyPresentation} />
-            ) : null}
+            {!isAgent ? <MapSemanticBadge presentation={urgencyPresentation} /> : null}
           </div>
-          <DialogTitle className="mt-2 text-xl leading-snug">
-            {getMapFeatureTitle(feature)}
-          </DialogTitle>
+          <DialogTitle className="mt-2 text-xl leading-snug">{getMapFeatureTitle(feature)}</DialogTitle>
           <DialogDescription>
-            {getMapFeatureReference(feature)} ·{" "}
-            {formatDateTime(getMapFeatureTimestamp(feature))}
+            {getMapFeatureReference(feature)} · {formatDateTime(getMapFeatureTimestamp(feature))}
           </DialogDescription>
         </DialogHeader>
 
         <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-5">
           {jarings.length > 0 ? (
             <section>
-              <SectionTitle>
-                Identitas Jaring{" "}
-                {jarings.length > 1 ? `(${jarings.length})` : ""}
-              </SectionTitle>
+              <SectionTitle>Identitas Jaring {jarings.length > 1 ? `(${jarings.length})` : ""}</SectionTitle>
               <div className="mt-2 grid gap-3">
                 {jarings.map((jaring) => (
-                  <div
-                    key={jaring.id}
-                    className="rounded-xl border bg-muted/15 p-4"
-                  >
+                  <div key={jaring.id} className="rounded-xl border bg-muted/15 p-4">
                     <JaringIdentitySummary
                       source={{
                         id: jaring.id,
@@ -172,14 +137,9 @@ export function MapsIntelijenDetailSheet({
                         code: jaring.code,
                         whatsappNumber: jaring.whatsappNumber,
                         profilePhotoFileId: jaring.profilePhotoFileId,
-                        gaswilName:
-                          jaring.gaswilName ??
-                          properties.fieldOfficer?.name ??
-                          properties.userName,
+                        gaswilName: jaring.gaswilName ?? properties.fieldOfficer?.name ?? properties.userName,
                         gaswilAssignmentId:
-                          jaring.gaswilAssignmentId ??
-                          properties.fieldOfficer?.assignmentId ??
-                          properties.assignmentId,
+                          jaring.gaswilAssignmentId ?? properties.fieldOfficer?.assignmentId ?? properties.assignmentId,
                         gaswilUserProfileId:
                           jaring.gaswilUserProfileId ??
                           properties.fieldOfficer?.userProfileId ??
@@ -212,35 +172,13 @@ export function MapsIntelijenDetailSheet({
                   : (properties.category?.name ?? "Belum dikategorikan")
               }
             />
+            {isAgent ? <Fact label="Unit" value={properties.unitName ?? "Belum tersedia"} /> : null}
+            {isReport ? <SemanticFact label="Status Proses" presentation={reportProcessPresentation} /> : null}
             {isAgent ? (
-              <Fact label="Unit" value={properties.unitName ?? "Belum tersedia"} />
+              <Fact label="Status Personel" value={properties.agentState === "active" ? "Aktif" : "Lokasi Terakhir"} />
             ) : null}
-            {isReport ? (
-              <SemanticFact
-                label="Status Proses"
-                presentation={reportProcessPresentation}
-              />
-            ) : null}
-            {isAgent ? (
-              <Fact
-                label="Status Personel"
-                value={
-                  properties.agentState === "active"
-                    ? "Aktif"
-                    : "Lokasi Terakhir"
-                }
-              />
-            ) : null}
-            {isAgent ? (
-              <Fact
-                label="Usia Lokasi"
-                value={`${properties.ageMinutes ?? 0} menit`}
-              />
-            ) : null}
-            <SemanticFact
-              label="Sumber lokasi"
-              presentation={coordinatePresentation}
-            />
+            {isAgent ? <Fact label="Usia Lokasi" value={`${properties.ageMinutes ?? 0} menit`} /> : null}
+            <SemanticFact label="Sumber lokasi" presentation={coordinatePresentation} />
             <Fact
               label={actualLocationLabel}
               value={
@@ -271,13 +209,7 @@ export function MapsIntelijenDetailSheet({
             >
               <span className="flex items-start justify-between gap-3">
                 <span>
-                  <MapPin
-                    className={cn(
-                      "mr-1 inline size-4",
-                      coordinatePresentation.iconClass,
-                    )}
-                    aria-hidden
-                  />
+                  <MapPin className={cn("mr-1 inline size-4", coordinatePresentation.iconClass)} aria-hidden />
                   {actualLocation}
                 </span>
                 <span className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-sky-700 dark:text-sky-300">
@@ -287,9 +219,7 @@ export function MapsIntelijenDetailSheet({
               </span>
               <p className="mt-1 font-mono text-xs text-muted-foreground">
                 {latitude.toFixed(7)}, {longitude.toFixed(7)}
-                {properties.gpsAccuracyMeters
-                  ? ` · akurasi ±${properties.gpsAccuracyMeters} m`
-                  : ""}
+                {properties.gpsAccuracyMeters ? ` · akurasi ±${properties.gpsAccuracyMeters} m` : ""}
               </p>
             </a>
           </section>
@@ -300,16 +230,11 @@ export function MapsIntelijenDetailSheet({
               <div
                 className={cn(
                   "mt-2 rounded-xl border p-3 text-sm",
-                  properties.baket || isBaket
-                    ? relatedBaketPresentation.surfaceClass
-                    : "",
+                  properties.baket || isBaket ? relatedBaketPresentation.surfaceClass : "",
                 )}
               >
                 <RelatedBaketIcon
-                  className={cn(
-                    "mr-2 inline size-4",
-                    relatedBaketPresentation.iconClass,
-                  )}
+                  className={cn("mr-2 inline size-4", relatedBaketPresentation.iconClass)}
                   aria-hidden
                 />
                 {isBaket
@@ -326,21 +251,9 @@ export function MapsIntelijenDetailSheet({
               <SectionTitle>Lampiran</SectionTitle>
               <div className="mt-2 space-y-3 rounded-xl border p-3">
                 <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                  <AttachmentStat
-                    icon={Paperclip}
-                    label="Lampiran"
-                    value={properties.attachments?.total ?? 0}
-                  />
-                  <AttachmentStat
-                    icon={ImageIcon}
-                    label="Foto"
-                    value={properties.attachments?.images ?? 0}
-                  />
-                  <AttachmentStat
-                    icon={Video}
-                    label="Video"
-                    value={properties.attachments?.videos ?? 0}
-                  />
+                  <AttachmentStat icon={Paperclip} label="Lampiran" value={properties.attachments?.total ?? 0} />
+                  <AttachmentStat icon={ImageIcon} label="Foto" value={properties.attachments?.images ?? 0} />
+                  <AttachmentStat icon={Video} label="Video" value={properties.attachments?.videos ?? 0} />
                 </div>
 
                 {attachments.length > 0 ? (
@@ -349,9 +262,7 @@ export function MapsIntelijenDetailSheet({
                       <EvidenceAttachmentViewer
                         key={attachment.id}
                         src={`/api/files/${attachment.fileId}`}
-                        fileName={
-                          attachment.fileName || `Lampiran ${index + 1}`
-                        }
+                        fileName={attachment.fileName || `Lampiran ${index + 1}`}
                         mimeType={attachment.mimeType}
                         caption={attachment.caption}
                         className="min-w-0 overflow-hidden"
@@ -384,11 +295,7 @@ export function MapsIntelijenDetailSheet({
 }
 
 function SectionTitle({ children }: { children: ReactNode }) {
-  return (
-    <h3 className="font-semibold text-xs text-muted-foreground uppercase tracking-wide">
-      {children}
-    </h3>
-  );
+  return <h3 className="font-semibold text-xs text-muted-foreground uppercase tracking-wide">{children}</h3>;
 }
 
 function Fact({ label, value }: { label: string; value: ReactNode }) {
@@ -400,21 +307,8 @@ function Fact({ label, value }: { label: string; value: ReactNode }) {
   );
 }
 
-function SemanticFact({
-  label,
-  presentation,
-}: {
-  label: string;
-  presentation: MapSemanticPresentation;
-}) {
-  return (
-    <Fact
-      label={label}
-      value={
-        <MapSemanticBadge presentation={presentation} className="max-w-full" />
-      }
-    />
-  );
+function SemanticFact({ label, presentation }: { label: string; presentation: MapSemanticPresentation }) {
+  return <Fact label={label} value={<MapSemanticBadge presentation={presentation} className="max-w-full" />} />;
 }
 
 function AttachmentStat({
@@ -429,9 +323,7 @@ function AttachmentStat({
   return (
     <div className="grid min-w-0 justify-items-center gap-1">
       <Icon className="size-4 text-sky-600 dark:text-sky-400" aria-hidden />
-      <strong className="text-base tabular-nums">
-        {value.toLocaleString("id-ID")}
-      </strong>
+      <strong className="text-base tabular-nums">{value.toLocaleString("id-ID")}</strong>
       <span className="truncate text-muted-foreground">{label}</span>
     </div>
   );

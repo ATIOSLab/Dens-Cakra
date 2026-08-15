@@ -843,8 +843,8 @@ export function DirectiveFormClient({
             <CardHeader>
               <CardTitle>Pratinjau Distribusi</CardTitle>
               <CardDescription>
-                Mode `Semua` menurunkan distribusi ke Kepala BIN Daerah (Kabinda). Mode `Binda` dan `Direktorat` langsung
-                menargetkan organisasi yang dipilih dari peta.
+                Mode `Semua` menurunkan distribusi ke Kepala BIN Daerah (Kabinda). Mode `Binda` dan `Direktorat`
+                langsung menargetkan organisasi yang dipilih dari peta.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">

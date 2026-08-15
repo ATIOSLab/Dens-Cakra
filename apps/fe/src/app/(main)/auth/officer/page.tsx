@@ -11,9 +11,7 @@ export default function OfficerLoginPage() {
     <div className="w-full max-w-[430px] min-w-0 animate-fade-in duration-300">
       <section className="flex min-w-0 flex-col justify-center">
         <div className="mb-6 px-1 text-center">
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-            Masuk Petugas Wilayah
-          </h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">Masuk Petugas Wilayah</h1>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
             Izinkan lokasi bila diminta agar perangkat dapat dikenali.
           </p>

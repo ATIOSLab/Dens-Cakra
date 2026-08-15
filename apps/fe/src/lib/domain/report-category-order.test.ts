@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  compareReportCategories,
-  sortReportCategories,
-} from "@/lib/domain/report-category-order";
+import { compareReportCategories, sortReportCategories } from "@/lib/domain/report-category-order";
 
 describe("compareReportCategories", () => {
   it("mengurutkan sesuai IPOLEKSOSBUDHANKAM", () => {
@@ -14,20 +11,12 @@ describe("compareReportCategories", () => {
       { code: "POLITIK", name: "Politik" },
     ]);
 
-    expect(sorted.map((item) => item.name)).toEqual([
-      "Ideologi",
-      "Politik",
-      "Ekonomi",
-      "Keamanan",
-    ]);
+    expect(sorted.map((item) => item.name)).toEqual(["Ideologi", "Politik", "Ekonomi", "Keamanan"]);
   });
 
   it("mengenali sinonim token (HANKAM -> Pertahanan)", () => {
     expect(
-      compareReportCategories(
-        { code: "HANKAM", name: "Pertahanan Keamanan" },
-        { code: "KEAMANAN", name: "Keamanan" },
-      ),
+      compareReportCategories({ code: "HANKAM", name: "Pertahanan Keamanan" }, { code: "KEAMANAN", name: "Keamanan" }),
     ).toBeLessThan(0);
   });
 

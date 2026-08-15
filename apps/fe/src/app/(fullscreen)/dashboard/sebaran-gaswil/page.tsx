@@ -225,9 +225,7 @@ function distributionFromEntries(entries: JaringDistributionEntry[]): JaringDist
         rejected: cityEntries.filter((entry) => entry.status === "REJECTED").length,
         villageCount: 0,
         geometry: null,
-        jaring: cityEntries.sort((left, right) =>
-          (left.fullName ?? "").localeCompare(right.fullName ?? "", "id-ID"),
-        ),
+        jaring: cityEntries.sort((left, right) => (left.fullName ?? "").localeCompare(right.fullName ?? "", "id-ID")),
         districts,
       };
     })
@@ -256,7 +254,8 @@ export default async function SebaranGaswilPage() {
 
   const entries = personnel.flatMap((item) => {
     const feature =
-      featuresByUserId.get(item.id) ?? (item.assignment?.id ? featuresByAssignmentId.get(item.assignment.id) : undefined);
+      featuresByUserId.get(item.id) ??
+      (item.assignment?.id ? featuresByAssignmentId.get(item.assignment.id) : undefined);
     const entry = gaswilEntry(item, feature, session.role);
     return entry ? [entry] : [];
   });

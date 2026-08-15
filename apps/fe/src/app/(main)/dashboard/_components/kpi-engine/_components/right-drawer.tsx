@@ -98,7 +98,9 @@ export function RightDrawer({ isOpen, onClose, type, data }: RightDrawerProps) {
                 {type === "unit" ? "Detail Hierarki" : "Detail Personel"}
               </span>
             </div>
-            <SheetTitle className="mt-2 font-bold text-[var(--dc-text-primary)] text-lg leading-snug">{name}</SheetTitle>
+            <SheetTitle className="mt-2 font-bold text-[var(--dc-text-primary)] text-lg leading-snug">
+              {name}
+            </SheetTitle>
             <SheetDescription className="mt-1 font-medium text-[var(--dc-text-secondary)] text-xs">
               {subtitle}
             </SheetDescription>

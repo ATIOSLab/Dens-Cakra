@@ -2,12 +2,7 @@ import type { ComponentType } from "react";
 
 import { AlertTriangle, MapPin, MapPinCheck, MapPinOff } from "lucide-react";
 
-export type LocationMatchStatus =
-  | "ALL"
-  | "WITHIN_SCOPE"
-  | "OUTSIDE_SCOPE"
-  | "NOT_DETERMINED"
-  | "BORDER_AMBIGUOUS";
+export type LocationMatchStatus = "ALL" | "WITHIN_SCOPE" | "OUTSIDE_SCOPE" | "NOT_DETERMINED" | "BORDER_AMBIGUOUS";
 
 export interface SpatialAreaInfo {
   id?: string;
@@ -64,9 +59,7 @@ export function evaluateLocationMatch(
   };
 
   const reportHierarchy = hierarchy(resolvedArea);
-  const coverageAreas = (jaringCoverages ?? []).flatMap((coverage) =>
-    coverage.area ? [coverage.area] : [],
-  );
+  const coverageAreas = (jaringCoverages ?? []).flatMap((coverage) => (coverage.area ? [coverage.area] : []));
   if (reportHierarchy.length === 0 || identityKeys(resolvedArea).size === 0 || coverageAreas.length === 0) {
     return "NOT_DETERMINED";
   }

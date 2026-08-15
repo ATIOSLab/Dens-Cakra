@@ -271,7 +271,12 @@ export async function FieldCoordinatorAssignmentPage({
 
   return (
     <div className="space-y-6">
-      <TaskDetailClient task={task} hideTargetAreas hideAssignments assignmentTitle="Distribusi Petugas Wilayah (Gaswil)" />
+      <TaskDetailClient
+        task={task}
+        hideTargetAreas
+        hideAssignments
+        assignmentTitle="Distribusi Petugas Wilayah (Gaswil)"
+      />
       {isCoordinatorOwned ? (
         <AssignmentBoardClient
           task={task}

@@ -224,7 +224,9 @@ export function DirectiveDetailClient({ directive, tracking }: DirectiveDetailCl
               <Link href={`/dashboard/executive/pusat-komando/direktif/${directive.id}/edit`}>Ubah Draf</Link>
             </Button>
             <Button asChild variant="outline" size="sm" className="cursor-pointer">
-              <Link href={`/dashboard/executive/pusat-komando/direktif/${directive.id}/tracking`}>Lacak Distribusi</Link>
+              <Link href={`/dashboard/executive/pusat-komando/direktif/${directive.id}/tracking`}>
+                Lacak Distribusi
+              </Link>
             </Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>

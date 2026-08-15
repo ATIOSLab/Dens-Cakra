@@ -180,7 +180,8 @@ export function CreateCoachingReportForm() {
               <DOMAIN_VISUALS.jaring.Icon className="mb-3 size-10 text-muted-foreground/50" />
               <p className="font-semibold text-foreground text-sm">Belum Ada Jaring Tersedia</p>
               <p className="mt-1 max-w-md text-muted-foreground text-xs">
-                Laporan pembinaan hanya dapat dibuat untuk Jaring dengan registrasi disetujui dalam wilayah penugasan Anda.
+                Laporan pembinaan hanya dapat dibuat untuk Jaring dengan registrasi disetujui dalam wilayah penugasan
+                Anda.
               </p>
             </div>
           ) : (

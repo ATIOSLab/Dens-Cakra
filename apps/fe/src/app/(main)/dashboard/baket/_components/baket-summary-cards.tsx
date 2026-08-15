@@ -140,7 +140,7 @@ export function BaketSummaryCards({
               <p
                 className={cn(
                   "mt-1 text-2xl font-extrabold tracking-tight",
-                isActive ? item.styles.countText : "text-foreground",
+                  isActive ? item.styles.countText : "text-foreground",
                 )}
               >
                 {count}

@@ -437,8 +437,8 @@ export function ProvinceMapSelector({
       <CardHeader>
         <CardTitle>Peta Wilayah Sasaran</CardTitle>
         <CardDescription>
-          Pilih sasaran STR lewat provinsi, Binda, atau Direktorat. Saat memilih Direktorat, seluruh provinsi
-          cakupannya langsung ikut ditandai pada peta.
+          Pilih sasaran STR lewat provinsi, Binda, atau Direktorat. Saat memilih Direktorat, seluruh provinsi cakupannya
+          langsung ikut ditandai pada peta.
         </CardDescription>
       </CardHeader>
       <CardContent className="min-w-0 space-y-4">

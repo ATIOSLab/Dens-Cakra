@@ -188,7 +188,9 @@ export function ExecutiveDashboardAnalysisOverview({
       ? `${formatDashboardPercent(percent(validatedBakets, baketCreatedReports))} dari laporan yang sudah menjadi Baket`
       : "Belum ada Baket Tervalidasi pada filter aktif";
   const productHelper =
-    totalReports > 0 ? `${formatDashboardPercent(productRate)} terhadap total Laporan Jaring` : "Belum ada pembanding laporan";
+    totalReports > 0
+      ? `${formatDashboardPercent(productRate)} terhadap total Laporan Jaring`
+      : "Belum ada pembanding laporan";
   const personnelHref =
     role === "executive"
       ? "/dashboard/personel-lapangan"
@@ -231,8 +233,8 @@ export function ExecutiveDashboardAnalysisOverview({
               Pusat Analisis {data.scope.label || getSystemRoleLabel(role)}
             </h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-              Ringkasan ini menggabungkan Laporan Jaring, Bahan Keterangan (Baket), status Jaring, tindak lanjut,
-              dan Produk Intelijen dalam cakupan akses pengguna.
+              Ringkasan ini menggabungkan Laporan Jaring, Bahan Keterangan (Baket), status Jaring, tindak lanjut, dan
+              Produk Intelijen dalam cakupan akses pengguna.
             </p>
 
             <div className="mt-5 grid gap-3 sm:grid-cols-3">

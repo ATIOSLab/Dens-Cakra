@@ -4,16 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import Link from "next/link";
 
-import {
-  Calendar,
-  Download,
-  Eye,
-  FileText,
-  RefreshCw,
-  Search,
-  User,
-  X,
-} from "lucide-react";
+import { Calendar, Download, Eye, FileText, RefreshCw, Search, User, X } from "lucide-react";
 
 import { ViewModeToggle } from "@/app/(main)/dashboard/_components/view-mode-toggle";
 import { GaswilEntityLink } from "@/components/domain/gaswil-entity-link";
@@ -397,10 +388,7 @@ export function LaporanPembinaanCoordinatorClient() {
     return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, "id-ID"));
   }, [areaScopes, jaringList]);
 
-  const defaultProvinceFilter = useMemo(
-    () => findDkiJakartaProvinceFilterId(provinceOptions),
-    [provinceOptions],
-  );
+  const defaultProvinceFilter = useMemo(() => findDkiJakartaProvinceFilterId(provinceOptions), [provinceOptions]);
 
   useEffect(() => {
     if (didApplyDefaultProvinceFilter.current || !defaultProvinceFilter || provinceFilter !== "ALL") return;
@@ -828,7 +816,10 @@ export function LaporanPembinaanCoordinatorClient() {
             </div>
 
             <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
-              <Badge variant={hasActiveFilters ? "default" : "outline"} className="h-9 rounded-md px-3 font-mono text-xs">
+              <Badge
+                variant={hasActiveFilters ? "default" : "outline"}
+                className="h-9 rounded-md px-3 font-mono text-xs"
+              >
                 {activeFilterCount ? `${activeFilterCount} filter aktif` : "Tanpa filter"}
               </Badge>
               <ColumnVisibilityToggle
@@ -861,9 +852,9 @@ export function LaporanPembinaanCoordinatorClient() {
                   setPage(1);
                 }}
                 placeholder="Pilih Provinsi/Binda terlebih dahulu"
-                  searchPlaceholder="Cari provinsi..."
-                  emptyText="Provinsi tidak ditemukan."
-                  className={cn(DC_CONTROLS.selectTrigger, "w-full text-xs")}
+                searchPlaceholder="Cari provinsi..."
+                emptyText="Provinsi tidak ditemukan."
+                className={cn(DC_CONTROLS.selectTrigger, "w-full text-xs")}
               />
             )}
 
@@ -961,7 +952,8 @@ export function LaporanPembinaanCoordinatorClient() {
               options={[
                 {
                   value: "ALL",
-                  label: gaswilOptions.length === 0 ? "Petugas Wilayah belum tersedia" : "Semua Petugas Wilayah (Gaswil)",
+                  label:
+                    gaswilOptions.length === 0 ? "Petugas Wilayah belum tersedia" : "Semua Petugas Wilayah (Gaswil)",
                   disabled: gaswilOptions.length === 0,
                 },
                 ...gaswilOptions.map((gaswil) => ({
@@ -975,7 +967,9 @@ export function LaporanPembinaanCoordinatorClient() {
                 setPage(1);
               }}
               disabled={gaswilOptions.length === 0}
-              placeholder={gaswilOptions.length === 0 ? "Petugas Wilayah belum tersedia" : "Semua Petugas Wilayah (Gaswil)"}
+              placeholder={
+                gaswilOptions.length === 0 ? "Petugas Wilayah belum tersedia" : "Semua Petugas Wilayah (Gaswil)"
+              }
               searchPlaceholder="Cari Petugas Wilayah (Gaswil)..."
               emptyText="Petugas Wilayah (Gaswil) tidak ditemukan."
               className={cn(DC_CONTROLS.selectTrigger, "w-full text-xs")}

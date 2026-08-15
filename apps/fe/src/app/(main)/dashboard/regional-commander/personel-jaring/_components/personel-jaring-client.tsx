@@ -1129,7 +1129,8 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
 
                             <div className="space-y-2 border-t border-border/20 pt-3">
                               <span className="flex items-center gap-1 text-muted-foreground/60 block font-mono text-[9px] uppercase">
-                                <DOMAIN_VISUALS.jaring.Icon className="size-3" /> Jaring Binaan ({attachedJaring.length})
+                                <DOMAIN_VISUALS.jaring.Icon className="size-3" /> Jaring Binaan ({attachedJaring.length}
+                                )
                               </span>
                               {attachedJaring.length ? (
                                 <div className="grid gap-2 sm:grid-cols-2">

@@ -820,8 +820,8 @@ export function JawabanLapanganPage() {
                 <TabsContent value="verify" className="space-y-3 pt-2">
                   <div className="space-y-2.5 rounded-lg border border-border/40 bg-muted/10 p-3">
                     <p className="text-[11px] text-muted-foreground leading-relaxed">
-                      Kepala BIN Daerah (Kabinda) dapat menandai Baket sebagai terverifikasi atau langsung meneruskan laporan ini
-                      (eskalasi) ke Manajer Intelijen Operasional (OIM) untuk kompilasi.
+                      Kepala BIN Daerah (Kabinda) dapat menandai Baket sebagai terverifikasi atau langsung meneruskan
+                      laporan ini (eskalasi) ke Manajer Intelijen Operasional (OIM) untuk kompilasi.
                     </p>
                     <div className="grid grid-cols-2 gap-2">
                       <Button

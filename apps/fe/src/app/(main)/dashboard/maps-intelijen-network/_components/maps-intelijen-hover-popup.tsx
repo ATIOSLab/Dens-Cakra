@@ -94,7 +94,9 @@ export function MapsIntelijenHoverPopup({
         </div>
 
         <div className="min-w-0">
-          <h2 className="line-clamp-2 font-semibold text-[11px] leading-snug text-white">{getMapFeatureTitle(feature)}</h2>
+          <h2 className="line-clamp-2 font-semibold text-[11px] leading-snug text-white">
+            {getMapFeatureTitle(feature)}
+          </h2>
           <p className="mt-1 line-clamp-1 text-slate-400">
             {jaring ? `Jaring: ${jaring.name}` : "Jaring belum tersedia"}
           </p>
