@@ -145,21 +145,24 @@ Model lama `Position` (dari `modules/positions/dto/position.dto.ts` yang dikecua
 - `rbac.service.ts` — `_count.positions` → `_count.operationalAssignments` (relasi `positions` dihapus; FE tidak membaca `_count.positions`).
 - `request-context.middleware.ts:99` — `entityId` di-koersi (Express 5 mengetik `params` sebagai `string | string[]`).
 - `authorization.service.ts` + `whatsapp.service.ts` — anotasi tipe eksplisit.
+- `task.service.ts` — **migrasi command-chain selesai** (2026-08-15): `position` → `role`; cek bawahan memakai `AdministrativeAreaClosure` (area assignee dalam cakupan assigner) menggantikan traversal pohon `Position.reportsToPositionId` yang sudah dihapus; `TaskStatus` narrowing; `assigner.position` → `assigner.role`.
 
 **Mapping yang aman (belum diterapkan, menunggu penyelesaian bersama):**
 - `position.title` → `role.name`.
 - `position.code` / `position.role.code` → `role.code`.
 - `positionId` → `assignment.id` (identitas assignment kini adalah id assignment itu sendiri).
 - `position` pada `include`/`where` → relasi `role`.
+- `position.organizationUnit` → `branch` (CommandRouteType) + area cakupan (`organizationUnitName` = `${branch} ${area.name}` sesuai `AuthorizationContext`).
 
 **BUG LIVE (butuh keputusan domain, belum bisa ditebak aman):**
-1. `task.service.ts:326` `isPositionDescendantOf` — `$queryRaw` ke tabel `"Position"` yang sudah dihapus. Dipanggil `assertAssignableTarget` (live di baris 1264 & 1619) → **assign tugas ke bawahan akan throw "relation Position does not exist"**. Perlu reimplementasi command-chain memakai hierarki Role + cakupan area (`AdministrativeAreaClosure`/`DomainScopeService`).
-2. `intelligence-products.service.ts` — `position.organizationUnit.name` (unit dihapus; kandidat `branch` CommandRouteType), `position.reportsTo` (alur pelaporan belum ada padanan), `positionId`.
+1. `task.service.ts` `isPositionDescendantOf` — **SUDAH DIPERBAIKI** (lihat atas).
+2. `directive.service.ts` (~66 referensi `.position`/`organizationUnit`) — fitur "pelacakan arahan strategis" dibangun di atas pohon `Position`/`OrganizationUnit`; butuh reimplementasi besar, bukan field-rename. Terdapat `this.prisma.position.findMany()` yang akan throw runtime.
+3. `intelligence-products.service.ts` (~27) — `position.organizationUnit.name`, `position.reportsTo` (alur pelaporan belum ada padanan → supervisor peta jadi null), `positionId`, relasi yang tidak di-`select`.
 
 **Keputusan yang dibutuhkan dari pemilik domain:**
-- Command chain: apa pengganti `reportsToPositionId`? (Kandidat: hierarki RoleCode + area scope via `AdministrativeAreaClosure`.)
-- `organizationUnit`: apakah `branch` (PUSAT/DIRECTORATE/BINDA) cukup mewakili "unit", atau perlu konsep unit baru?
-- Alur pelaporan (reporting line): fitur ditunda/ dihapus, atau ada pengganti yang belum dibangun?
+- Command chain: sudah diasumsikan = hierarki RoleCode + cakupan area via `AdministrativeAreaClosure` (diterapkan di task.service.ts — mohon direview).
+- `organizationUnit`: apakah `branch` + area cukup mewakili "unit"?
+- Alur pelaporan (reporting line): fitur ditunda/dihapus, atau ada pengganti yang belum dibangun?
 
 ## 5. Rekomendasi Lanjutan (di luar scope saat ini)
 
