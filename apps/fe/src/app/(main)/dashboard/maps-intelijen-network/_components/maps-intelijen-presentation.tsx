@@ -210,10 +210,7 @@ export const COORDINATE_AVAILABILITY_PRESENTATION: Record<"WITH" | "WITHOUT", Ma
   WITHOUT: {
     label: "Tanpa Koordinat",
     icon: MapPinOff,
-    mapColor: "#f59e0b",
-    iconClass: "text-amber-600 dark:text-amber-400",
-    badgeClass: "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300",
-    surfaceClass: "border-amber-500/30 bg-amber-500/5",
+    ...toneFields("neutral"),
   },
 };
 

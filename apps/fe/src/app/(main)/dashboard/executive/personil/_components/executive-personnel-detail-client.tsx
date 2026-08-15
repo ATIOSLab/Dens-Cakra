@@ -476,7 +476,7 @@ export function ExecutivePersonnelDetailClient({
       value: profileStatusLabel(profile.status, profile.isActive),
       helper: latestLocation ? `Sinyal ${formatDate(latestLocation.capturedAt)}` : "Belum ada sinyal lokasi",
       icon: Activity,
-      tone: profile.isActive ? "text-emerald-500" : "text-rose-500",
+      tone: profile.isActive ? "text-emerald-500" : "text-slate-400",
     },
   ];
   const statisticPairs = [
@@ -618,11 +618,11 @@ export function ExecutivePersonnelDetailClient({
           )}
         >
           <TabsTrigger value="profil" className={tabTriggerClass}>
-            <User className="mr-2 size-4 text-emerald-500" />
+            <User className="mr-2 size-4 text-muted-foreground" />
             Profil
           </TabsTrigger>
           <TabsTrigger value="penugasan" className={tabTriggerClass}>
-            <ClipboardList className="mr-2 size-4 text-emerald-500" />
+            <ClipboardList className="mr-2 size-4 text-muted-foreground" />
             Penugasan
           </TabsTrigger>
           <TabsTrigger value="jaring" className={tabTriggerClass}>
@@ -631,7 +631,7 @@ export function ExecutivePersonnelDetailClient({
           </TabsTrigger>
           {canViewAuditActivity && (
             <TabsTrigger value="aktivitas" className={tabTriggerClass}>
-              <Activity className="mr-2 size-4 text-emerald-500" />
+              <Activity className="mr-2 size-4 text-muted-foreground" />
               Aktivitas
             </TabsTrigger>
           )}
@@ -640,7 +640,7 @@ export function ExecutivePersonnelDetailClient({
             Baket ({baketCount})
           </TabsTrigger>
           <TabsTrigger value="kpi" className={tabTriggerClass}>
-            <BarChart3 className="mr-2 size-4 text-emerald-500" />
+            <BarChart3 className="mr-2 size-4 text-muted-foreground" />
             Statistik
           </TabsTrigger>
         </TabsList>
@@ -792,7 +792,7 @@ export function ExecutivePersonnelDetailClient({
                         variant="outline"
                         size="sm"
                         asChild
-                        className="h-8 gap-1.5 rounded-md border-sky-500/30 px-2.5 font-medium text-xs text-sky-600 hover:bg-sky-500/10 dark:text-sky-400"
+                        className="h-8 gap-1.5 rounded-md border-cyan-500/30 px-2.5 font-medium text-xs text-cyan-600 hover:bg-cyan-500/10 dark:text-cyan-400"
                       >
                         <Link href={`/dashboard/daftar-jaring/${jaring.id}`}>
                           <Eye className="size-3.5" />
@@ -990,7 +990,7 @@ export function ExecutivePersonnelDetailClient({
                         )}
 
                         {isJaringColVisible("kodeJaring") && (
-                          <TableCell className="align-middle font-mono text-xs text-violet-600 dark:text-violet-400">
+                          <TableCell className="align-middle font-mono text-xs text-cyan-600 dark:text-cyan-400">
                             {identity.code}
                           </TableCell>
                         )}
@@ -1073,7 +1073,7 @@ export function ExecutivePersonnelDetailClient({
                               variant="outline"
                               size="sm"
                               asChild
-                              className="h-8 gap-1.5 rounded-md border-sky-500/30 px-2.5 font-medium text-xs text-sky-600 hover:bg-sky-500/10 dark:text-sky-400"
+                              className="h-8 gap-1.5 rounded-md border-cyan-500/30 px-2.5 font-medium text-xs text-cyan-600 hover:bg-cyan-500/10 dark:text-cyan-400"
                             >
                               <Link href={`/dashboard/daftar-jaring/${jaring.id}`}>
                                 <Eye className="size-3.5" />
