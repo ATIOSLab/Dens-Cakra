@@ -32,6 +32,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { resolveJaringIdentity } from "@/lib/domain/jaring-identity";
 import { DOMAIN_TERMS } from "@/lib/domain/terminology";
 import { DC_CONTROLS, DC_TYPOGRAPHY, DOMAIN_VISUALS } from "@/lib/domain/visual-system";
+import type { SystemRole } from "@/navigation/sidebar/system-roles";
 import { cn } from "@/lib/utils";
 
 import type { PersonnelAssignment, PersonnelDetail, PersonnelJaringItem } from "./executive-personnel-types";
@@ -201,7 +202,7 @@ function getPhotoUrl(jaring: PersonnelJaringItem) {
 function jaringPlacementAreaText(jaring: PersonnelJaringItem) {
   const areas = (jaring.areaCoverages ?? []).map((coverage) => coverage.area?.name).filter(Boolean);
   if (jaring.areaNames && jaring.areaNames.length > 0) return jaring.areaNames.join(", ");
-  return areas.length > 0 ? areas.join(", ") : "Belum diset";
+  return areas.length > 0 ? areas.join(", ") : "Belum diatur";
 }
 
 function detailSortCompare(
@@ -321,11 +322,14 @@ const tabTriggerClass =
 export function ExecutivePersonnelDetailClient({
   detail,
   backHref = "/dashboard/personel-lapangan",
+  role = "executive",
 }: {
   detail: PersonnelDetail;
   backHref?: string;
+  role?: SystemRole;
 }) {
   const profile = detail.profile;
+  const canViewAuditActivity = role === "executive";
   const jaringList = detail.jaring ?? [];
   const baketCount = detail.summary?.baketCount ?? detail.reports.length;
   const [jaringViewMode, setJaringViewMode] = useState<"card" | "table">("card");
@@ -347,10 +351,10 @@ export function ExecutivePersonnelDetailClient({
 
       const identity = resolveJaringIdentity({
         id: jaring.id,
-        villageName: displayArea || "Belum diset",
+        villageName: displayArea || "Belum diatur",
       });
 
-      if (identity.placementArea && identity.placementArea !== "Belum diset") {
+      if (identity.placementArea && identity.placementArea !== "Belum diatur") {
         identity.placementArea.split(",").forEach((name) => {
           const trimmed = name.trim();
           if (trimmed) set.add(trimmed);
@@ -367,7 +371,7 @@ export function ExecutivePersonnelDetailClient({
 
       const identity = resolveJaringIdentity({
         id: jaring.id,
-        villageName: displayArea || "Belum diset",
+        villageName: displayArea || "Belum diatur",
       });
 
       return identity.placementArea.toLowerCase().includes(jaringKelurahanFilter.toLowerCase());
@@ -625,10 +629,12 @@ export function ExecutivePersonnelDetailClient({
             <DOMAIN_VISUALS.jaring.Icon className={cn("mr-2 size-4", DOMAIN_VISUALS.jaring.iconClass)} />
             Jaring ({jaringList.length})
           </TabsTrigger>
-          <TabsTrigger value="aktivitas" className={tabTriggerClass}>
-            <Activity className="mr-2 size-4 text-emerald-500" />
-            Aktivitas
-          </TabsTrigger>
+          {canViewAuditActivity && (
+            <TabsTrigger value="aktivitas" className={tabTriggerClass}>
+              <Activity className="mr-2 size-4 text-emerald-500" />
+              Aktivitas
+            </TabsTrigger>
+          )}
           <TabsTrigger value="baket" className={tabTriggerClass}>
             <DOMAIN_VISUALS.baket.Icon className={cn("mr-2 size-4", DOMAIN_VISUALS.baket.iconClass)} />
             Baket ({baketCount})
@@ -813,7 +819,7 @@ export function ExecutivePersonnelDetailClient({
                           : (jaring.areaCoverages ?? [])
                               .map((cov) => cov.area?.name)
                               .filter(Boolean)
-                              .join(", ") || "Belum diset",
+                              .join(", ") || "Belum diatur",
                     }}
                     className="mt-4"
                   />
@@ -1087,7 +1093,8 @@ export function ExecutivePersonnelDetailClient({
         </TabsContent>
 
         {/* Aktivitas Node View */}
-        <TabsContent value="aktivitas" className="space-y-4 outline-none">
+        {canViewAuditActivity && (
+          <TabsContent value="aktivitas" className="space-y-4 outline-none">
           <div className={cn(sectionPanelClass, "flex flex-col gap-3 p-4 lg:flex-row lg:items-end lg:justify-between")}>
             <div className="grid flex-1 gap-3 sm:grid-cols-2">
               <label className="space-y-1.5 text-xs font-medium text-muted-foreground" htmlFor="activity-period-from">
@@ -1226,6 +1233,7 @@ export function ExecutivePersonnelDetailClient({
             />
           ) : null}
         </TabsContent>
+        )}
 
         {/* Baket Node View */}
         <TabsContent value="baket" className="space-y-3 outline-none">
@@ -1292,11 +1300,6 @@ export function ExecutivePersonnelDetailClient({
                 ["Baket Tidak Ditampilkan", `${hiddenBaketCount} data`],
               ]}
             />
-          </section>
-          <section className="grid gap-3 lg:grid-cols-2">
-            {statisticPairs.map((item) => (
-              <StatisticPairCard key={item.title} {...item} />
-            ))}
           </section>
           {detail.kpi.note ? (
             <div className={cn(sectionPanelClass, "px-4 py-3 text-sm text-muted-foreground")}>{detail.kpi.note}</div>
