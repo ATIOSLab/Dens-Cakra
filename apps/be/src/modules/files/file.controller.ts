@@ -11,6 +11,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { apiResult } from '../../common/api/api-response.js';
 import { ApiContract } from '../../common/decorators/api-contract.decorator.js';
 import { CurrentAccessContext } from '../../common/decorators/current-access-context.decorator.js';
@@ -29,6 +30,7 @@ import { FileService } from './file.service.js';
 export class FileController {
   constructor(private readonly files: FileService) {}
   @Post('presign')
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
   @ApiContract({
     operationId: 'apiFile001',
     contractId: 'API-FILE-001',
@@ -49,6 +51,7 @@ export class FileController {
     return apiResult(await this.files.presign(b, a));
   }
   @Post('complete')
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
   @ApiContract({
     operationId: 'apiFile002',
     contractId: 'API-FILE-002',

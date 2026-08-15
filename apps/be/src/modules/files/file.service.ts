@@ -105,6 +105,7 @@ export class FileService implements OnModuleInit {
         'Uploaded file size or checksum does not match reservation.',
         422,
       );
+    await this.assertDeclaredImageContent(reservation.storageKey, reservation.mimeType);
     const file = await this.prisma.$transaction(async (tx) => {
       const created = await tx.fileAsset.create({
         data: {
@@ -262,6 +263,25 @@ export class FileService implements OnModuleInit {
       },
     });
   }
+  private async assertDeclaredImageContent(
+    storageKey: string,
+    mimeType: string,
+  ): Promise<void> {
+    if (!mimeType.startsWith('image/')) {
+      return;
+    }
+
+    const prefix = await readFilePrefix(this.storage, storageKey);
+
+    if (looksLikeMarkup(prefix)) {
+      throw new ApiException(
+        'FILE_TYPE_MISMATCH',
+        'Uploaded content does not match the declared image type.',
+        422,
+      );
+    }
+  }
+
   async scanFile(fileId: string) {
     const file = await this.prisma.fileAsset.update({
       where: { id: fileId },
@@ -324,6 +344,34 @@ export class FileService implements OnModuleInit {
 }
 function pathForScan(root: string, storageKey: string) {
   return `${root.replace(/[\\/]$/, '')}/${storageKey.replace(/\\/g, '/')}`;
+}
+
+const MAGIC_BYTES_PREFIX_LENGTH = 512;
+
+async function readFilePrefix(
+  storage: LocalStorageService,
+  storageKey: string,
+): Promise<Buffer> {
+  const stream = storage.openReadStream(storageKey);
+  const chunks: Buffer[] = [];
+  let total = 0;
+
+  for await (const chunk of stream) {
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    chunks.push(buffer);
+    total += buffer.length;
+    if (total >= MAGIC_BYTES_PREFIX_LENGTH) break;
+  }
+
+  stream.destroy();
+  return Buffer.concat(chunks).subarray(0, MAGIC_BYTES_PREFIX_LENGTH);
+}
+
+function looksLikeMarkup(prefix: Buffer): boolean {
+  const text = prefix.toString('latin1').trimStart();
+  return /^(<\?xml|<(?:!doctype|html|head|body|script|svg|iframe|img)\b)/i.test(
+    text,
+  );
 }
 
 function isScannerUnavailable(error: unknown): boolean {

@@ -12,7 +12,7 @@ import {
   type SystemRole,
 } from '../common/constants/system-role.js';
 import { auth } from '../lib/auth.js';
-import { env } from '../lib/env.js';
+import { env, requireSeedPassword } from '../lib/env.js';
 import { ensureUserProfileForAuthUser } from '../lib/user-profile.js';
 import { prisma } from '../modules/prisma/prisma.service.js';
 
@@ -40,14 +40,20 @@ type AreaSummary = {
   parentId: string | null;
 };
 
-const defaultDemoPassword = 'DensCakraDemo123!';
+const defaultDemoPassword = requireSeedPassword(
+  'SEED_DEMO_PASSWORD',
+  env.seed.demoPassword,
+);
 const seedEffectiveFrom = new Date('2026-01-01T00:00:00.000Z');
 
 const baselineAccounts: readonly SeedAccount[] = [
   {
     email: env.bootstrapAdmin.email,
     name: env.bootstrapAdmin.name,
-    password: env.bootstrapAdmin.password,
+    password: requireSeedPassword(
+      'BOOTSTRAP_ADMIN_PASSWORD',
+      env.bootstrapAdmin.password,
+    ),
     systemRole: SYSTEM_ROLES.ADMIN_SYSTEM,
     roleCode: RoleCode.ADMIN_SYSTEM,
     branch: CommandRouteType.PUSAT,

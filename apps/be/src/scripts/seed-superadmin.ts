@@ -1,6 +1,6 @@
 import { auth } from '../lib/auth.js';
 import { SYSTEM_ROLES } from '../common/constants/system-role.js';
-import { env } from '../lib/env.js';
+import { env, requireSeedPassword } from '../lib/env.js';
 import {
   AdministrativeLevel,
   CommandRouteType,
@@ -21,7 +21,10 @@ async function seedSuperAdmin() {
     await auth.api.signUpEmail({
       body: {
         email: env.bootstrapSuperAdmin.email,
-        password: env.bootstrapSuperAdmin.password,
+        password: requireSeedPassword(
+          'BOOTSTRAP_SUPERADMIN_PASSWORD',
+          env.bootstrapSuperAdmin.password,
+        ),
         name: env.bootstrapSuperAdmin.name,
       },
     });

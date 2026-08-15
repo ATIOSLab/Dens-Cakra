@@ -12,9 +12,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { apiResult } from '../../common/api/api-response.js';
 import { ApiContract } from '../../common/decorators/api-contract.decorator.js';
 import { CurrentAccessContext } from '../../common/decorators/current-access-context.decorator.js';
+import { Public } from '../../common/decorators/public.decorator.js';
 import { DomainAccessGuard } from '../../common/guards/domain-access.guard.js';
 import { SessionGuard } from '../../common/guards/session.guard.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
@@ -37,6 +39,8 @@ export class WhatsAppController {
 
   @Post('webhooks/whatsapp/:channelCode')
   @HttpCode(202)
+  @Public()
+  @Throttle({ default: { limit: 600, ttl: 60_000 } })
   @ApiContract({
     operationId: 'apiWa001',
     contractId: 'API-WA-001',

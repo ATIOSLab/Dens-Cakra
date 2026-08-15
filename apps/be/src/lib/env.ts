@@ -16,6 +16,16 @@ function getOptionalString(name: string): string | undefined {
   return value || undefined;
 }
 
+function getOptionalBoolean(name: string): boolean | undefined {
+  const value = process.env[name];
+
+  if (value === undefined) {
+    return undefined;
+  }
+
+  return value === 'true';
+}
+
 function getBoolean(name: string, fallback: boolean): boolean {
   const value = process.env[name];
 
@@ -66,6 +76,7 @@ export const env = {
   databaseUrl: getString('DATABASE_URL'),
   betterAuthSecret: getString('BETTER_AUTH_SECRET'),
   betterAuthUrl: getString('BETTER_AUTH_URL', 'http://localhost:3001'),
+  authSecureCookies: getOptionalBoolean('AUTH_SECURE_COOKIES'),
   corsOrigins: getStringList('CORS_ORIGIN', ['http://localhost:3000']),
   authDisableSignUp: getBoolean('AUTH_DISABLE_SIGN_UP', true),
   apiDocsEnabled: getBoolean(
@@ -128,7 +139,7 @@ export const env = {
   bootstrapAdmin: {
     name: getString('BOOTSTRAP_ADMIN_NAME', 'Admin System DEN CAKRA'),
     email: getString('BOOTSTRAP_ADMIN_EMAIL', 'admin@denscakra.local'),
-    password: getString('BOOTSTRAP_ADMIN_PASSWORD', 'ChangeMe123!'),
+    password: getOptionalString('BOOTSTRAP_ADMIN_PASSWORD'),
   },
   bootstrapSuperAdmin: {
     name: getString('BOOTSTRAP_SUPERADMIN_NAME', 'Super Admin DENS CAKRA'),
@@ -136,6 +147,22 @@ export const env = {
       'BOOTSTRAP_SUPERADMIN_EMAIL',
       'superadmin@denscakra.local',
     ),
-    password: getString('BOOTSTRAP_SUPERADMIN_PASSWORD', 'SuperAdmin123!'),
+    password: getOptionalString('BOOTSTRAP_SUPERADMIN_PASSWORD'),
+  },
+  seed: {
+    demoPassword: getOptionalString('SEED_DEMO_PASSWORD'),
   },
 } as const;
+
+export function requireSeedPassword(
+  name: string,
+  value: string | undefined,
+): string {
+  if (!value) {
+    throw new Error(
+      `Environment variable ${name} wajib diisi sebelum menjalankan seed akun (password default tidak diperbolehkan).`,
+    );
+  }
+
+  return value;
+}

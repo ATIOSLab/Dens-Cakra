@@ -7,6 +7,8 @@ import { ApiResponseInterceptor } from './common/api/api-response.interceptor.js
 import { IdempotencyInterceptor } from './common/api/idempotency.interceptor.js';
 import { PerformanceInterceptor } from './common/performance/performance.interceptor.js';
 import { RequestContextMiddleware } from './common/middleware/request-context.middleware.js';
+import { DomainAccessGuard } from './common/guards/domain-access.guard.js';
+import { SessionGuard } from './common/guards/session.guard.js';
 import { AccessModule } from './modules/access/access.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { HealthModule } from './modules/health/health.module.js';
@@ -78,6 +80,8 @@ import { ExecutiveDashboardModule } from './modules/executive-dashboard/executiv
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_GUARD, useClass: SessionGuard },
+    { provide: APP_GUARD, useClass: DomainAccessGuard },
     { provide: APP_INTERCEPTOR, useClass: IdempotencyInterceptor },
     { provide: APP_INTERCEPTOR, useClass: PerformanceInterceptor },
     { provide: APP_INTERCEPTOR, useClass: CacheInvalidationInterceptor },

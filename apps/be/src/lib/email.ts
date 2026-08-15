@@ -1,9 +1,11 @@
 import { createDecipheriv, createHash } from 'node:crypto';
+import { Logger } from '@nestjs/common';
 import nodemailer from 'nodemailer';
 import { prisma } from '../modules/prisma/prisma.service.js';
 import { env } from './env.js';
 
 const SMTP_SETTING_KEY = 'email.smtp';
+const logger = new Logger('Email');
 
 export type SmtpMailConfig = {
   from: string;
@@ -148,7 +150,10 @@ export function queueMail(
   config?: SmtpMailConfig,
 ): void {
   void sendMail(options, config).catch((error: unknown) => {
-    console.error('Failed to send email notification.', error);
+    logger.error(
+      'Failed to send email notification.',
+      error instanceof Error ? error.stack : undefined,
+    );
   });
 }
 

@@ -1,6 +1,6 @@
 import { access } from 'node:fs/promises';
 import path from 'node:path';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ApiException } from '../../common/api/api-exception.js';
 import { env } from '../../lib/env.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -8,6 +8,8 @@ import { ApplicationCacheService } from '../cache/application-cache.service.js';
 
 @Injectable()
 export class HealthService {
+  private readonly logger = new Logger(HealthService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly cache: ApplicationCacheService,
@@ -20,7 +22,10 @@ export class HealthService {
       await this.prisma.$queryRaw`SELECT 1`;
       checks.database = { ok: true };
     } catch (error) {
-      checks.database = { ok: false, detail: this.message(error) };
+      this.logger.warn(
+        `Readiness check database gagal: ${this.message(error)}`,
+      );
+      checks.database = { ok: false, detail: 'unavailable' };
     }
 
     try {
@@ -33,14 +38,18 @@ export class HealthService {
       `;
       checks.postgis = { ok: extension[0]?.installed === true };
     } catch (error) {
-      checks.postgis = { ok: false, detail: this.message(error) };
+      this.logger.warn(`Readiness check postgis gagal: ${this.message(error)}`);
+      checks.postgis = { ok: false, detail: 'unavailable' };
     }
 
     try {
       await access(path.resolve(env.storage.root));
       checks.storage = { ok: true };
     } catch (error) {
-      checks.storage = { ok: false, detail: this.message(error) };
+      this.logger.warn(
+        `Readiness check storage gagal: ${this.message(error)}`,
+      );
+      checks.storage = { ok: false, detail: 'unavailable' };
     }
 
     const cache = await this.cache.health();

@@ -13,7 +13,9 @@ import {
 } from '@nestjs/common';
 import { ApiExcludeController } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
+import { Throttle } from '@nestjs/throttler';
 import { ApiContract } from '../../common/decorators/api-contract.decorator.js';
+import { Public } from '../../common/decorators/public.decorator.js';
 import { LocalStorageService } from './local-storage.service.js';
 
 export function parseStorageByteRange(value: string | undefined, size: number) {
@@ -43,11 +45,13 @@ export function parseStorageByteRange(value: string | undefined, size: number) {
 
 @ApiExcludeController()
 @Controller({ path: 'storage', version: VERSION_NEUTRAL })
+@Public()
 export class StorageTransportController {
   constructor(private readonly storage: LocalStorageService) {}
 
   @Put('uploads/:token')
   @HttpCode(204)
+  @Throttle({ default: { limit: 120, ttl: 60_000 } })
   @ApiContract({
     operationId: 'apiStorage001',
     contractId: 'API-STORAGE-001',

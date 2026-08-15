@@ -238,7 +238,10 @@ export const auth = betterAuth({
   },
   advanced: {
     cookiePrefix: 'denscakra',
-    useSecureCookies: env.nodeEnv === 'production',
+    useSecureCookies:
+      env.authSecureCookies ??
+      (env.nodeEnv === 'production' ||
+        env.betterAuthUrl.startsWith('https://')),
     ipAddress: {
       ipAddressHeaders: ['x-real-ip', 'x-forwarded-for'],
     },

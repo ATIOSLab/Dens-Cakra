@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { IsBoolean, IsEmail, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
 import { Prisma } from '../../generated/prisma/client.js';
 import { ApiException } from '../../common/api/api-exception.js';
@@ -87,6 +87,8 @@ function isEncryptedValue(value: unknown): value is EncryptedValue {
 
 @Injectable()
 export class MailSettingsService {
+  private readonly logger = new Logger(MailSettingsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly vault: SecretVaultService,
@@ -219,7 +221,10 @@ export class MailSettingsService {
 
   queueMail(options: SendMailOptions): void {
     void this.sendMail(options).catch((error: unknown) => {
-      console.error('Failed to send email notification.', error);
+      this.logger.error(
+        'Failed to send email notification.',
+        error instanceof Error ? error.stack : undefined,
+      );
     });
   }
 

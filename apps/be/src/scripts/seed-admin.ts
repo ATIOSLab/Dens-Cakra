@@ -1,5 +1,5 @@
 import { auth } from '../lib/auth.js';
-import { env } from '../lib/env.js';
+import { env, requireSeedPassword } from '../lib/env.js';
 import { SYSTEM_ROLES } from '../common/constants/system-role.js';
 import { UserProfileStatus } from '../generated/prisma/client.js';
 import { prisma } from '../modules/prisma/prisma.service.js';
@@ -16,7 +16,10 @@ async function seedAdmin() {
     await auth.api.signUpEmail({
       body: {
         email: env.bootstrapAdmin.email,
-        password: env.bootstrapAdmin.password,
+        password: requireSeedPassword(
+          'BOOTSTRAP_ADMIN_PASSWORD',
+          env.bootstrapAdmin.password,
+        ),
         name: env.bootstrapAdmin.name,
       },
     });

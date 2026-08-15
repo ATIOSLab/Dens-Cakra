@@ -1,4 +1,5 @@
 import { auth } from '../lib/auth.js';
+import { env, requireSeedPassword } from '../lib/env.js';
 import { prisma } from '../modules/prisma/prisma.service.js';
 import { SYSTEM_ROLES } from '../common/constants/system-role.js';
 import { UserProfileStatus } from '../generated/prisma/client.js';
@@ -8,7 +9,7 @@ const executiveAccount = {
   email: 'deputi@denscakra.local',
   name: 'Deputi II',
   username: 'deputi.2.bin',
-  password: 'DensCakraDemo123!',
+  password: requireSeedPassword('SEED_DEMO_PASSWORD', env.seed.demoPassword),
   role: SYSTEM_ROLES.EXECUTIVE,
 } as const;
 
