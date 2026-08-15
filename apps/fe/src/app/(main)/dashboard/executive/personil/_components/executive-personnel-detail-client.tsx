@@ -32,8 +32,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { resolveJaringIdentity } from "@/lib/domain/jaring-identity";
 import { DOMAIN_TERMS } from "@/lib/domain/terminology";
 import { DC_CONTROLS, DC_TYPOGRAPHY, DOMAIN_VISUALS } from "@/lib/domain/visual-system";
-import type { SystemRole } from "@/navigation/sidebar/system-roles";
 import { cn } from "@/lib/utils";
+import type { SystemRole } from "@/navigation/sidebar/system-roles";
 
 import type { PersonnelAssignment, PersonnelDetail, PersonnelJaringItem } from "./executive-personnel-types";
 
@@ -205,11 +205,7 @@ function jaringPlacementAreaText(jaring: PersonnelJaringItem) {
   return areas.length > 0 ? areas.join(", ") : "Belum diatur";
 }
 
-function detailSortCompare(
-  leftValue: string | number,
-  rightValue: string | number,
-  direction: DetailSortDirection,
-) {
+function detailSortCompare(leftValue: string | number, rightValue: string | number, direction: DetailSortDirection) {
   const baseCompare =
     typeof leftValue === "number" && typeof rightValue === "number"
       ? leftValue - rightValue
@@ -310,10 +306,7 @@ const PERSONEL_JARING_COLUMNS: ColumnOption[] = [
   { id: "aksi", label: "Aksi" },
 ];
 
-const detailCardClass = cn(
-  DC_CONTROLS.card,
-  "border-slate-200/80 bg-card p-4 shadow-xs dark:border-white/10 sm:p-5",
-);
+const detailCardClass = cn(DC_CONTROLS.card, "border-slate-200/80 bg-card p-4 shadow-xs dark:border-white/10 sm:p-5");
 const sectionPanelClass = cn(DC_CONTROLS.card, "border-slate-200/80 bg-card shadow-xs dark:border-white/10");
 const technicalLabelClass = cn(DC_TYPOGRAPHY.tableHeader, "tracking-[0.12em]");
 const tabTriggerClass =
@@ -322,14 +315,14 @@ const tabTriggerClass =
 export function ExecutivePersonnelDetailClient({
   detail,
   backHref = "/dashboard/personel-lapangan",
-  role = "executive",
+  userRole = "executive",
 }: {
   detail: PersonnelDetail;
   backHref?: string;
-  role?: SystemRole;
+  userRole?: SystemRole;
 }) {
   const profile = detail.profile;
-  const canViewAuditActivity = role === "executive";
+  const canViewAuditActivity = userRole === "executive";
   const jaringList = detail.jaring ?? [];
   const baketCount = detail.summary?.baketCount ?? detail.reports.length;
   const [jaringViewMode, setJaringViewMode] = useState<"card" | "table">("card");
@@ -612,10 +605,7 @@ export function ExecutivePersonnelDetailClient({
 
       <Tabs defaultValue="profil" className="space-y-4">
         <TabsList
-          className={cn(
-            sectionPanelClass,
-            "scrollbar-none flex h-auto w-full justify-start gap-1 overflow-x-auto p-1",
-          )}
+          className={cn(sectionPanelClass, "scrollbar-none flex h-auto w-full justify-start gap-1 overflow-x-auto p-1")}
         >
           <TabsTrigger value="profil" className={tabTriggerClass}>
             <User className="mr-2 size-4 text-muted-foreground" />
@@ -1095,144 +1085,146 @@ export function ExecutivePersonnelDetailClient({
         {/* Aktivitas Node View */}
         {canViewAuditActivity && (
           <TabsContent value="aktivitas" className="space-y-4 outline-none">
-          <div className={cn(sectionPanelClass, "flex flex-col gap-3 p-4 lg:flex-row lg:items-end lg:justify-between")}>
-            <div className="grid flex-1 gap-3 sm:grid-cols-2">
-              <label className="space-y-1.5 text-xs font-medium text-muted-foreground" htmlFor="activity-period-from">
-                <span>Periode mulai</span>
-                <Input
-                  id="activity-period-from"
-                  className={DC_CONTROLS.input}
-                  max={activityPeriodTo || undefined}
-                  onChange={(event) => {
-                    setActivityPeriodFrom(event.target.value);
-                    setActivityPage(1);
-                  }}
-                  type="date"
-                  value={activityPeriodFrom}
-                />
-              </label>
-              <label className="space-y-1.5 text-xs font-medium text-muted-foreground" htmlFor="activity-period-to">
-                <span>Periode selesai</span>
-                <Input
-                  id="activity-period-to"
-                  className={DC_CONTROLS.input}
-                  min={activityPeriodFrom || undefined}
-                  onChange={(event) => {
-                    setActivityPeriodTo(event.target.value);
-                    setActivityPage(1);
-                  }}
-                  type="date"
-                  value={activityPeriodTo}
-                />
-              </label>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {(activityPeriodFrom || activityPeriodTo) && (
-                <Button
-                  className="h-9 text-xs"
-                  onClick={() => {
-                    setActivityPeriodFrom("");
-                    setActivityPeriodTo("");
-                    setActivityPage(1);
-                  }}
-                  type="button"
-                  variant="ghost"
-                >
-                  Reset Periode
-                </Button>
-              )}
-              <ViewModeToggle value={activityViewMode} onValueChange={setActivityViewMode} />
-            </div>
-          </div>
-
-          {activityViewMode === "card" ? (
-            paginatedActivityLogs.map((log) => (
-              <div key={log.id} className={cn(detailCardClass, "p-4")}>
-                <p className="text-sm font-semibold text-foreground">{activityActionLabel(log.action)}</p>
-                <p className="mt-1.5 font-mono text-xs leading-relaxed text-muted-foreground">
-                  {entityTypeLabel(log.entityType)} {log.entityId ? `- ${log.entityId}` : ""} -{" "}
-                  {formatDate(log.createdAt)}
-                </p>
+            <div
+              className={cn(sectionPanelClass, "flex flex-col gap-3 p-4 lg:flex-row lg:items-end lg:justify-between")}
+            >
+              <div className="grid flex-1 gap-3 sm:grid-cols-2">
+                <label className="space-y-1.5 text-xs font-medium text-muted-foreground" htmlFor="activity-period-from">
+                  <span>Periode mulai</span>
+                  <Input
+                    id="activity-period-from"
+                    className={DC_CONTROLS.input}
+                    max={activityPeriodTo || undefined}
+                    onChange={(event) => {
+                      setActivityPeriodFrom(event.target.value);
+                      setActivityPage(1);
+                    }}
+                    type="date"
+                    value={activityPeriodFrom}
+                  />
+                </label>
+                <label className="space-y-1.5 text-xs font-medium text-muted-foreground" htmlFor="activity-period-to">
+                  <span>Periode selesai</span>
+                  <Input
+                    id="activity-period-to"
+                    className={DC_CONTROLS.input}
+                    min={activityPeriodFrom || undefined}
+                    onChange={(event) => {
+                      setActivityPeriodTo(event.target.value);
+                      setActivityPage(1);
+                    }}
+                    type="date"
+                    value={activityPeriodTo}
+                  />
+                </label>
               </div>
-            ))
-          ) : (
-            <Table className="min-w-[760px]">
-              <TableHeader>
-                <TableRow>
-                  <SortableTableHeader
-                    column="waktu"
-                    onSortChange={(direction) => {
-                      setActivitySort({ column: "waktu", direction });
+              <div className="flex flex-wrap items-center gap-2">
+                {(activityPeriodFrom || activityPeriodTo) && (
+                  <Button
+                    className="h-9 text-xs"
+                    onClick={() => {
+                      setActivityPeriodFrom("");
+                      setActivityPeriodTo("");
                       setActivityPage(1);
                     }}
-                    sortDirection={activitySortDirection("waktu")}
+                    type="button"
+                    variant="ghost"
                   >
-                    Waktu
-                  </SortableTableHeader>
-                  <SortableTableHeader
-                    column="aktivitas"
-                    onSortChange={(direction) => {
-                      setActivitySort({ column: "aktivitas", direction });
-                      setActivityPage(1);
-                    }}
-                    sortDirection={activitySortDirection("aktivitas")}
-                  >
-                    Aktivitas
-                  </SortableTableHeader>
-                  <SortableTableHeader
-                    column="entitas"
-                    onSortChange={(direction) => {
-                      setActivitySort({ column: "entitas", direction });
-                      setActivityPage(1);
-                    }}
-                    sortDirection={activitySortDirection("entitas")}
-                  >
-                    Entitas
-                  </SortableTableHeader>
-                  <SortableTableHeader
-                    column="ip"
-                    onSortChange={(direction) => {
-                      setActivitySort({ column: "ip", direction });
-                      setActivityPage(1);
-                    }}
-                    sortDirection={activitySortDirection("ip")}
-                  >
-                    Alamat IP
-                  </SortableTableHeader>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paginatedActivityLogs.map((log) => (
-                  <TableRow key={log.id}>
-                    <TableCell className="font-mono text-xs text-muted-foreground">
-                      {formatDate(log.createdAt)}
-                    </TableCell>
-                    <TableCell className="whitespace-normal font-medium">{activityActionLabel(log.action)}</TableCell>
-                    <TableCell className="font-mono text-xs text-muted-foreground">
-                      {entityTypeLabel(log.entityType)}
-                      {log.entityId ? ` - ${log.entityId}` : ""}
-                    </TableCell>
-                    <TableCell className="font-mono text-xs text-muted-foreground">{log.ipAddress ?? "-"}</TableCell>
+                    Reset Periode
+                  </Button>
+                )}
+                <ViewModeToggle value={activityViewMode} onValueChange={setActivityViewMode} />
+              </div>
+            </div>
+
+            {activityViewMode === "card" ? (
+              paginatedActivityLogs.map((log) => (
+                <div key={log.id} className={cn(detailCardClass, "p-4")}>
+                  <p className="text-sm font-semibold text-foreground">{activityActionLabel(log.action)}</p>
+                  <p className="mt-1.5 font-mono text-xs leading-relaxed text-muted-foreground">
+                    {entityTypeLabel(log.entityType)} {log.entityId ? `- ${log.entityId}` : ""} -{" "}
+                    {formatDate(log.createdAt)}
+                  </p>
+                </div>
+              ))
+            ) : (
+              <Table className="min-w-[760px]">
+                <TableHeader>
+                  <TableRow>
+                    <SortableTableHeader
+                      column="waktu"
+                      onSortChange={(direction) => {
+                        setActivitySort({ column: "waktu", direction });
+                        setActivityPage(1);
+                      }}
+                      sortDirection={activitySortDirection("waktu")}
+                    >
+                      Waktu
+                    </SortableTableHeader>
+                    <SortableTableHeader
+                      column="aktivitas"
+                      onSortChange={(direction) => {
+                        setActivitySort({ column: "aktivitas", direction });
+                        setActivityPage(1);
+                      }}
+                      sortDirection={activitySortDirection("aktivitas")}
+                    >
+                      Aktivitas
+                    </SortableTableHeader>
+                    <SortableTableHeader
+                      column="entitas"
+                      onSortChange={(direction) => {
+                        setActivitySort({ column: "entitas", direction });
+                        setActivityPage(1);
+                      }}
+                      sortDirection={activitySortDirection("entitas")}
+                    >
+                      Entitas
+                    </SortableTableHeader>
+                    <SortableTableHeader
+                      column="ip"
+                      onSortChange={(direction) => {
+                        setActivitySort({ column: "ip", direction });
+                        setActivityPage(1);
+                      }}
+                      sortDirection={activitySortDirection("ip")}
+                    >
+                      Alamat IP
+                    </SortableTableHeader>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-          {!paginatedActivityLogs.length ? <EmptyState title="Belum ada log aktivitas pada periode ini" /> : null}
-          {filteredActivityLogs.length ? (
-            <TablePagination
-              className={sectionPanelClass}
-              limit={activityLimit}
-              onLimitChange={(limit) => {
-                setActivityLimit(limit);
-                setActivityPage(1);
-              }}
-              onPageChange={setActivityPage}
-              page={safeActivityPage}
-              total={filteredActivityLogs.length}
-            />
-          ) : null}
-        </TabsContent>
+                </TableHeader>
+                <TableBody>
+                  {paginatedActivityLogs.map((log) => (
+                    <TableRow key={log.id}>
+                      <TableCell className="font-mono text-xs text-muted-foreground">
+                        {formatDate(log.createdAt)}
+                      </TableCell>
+                      <TableCell className="whitespace-normal font-medium">{activityActionLabel(log.action)}</TableCell>
+                      <TableCell className="font-mono text-xs text-muted-foreground">
+                        {entityTypeLabel(log.entityType)}
+                        {log.entityId ? ` - ${log.entityId}` : ""}
+                      </TableCell>
+                      <TableCell className="font-mono text-xs text-muted-foreground">{log.ipAddress ?? "-"}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+            {!paginatedActivityLogs.length ? <EmptyState title="Belum ada log aktivitas pada periode ini" /> : null}
+            {filteredActivityLogs.length ? (
+              <TablePagination
+                className={sectionPanelClass}
+                limit={activityLimit}
+                onLimitChange={(limit) => {
+                  setActivityLimit(limit);
+                  setActivityPage(1);
+                }}
+                onPageChange={setActivityPage}
+                page={safeActivityPage}
+                total={filteredActivityLogs.length}
+              />
+            ) : null}
+          </TabsContent>
         )}
 
         {/* Baket Node View */}

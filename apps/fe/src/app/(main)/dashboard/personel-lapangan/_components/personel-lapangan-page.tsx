@@ -207,5 +207,5 @@ export async function PersonelLapanganDetailPage({ assignmentId }: { assignmentI
     notFound();
   }
 
-  return <ExecutivePersonnelDetailClient detail={detail} backHref={basePath} role={session.role} />;
+  return <ExecutivePersonnelDetailClient detail={detail} backHref={basePath} userRole={session.role} />;
 }

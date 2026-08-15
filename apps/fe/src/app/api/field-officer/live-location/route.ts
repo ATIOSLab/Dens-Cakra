@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
+
 import { z } from "zod";
 
 import { apiRouteErrorResponse } from "@/server/api-route-error";
@@ -25,23 +26,15 @@ export async function POST(request: NextRequest) {
     const parsed = liveLocationSchema.safeParse(body);
 
     if (!parsed.success) {
-      return NextResponse.json(
-        { message: "Data lokasi tidak valid." },
-        { status: 400 },
-      );
+      return NextResponse.json({ message: "Data lokasi tidak valid." }, { status: 400 });
     }
 
     const cookie = request.headers.get("cookie") ?? "";
     const access = await backendApi<AccessMeResponse>("/access/me", { cookie });
-    const positionAssignmentId =
-      parsed.data.positionAssignmentId ??
-      access.authorizationContext?.primaryAssignmentId;
+    const positionAssignmentId = parsed.data.positionAssignmentId ?? access.authorizationContext?.primaryAssignmentId;
 
     if (!positionAssignmentId) {
-      return NextResponse.json(
-        { message: "Penugasan Petugas Wilayah (Gaswil) tidak tersedia." },
-        { status: 403 },
-      );
+      return NextResponse.json({ message: "Penugasan Petugas Wilayah (Gaswil) tidak tersedia." }, { status: 403 });
     }
 
     return NextResponse.json(

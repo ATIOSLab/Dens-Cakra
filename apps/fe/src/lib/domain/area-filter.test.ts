@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  type AdministrativeAreaFilterScope,
   buildProvinceFilterOptions,
   findDkiJakartaProvinceFilterId,
   isDkiAreaScope,
@@ -8,7 +9,6 @@ import {
   isProvinceLevel,
   isRegencyLevel,
   resolveAreaFilterSelection,
-  type AdministrativeAreaFilterScope,
 } from "@/lib/domain/area-filter";
 
 const province = (id: string, code: string, name: string): AdministrativeAreaFilterScope => ({
