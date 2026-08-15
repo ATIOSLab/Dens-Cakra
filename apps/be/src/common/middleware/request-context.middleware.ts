@@ -82,6 +82,11 @@ export class RequestContextMiddleware implements NestMiddleware {
     const entityEntry = Object.entries(params).find(([key, value]) =>
       Boolean(value && /id$/i.test(key)),
     );
+    const entityIdValue = entityEntry?.[1];
+    const entityId = (Array.isArray(entityIdValue)
+      ? entityIdValue[0]
+      : entityIdValue
+    )?.slice(0, 100);
     const session = request.authSession as
       | (typeof request.authSession & { locationLabel?: string | null })
       | null
@@ -96,7 +101,7 @@ export class RequestContextMiddleware implements NestMiddleware {
         severity: classification.severity,
         outcome: classification.outcome,
         entityType: entityEntry?.[0].replace(/Id$/i, '') || 'ApiRequest',
-        entityId: entityEntry?.[1]?.slice(0, 100),
+        entityId: entityId ?? null,
         metadata: sanitizeAuditValue({
           routeParams: params,
           queryKeys: Object.keys(request.query ?? {}).sort(),

@@ -631,9 +631,16 @@ export class WhatsAppService {
     });
     return {
       statuses: Object.fromEntries(
-        grouped.map((group) => [group.status, group._count._all]),
+        grouped.map((group: { status: string; _count: { _all: number } }) => [
+          group.status,
+          group._count._all,
+        ]),
       ),
-      total: grouped.reduce((count, group) => count + group._count._all, 0),
+      total: grouped.reduce(
+        (count: number, group: { _count: { _all: number } }) =>
+          count + group._count._all,
+        0,
+      ),
     };
   }
 }

@@ -16,7 +16,7 @@ export class RbacService {
     return this.prisma.role.findMany({
       where: query.isActive === undefined ? {} : { isActive: query.isActive },
       orderBy: { code: 'asc' },
-      include: { _count: { select: { positions: true } } },
+      include: { _count: { select: { operationalAssignments: true } } },
     });
   }
 
@@ -24,7 +24,7 @@ export class RbacService {
     return this.prisma.role.findUniqueOrThrow({
       where: { id },
       include: {
-        _count: { select: { positions: true } },
+        _count: { select: { operationalAssignments: true } },
       },
     });
   }

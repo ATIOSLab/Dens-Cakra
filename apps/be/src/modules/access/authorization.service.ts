@@ -110,7 +110,7 @@ export class AuthorizationService {
 
     const assignedRoles = authUser.role
       .split(',')
-      .map((role) => role.trim())
+      .map((role: string) => role.trim())
       .filter(Boolean);
 
     if (assignedRoles.length !== 1) {
