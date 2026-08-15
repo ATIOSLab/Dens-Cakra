@@ -507,7 +507,7 @@ export class ExecutivePersonnelService {
     const features: any[] = assignments.flatMap((assignment: any) => {
       const ping = pingByAssignment.get(assignment.id) ?? null;
       const primaryArea =
-        assignment.areaScopes.find((scope) => scope.isPrimary)?.area ??
+        assignment.areaScopes.find((scope: any) => scope.isPrimary)?.area ??
         assignment.areaScopes[0]?.area ??
         null;
       const latitude = ping?.latitude ?? null;
@@ -1188,7 +1188,7 @@ export class ExecutivePersonnelService {
   }
 
   private assignmentSummary(assignment: ActiveAssignment) {
-    const areas = assignment.areaScopes.map((scope) => ({
+    const areas = assignment.areaScopes.map((scope: any) => ({
       id: scope.area.id,
       code: scope.area.code,
       name: scope.area.name,

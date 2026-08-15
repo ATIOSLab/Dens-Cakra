@@ -2783,7 +2783,7 @@ export class IntelligenceProductsService {
     return {
       workflowId,
       events: [
-        ...workflow.events.map((event) => ({
+        ...workflow.events.map((event: any) => ({
           type: 'WORKFLOW_EVENT',
           at: event.createdAt,
           payload: event,
@@ -5985,7 +5985,7 @@ export class IntelligenceProductsService {
       { ...query, limit: query.limit },
       context,
     );
-    const located = alerts.items.filter((alert) => {
+    const located = alerts.items.filter((alert: any) => {
       if (alert.latitude === null || alert.longitude === null) {
         return false;
       }
@@ -6003,7 +6003,7 @@ export class IntelligenceProductsService {
       type: 'FeatureCollection',
       nextCursor: alerts.nextCursor,
       unlocatedCount: alerts.items.length - located.length,
-      features: located.map((alert) => ({
+      features: located.map((alert: any) => ({
         type: 'Feature',
         id: alert.id,
         geometry: {
@@ -6029,7 +6029,7 @@ export class IntelligenceProductsService {
       { ...query, limit: query.limit },
       context,
     );
-    const located = incidents.items.filter((incident) => {
+    const located = incidents.items.filter((incident: any) => {
       if (incident.latitude === null || incident.longitude === null) {
         return false;
       }
@@ -6047,7 +6047,7 @@ export class IntelligenceProductsService {
       type: 'FeatureCollection',
       nextCursor: incidents.nextCursor,
       unlocatedCount: incidents.items.length - located.length,
-      features: located.map((incident) => ({
+      features: located.map((incident: any) => ({
         type: 'Feature',
         id: incident.id,
         geometry: {
