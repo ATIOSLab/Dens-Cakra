@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
+import { escapeHtml } from "@/lib/utils";
+
 type PersonnelFeature = {
   id: string;
   geometry: {
@@ -187,13 +189,13 @@ export function LivePersonnelMap() {
               });
 
         marker.bindPopup(`
-          <strong>${feature.properties.userName}</strong><br />
-          ${feature.properties.positionTitle}<br />
-          ${feature.properties.unitName}<br />
-          Area: ${feature.properties.areaName ?? "-"}<br />
-          Atasan: ${feature.properties.supervisorName ?? "-"}<br />
-          Jabatan atasan: ${feature.properties.supervisorPositionTitle ?? "-"}<br />
-          Unit atasan: ${feature.properties.supervisorUnitName ?? "-"}<br />
+          <strong>${escapeHtml(feature.properties.userName)}</strong><br />
+          ${escapeHtml(feature.properties.positionTitle)}<br />
+          ${escapeHtml(feature.properties.unitName)}<br />
+          Area: ${escapeHtml(feature.properties.areaName ?? "-")}<br />
+          Atasan: ${escapeHtml(feature.properties.supervisorName ?? "-")}<br />
+          Jabatan atasan: ${escapeHtml(feature.properties.supervisorPositionTitle ?? "-")}<br />
+          Unit atasan: ${escapeHtml(feature.properties.supervisorUnitName ?? "-")}<br />
           Status: ${status.label === "LIVE" ? "LIVE (hijau)" : status.label === "OFFLINE" ? "OFFLINE (kuning)" : "BELUM ADA DATA"}<br />
           Last GPS: ${formatDateTime(feature.properties.capturedAt)}<br />
           Koordinat: ${latitude.toFixed(5)}, ${longitude.toFixed(5)}

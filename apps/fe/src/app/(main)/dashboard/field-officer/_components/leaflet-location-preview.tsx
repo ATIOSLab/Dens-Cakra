@@ -2,6 +2,8 @@
 
 import { useEffect, useRef } from "react";
 
+import { escapeHtml } from "@/lib/utils";
+
 type LeafletLocationPreviewProps = {
   latitude: number;
   longitude: number;
@@ -51,7 +53,7 @@ export function LeafletLocationPreview({ latitude, longitude, title }: LeafletLo
         popupAnchor: [0, -36],
       });
 
-      L.marker([latitude, longitude], { icon: pinIcon }).addTo(map).bindPopup(title);
+      L.marker([latitude, longitude], { icon: pinIcon }).addTo(map).bindPopup(escapeHtml(title));
     }
 
     void mount();

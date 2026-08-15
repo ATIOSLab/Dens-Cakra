@@ -67,6 +67,24 @@ async function forwardApiRequest(request: NextRequest) {
     responseHeaders.delete("set-cookie");
   }
 
+  if (response.status >= 500) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: {
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Layanan backend belum dapat memproses permintaan saat ini.",
+        },
+        requestId: crypto.randomUUID(),
+        timestamp: new Date().toISOString(),
+      },
+      {
+        status: response.status,
+        headers: responseHeaders,
+      },
+    );
+  }
+
   const proxyResponse = new NextResponse(response.body, {
     status: response.status,
     statusText: response.statusText,

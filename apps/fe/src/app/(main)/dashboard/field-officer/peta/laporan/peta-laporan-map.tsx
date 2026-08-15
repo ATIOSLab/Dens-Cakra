@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { sortReportCategories } from "@/lib/domain/report-category-order";
 import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
+import { escapeHtml } from "@/lib/utils";
 import type { FieldOfficerIncoming, FieldOfficerWorkspace } from "@/server/field-ops/types";
 
 function formatDateTime(value?: string | null) {
@@ -249,15 +250,15 @@ export function PetaLaporanMap() {
         const photoUrl = jaring?.profilePhotoUrl ||
           (jaring?.profilePhotoFileId ? `/api/files/${jaring.profilePhotoFileId}` : null);
         marker.bindPopup(`
-          ${photoUrl ? `<img src="${photoUrl}" alt="Foto Jaring" width="44" height="44" style="border-radius:9999px;object-fit:cover;margin-bottom:8px" />` : ""}
-          <strong>${report.displayTitle ?? "Laporan Jaring"}</strong><br />
-          Nama Jaring: ${jaring?.fullName ?? report.jaringAlias ?? "Belum tersedia"}<br />
-          Kode Jaring: ${report.jaringCode ?? report.jaringAlias ?? "Belum tersedia"}<br />
-          Nomor WhatsApp: ${jaring?.whatsappNumber ?? report.senderPhone ?? "Belum tersedia"}<br />
-          Wilayah Penempatan: ${jaring?.areaNames.join(", ") || "Belum ditetapkan"}<br />
-          Petugas Wilayah (Gaswil): ${workspace?.profile.name ?? "Belum ditetapkan"}<br />
-          Kategori: ${report.categoryName ?? "-"}<br />
-          Urgensi: ${report.urgency ?? "-"}<br />
+          ${photoUrl ? `<img src="${escapeHtml(photoUrl)}" alt="Foto Jaring" width="44" height="44" style="border-radius:9999px;object-fit:cover;margin-bottom:8px" />` : ""}
+          <strong>${escapeHtml(report.displayTitle ?? "Laporan Jaring")}</strong><br />
+          Nama Jaring: ${escapeHtml(jaring?.fullName ?? report.jaringAlias ?? "Belum tersedia")}<br />
+          Kode Jaring: ${escapeHtml(report.jaringCode ?? report.jaringAlias ?? "Belum tersedia")}<br />
+          Nomor WhatsApp: ${escapeHtml(jaring?.whatsappNumber ?? report.senderPhone ?? "Belum tersedia")}<br />
+          Wilayah Penempatan: ${escapeHtml(jaring?.areaNames.join(", ") || "Belum ditetapkan")}<br />
+          Petugas Wilayah (Gaswil): ${escapeHtml(workspace?.profile.name ?? "Belum ditetapkan")}<br />
+          Kategori: ${escapeHtml(report.categoryName ?? "-")}<br />
+          Urgensi: ${escapeHtml(report.urgency ?? "-")}<br />
           Sumber koordinat: Live Location Jaring<br />
           Waktu laporan: ${formatDateTime(report.reportTimestamp ?? report.receivedAt)}<br />
           Koordinat: ${report.latitude.toFixed(5)}, ${report.longitude.toFixed(5)}
