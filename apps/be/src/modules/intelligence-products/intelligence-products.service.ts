@@ -6810,6 +6810,15 @@ export class IntelligenceProductsService {
       orderBy: { createdAt: 'asc' },
     });
 
+    const supervisorByArea = await this.scope.resolveCommandSupervisors(
+      assignments.map((assignment) => ({
+        id: assignment.id,
+        roleCode: assignment.role.code,
+        branch: assignment.branch,
+        areaIds: assignment.areaScopes.map((scope) => scope.areaId),
+      })),
+    );
+
     const assignmentIds = assignments.map((item) => item.id);
     const pings = assignmentIds.length
       ? await this.prisma.personnelLocationPing.findMany({
@@ -6850,6 +6859,10 @@ export class IntelligenceProductsService {
           ? Number(fallbackArea.centroidLongitude)
           : null;
       const primaryArea = assignment.areaScopes[0]?.area ?? null;
+      const supervisor =
+        assignment.areaScopes
+          .map((scope) => supervisorByArea.get(scope.areaId))
+          .find((value) => value) ?? null;
       return {
         type: 'Feature',
         id: ping?.id ?? `assignment:${assignment.id}`,
@@ -6873,10 +6886,10 @@ export class IntelligenceProductsService {
           unitName: primaryArea
             ? `${assignment.branch} ${primaryArea.name}`
             : assignment.branch,
-          supervisorAssignmentId: null,
-          supervisorName: null,
-          supervisorPositionTitle: null,
-          supervisorUnitName: null,
+          supervisorAssignmentId: supervisor?.assignmentId ?? null,
+          supervisorName: supervisor?.userName ?? null,
+          supervisorPositionTitle: supervisor?.roleName ?? null,
+          supervisorUnitName: supervisor?.branch ?? null,
           canSeeStealth: false,
         },
       };

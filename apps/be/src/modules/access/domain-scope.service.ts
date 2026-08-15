@@ -1,6 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type { Prisma } from '../../generated/prisma/client.js';
+import {
+  CommandRouteType,
+  RoleCode,
+} from '../../generated/prisma/client.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
+import { commandParentRole, isTerritorialCommandBranch } from '../../common/command/command-chain.js';
 import { SYSTEM_ROLES } from '../../common/constants/system-role.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
@@ -283,6 +288,114 @@ export class DomainScopeService {
     if (!allowed) {
       throw new NotFoundException('Resource not found.');
     }
+  }
+
+  async resolveCommandSupervisors(
+    children: Array<{
+      id: string;
+      roleCode: RoleCode;
+      branch: CommandRouteType;
+      areaIds: string[];
+    }>,
+  ): Promise<
+    Map<
+      string,
+      {
+        assignmentId: string;
+        roleName: string;
+        userName: string | null;
+        branch: CommandRouteType;
+      }
+    >
+  > {
+    const supervisors = new Map<
+      string,
+      {
+        assignmentId: string;
+        roleName: string;
+        userName: string | null;
+        branch: CommandRouteType;
+      }
+    >();
+
+    const childAreaIdsByParentRole = new Map<RoleCode, string[]>();
+    for (const child of children) {
+      if (!isTerritorialCommandBranch(child.branch)) continue;
+      const parentRole = commandParentRole(child.roleCode);
+      if (!parentRole) continue;
+
+      const existing = childAreaIdsByParentRole.get(parentRole) ?? [];
+      existing.push(...child.areaIds);
+      childAreaIdsByParentRole.set(parentRole, existing);
+    }
+
+    for (const [parentRole, childAreaIds] of childAreaIdsByParentRole) {
+      const uniqueAreaIds = [...new Set(childAreaIds)];
+
+      const parents = await this.prisma.userOperationalAssignment.findMany({
+        where: {
+          isActive: true,
+          OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
+          role: { code: parentRole },
+          branch: CommandRouteType.BINDA,
+          areaScopes: {
+            some: {
+              validUntil: null,
+              area: {
+                OR: [
+                  { id: { in: uniqueAreaIds } },
+                  {
+                    descendantLinks: {
+                      some: { descendantId: { in: uniqueAreaIds } },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        },
+        include: {
+          role: true,
+          userProfile: true,
+          areaScopes: {
+            where: { validUntil: null },
+            include: { area: true },
+          },
+        },
+      });
+
+      const parentByAreaId = new Map<
+        string,
+        (typeof parents)[number]
+      >();
+      for (const parent of parents) {
+        for (const scope of parent.areaScopes) {
+          parentByAreaId.set(scope.areaId, parent);
+        }
+      }
+
+      const links = await this.prisma.administrativeAreaClosure.findMany({
+        where: {
+          descendantId: { in: uniqueAreaIds },
+          ancestorId: { in: [...parentByAreaId.keys()] },
+        },
+        select: { ancestorId: true, descendantId: true },
+      });
+
+      for (const link of links) {
+        const parent = parentByAreaId.get(link.ancestorId);
+        if (parent && !supervisors.has(link.descendantId)) {
+          supervisors.set(link.descendantId, {
+            assignmentId: parent.id,
+            roleName: parent.role.name,
+            userName: parent.userProfile?.fullName ?? null,
+            branch: parent.branch,
+          });
+        }
+      }
+    }
+
+    return supervisors;
   }
 
   async assertBaket(context: AuthorizationContext, baketId: string) {

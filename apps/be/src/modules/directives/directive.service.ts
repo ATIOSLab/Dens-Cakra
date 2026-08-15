@@ -11,6 +11,7 @@ import {
 import { ApiException } from '../../common/api/api-exception.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { DomainScopeService } from '../access/domain-scope.service.js';
 import type {
   CreateDirectiveDto,
   CreateDirectiveRevisionDto,
@@ -28,7 +29,10 @@ import { DirectiveSortField } from './directive.dto.js';
 
 @Injectable()
 export class DirectiveService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly scope: DomainScopeService,
+  ) {}
 
   private parseDirectiveDate(value: string, field: string) {
     const date = new Date(value);
@@ -1399,6 +1403,15 @@ export class DirectiveService {
           })
         : [];
 
+    const supervisorByArea = await this.scope.resolveCommandSupervisors(
+      routingPositions.map((assignment) => ({
+        id: assignment.id,
+        roleCode: assignment.role.code,
+        branch: assignment.branch,
+        areaIds: assignment.areaScopes.map((scope) => scope.areaId),
+      })),
+    );
+
     const relatedTasks = await this.prisma.task.findMany({
       where: {
         deletedAt: null,
@@ -1938,10 +1951,14 @@ export class DirectiveService {
       })),
       routingHierarchy: routingPositions.map((assignment) => {
         const primaryArea = assignment.areaScopes[0]?.area ?? null;
+        const supervisor =
+          assignment.areaScopes
+            .map((scope) => supervisorByArea.get(scope.areaId))
+            .find((value) => value) ?? null;
 
         return {
           positionId: assignment.id,
-          reportsToPositionId: null,
+          reportsToPositionId: supervisor?.assignmentId ?? null,
           seatCode: null,
           positionCode: assignment.role.code,
           positionTitle: assignment.role.name,
