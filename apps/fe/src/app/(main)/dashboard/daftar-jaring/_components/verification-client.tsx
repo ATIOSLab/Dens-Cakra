@@ -17,10 +17,13 @@ import {
   Eye,
   ImageIcon,
   MapPin,
+  Pencil,
+  Plus,
   RefreshCw,
   RotateCcw,
   Search,
   ShieldCheck,
+  Trash2,
   UserRound,
   X,
   XCircle,
@@ -284,7 +287,8 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
   const router = useRouter();
   const searchParams = useSearchParams();
   const { activeRole } = useRoleWorkspace();
-  const canPerformAction = activeRole !== SYSTEM_ROLES.EXECUTIVE && activeRole !== SYSTEM_ROLES.REGIONAL_COMMANDER;
+  const canPerformAction = activeRole === SYSTEM_ROLES.FIELD_COORDINATOR;
+  const isFieldOfficer = activeRole === SYSTEM_ROLES.FIELD_OFFICER;
   const [items, setItems] = useState<RegistrationJaring[]>(initialItems);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>(() => {
@@ -623,13 +627,24 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
     <main className="mx-auto w-full max-w-[1600px] space-y-5 sm:space-y-6">
       {/* HEADER SECTION */}
       <div className="space-y-5">
-        <div className="max-w-3xl">
-          <h1 className={DC_TYPOGRAPHY.pageTitle}>Daftar Jaring</h1>
-          <p className="mt-1.5 max-w-2xl text-muted-foreground text-sm">
-            Kelola data Jaring, wilayah penempatan, Petugas Wilayah (Gaswil), status registrasi, dan aktivitas pelaporan
-            90 hari.
-          </p>
-          <p className="mt-2 text-sm font-medium text-foreground">{areaSubtitle}</p>
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-3xl">
+            <h1 className={DC_TYPOGRAPHY.pageTitle}>Daftar Jaring</h1>
+            <p className="mt-1.5 max-w-2xl text-muted-foreground text-sm">
+              Kelola data Jaring, wilayah penempatan, Petugas Wilayah (Gaswil), status registrasi, dan aktivitas
+              pelaporan 90 hari.
+            </p>
+            <p className="mt-2 text-sm font-medium text-foreground">{areaSubtitle}</p>
+          </div>
+
+          {isFieldOfficer ? (
+            <Button asChild size="sm" className="h-9 shrink-0 gap-2 self-start lg:self-auto">
+              <Link href="/dashboard/daftar-jaring/baru">
+                <Plus className="size-4" />
+                Tambah Jaring
+              </Link>
+            </Button>
+          ) : null}
         </div>
 
         {/* SUMMARY CARDS */}
@@ -1253,6 +1268,20 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
                             </Link>
                           </Button>
 
+                          {isFieldOfficer ? (
+                            <Button
+                              asChild
+                              size="sm"
+                              variant="outline"
+                              className="h-8 gap-1.5 text-xs rounded-lg border-border hover:border-sky-500 hover:text-sky-600 hover:bg-sky-500/5"
+                            >
+                              <Link href={`/dashboard/daftar-jaring/${item.id}/edit`}>
+                                <Pencil className="size-3.5" />
+                                <span>Ubah</span>
+                              </Link>
+                            </Button>
+                          ) : null}
+
                           {isPending && canPerformAction && (
                             <>
                               <Button
@@ -1624,7 +1653,7 @@ export function JaringReportCardItem({
 export function JaringVerificationDetailClient({ item }: { item: RegistrationJaring }) {
   const router = useRouter();
   const { activeRole } = useRoleWorkspace();
-  const canPerformAction = activeRole !== SYSTEM_ROLES.EXECUTIVE && activeRole !== SYSTEM_ROLES.REGIONAL_COMMANDER;
+  const canPerformAction = activeRole === SYSTEM_ROLES.FIELD_COORDINATOR;
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [pendingAction, setPendingAction] = useState<"approve" | "reject" | null>(null);
