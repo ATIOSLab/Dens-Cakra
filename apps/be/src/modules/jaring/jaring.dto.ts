@@ -223,6 +223,11 @@ export class CreateJaringCoachingReportDto {
     { message: 'Tanggal dan waktu laporan pembinaan harus valid.' },
   )
   reportedAt!: string;
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(5, { message: 'Maksimal 5 foto dapat dilampirkan.' })
+  @IsUUID('4', { each: true })
+  attachmentFileIds?: string[];
 }
 
 export class UpdateJaringReportMetadataDto {

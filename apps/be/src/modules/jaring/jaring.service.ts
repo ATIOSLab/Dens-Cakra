@@ -360,6 +360,20 @@ const jaringCoachingReportSelect = {
       },
     },
   },
+  attachments: {
+    select: {
+      fileId: true,
+      caption: true,
+      file: {
+        select: {
+          id: true,
+          originalName: true,
+          mimeType: true,
+        },
+      },
+    },
+    orderBy: { fileId: 'asc' },
+  },
 } satisfies Prisma.JaringCoachingReportSelect;
 
 type JaringCoachingReportRecord = Prisma.JaringCoachingReportGetPayload<{
@@ -1022,6 +1036,12 @@ export class JaringService {
         role: report.fieldOfficerAssignment.role,
         userProfile: report.fieldOfficerAssignment.userProfile,
       },
+      attachments: report.attachments.map((attachment) => ({
+        fileId: attachment.fileId,
+        caption: attachment.caption,
+        fileName: attachment.file.originalName,
+        mimeType: attachment.file.mimeType,
+      })),
     };
   }
 
@@ -2600,6 +2620,34 @@ export class JaringService {
       );
     }
 
+    const attachmentFileIds = [...new Set(body.attachmentFileIds ?? [])];
+    if (attachmentFileIds.length > 0) {
+      const usableAttachments = await this.prisma.fileAsset.findMany({
+        where: {
+          id: { in: attachmentFileIds },
+          fileType: FileType.PHOTO,
+          createdByAssignmentId: context.primaryAssignmentId,
+          lifecycleStatus: {
+            in: [
+              FileLifecycleStatus.UPLOADED,
+              FileLifecycleStatus.SCANNING,
+              FileLifecycleStatus.CLEAN,
+            ],
+          },
+          deletedAt: null,
+        },
+        select: { id: true },
+      });
+
+      if (usableAttachments.length !== attachmentFileIds.length) {
+        throw new ApiException(
+          'JARING_COACHING_ATTACHMENT_INVALID',
+          'Lampiran foto tidak valid, bukan milik Anda, atau belum selesai diunggah.',
+          422,
+        );
+      }
+    }
+
     const report = await this.prisma.$transaction(async (tx) => {
       const created = await tx.jaringCoachingReport.create({
         data: {
@@ -2608,6 +2656,13 @@ export class JaringService {
           title,
           content,
           reportedAt,
+          ...(attachmentFileIds.length > 0
+            ? {
+                attachments: {
+                  create: attachmentFileIds.map((fileId) => ({ fileId })),
+                },
+              }
+            : {}),
         },
         select: jaringCoachingReportSelect,
       });
@@ -2621,6 +2676,7 @@ export class JaringService {
           metadata: {
             jaringId: id,
             reportedAt: reportedAt.toISOString(),
+            attachmentCount: attachmentFileIds.length,
           },
         },
       });

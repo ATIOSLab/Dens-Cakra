@@ -870,6 +870,7 @@ model FileAsset {
   baketAttachments     BaketVersionAttachment[]
   productAttachments   ProductAttachment[]
   emergencyAttachments EmergencyAttachment[]
+  coachingReportAttachments CoachingReportAttachment[]
   uploadReservation    FileUploadReservation?
   jaringProfilePhotos  Jaring[]                  @relation("JaringProfilePhoto")
 
@@ -1255,10 +1256,23 @@ model JaringCoachingReport {
 
   jaring                 Jaring                    @relation(fields: [jaringId], references: [id], onDelete: Restrict)
   fieldOfficerAssignment UserOperationalAssignment @relation("JaringCoachingReportFieldOfficer", fields: [fieldOfficerAssignmentId], references: [id], onDelete: Restrict)
+  attachments            CoachingReportAttachment[]
 
   @@index([jaringId, reportedAt])
   @@index([fieldOfficerAssignmentId, reportedAt])
   @@index([createdAt])
+}
+
+model CoachingReportAttachment {
+  coachingReportId String  @db.Uuid
+  fileId           String  @db.Uuid
+  caption          String? @db.Text
+
+  coachingReport JaringCoachingReport @relation(fields: [coachingReportId], references: [id], onDelete: Cascade)
+  file           FileAsset            @relation(fields: [fileId], references: [id], onDelete: Restrict)
+
+  @@id([coachingReportId, fileId])
+  @@index([fileId])
 }
 
 model WhatsAppMessage {
