@@ -75,7 +75,7 @@ export const env = {
   port: getNumber('PORT', 3001),
   databaseUrl: getString('DATABASE_URL'),
   betterAuthSecret: getString('BETTER_AUTH_SECRET'),
-  betterAuthUrl: getString('BETTER_AUTH_URL', 'http://localhost:3001'),
+  betterAuthUrl: getStringList('BETTER_AUTH_URL', ['http://localhost:3001'])[0],
   authSecureCookies: getOptionalBoolean('AUTH_SECURE_COOKIES'),
   corsOrigins: getStringList('CORS_ORIGIN', ['http://localhost:3000']),
   authDisableSignUp: getBoolean('AUTH_DISABLE_SIGN_UP', true),
