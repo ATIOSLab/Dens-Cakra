@@ -1185,17 +1185,6 @@ export class DirectiveService {
       );
     }
 
-    if (
-      recipient.targetAssignmentId &&
-      recipient.targetAssignmentId !== context.primaryAssignmentId
-    ) {
-      throw new ApiException(
-        'DIRECTIVE_RECIPIENT_NOT_OWNER',
-        'Penerima arahan strategis tidak sesuai dengan unit saat ini.',
-        403,
-      );
-    }
-
     await this.prisma.directiveRecipient.update({
       where: { id: recipientId },
       data: {
@@ -1628,8 +1617,7 @@ export class DirectiveService {
     const mappedTasks = filteredTasks.map((task: any) => {
       const fieldCoordinatorAssignments = task.assignments.filter(
         (assignment: any) =>
-          assignment.assignee?.role?.code ===
-          RoleCode.FIELD_COORDINATOR,
+          assignment.assignee?.role?.code === RoleCode.FIELD_COORDINATOR,
       );
 
       const fcAssignmentsWithChildren = fieldCoordinatorAssignments.map(
@@ -1638,8 +1626,7 @@ export class DirectiveService {
             (candidate: any) =>
               candidate.assignerAssignmentId ===
                 assignment.assigneeAssignmentId &&
-              candidate.assignee?.role?.code ===
-                RoleCode.FIELD_OFFICER,
+              candidate.assignee?.role?.code === RoleCode.FIELD_OFFICER,
           );
 
           return buildAssignmentNode(assignment, downstreamAssignments);
@@ -1791,22 +1778,19 @@ export class DirectiveService {
                   forwarding.createdByAssignment?.userProfile?.fullName ?? null,
                 username:
                   forwarding.createdByAssignment?.userProfile?.username ?? null,
-                positionId:
-                  forwarding.createdByAssignment?.id ?? null,
+                positionId: forwarding.createdByAssignment?.id ?? null,
                 positionCode:
                   forwarding.createdByAssignment?.role?.code ?? null,
                 positionTitle:
                   forwarding.createdByAssignment?.role?.name ?? null,
-                branch:
-                  forwarding.createdByAssignment?.branch ?? null,
+                branch: forwarding.createdByAssignment?.branch ?? null,
                 organizationUnitId: null,
                 organizationUnitCode: null,
                 organizationUnitName:
                   forwarding.createdByAssignment?.branch ?? null,
                 organizationUnitType:
                   forwarding.createdByAssignment?.branch ?? null,
-                roleCode:
-                  forwarding.createdByAssignment?.role?.code ?? null,
+                roleCode: forwarding.createdByAssignment?.role?.code ?? null,
               },
               currentVersion: currentUukVersion
                 ? {
