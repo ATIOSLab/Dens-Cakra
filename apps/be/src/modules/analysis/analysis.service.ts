@@ -554,6 +554,7 @@ export class AnalysisService {
     body: ReplaceEntitiesDto,
     context: AuthorizationContext,
   ) {
+    await this.assertVersionScope(context, versionId);
     await this.getEditableVersion(versionId);
     await this.prisma.$transaction(async (tx) => {
       await tx.analysisEntity.deleteMany({
@@ -585,6 +586,7 @@ export class AnalysisService {
     body: ReplaceRelationshipsDto,
     context: AuthorizationContext,
   ) {
+    await this.assertVersionScope(context, versionId);
     await this.getEditableVersion(versionId);
     await this.prisma.$transaction(async (tx) => {
       await tx.analysisRelationship.deleteMany({
@@ -617,6 +619,7 @@ export class AnalysisService {
     body: ValidateAnalysisDto,
     context: AuthorizationContext,
   ) {
+    await this.assertVersionScope(context, versionId);
     const version = await this.getEditableVersion(versionId);
     if (version.analysisCase.status !== AnalysisStatus.IN_REVIEW) {
       throw new ApiException(
