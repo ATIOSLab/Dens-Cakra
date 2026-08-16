@@ -18,8 +18,8 @@ import { EvidenceAttachmentViewer } from "@/features/baket/components/evidence-a
 import { getUrgencyBadgeClass, getUrgencyLabel } from "@/lib/domain/operational-presentation";
 import { cn } from "@/lib/utils";
 
-import type { ReportMessageItem } from "../laporan-jaring/_components/laporan-jaring-types";
-import { WhatsAppReportThread } from "../laporan-jaring/_components/whatsapp-report-thread";
+import type { ReportMessageItem } from "../../laporan-jaring/_components/laporan-jaring-types";
+import { WhatsAppReportThread } from "../../laporan-jaring/_components/whatsapp-report-thread";
 import {
   type BaketRecord,
   currentBaketVersion,
@@ -73,19 +73,19 @@ export function BaketDetail({ baket }: BaketDetailProps) {
   const areaLabel = formatBaketAreaName(version?.eventArea);
   const googleMapsUrl = hasLocation ? `https://www.google.com/maps?q=${latitude},${longitude}` : null;
 
-  const sourceMessageItems: ReportMessageItem[] = sourceMessages
-    .map((source, index) => {
-      const message = source.message;
-      const text = message?.content?.trim();
-      if (!text) return null;
-      return {
+  const sourceMessageItems: ReportMessageItem[] = sourceMessages.flatMap((source, index) => {
+    const message = source.message;
+    const text = message?.content?.trim();
+    if (!text) return [];
+    return [
+      {
         id: source.messageId ?? message?.id ?? `source-${index}`,
         kind: "TEXT" as const,
         text,
         sentAt: message?.receivedAt ?? getBaketDate(baket),
-      };
-    })
-    .filter((item): item is ReportMessageItem => item !== null);
+      },
+    ];
+  });
 
   const verification = version?.verification;
   const hasVerification = [
