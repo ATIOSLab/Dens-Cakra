@@ -751,98 +751,107 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-3 flex-1">
-            {/* Filter Provinsi */}
-            <SearchableSelect
-              aria-label="Filter Provinsi"
-              value={provinceFilter}
-              options={[
-                { value: "ALL", label: "Pilih Provinsi/Binda terlebih dahulu", disabled: uniqueProvinces.length > 0 },
-                ...uniqueProvinces.map((province) => ({ value: province.id, label: province.name })),
-              ]}
-              onValueChange={(value) => {
-                setProvinceFilter(value);
-                setCityFilter("ALL");
-                setDistrictFilter("ALL");
-                setVillageFilter("ALL");
-                setPage(1);
-              }}
-              placeholder="Pilih Provinsi/Binda terlebih dahulu"
-              searchPlaceholder="Cari provinsi..."
-              emptyText="Provinsi tidak ditemukan."
-              className="h-9 w-full min-w-[150px] text-xs sm:w-auto"
-            />
+            {/* Filter Wilayah (disembunyikan untuk Gaswil karena sudah ter-scope) */}
+            {!isFieldOfficer && (
+              <>
+                {/* Filter Provinsi */}
+                <SearchableSelect
+                  aria-label="Filter Provinsi"
+                  value={provinceFilter}
+                  options={[
+                    {
+                      value: "ALL",
+                      label: "Pilih Provinsi/Binda terlebih dahulu",
+                      disabled: uniqueProvinces.length > 0,
+                    },
+                    ...uniqueProvinces.map((province) => ({ value: province.id, label: province.name })),
+                  ]}
+                  onValueChange={(value) => {
+                    setProvinceFilter(value);
+                    setCityFilter("ALL");
+                    setDistrictFilter("ALL");
+                    setVillageFilter("ALL");
+                    setPage(1);
+                  }}
+                  placeholder="Pilih Provinsi/Binda terlebih dahulu"
+                  searchPlaceholder="Cari provinsi..."
+                  emptyText="Provinsi tidak ditemukan."
+                  className="h-9 w-full min-w-[150px] text-xs sm:w-auto"
+                />
 
-            {/* Filter Kota / Kabupaten */}
-            <SearchableSelect
-              aria-label="Filter Kota/Kabupaten"
-              value={cityFilter}
-              options={[
-                {
-                  value: "ALL",
-                  label: provinceFilter === "ALL" ? "Pilih Provinsi/Binda dahulu" : "Semua Kota/Kabupaten",
-                  disabled: provinceFilter === "ALL",
-                },
-                ...uniqueCities.map((city) => ({ value: city.id, label: city.name })),
-              ]}
-              onValueChange={(value) => {
-                setCityFilter(value);
-                setDistrictFilter("ALL");
-                setVillageFilter("ALL");
-                setPage(1);
-              }}
-              disabled={provinceFilter === "ALL"}
-              placeholder={provinceFilter === "ALL" ? "Pilih Provinsi/Binda dahulu" : "Semua Kota/Kabupaten"}
-              searchPlaceholder="Cari kota/kabupaten..."
-              emptyText="Kota/Kabupaten tidak ditemukan."
-              className="h-9 w-full min-w-[150px] text-xs sm:w-auto"
-            />
+                {/* Filter Kota / Kabupaten */}
+                <SearchableSelect
+                  aria-label="Filter Kota/Kabupaten"
+                  value={cityFilter}
+                  options={[
+                    {
+                      value: "ALL",
+                      label: provinceFilter === "ALL" ? "Pilih Provinsi/Binda dahulu" : "Semua Kota/Kabupaten",
+                      disabled: provinceFilter === "ALL",
+                    },
+                    ...uniqueCities.map((city) => ({ value: city.id, label: city.name })),
+                  ]}
+                  onValueChange={(value) => {
+                    setCityFilter(value);
+                    setDistrictFilter("ALL");
+                    setVillageFilter("ALL");
+                    setPage(1);
+                  }}
+                  disabled={provinceFilter === "ALL"}
+                  placeholder={provinceFilter === "ALL" ? "Pilih Provinsi/Binda dahulu" : "Semua Kota/Kabupaten"}
+                  searchPlaceholder="Cari kota/kabupaten..."
+                  emptyText="Kota/Kabupaten tidak ditemukan."
+                  className="h-9 w-full min-w-[150px] text-xs sm:w-auto"
+                />
 
-            {/* Filter Kecamatan */}
-            <SearchableSelect
-              aria-label="Filter Kecamatan"
-              value={districtFilter}
-              options={[
-                {
-                  value: "ALL",
-                  label: cityFilter === "ALL" ? "Pilih Kota/Kabupaten dahulu" : "Semua Kecamatan",
-                  disabled: cityFilter === "ALL",
-                },
-                ...uniqueDistricts.map((dist) => ({ value: dist.id, label: dist.name })),
-              ]}
-              onValueChange={(value) => {
-                setDistrictFilter(value);
-                setVillageFilter("ALL");
-                setPage(1);
-              }}
-              disabled={cityFilter === "ALL"}
-              placeholder={cityFilter === "ALL" ? "Pilih Kota/Kabupaten dahulu" : "Semua Kecamatan"}
-              searchPlaceholder="Cari kecamatan..."
-              emptyText="Kecamatan tidak ditemukan."
-              className="h-9 w-full min-w-[150px] text-xs sm:w-auto"
-            />
+                {/* Filter Kecamatan */}
+                <SearchableSelect
+                  aria-label="Filter Kecamatan"
+                  value={districtFilter}
+                  options={[
+                    {
+                      value: "ALL",
+                      label: cityFilter === "ALL" ? "Pilih Kota/Kabupaten dahulu" : "Semua Kecamatan",
+                      disabled: cityFilter === "ALL",
+                    },
+                    ...uniqueDistricts.map((dist) => ({ value: dist.id, label: dist.name })),
+                  ]}
+                  onValueChange={(value) => {
+                    setDistrictFilter(value);
+                    setVillageFilter("ALL");
+                    setPage(1);
+                  }}
+                  disabled={cityFilter === "ALL"}
+                  placeholder={cityFilter === "ALL" ? "Pilih Kota/Kabupaten dahulu" : "Semua Kecamatan"}
+                  searchPlaceholder="Cari kecamatan..."
+                  emptyText="Kecamatan tidak ditemukan."
+                  className="h-9 w-full min-w-[150px] text-xs sm:w-auto"
+                />
 
-            {/* Filter Kelurahan / Desa */}
-            <SearchableSelect
-              aria-label="Filter Kelurahan/Desa"
-              value={villageFilter}
-              options={[
-                {
-                  value: "ALL",
-                  label: districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan",
-                  disabled: districtFilter === "ALL",
-                },
-                ...uniqueVillages.map((vill) => ({ value: vill.id, label: vill.name })),
-              ]}
-              onValueChange={(value) => {
-                setVillageFilter(value);
-                setPage(1);
-              }}
-              disabled={districtFilter === "ALL"}
-              placeholder={districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan"}
-              searchPlaceholder="Cari kelurahan/desa..."
-              emptyText="Kelurahan/Desa tidak ditemukan."
-              className="h-9 w-full min-w-[150px] text-xs sm:w-auto"
-            />
+                {/* Filter Kelurahan / Desa */}
+                <SearchableSelect
+                  aria-label="Filter Kelurahan/Desa"
+                  value={villageFilter}
+                  options={[
+                    {
+                      value: "ALL",
+                      label: districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan",
+                      disabled: districtFilter === "ALL",
+                    },
+                    ...uniqueVillages.map((vill) => ({ value: vill.id, label: vill.name })),
+                  ]}
+                  onValueChange={(value) => {
+                    setVillageFilter(value);
+                    setPage(1);
+                  }}
+                  disabled={districtFilter === "ALL"}
+                  placeholder={districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan"}
+                  searchPlaceholder="Cari kelurahan/desa..."
+                  emptyText="Kelurahan/Desa tidak ditemukan."
+                  className="h-9 w-full min-w-[150px] text-xs sm:w-auto"
+                />
+              </>
+            )}
 
             {/* Filter Status */}
             <NativeSelect

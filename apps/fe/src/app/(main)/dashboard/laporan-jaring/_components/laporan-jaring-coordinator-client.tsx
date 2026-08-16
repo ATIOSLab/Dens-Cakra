@@ -920,7 +920,7 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
           {/* MIDDLE ROW: Structured Grid of Filter Dropdowns */}
           <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-[repeat(auto-fit,minmax(240px,1fr))]">
             {/* Filter Provinsi */}
-            {provinceOptions.length > 0 && (
+            {!isFieldOfficer && provinceOptions.length > 0 && (
               <SearchableSelect
                 aria-label="Filter Provinsi"
                 value={provinceFilter}
@@ -943,7 +943,7 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
             )}
 
             {/* 3. Filter Kota/Kabupaten */}
-            {(regencyOptions.length > 0 || provinceOptions.length > 0) && (
+            {!isFieldOfficer && (regencyOptions.length > 0 || provinceOptions.length > 0) && (
               <SearchableSelect
                 aria-label="Filter Kota/Kabupaten"
                 value={regencyFilter}
@@ -981,70 +981,76 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
             )}
 
             {/* 4. Filter Kecamatan */}
-            <SearchableSelect
-              aria-label="Filter Kecamatan"
-              value={districtFilter}
-              options={[
-                {
-                  value: "ALL",
-                  label: regencyFilter === "ALL" ? "Pilih Kota/Kabupaten dahulu" : "Semua Kecamatan",
-                  disabled: regencyFilter === "ALL",
-                },
-                ...districtOptions.map((district) => ({ value: district.id, label: district.name })),
-              ]}
-              onValueChange={(value) => {
-                setDistrictFilter(value);
-                setVillageFilter("ALL");
-                setPage(1);
-              }}
-              disabled={regencyFilter === "ALL"}
-              placeholder={regencyFilter === "ALL" ? "Pilih Kota/Kabupaten dahulu" : "Semua Kecamatan"}
-              searchPlaceholder="Cari Kecamatan..."
-              emptyText="Kecamatan tidak ditemukan."
-              className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full text-xs")}
-            />
+            {!isFieldOfficer && (
+              <SearchableSelect
+                aria-label="Filter Kecamatan"
+                value={districtFilter}
+                options={[
+                  {
+                    value: "ALL",
+                    label: regencyFilter === "ALL" ? "Pilih Kota/Kabupaten dahulu" : "Semua Kecamatan",
+                    disabled: regencyFilter === "ALL",
+                  },
+                  ...districtOptions.map((district) => ({ value: district.id, label: district.name })),
+                ]}
+                onValueChange={(value) => {
+                  setDistrictFilter(value);
+                  setVillageFilter("ALL");
+                  setPage(1);
+                }}
+                disabled={regencyFilter === "ALL"}
+                placeholder={regencyFilter === "ALL" ? "Pilih Kota/Kabupaten dahulu" : "Semua Kecamatan"}
+                searchPlaceholder="Cari Kecamatan..."
+                emptyText="Kecamatan tidak ditemukan."
+                className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full text-xs")}
+              />
+            )}
 
             {/* 4. Filter Kelurahan/Desa */}
-            <NativeSelect
-              aria-label="Filter Kelurahan atau Desa"
-              value={villageFilter}
-              onChange={(event) => {
-                setVillageFilter(event.target.value);
-                setPage(1);
-              }}
-              disabled={districtFilter === "ALL"}
-              className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full text-xs")}
-            >
-              <option value="ALL">{districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan"}</option>
-              {villageOptions.map((village) => (
-                <option key={village.id} value={village.id}>
-                  {village.name}
-                  {districtFilter === "ALL" && village.districtName ? ` - ${village.districtName}` : ""}
-                </option>
-              ))}
-            </NativeSelect>
+            {!isFieldOfficer && (
+              <NativeSelect
+                aria-label="Filter Kelurahan atau Desa"
+                value={villageFilter}
+                onChange={(event) => {
+                  setVillageFilter(event.target.value);
+                  setPage(1);
+                }}
+                disabled={districtFilter === "ALL"}
+                className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full text-xs")}
+              >
+                <option value="ALL">{districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan"}</option>
+                {villageOptions.map((village) => (
+                  <option key={village.id} value={village.id}>
+                    {village.name}
+                    {districtFilter === "ALL" && village.districtName ? ` - ${village.districtName}` : ""}
+                  </option>
+                ))}
+              </NativeSelect>
+            )}
 
             {/* 5. Filter Petugas Wilayah (Gaswil) */}
-            <SearchableSelect
-              aria-label="Filter Petugas Wilayah (Gaswil)"
-              value={fieldOfficerFilter || "ALL"}
-              options={[
-                { value: "ALL", label: "Semua Gaswil" },
-                ...gaswilOptions.map((option) => ({
-                  value: option.assignmentId,
-                  label: `${option.name} (${option.jaringCount} Jaring)`,
-                })),
-              ]}
-              onValueChange={(value) => {
-                setFieldOfficerFilter(value === "ALL" ? "" : value);
-                setPage(1);
-              }}
-              disabled={gaswilOptions.length === 0}
-              placeholder={gaswilOptions.length === 0 ? "Petugas Wilayah belum tersedia" : "Semua Gaswil"}
-              searchPlaceholder="Cari Petugas Wilayah (Gaswil)..."
-              emptyText="Petugas Wilayah (Gaswil) tidak ditemukan."
-              className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full text-xs")}
-            />
+            {!isFieldOfficer && (
+              <SearchableSelect
+                aria-label="Filter Petugas Wilayah (Gaswil)"
+                value={fieldOfficerFilter || "ALL"}
+                options={[
+                  { value: "ALL", label: "Semua Gaswil" },
+                  ...gaswilOptions.map((option) => ({
+                    value: option.assignmentId,
+                    label: `${option.name} (${option.jaringCount} Jaring)`,
+                  })),
+                ]}
+                onValueChange={(value) => {
+                  setFieldOfficerFilter(value === "ALL" ? "" : value);
+                  setPage(1);
+                }}
+                disabled={gaswilOptions.length === 0}
+                placeholder={gaswilOptions.length === 0 ? "Petugas Wilayah belum tersedia" : "Semua Gaswil"}
+                searchPlaceholder="Cari Petugas Wilayah (Gaswil)..."
+                emptyText="Petugas Wilayah (Gaswil) tidak ditemukan."
+                className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full text-xs")}
+              />
+            )}
 
             {/* 6. Jaring Filter Popover */}
             <div className="w-full">

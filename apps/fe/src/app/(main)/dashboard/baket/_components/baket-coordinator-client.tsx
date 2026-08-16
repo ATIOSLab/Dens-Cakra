@@ -652,7 +652,7 @@ export function BaketCoordinatorClient({ role }: { role?: SystemRole } = {}) {
             />
 
             {/* 4. Filter Provinsi */}
-            {provinceOptions.length > 0 && (
+            {!isFieldOfficer && provinceOptions.length > 0 && (
               <SearchableSelect
                 aria-label="Filter Provinsi"
                 value={provinceFilter}
@@ -675,7 +675,7 @@ export function BaketCoordinatorClient({ role }: { role?: SystemRole } = {}) {
             )}
 
             {/* 5. Filter Kota/Kabupaten */}
-            {(regencyOptions.length > 0 || provinceOptions.length > 0) && (
+            {!isFieldOfficer && (regencyOptions.length > 0 || provinceOptions.length > 0) && (
               <SearchableSelect
                 aria-label="Filter Kota/Kabupaten"
                 value={regencyFilter}
@@ -709,51 +709,55 @@ export function BaketCoordinatorClient({ role }: { role?: SystemRole } = {}) {
             )}
 
             {/* 6. Filter Kecamatan */}
-            <SearchableSelect
-              aria-label="Filter Kecamatan"
-              value={districtFilter}
-              options={[
-                {
-                  value: "ALL",
-                  label: regencyFilter === "ALL" ? "Pilih Kota/Kabupaten dahulu" : "Semua Kecamatan",
-                  disabled: regencyFilter === "ALL",
-                },
-                ...districtOptions.map((district) => ({ value: district.id, label: district.name })),
-              ]}
-              onValueChange={(value) => {
-                setDistrictFilter(value);
-                setVillageFilter("ALL");
-                setPage(1);
-              }}
-              disabled={regencyFilter === "ALL"}
-              placeholder={regencyFilter === "ALL" ? "Pilih Kota/Kabupaten dahulu" : "Semua Kecamatan"}
-              searchPlaceholder="Cari Kecamatan..."
-              emptyText="Kecamatan tidak ditemukan."
-              className="h-9 w-full border-slate-200 text-xs dark:border-white/10"
-            />
+            {!isFieldOfficer && (
+              <SearchableSelect
+                aria-label="Filter Kecamatan"
+                value={districtFilter}
+                options={[
+                  {
+                    value: "ALL",
+                    label: regencyFilter === "ALL" ? "Pilih Kota/Kabupaten dahulu" : "Semua Kecamatan",
+                    disabled: regencyFilter === "ALL",
+                  },
+                  ...districtOptions.map((district) => ({ value: district.id, label: district.name })),
+                ]}
+                onValueChange={(value) => {
+                  setDistrictFilter(value);
+                  setVillageFilter("ALL");
+                  setPage(1);
+                }}
+                disabled={regencyFilter === "ALL"}
+                placeholder={regencyFilter === "ALL" ? "Pilih Kota/Kabupaten dahulu" : "Semua Kecamatan"}
+                searchPlaceholder="Cari Kecamatan..."
+                emptyText="Kecamatan tidak ditemukan."
+                className="h-9 w-full border-slate-200 text-xs dark:border-white/10"
+              />
+            )}
 
             {/* 7. Filter Kelurahan/Desa */}
-            <SearchableSelect
-              aria-label="Filter Kelurahan atau Desa"
-              value={villageFilter}
-              options={[
-                {
-                  value: "ALL",
-                  label: districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan",
-                  disabled: districtFilter === "ALL",
-                },
-                ...villageOptions.map((village) => ({ value: village.id, label: village.name })),
-              ]}
-              onValueChange={(value) => {
-                setVillageFilter(value);
-                setPage(1);
-              }}
-              disabled={districtFilter === "ALL"}
-              placeholder={districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan"}
-              searchPlaceholder="Cari Kelurahan/Desa..."
-              emptyText="Kelurahan/Desa tidak ditemukan."
-              className="h-9 w-full border-slate-200 text-xs dark:border-white/10"
-            />
+            {!isFieldOfficer && (
+              <SearchableSelect
+                aria-label="Filter Kelurahan atau Desa"
+                value={villageFilter}
+                options={[
+                  {
+                    value: "ALL",
+                    label: districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan",
+                    disabled: districtFilter === "ALL",
+                  },
+                  ...villageOptions.map((village) => ({ value: village.id, label: village.name })),
+                ]}
+                onValueChange={(value) => {
+                  setVillageFilter(value);
+                  setPage(1);
+                }}
+                disabled={districtFilter === "ALL"}
+                placeholder={districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan"}
+                searchPlaceholder="Cari Kelurahan/Desa..."
+                emptyText="Kelurahan/Desa tidak ditemukan."
+                className="h-9 w-full border-slate-200 text-xs dark:border-white/10"
+              />
+            )}
 
             {/* 8. Filter Periode Waktu */}
             <NativeSelect
