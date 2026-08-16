@@ -4376,7 +4376,7 @@ function CommandHierarchyFlow() {
       <div className="font-mono text-[9px] text-muted-foreground/50 uppercase tracking-wider">ALUR KOMANDO</div>
       <div className="flex flex-col items-center gap-1 border-white/[0.08] border-t pt-3 text-center font-mono">
         {steps.map((step, idx) => (
-          <div key={idx} className="flex w-full flex-col items-center">
+          <div key={step.label} className="flex w-full flex-col items-center">
             <div className="w-full rounded-[4px] border border-white/[0.04] bg-white/[0.02] p-2 transition-colors hover:bg-white/[0.04]">
               <div className="font-bold text-[var(--dc-primary)] text-xs">{step.label}</div>
               <div className="mt-0.5 text-[9px] text-muted-foreground/50">{step.desc}</div>

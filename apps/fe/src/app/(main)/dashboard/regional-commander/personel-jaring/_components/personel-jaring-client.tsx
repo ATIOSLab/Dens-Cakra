@@ -1482,11 +1482,11 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
                               </span>
                               <div className="space-y-1.5">
                                 {caretakers.length > 0 ? (
-                                  caretakers.map((caretaker, index) => {
+                                  caretakers.map((caretaker) => {
                                     const off = record(record(caretaker.fieldOfficerAssignment).userProfile);
                                     return (
                                       <div
-                                        key={index}
+                                        key={text(record(caretaker.fieldOfficerAssignment).id)}
                                         className="flex justify-between items-center bg-secondary/15 border border-border/30 rounded px-2.5 py-1.5"
                                       >
                                         <span className="font-sans font-medium text-[11px] text-foreground truncate max-w-[200px]">
