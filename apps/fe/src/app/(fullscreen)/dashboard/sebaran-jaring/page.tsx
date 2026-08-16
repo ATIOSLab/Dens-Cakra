@@ -52,6 +52,27 @@ async function fetchAllByRegistrationStatus(registrationStatus: RegistrationJari
   return items;
 }
 
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  mapper: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let nextIndex = 0;
+
+  async function worker() {
+    while (nextIndex < items.length) {
+      const index = nextIndex;
+      nextIndex += 1;
+      results[index] = await mapper(items[index], index);
+    }
+  }
+
+  const workerCount = Math.min(limit, items.length);
+  await Promise.all(Array.from({ length: workerCount }, () => worker()));
+  return results;
+}
+
 async function resolveScopeCity(scope: AccessContextResource["authorizationContext"]["areaScopes"][number]) {
   if (scope.level === "CITY" || scope.level === "REGENCY") {
     return {
@@ -301,19 +322,19 @@ async function buildCityDistribution(
 
   const districts = allowedDistrictIds ? allDistricts.filter((d) => allowedDistrictIds.has(d.id)) : allDistricts;
 
-  const districtRows = await Promise.all(
-    districts.map(async (district) => {
-      const districtItems = items.filter((item) => jaringDistrict(item)?.id === district.id);
-      const verifiedDistrictItems = districtItems.filter((item) => item.registrationStatus === "APPROVED");
-      const villages = new Set(
-        districtItems.flatMap((item) => {
-          const village = jaringVillage(item);
-          return village ? [village.id] : [];
-        }),
-      );
-      const officers = new Set(districtItems.flatMap((item) => (officerName(item) ? [officerName(item)] : [])));
+  const districtRows = await mapWithConcurrency(districts, 6, async (district) => {
+    const districtItems = items.filter((item) => jaringDistrict(item)?.id === district.id);
+    const verifiedDistrictItems = districtItems.filter((item) => item.registrationStatus === "APPROVED");
+    const villages = new Set(
+      districtItems.flatMap((item) => {
+        const village = jaringVillage(item);
+        return village ? [village.id] : [];
+      }),
+    );
+    const officers = new Set(districtItems.flatMap((item) => (officerName(item) ? [officerName(item)] : [])));
 
-      let boundary: BoundaryPayload = null;
+    let boundary: BoundaryPayload = null;
+    if (districtItems.length > 0) {
       try {
         boundary = await apiServerGet<BoundaryPayload>(`/administrative-areas/${district.id}/boundary`, {
           simplifyMeters: 18,
@@ -321,57 +342,57 @@ async function buildCityDistribution(
       } catch {
         boundary = null;
       }
+    }
 
-      const cLat =
-        district.centroidLatitude === null || district.centroidLatitude === undefined
-          ? -6.2
-          : Number(district.centroidLatitude);
-      const cLng =
-        district.centroidLongitude === null || district.centroidLongitude === undefined
-          ? 106.8166
-          : Number(district.centroidLongitude);
+    const cLat =
+      district.centroidLatitude === null || district.centroidLatitude === undefined
+        ? -6.2
+        : Number(district.centroidLatitude);
+    const cLng =
+      district.centroidLongitude === null || district.centroidLongitude === undefined
+        ? 106.8166
+        : Number(district.centroidLongitude);
 
-      const villageMap = new Map<string, { id: string; name: string; items: RegistrationJaring[] }>();
-      for (const item of districtItems) {
-        const village = jaringVillage(item);
-        if (village) {
-          const existing = villageMap.get(village.id);
-          if (existing) {
-            existing.items.push(item);
-          } else {
-            villageMap.set(village.id, { id: village.id, name: village.name, items: [item] });
-          }
+    const villageMap = new Map<string, { id: string; name: string; items: RegistrationJaring[] }>();
+    for (const item of districtItems) {
+      const village = jaringVillage(item);
+      if (village) {
+        const existing = villageMap.get(village.id);
+        if (existing) {
+          existing.items.push(item);
+        } else {
+          villageMap.set(village.id, { id: village.id, name: village.name, items: [item] });
         }
       }
+    }
 
-      const villageRows = Array.from(villageMap.values())
-        .map((v) => ({
-          id: v.id,
-          name: v.name,
-          total: v.items.length,
-          approved: v.items.filter((item) => item.registrationStatus === "APPROVED").length,
-          pending: v.items.filter((item) => item.registrationStatus === "PENDING").length,
-          rejected: v.items.filter((item) => item.registrationStatus === "REJECTED").length,
-        }))
-        .sort((a, b) => a.name.localeCompare(b.name));
+    const villageRows = Array.from(villageMap.values())
+      .map((v) => ({
+        id: v.id,
+        name: v.name,
+        total: v.items.length,
+        approved: v.items.filter((item) => item.registrationStatus === "APPROVED").length,
+        pending: v.items.filter((item) => item.registrationStatus === "PENDING").length,
+        rejected: v.items.filter((item) => item.registrationStatus === "REJECTED").length,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
 
-      return {
-        id: district.id,
-        name: district.name,
-        total: districtItems.length,
-        approved: verifiedDistrictItems.length,
-        pending: districtItems.filter((item) => item.registrationStatus === "PENDING").length,
-        rejected: districtItems.filter((item) => item.registrationStatus === "REJECTED").length,
-        villageCount: villages.size,
-        fieldOfficerCount: officers.size,
-        fieldOfficerNames: [...officers].filter((name): name is string => Boolean(name)).sort(),
-        centroidLatitude: cLat,
-        centroidLongitude: cLng,
-        geometry: boundary?.geometry ?? null,
-        villages: villageRows,
-      };
-    }),
-  );
+    return {
+      id: district.id,
+      name: district.name,
+      total: districtItems.length,
+      approved: verifiedDistrictItems.length,
+      pending: districtItems.filter((item) => item.registrationStatus === "PENDING").length,
+      rejected: districtItems.filter((item) => item.registrationStatus === "REJECTED").length,
+      villageCount: villages.size,
+      fieldOfficerCount: officers.size,
+      fieldOfficerNames: [...officers].filter((name): name is string => Boolean(name)).sort(),
+      centroidLatitude: cLat,
+      centroidLongitude: cLng,
+      geometry: boundary?.geometry ?? null,
+      villages: villageRows,
+    };
+  });
 
   const cityItems = items.filter((item) => jaringCity(item)?.id === city.id);
   const verifiedCityItems = cityItems.filter((item) => item.registrationStatus === "APPROVED");
