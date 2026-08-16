@@ -212,6 +212,55 @@ export function BaketDetail({ baket }: BaketDetailProps) {
               </div>
             </div>
           ) : null}
+
+          {/* MEDIA LAMPIRAN */}
+          <div className="space-y-2.5 pt-1">
+            <div className="flex items-center gap-2">
+              <ImageIcon className="size-4 text-sky-600 dark:text-sky-400" />
+              <span className="font-semibold text-foreground text-xs">
+                Lampiran Media ({attachments.length} Berkas)
+              </span>
+            </div>
+            {attachments.length > 0 ? (
+              <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+                {attachments.map((attachment) => {
+                  const fileId = attachment.fileId ?? attachment.file?.id;
+                  if (!fileId) return null;
+                  return (
+                    <EvidenceAttachmentViewer
+                      key={fileId}
+                      src={`/api/files/${fileId}`}
+                      fileName={attachment.file?.originalName ?? fileId}
+                      mimeType={attachment.file?.mimeType}
+                      caption={attachment.caption}
+                    />
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="rounded-lg border border-dashed p-4 text-muted-foreground text-sm">
+                Baket ini tidak memiliki lampiran media.
+              </p>
+            )}
+          </div>
+
+          {/* LOKASI & WILAYAH ADMINISTRATIF */}
+          <div className="space-y-3 pt-1">
+            <div className="flex items-center gap-2">
+              <MapPin className="size-4 text-sky-600 dark:text-sky-400" />
+              <span className="font-semibold text-foreground text-xs">Lokasi & Wilayah Administratif</span>
+            </div>
+            {hasLocation ? (
+              <BaketLocationMap
+                latitude={latitude}
+                longitude={longitude}
+                title={getBaketDisplayTitle(baket)}
+                areaLabel={areaLabel}
+                urgency={version?.urgency}
+              />
+            ) : null}
+            <BaketAdministrativeArea area={version?.eventArea} />
+          </div>
         </CardContent>
       </Card>
 
@@ -295,66 +344,6 @@ export function BaketDetail({ baket }: BaketDetailProps) {
               {verification?.summary ? <p className="text-foreground">{verification.summary}</p> : null}
             </div>
           ) : null}
-        </CardContent>
-      </Card>
-
-      {/* SECTION — LOKASI & WILAYAH ADMINISTRATIF */}
-      <Card className="overflow-hidden rounded-xl border border-slate-200/80 bg-card shadow-xs dark:border-white/10">
-        <CardHeader className="border-slate-200/80 border-b bg-slate-50/50 p-4 md:p-5 dark:border-white/10 dark:bg-slate-900/40">
-          <CardTitle className="flex items-center gap-2 font-bold text-sm uppercase tracking-wide">
-            <MapPin className="size-4 text-violet-600 dark:text-violet-400" />
-            Lokasi & Wilayah Administratif
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4 p-4 md:p-6">
-          {hasLocation ? (
-            <BaketLocationMap
-              latitude={latitude}
-              longitude={longitude}
-              title={getBaketDisplayTitle(baket)}
-              areaLabel={areaLabel}
-              urgency={version?.urgency}
-            />
-          ) : (
-            <p className="rounded-lg border border-dashed p-4 text-muted-foreground text-sm">
-              Koordinat lokasi belum tersedia pada Baket ini.
-            </p>
-          )}
-          <BaketAdministrativeArea area={version?.eventArea} />
-        </CardContent>
-      </Card>
-
-      {/* SECTION — LAMPIRAN MEDIA */}
-      <Card className="overflow-hidden rounded-xl border border-slate-200/80 bg-card shadow-xs dark:border-white/10">
-        <CardHeader className="border-slate-200/80 border-b bg-slate-50/50 p-4 md:p-5 dark:border-white/10 dark:bg-slate-900/40">
-          <div className="flex items-center gap-2">
-            <ImageIcon className="size-4 text-violet-600 dark:text-violet-400" />
-            <CardTitle className="font-bold text-sm uppercase tracking-wide">Lampiran Media</CardTitle>
-            <Badge variant="secondary">{attachments.length} berkas</Badge>
-          </div>
-        </CardHeader>
-        <CardContent className="p-4 md:p-6">
-          {attachments.length > 0 ? (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {attachments.map((attachment) => {
-                const fileId = attachment.fileId ?? attachment.file?.id;
-                if (!fileId) return null;
-                return (
-                  <EvidenceAttachmentViewer
-                    key={fileId}
-                    src={`/api/files/${fileId}`}
-                    fileName={attachment.file?.originalName ?? fileId}
-                    mimeType={attachment.file?.mimeType}
-                    caption={attachment.caption}
-                  />
-                );
-              })}
-            </div>
-          ) : (
-            <p className="rounded-lg border border-dashed p-4 text-muted-foreground text-sm">
-              Baket ini tidak memiliki lampiran media.
-            </p>
-          )}
         </CardContent>
       </Card>
     </main>

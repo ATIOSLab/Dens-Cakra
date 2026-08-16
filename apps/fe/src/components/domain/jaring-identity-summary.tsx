@@ -1,6 +1,7 @@
 import { Hash, MapPin, Phone, UserCheck, UserRound } from "lucide-react";
 
 import { GaswilEntityLink } from "@/components/domain/gaswil-entity-link";
+import { JaringEntityLink } from "@/components/domain/jaring-entity-link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { type JaringIdentitySource, resolveJaringIdentity } from "@/lib/domain/jaring-identity";
 import { DOMAIN_TERMS } from "@/lib/domain/terminology";
@@ -68,6 +69,7 @@ export function JaringIdentitySummary({
           const value = identity[key];
           const isPhone = key === "whatsappNumber" && value !== "Belum tersedia";
           const isGaswil = key === "gaswilName";
+          const isName = key === "name";
           const displayLabel = labelOverrides?.[key] ?? label;
           return (
             <div
@@ -105,6 +107,8 @@ export function JaringIdentitySummary({
                       userProfileId={identity.gaswilUserProfileId}
                       href={identity.gaswilHref}
                     />
+                  ) : isName ? (
+                    <JaringEntityLink jaringId={source.id} name={value} />
                   ) : (
                     value
                   )}
