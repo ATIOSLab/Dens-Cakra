@@ -1035,26 +1035,28 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
             )}
 
             {/* 4. Filter Kelurahan/Desa */}
-            {!isFieldOfficer && (
-              <NativeSelect
-                aria-label="Filter Kelurahan atau Desa"
-                value={villageFilter}
-                onChange={(event) => {
-                  setVillageFilter(event.target.value);
-                  setPage(1);
-                }}
-                disabled={districtFilter === "ALL"}
-                className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full text-xs")}
-              >
-                <option value="ALL">{districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan"}</option>
-                {villageOptions.map((village) => (
-                  <option key={village.id} value={village.id}>
-                    {village.name}
-                    {districtFilter === "ALL" && village.districtName ? ` - ${village.districtName}` : ""}
-                  </option>
-                ))}
-              </NativeSelect>
-            )}
+            <NativeSelect
+              aria-label="Filter Kelurahan atau Desa"
+              value={villageFilter}
+              onChange={(event) => {
+                setVillageFilter(event.target.value);
+                setPage(1);
+              }}
+              disabled={!isFieldOfficer && districtFilter === "ALL"}
+              className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full text-xs")}
+            >
+              <option value="ALL">
+                {!isFieldOfficer && districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan"}
+              </option>
+              {villageOptions.map((village) => (
+                <option key={village.id} value={village.id}>
+                  {village.name}
+                  {!isFieldOfficer && districtFilter === "ALL" && village.districtName
+                    ? ` - ${village.districtName}`
+                    : ""}
+                </option>
+              ))}
+            </NativeSelect>
 
             {/* 5. Filter Petugas Wilayah (Gaswil) */}
             {!isFieldOfficer && (

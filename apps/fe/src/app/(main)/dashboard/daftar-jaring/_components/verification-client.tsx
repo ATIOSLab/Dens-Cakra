@@ -400,13 +400,13 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
   }, [items, cityFilter, matchesCity, matchesProvince, provinceFilter]);
 
   const uniqueVillages = useMemo(() => {
-    if (districtFilter === "ALL") return [];
+    if (districtFilter === "ALL" && !isFieldOfficer) return [];
     const options = new Map<string, AreaFilterOption>();
     for (const item of items) {
       if (
         matchesProvince(item, provinceFilter) &&
         matchesCity(item, cityFilter) &&
-        matchesDistrict(item, districtFilter)
+        (districtFilter === "ALL" || matchesDistrict(item, districtFilter))
       ) {
         addAreaOption(options, jaringVillage(item));
         for (const cov of item.areaCoverages) {
@@ -417,7 +417,16 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
       }
     }
     return sortedAreaOptions(options);
-  }, [items, cityFilter, districtFilter, matchesCity, matchesDistrict, matchesProvince, provinceFilter]);
+  }, [
+    items,
+    cityFilter,
+    districtFilter,
+    isFieldOfficer,
+    matchesCity,
+    matchesDistrict,
+    matchesProvince,
+    provinceFilter,
+  ]);
 
   const uniqueOfficers = useMemo(() => {
     const set = new Set<string>();
@@ -827,31 +836,31 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
                   emptyText="Kecamatan tidak ditemukan."
                   className="h-9 w-full min-w-[150px] text-xs sm:w-auto"
                 />
-
-                {/* Filter Kelurahan / Desa */}
-                <SearchableSelect
-                  aria-label="Filter Kelurahan/Desa"
-                  value={villageFilter}
-                  options={[
-                    {
-                      value: "ALL",
-                      label: districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan",
-                      disabled: districtFilter === "ALL",
-                    },
-                    ...uniqueVillages.map((vill) => ({ value: vill.id, label: vill.name })),
-                  ]}
-                  onValueChange={(value) => {
-                    setVillageFilter(value);
-                    setPage(1);
-                  }}
-                  disabled={districtFilter === "ALL"}
-                  placeholder={districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan"}
-                  searchPlaceholder="Cari kelurahan/desa..."
-                  emptyText="Kelurahan/Desa tidak ditemukan."
-                  className="h-9 w-full min-w-[150px] text-xs sm:w-auto"
-                />
               </>
             )}
+
+            {/* Filter Kelurahan / Desa (untuk Gaswil = wilayah desanya) */}
+            <SearchableSelect
+              aria-label="Filter Kelurahan/Desa"
+              value={villageFilter}
+              options={[
+                {
+                  value: "ALL",
+                  label: !isFieldOfficer && districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan",
+                  disabled: !isFieldOfficer && districtFilter === "ALL",
+                },
+                ...uniqueVillages.map((vill) => ({ value: vill.id, label: vill.name })),
+              ]}
+              onValueChange={(value) => {
+                setVillageFilter(value);
+                setPage(1);
+              }}
+              disabled={!isFieldOfficer && districtFilter === "ALL"}
+              placeholder={!isFieldOfficer && districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan"}
+              searchPlaceholder="Cari kelurahan/desa..."
+              emptyText="Kelurahan/Desa tidak ditemukan."
+              className="h-9 w-full min-w-[150px] text-xs sm:w-auto"
+            />
 
             {/* Filter Status */}
             <NativeSelect

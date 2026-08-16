@@ -735,29 +735,27 @@ export function BaketCoordinatorClient({ role }: { role?: SystemRole } = {}) {
             )}
 
             {/* 7. Filter Kelurahan/Desa */}
-            {!isFieldOfficer && (
-              <SearchableSelect
-                aria-label="Filter Kelurahan atau Desa"
-                value={villageFilter}
-                options={[
-                  {
-                    value: "ALL",
-                    label: districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan",
-                    disabled: districtFilter === "ALL",
-                  },
-                  ...villageOptions.map((village) => ({ value: village.id, label: village.name })),
-                ]}
-                onValueChange={(value) => {
-                  setVillageFilter(value);
-                  setPage(1);
-                }}
-                disabled={districtFilter === "ALL"}
-                placeholder={districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan"}
-                searchPlaceholder="Cari Kelurahan/Desa..."
-                emptyText="Kelurahan/Desa tidak ditemukan."
-                className="h-9 w-full border-slate-200 text-xs dark:border-white/10"
-              />
-            )}
+            <SearchableSelect
+              aria-label="Filter Kelurahan atau Desa"
+              value={villageFilter}
+              options={[
+                {
+                  value: "ALL",
+                  label: !isFieldOfficer && districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan",
+                  disabled: !isFieldOfficer && districtFilter === "ALL",
+                },
+                ...villageOptions.map((village) => ({ value: village.id, label: village.name })),
+              ]}
+              onValueChange={(value) => {
+                setVillageFilter(value);
+                setPage(1);
+              }}
+              disabled={!isFieldOfficer && districtFilter === "ALL"}
+              placeholder={!isFieldOfficer && districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan"}
+              searchPlaceholder="Cari Kelurahan/Desa..."
+              emptyText="Kelurahan/Desa tidak ditemukan."
+              className="h-9 w-full border-slate-200 text-xs dark:border-white/10"
+            />
 
             {/* 8. Filter Periode Waktu */}
             <NativeSelect

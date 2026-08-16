@@ -185,8 +185,6 @@ export function buildDistrictFilterOptions(areaScopes: AdministrativeAreaFilterS
 }
 
 export function buildVillageFilterOptions(areaScopes: AdministrativeAreaFilterScope[], districtFilter: string) {
-  if (districtFilter === "ALL") return [];
-
   const districts = areaScopes.filter((area) => isDistrictLevel(area.level));
   const villages = new Map<string, VillageFilterOption>();
 
@@ -195,12 +193,13 @@ export function buildVillageFilterOptions(areaScopes: AdministrativeAreaFilterSc
     if (!id || !isVillageLevel(area.level)) continue;
 
     const district = resolveVillageDistrict(area, districts);
-    if ((district ? areaScopeId(district) : area.parentAreaId) !== districtFilter) continue;
+    const districtId = district ? areaScopeId(district) : (area.parentAreaId ?? null);
+    if (districtFilter !== "ALL" && districtId !== districtFilter) continue;
 
     villages.set(id, {
       id,
       name: area.name,
-      districtId: district ? areaScopeId(district) : (area.parentAreaId ?? null),
+      districtId,
       districtName: district ? district.name : null,
     });
   }
