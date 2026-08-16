@@ -726,7 +726,7 @@ export function BaketCoordinatorClient() {
               options={[
                 {
                   value: "ALL",
-                  label: districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan/Desa",
+                  label: districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan",
                   disabled: districtFilter === "ALL",
                 },
                 ...villageOptions.map((village) => ({ value: village.id, label: village.name })),
@@ -736,7 +736,7 @@ export function BaketCoordinatorClient() {
                 setPage(1);
               }}
               disabled={districtFilter === "ALL"}
-              placeholder={districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan/Desa"}
+              placeholder={districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan"}
               searchPlaceholder="Cari Kelurahan/Desa..."
               emptyText="Kelurahan/Desa tidak ditemukan."
               className="h-9 w-full border-slate-200 text-xs dark:border-white/10"

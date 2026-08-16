@@ -1526,7 +1526,7 @@ export function FieldOfficerOperationsPage({
                               <SelectValue placeholder="Pilih Kelurahan/Desa" />
                             </SelectTrigger>
                             <SelectContent className="bg-card border-[var(--tactical-border)] text-foreground">
-                              <SelectItem value="all">Semua Kelurahan/Desa</SelectItem>
+                              <SelectItem value="all">Semua Kelurahan</SelectItem>
                               {jaringVillageOptions.map((area) => (
                                 <SelectItem key={area.areaId} value={area.areaId}>
                                   {area.name}
@@ -1558,7 +1558,7 @@ export function FieldOfficerOperationsPage({
                               <SelectValue placeholder="Pilih aktivitas laporan" />
                             </SelectTrigger>
                             <SelectContent className="bg-card border-[var(--tactical-border)] text-foreground">
-                              <SelectItem value="all">Semua Aktivitas Laporan 90 Hari</SelectItem>
+                              <SelectItem value="all">Semua Aktivitas</SelectItem>
                               <SelectItem value="active">{DOMAIN_TERMS.jaringActive90Days}</SelectItem>
                               <SelectItem value="inactive">{DOMAIN_TERMS.jaringInactive90Days}</SelectItem>
                             </SelectContent>
@@ -2018,7 +2018,7 @@ export function FieldOfficerOperationsPage({
                     className="tactical-input h-10 w-full px-3 text-sm"
                     aria-label="Filter kategori baket"
                   >
-                    <option value="">Semua kategori</option>
+                    <option value="">Semua Kategori</option>
                     {sortReportCategories(workspace.reportCategories.filter((item) => item.isActive)).map(
                       (category) => (
                         <option key={category.id} value={category.id}>

@@ -1003,7 +1003,7 @@ export function LaporanJaringCoordinatorClient() {
               className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full text-xs")}
             >
               <option value="ALL">
-                {districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan/Desa"}
+                {districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan"}
               </option>
               {villageOptions.map((village) => (
                 <option key={village.id} value={village.id}>
@@ -1018,7 +1018,7 @@ export function LaporanJaringCoordinatorClient() {
               aria-label="Filter Petugas Wilayah (Gaswil)"
               value={fieldOfficerFilter || "ALL"}
               options={[
-                { value: "ALL", label: "Semua Petugas Wilayah (Gaswil)" },
+                { value: "ALL", label: "Semua Gaswil" },
                 ...gaswilOptions.map((option) => ({
                   value: option.assignmentId,
                   label: `${option.name} (${option.jaringCount} Jaring)`,
@@ -1030,7 +1030,7 @@ export function LaporanJaringCoordinatorClient() {
               }}
               disabled={gaswilOptions.length === 0}
               placeholder={
-                gaswilOptions.length === 0 ? "Petugas Wilayah belum tersedia" : "Semua Petugas Wilayah (Gaswil)"
+                gaswilOptions.length === 0 ? "Petugas Wilayah belum tersedia" : "Semua Gaswil"
               }
               searchPlaceholder="Cari Petugas Wilayah (Gaswil)..."
               emptyText="Petugas Wilayah (Gaswil) tidak ditemukan."

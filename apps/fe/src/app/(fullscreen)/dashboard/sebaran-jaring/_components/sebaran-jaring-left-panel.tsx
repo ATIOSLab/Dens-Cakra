@@ -203,7 +203,7 @@ export function SebaranJaringLeftPanel({
               className={controlClass}
             >
               <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
-                {selectedDistrictId ? "Semua Kelurahan/Desa" : "Pilih Kecamatan dahulu"}
+                {selectedDistrictId ? "Semua Kelurahan" : "Pilih Kecamatan dahulu"}
               </option>
               {availableVillages.map((village) => (
                 <option
@@ -287,7 +287,7 @@ export function SebaranJaringLeftPanel({
                 }
                 className="size-3.5 border-slate-300 dark:border-slate-700 data-[state=checked]:bg-cyan-600"
               />
-              <span>Semua status</span>
+              <span>Semua Status</span>
             </label>
 
             {(

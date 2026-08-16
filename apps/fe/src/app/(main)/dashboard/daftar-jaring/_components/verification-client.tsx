@@ -813,7 +813,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
               options={[
                 {
                   value: "ALL",
-                  label: districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan/Desa",
+                  label: districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan",
                   disabled: districtFilter === "ALL",
                 },
                 ...uniqueVillages.map((vill) => ({ value: vill.id, label: vill.name })),
@@ -823,7 +823,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
                 setPage(1);
               }}
               disabled={districtFilter === "ALL"}
-              placeholder={districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan/Desa"}
+              placeholder={districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan"}
               searchPlaceholder="Cari kelurahan/desa..."
               emptyText="Kelurahan/Desa tidak ditemukan."
               className="h-9 w-full min-w-[150px] text-xs sm:w-auto"
@@ -838,7 +838,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
               }}
               className="w-full sm:w-auto min-w-[140px]"
             >
-              <option value="ALL">Semua Status Registrasi</option>
+              <option value="ALL">Semua Status</option>
               <option value="PENDING">Menunggu Tinjauan</option>
               <option value="APPROVED">Disetujui</option>
               <option value="REJECTED">Ditolak</option>
@@ -853,7 +853,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
               }}
               className="w-full sm:w-auto min-w-[150px]"
             >
-              <option value="ALL">Semua Aktivitas Laporan 90 Hari</option>
+              <option value="ALL">Semua Aktivitas</option>
               <option value="ACTIVE">{DOMAIN_TERMS.jaringActive90Days}</option>
               <option value="INACTIVE">{DOMAIN_TERMS.jaringInactive90Days}</option>
             </NativeSelect>
@@ -863,14 +863,14 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
               aria-label="Filter Petugas Wilayah (Gaswil)"
               value={officerFilter}
               options={[
-                { value: "ALL", label: "Semua Petugas Wilayah (Gaswil)" },
+                { value: "ALL", label: "Semua Gaswil" },
                 ...uniqueOfficers.map((officer) => ({ value: officer, label: officer })),
               ]}
               onValueChange={(value) => {
                 setOfficerFilter(value);
                 setPage(1);
               }}
-              placeholder="Semua Petugas Wilayah (Gaswil)"
+              placeholder="Semua Gaswil"
               searchPlaceholder="Cari Petugas Wilayah (Gaswil)..."
               emptyText="Petugas Wilayah (Gaswil) tidak ditemukan."
               className="h-9 w-full min-w-[160px] text-xs sm:w-auto"

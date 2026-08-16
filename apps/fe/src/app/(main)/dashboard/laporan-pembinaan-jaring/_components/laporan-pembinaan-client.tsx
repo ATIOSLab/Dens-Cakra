@@ -358,7 +358,7 @@ export function LaporanPembinaanClient() {
             }}
             className="h-9 w-full border-slate-200 text-xs dark:border-white/10"
           >
-            <option value="ALL">Semua Kelurahan/Desa</option>
+            <option value="ALL">Semua Kelurahan</option>
             {villageAreas.map((v) => (
               <option key={v.areaId} value={v.areaId}>
                 {v.name}

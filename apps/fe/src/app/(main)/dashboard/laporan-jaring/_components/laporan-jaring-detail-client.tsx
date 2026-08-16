@@ -784,7 +784,7 @@ export function LaporanJaringDetailClient({
                   onChange={(e) => setHistoryCategoryFilter(e.target.value)}
                   className="h-8 text-xs bg-background"
                 >
-                  <option value="ALL">Semua Event</option>
+                  <option value="ALL">Semua Peristiwa</option>
                   <option value="report_history">Riwayat Laporan</option>
                   <option value="audit_log">Audit Log</option>
                 </NativeSelect>

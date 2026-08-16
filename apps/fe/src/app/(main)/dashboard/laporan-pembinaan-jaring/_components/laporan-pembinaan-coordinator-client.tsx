@@ -927,7 +927,7 @@ export function LaporanPembinaanCoordinatorClient() {
               options={[
                 {
                   value: "ALL",
-                  label: districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan/Desa",
+                  label: districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan",
                   disabled: districtFilter === "ALL" || villageOptions.length === 0,
                 },
                 ...villageOptions.map((village) => ({ value: village.id, label: village.name })),
@@ -939,7 +939,7 @@ export function LaporanPembinaanCoordinatorClient() {
                 setPage(1);
               }}
               disabled={districtFilter === "ALL" || villageOptions.length === 0}
-              placeholder={districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan/Desa"}
+              placeholder={districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan"}
               searchPlaceholder="Cari kelurahan/desa..."
               emptyText="Kelurahan/Desa tidak ditemukan."
               className={cn(DC_CONTROLS.selectTrigger, "w-full text-xs")}
@@ -953,7 +953,7 @@ export function LaporanPembinaanCoordinatorClient() {
                 {
                   value: "ALL",
                   label:
-                    gaswilOptions.length === 0 ? "Petugas Wilayah belum tersedia" : "Semua Petugas Wilayah (Gaswil)",
+                    gaswilOptions.length === 0 ? "Petugas Wilayah belum tersedia" : "Semua Gaswil",
                   disabled: gaswilOptions.length === 0,
                 },
                 ...gaswilOptions.map((gaswil) => ({
@@ -968,7 +968,7 @@ export function LaporanPembinaanCoordinatorClient() {
               }}
               disabled={gaswilOptions.length === 0}
               placeholder={
-                gaswilOptions.length === 0 ? "Petugas Wilayah belum tersedia" : "Semua Petugas Wilayah (Gaswil)"
+                gaswilOptions.length === 0 ? "Petugas Wilayah belum tersedia" : "Semua Gaswil"
               }
               searchPlaceholder="Cari Petugas Wilayah (Gaswil)..."
               emptyText="Petugas Wilayah (Gaswil) tidak ditemukan."
