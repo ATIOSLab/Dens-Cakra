@@ -46,12 +46,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { NativeSelect } from "@/components/ui/native-select";
-import { Textarea } from "@/components/ui/textarea";
 import { EvidenceAttachmentViewer } from "@/features/baket/components/evidence-attachment-viewer";
 import { apiBrowserFetch, apiBrowserMutation } from "@/lib/api/browser-client";
 import { sortReportCategories } from "@/lib/domain/report-category-order";
 import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
+import {
+  SYSTEM_ROLE_HOME_ROUTES,
+  SYSTEM_ROLE_LABELS,
+  SYSTEM_ROLES,
+  type SystemRole,
+} from "@/navigation/sidebar/system-roles";
 
 import {
   formatDateTime,
@@ -82,10 +87,12 @@ export function LaporanJaringDetailClient({
   laporanId,
   backHref = "/dashboard/laporan-jaring",
   readOnly = false,
+  role = SYSTEM_ROLES.FIELD_OFFICER,
 }: {
   laporanId: string;
   backHref?: string;
   readOnly?: boolean;
+  role?: SystemRole;
 }) {
   const _router = useRouter();
   const [activeReport, setActiveReport] = useState<JaringReportSessionDetail | null>(null);
@@ -98,9 +105,6 @@ export function LaporanJaringDetailClient({
   // Baket form state
   const [categoryId, setCategoryId] = useState("");
   const [urgency, setUrgency] = useState<PriorityLevel>("NORMAL");
-  const [content, setContent] = useState("");
-  const [normalizedContent, setNormalizedContent] = useState("");
-  const [fieldOfficerNote, setFieldOfficerNote] = useState("");
   const [isSavingMetadata, setIsSavingMetadata] = useState(false);
   const detailRequestInFlight = useRef(false);
 
@@ -140,9 +144,6 @@ export function LaporanJaringDetailClient({
         if (!silent) {
           setCategoryId(detail.reportCategory?.id || "");
           setUrgency(detail.urgency || "NORMAL");
-          setContent(detail.content || "");
-          setNormalizedContent(detail.normalizedContent || "");
-          setFieldOfficerNote(detail.fieldOfficerNote || "");
         }
         if (!silent && !readOnly && detail.status === "SUBMITTED") {
           void apiBrowserMutation("PATCH", `/jaring/reports/${laporanId}/read`).catch(() => undefined);
@@ -207,15 +208,12 @@ export function LaporanJaringDetailClient({
         {
           categoryId,
           urgency,
-          content: content.trim() || undefined,
-          normalizedContent: normalizedContent.trim() || undefined,
-          fieldOfficerNote: fieldOfficerNote.trim() || undefined,
         },
       );
-      toast.success("Informasi lanjutan berhasil disimpan dan Baket diterbitkan.");
+      toast.success("Laporan Jaring berhasil dijadikan Baket.");
       setActiveReport(updated);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Gagal menyimpan metadata laporan.");
+      toast.error(err instanceof Error ? err.message : "Gagal menjadikan laporan sebagai Baket.");
     } finally {
       setIsSavingMetadata(false);
     }
@@ -282,7 +280,7 @@ export function LaporanJaringDetailClient({
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbLink href="/dashboard/field-officer">Petugas Wilayah (Gaswil)</BreadcrumbLink>
+            <BreadcrumbLink href={SYSTEM_ROLE_HOME_ROUTES[role]}>{SYSTEM_ROLE_LABELS[role]}</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
@@ -566,8 +564,8 @@ export function LaporanJaringDetailClient({
                           <CardTitle className="text-sm font-bold uppercase tracking-wide">Pembuatan Baket</CardTitle>
                           <CardDescription className="text-xs">
                             {readOnly || activeReport.baket
-                              ? "Kategori, urgensi, dan narasi Baket yang sudah dibuat dari Laporan Jaring."
-                              : "Pilih kategori Baket, urgensi, dan formulasi narasi untuk menerbitkan Baket."}
+                              ? "Kategori dan urgensi Baket yang sudah ditetapkan dari Laporan Jaring."
+                              : "Pilih kategori Baket dan urgensi untuk menjadikan laporan ini Baket."}
                           </CardDescription>
                         </div>
                       </div>
@@ -613,35 +611,6 @@ export function LaporanJaringDetailClient({
                             {urgencyLabel(activeReport.urgency)}
                           </Badge>
                         </div>
-
-                        <div className="md:col-span-2 space-y-1">
-                          <span className="text-muted-foreground font-medium block">Formulasi Isi Baket:</span>
-                          <div className="p-3.5 rounded-lg border border-slate-200/80 bg-slate-50 dark:border-white/10 dark:bg-slate-950/40 font-mono text-xs whitespace-pre-wrap text-foreground leading-relaxed">
-                            {activeReport.content || "-"}
-                          </div>
-                        </div>
-
-                        {activeReport.normalizedContent && (
-                          <div className="md:col-span-2 space-y-1">
-                            <span className="text-muted-foreground font-medium block">
-                              Ringkasan Informasi (Normalized Content):
-                            </span>
-                            <div className="p-3 rounded-lg border border-slate-200/80 bg-slate-50 dark:border-white/10 dark:bg-slate-950/40 text-xs text-foreground">
-                              {activeReport.normalizedContent}
-                            </div>
-                          </div>
-                        )}
-
-                        {activeReport.fieldOfficerNote && (
-                          <div className="md:col-span-2 space-y-1">
-                            <span className="text-muted-foreground font-medium block">
-                              Catatan Tambahan Petugas Wilayah (Gaswil):
-                            </span>
-                            <div className="p-3 rounded-lg border border-slate-200/80 bg-slate-50 dark:border-white/10 dark:bg-slate-950/40 text-xs text-foreground">
-                              {activeReport.fieldOfficerNote}
-                            </div>
-                          </div>
-                        )}
                       </div>
                     </CardContent>
                   ) : (
@@ -685,51 +654,6 @@ export function LaporanJaringDetailClient({
                             ))}
                           </NativeSelect>
                         </div>
-
-                        {/* Formulasi Isi Bahan Keterangan (Baket) */}
-                        <div className="space-y-1.5 md:col-span-2">
-                          <label htmlFor="content-textarea" className="font-medium text-xs text-foreground block">
-                            Formulasi Isi Baket:
-                          </label>
-                          <Textarea
-                            id="content-textarea"
-                            value={content}
-                            onChange={(e) => setContent(e.target.value)}
-                            placeholder="Formulasikan isi Baket yang telah diperkaya..."
-                            rows={5}
-                            className="text-xs bg-background leading-relaxed"
-                          />
-                        </div>
-
-                        {/* Normalized Content */}
-                        <div className="space-y-1.5 md:col-span-2">
-                          <label htmlFor="normalized-textarea" className="font-medium text-xs text-foreground block">
-                            Ringkasan Informasi (Normalized Content):
-                          </label>
-                          <Textarea
-                            id="normalized-textarea"
-                            value={normalizedContent}
-                            onChange={(e) => setNormalizedContent(e.target.value)}
-                            placeholder="Ringkasan poin-poin utama laporan..."
-                            rows={2}
-                            className="text-xs bg-background"
-                          />
-                        </div>
-
-                        {/* Catatan Petugas Wilayah (Gaswil) */}
-                        <div className="space-y-1.5 md:col-span-2">
-                          <label htmlFor="fo-note-textarea" className="font-medium text-xs text-foreground block">
-                            Catatan Tambahan Petugas Wilayah (Gaswil):
-                          </label>
-                          <Textarea
-                            id="fo-note-textarea"
-                            value={fieldOfficerNote}
-                            onChange={(e) => setFieldOfficerNote(e.target.value)}
-                            placeholder="Catatan analisis atau rekomendasi tindak lanjut..."
-                            rows={2}
-                            className="text-xs bg-background"
-                          />
-                        </div>
                       </div>
 
                       <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200/80 dark:border-white/10">
@@ -739,7 +663,7 @@ export function LaporanJaringDetailClient({
                           className="h-9 gap-1.5 text-xs rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-700"
                         >
                           <FileEdit className="size-4" />
-                          {isSavingMetadata ? "Menyimpan Informasi Lanjutan..." : "Simpan & Buat Baket"}
+                          {isSavingMetadata ? "Menjadikan Baket..." : "Jadikan Baket"}
                         </Button>
                       </div>
                     </CardContent>
@@ -1023,8 +947,8 @@ export function LaporanJaringDetailClient({
               Konfirmasi Pembuatan Baket
             </AlertDialogTitle>
             <AlertDialogDescription className="text-xs text-muted-foreground pt-1">
-              Apakah Anda yakin ingin menyimpan Informasi Lanjutan dan menerbitkan Baket Intelijen ini? Data yang
-              tersimpan akan secara resmi terdaftar sebagai Baket.
+              Apakah Anda yakin ingin menjadikan Laporan Jaring ini sebagai Baket dengan kategori dan urgensi yang
+              dipilih?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="pt-2">
@@ -1033,7 +957,7 @@ export function LaporanJaringDetailClient({
               onClick={() => void handleSaveMetadata()}
               className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white dark:bg-emerald-600 dark:hover:bg-emerald-700"
             >
-              Ya, Simpan & Buat Baket
+              Ya, Jadikan Baket
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

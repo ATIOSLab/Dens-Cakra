@@ -28,8 +28,8 @@ export default async function LaporanJaringDetailPage({ params, searchParams }: 
   const defaultBackHref = "/dashboard/laporan-jaring";
   const backHref = sParams.from === "baket" ? "/dashboard/baket" : defaultBackHref;
 
-  if (principal.role === SYSTEM_ROLES.FIELD_OFFICER) {
-    return <LaporanJaringDetailClient laporanId={laporanId} backHref={backHref} />;
+  if (principal.role === SYSTEM_ROLES.FIELD_OFFICER || principal.role === SYSTEM_ROLES.FIELD_COORDINATOR) {
+    return <LaporanJaringDetailClient laporanId={laporanId} backHref={backHref} role={principal.role} />;
   }
 
   return <LaporanJaringLeadershipDetailClient reportSessionId={laporanId} backHref={backHref} />;
