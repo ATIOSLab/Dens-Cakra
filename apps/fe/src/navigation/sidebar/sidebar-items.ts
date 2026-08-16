@@ -469,27 +469,34 @@ export function getSidebarItemsForRole(role: SystemRole): NavGroup[] {
     "admin-system-whatsapp-email",
     "admin-system-security",
   ]);
-  const entityIds = new Set([
-    "shared-laporan-jaring",
-    "shared-baket",
+  const dataIds = new Set(["shared-laporan-jaring", "shared-baket"]);
+  const dataOrder = new Map(["shared-laporan-jaring", "shared-baket"].map((id, index) => [id, index]));
+  const analysisProductIds = new Set([
+    "oim-analysis",
+    "oim-products",
     "regional-intelligence-products",
     "executive-intelligence-products",
-    "oim-products",
   ]);
-  const entityOrder = new Map(
-    [
-      "shared-laporan-jaring",
-      "shared-baket",
-      "regional-intelligence-products",
-      "executive-intelligence-products",
-      "oim-products",
-    ].map((id, index) => [id, index]),
+  const analysisProductOrder = new Map(
+    ["oim-analysis", "oim-products", "regional-intelligence-products", "executive-intelligence-products"].map(
+      (id, index) => [id, index],
+    ),
   );
   const personnelNetworkIds = new Set(["field-coordinator-gaswil", "field-coordinator-jaring"]);
   const personnelNetworkOrder = new Map(
     ["field-coordinator-gaswil", "field-coordinator-jaring"].map((id, index) => [id, index]),
   );
   const workspaceIds = new Set(["korwil-workspace", "regional-workspace"]);
+  const commandMonitoringOrder = new Map(
+    [
+      "oim-directives",
+      "oim-incoming-reports",
+      "oim-field-monitoring",
+      "oim-situation-map",
+      "executive-intelligence-network-map",
+      "executive-performance",
+    ].map((id, index) => [id, index]),
+  );
 
   const sections = [
     { id: 1, label: "Ringkasan", matches: (item: NavMainItem) => homeIds.has(item.id) },
@@ -500,21 +507,37 @@ export function getSidebarItemsForRole(role: SystemRole): NavGroup[] {
       matches: (item: NavMainItem) =>
         !homeIds.has(item.id) &&
         !workspaceIds.has(item.id) &&
+        !analysisProductIds.has(item.id) &&
         !personnelNetworkIds.has(item.id) &&
-        !entityIds.has(item.id) &&
+        !dataIds.has(item.id) &&
         !administrationIds.has(item.id),
     },
-    { id: 4, label: "Personel & Jaring", matches: (item: NavMainItem) => personnelNetworkIds.has(item.id) },
-    { id: 5, label: "Data & Produk Intelijen", matches: (item: NavMainItem) => entityIds.has(item.id) },
-    { id: 6, label: "Administrasi Sistem", matches: (item: NavMainItem) => administrationIds.has(item.id) },
+    {
+      id: 4,
+      label: "Analisis & Produk Intelijen",
+      matches: (item: NavMainItem) => analysisProductIds.has(item.id),
+    },
+    { id: 5, label: "Personel & Jaring", matches: (item: NavMainItem) => personnelNetworkIds.has(item.id) },
+    { id: 6, label: "Data Intelijen", matches: (item: NavMainItem) => dataIds.has(item.id) },
+    { id: 7, label: "Administrasi Sistem", matches: (item: NavMainItem) => administrationIds.has(item.id) },
   ];
 
   return sections
     .map((section) => {
       const items = accessibleItems.filter(section.matches);
 
-      if (section.label === "Data & Produk Intelijen") {
-        items.sort((left, right) => (entityOrder.get(left.id) ?? 999) - (entityOrder.get(right.id) ?? 999));
+      if (section.label === "Analisis & Produk Intelijen") {
+        items.sort(
+          (left, right) => (analysisProductOrder.get(left.id) ?? 999) - (analysisProductOrder.get(right.id) ?? 999),
+        );
+      }
+      if (section.label === "Komando & Monitoring") {
+        items.sort(
+          (left, right) => (commandMonitoringOrder.get(left.id) ?? 999) - (commandMonitoringOrder.get(right.id) ?? 999),
+        );
+      }
+      if (section.label === "Data Intelijen") {
+        items.sort((left, right) => (dataOrder.get(left.id) ?? 999) - (dataOrder.get(right.id) ?? 999));
       }
       if (section.label === "Personel & Jaring") {
         items.sort(
