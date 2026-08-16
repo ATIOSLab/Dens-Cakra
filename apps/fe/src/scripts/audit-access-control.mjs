@@ -12,14 +12,13 @@ const roleNames = [
   "EXECUTIVE",
   "FIELD_COORDINATOR",
   "FIELD_OFFICER",
-  "OPERATIONAL_INTELLIGENCE_MANAGER",
   "REGIONAL_COMMANDER",
 ];
 
 const expectedRouteRoles = [
   { prefix: "/dashboard/admin-system", roles: ["ADMIN_SYSTEM"] },
   { prefix: "/dashboard/executive", roles: ["EXECUTIVE"] },
-  { prefix: "/dashboard/oim", roles: ["OPERATIONAL_INTELLIGENCE_MANAGER"] },
+  { prefix: "/dashboard/oim", roles: ["EXECUTIVE", "REGIONAL_COMMANDER"] },
   { prefix: "/dashboard/regional-commander", roles: ["REGIONAL_COMMANDER"] },
   { prefix: "/dashboard/field-officer", roles: ["FIELD_OFFICER"] },
   { prefix: "/dashboard/field-coordinator", roles: ["FIELD_COORDINATOR"] },
@@ -36,7 +35,6 @@ const expectedRouteRoles = [
       "EXECUTIVE",
       "FIELD_OFFICER",
       "FIELD_COORDINATOR",
-      "OPERATIONAL_INTELLIGENCE_MANAGER",
       "REGIONAL_COMMANDER",
     ],
   },
@@ -50,7 +48,6 @@ const expectedRouteRoles = [
       "EXECUTIVE",
       "FIELD_OFFICER",
       "FIELD_COORDINATOR",
-      "OPERATIONAL_INTELLIGENCE_MANAGER",
       "REGIONAL_COMMANDER",
     ],
   },

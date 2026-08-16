@@ -36,13 +36,6 @@ export const ROLE_ACCESS_PROFILES: RoleAccessProfile[] = [
     policy: "Cakupan Direktorat/Ditwil ditentukan dari penugasan aktif dan wilayah supervisi, bukan hardcode.",
   },
   {
-    id: SYSTEM_ROLES.OPERATIONAL_INTELLIGENCE_MANAGER,
-    functionLabel: "Analisis dan evaluasi operasional",
-    accessScope: "Unit organisasi, fungsi Anev, dan wilayah penugasan aktif.",
-    actions: ["Lihat", "Buat", "Ubah", "Verifikasi", "Kembalikan untuk perbaikan"],
-    policy: "Fungsi Anev melekat pada pengguna dan tidak mengubah garis komando kewilayahan.",
-  },
-  {
     id: SYSTEM_ROLES.FIELD_COORDINATOR,
     functionLabel: DOMAIN_TERMS.fieldCoordinatorRole,
     accessScope: "Kabupaten/Kota penugasan beserta Gaswil, Jaring, dan laporan di bawahnya.",

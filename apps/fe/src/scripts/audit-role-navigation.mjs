@@ -13,7 +13,6 @@ const roleValues = {
   EXECUTIVE: "executive",
   FIELD_COORDINATOR: "field_coordinator",
   FIELD_OFFICER: "field_officer",
-  OPERATIONAL_INTELLIGENCE_MANAGER: "operational_intelligence_manager",
   REGIONAL_COMMANDER: "regional_commander",
 };
 
@@ -22,7 +21,6 @@ const roleLabels = {
   [roleValues.EXECUTIVE]: "Deputi II",
   [roleValues.FIELD_COORDINATOR]: "Koordinator Wilayah (Korwil)",
   [roleValues.FIELD_OFFICER]: "Petugas Wilayah (Gaswil)",
-  [roleValues.OPERATIONAL_INTELLIGENCE_MANAGER]: "Manajer Intelijen Operasional",
   [roleValues.REGIONAL_COMMANDER]: "Kepala BIN Daerah (Kabinda)",
 };
 
@@ -31,7 +29,6 @@ const homeRoutes = {
   [roleValues.EXECUTIVE]: "/dashboard/executive",
   [roleValues.FIELD_COORDINATOR]: "/dashboard/field-coordinator",
   [roleValues.FIELD_OFFICER]: "/dashboard/field-officer",
-  [roleValues.OPERATIONAL_INTELLIGENCE_MANAGER]: "/dashboard/oim",
   [roleValues.REGIONAL_COMMANDER]: "/dashboard/regional-commander",
 };
 

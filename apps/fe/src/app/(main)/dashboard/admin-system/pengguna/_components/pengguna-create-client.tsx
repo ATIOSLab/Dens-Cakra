@@ -63,7 +63,7 @@ import {
 
 type ProvisionRoleCode = Extract<
   RoleCode,
-  "EXECUTIVE" | "REGIONAL_COMMANDER" | "OPERATIONAL_INTELLIGENCE_MANAGER" | "FIELD_COORDINATOR" | "FIELD_OFFICER"
+  "EXECUTIVE" | "REGIONAL_COMMANDER" | "FIELD_COORDINATOR" | "FIELD_OFFICER"
 >;
 type BranchValue = "PUSAT" | "BINDA" | "DIRECTORATE";
 type AreaLevel = "COUNTRY" | "PROVINCE" | "REGENCY" | "CITY" | "DISTRICT";
@@ -76,11 +76,6 @@ const ROLE_AREA_CONFIG: Record<ProvisionRoleCode, { label: string; levels: AreaL
   },
   REGIONAL_COMMANDER: {
     label: DOMAIN_TERMS.regionalCommanderRole,
-    levels: ["PROVINCE"],
-    scopeLabel: "Provinsi",
-  },
-  OPERATIONAL_INTELLIGENCE_MANAGER: {
-    label: DOMAIN_TERMS.operationalIntelligenceManagerRole,
     levels: ["PROVINCE"],
     scopeLabel: "Provinsi",
   },
@@ -161,7 +156,7 @@ function getProvisionRoleOptions(branch: BranchValue) {
   const allowedRoleCodes: ProvisionRoleCode[] =
     branch === "PUSAT"
       ? ["EXECUTIVE"]
-      : ["REGIONAL_COMMANDER", "OPERATIONAL_INTELLIGENCE_MANAGER", "FIELD_COORDINATOR", "FIELD_OFFICER"];
+      : ["REGIONAL_COMMANDER", "FIELD_COORDINATOR", "FIELD_OFFICER"];
 
   return ROLE_CODE_OPTIONS.filter((option): option is { value: ProvisionRoleCode; label: string } =>
     allowedRoleCodes.includes(option.value as ProvisionRoleCode),
@@ -169,7 +164,7 @@ function getProvisionRoleOptions(branch: BranchValue) {
 }
 
 function isDirectorateSupervisionRole(roleCode: ProvisionRoleCode) {
-  return roleCode === "REGIONAL_COMMANDER" || roleCode === "OPERATIONAL_INTELLIGENCE_MANAGER";
+  return roleCode === "REGIONAL_COMMANDER";
 }
 
 function getEffectiveRoleAreaConfig(branch: BranchValue, roleCode: ProvisionRoleCode) {

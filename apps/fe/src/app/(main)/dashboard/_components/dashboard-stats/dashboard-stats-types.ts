@@ -60,7 +60,6 @@ export type DashboardSection = "summaryCards" | "kpis" | "taskPipeline" | "alert
 export const ROLE_SECTIONS: Record<SystemRole, DashboardSection[]> = {
   executive: ["summaryCards", "kpis", "taskPipeline", "alerts", "emergencies", "products"],
   regional_commander: ["summaryCards", "kpis", "taskPipeline", "alerts", "emergencies", "products"],
-  operational_intelligence_manager: ["summaryCards", "kpis", "taskPipeline", "alerts", "emergencies", "products"],
   field_coordinator: ["summaryCards", "kpis", "taskPipeline", "alerts", "emergencies"],
   field_officer: ["summaryCards", "taskPipeline"],
   admin_system: ["summaryCards"],

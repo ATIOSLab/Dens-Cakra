@@ -79,7 +79,6 @@ function displayUserName(assignment: DkiAssignment) {
 
 function roleLabel(roleCode: string) {
   if (roleCode === "REGIONAL_COMMANDER") return "Direktur Direktorat/Ditwil";
-  if (roleCode === "OPERATIONAL_INTELLIGENCE_MANAGER") return "Anev Direktorat";
   return roleCode;
 }
 

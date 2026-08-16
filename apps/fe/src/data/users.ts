@@ -32,7 +32,7 @@ export const users: DashboardUser[] = [
     username: "oim-demo",
     email: "oim@denscakra.local",
     avatar: "",
-    role: SYSTEM_ROLES.OPERATIONAL_INTELLIGENCE_MANAGER,
+    role: SYSTEM_ROLES.REGIONAL_COMMANDER,
   },
   {
     id: "4",

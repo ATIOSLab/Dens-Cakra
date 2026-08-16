@@ -140,7 +140,7 @@ export function SmtpSettingsPage() {
           <p className="text-sm text-muted-foreground">Admin Sistem</p>
           <h1 className={DC_TYPOGRAPHY.pageTitle}>Pengaturan SMTP</h1>
           <p className={DC_TYPOGRAPHY.body}>
-            Atur server email custom untuk notifikasi sistem, termasuk notifikasi status WhatsApp.
+            Atur server email (SMTP apa pun) untuk notifikasi sistem, termasuk notifikasi status WhatsApp.
           </p>
         </div>
         <Button onClick={() => void loadSettings()} disabled={loading} variant="outline">
@@ -151,7 +151,7 @@ export function SmtpSettingsPage() {
 
       <section className="grid gap-3 md:grid-cols-3">
         <SummaryCard label="SUMBER EMAIL" value={settings.source === "custom" ? "Kustom" : ".env"} />
-        <SummaryCard label="STATUS CUSTOM" value={settings.enabled ? "Aktif" : "Nonaktif"} />
+        <SummaryCard label="PENGIRIMAN EMAIL" value={settings.enabled ? "Aktif" : "Nonaktif"} />
         <SummaryCard label="PASSWORD" value={settings.passwordSet ? "Tersimpan" : "Belum ada"} />
       </section>
 
@@ -171,12 +171,12 @@ export function SmtpSettingsPage() {
       <section className={cn(DC_CONTROLS.card, "space-y-5 p-4")}>
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/70 pb-4">
           <div>
-            <h2 className={DC_TYPOGRAPHY.sectionTitle}>Server Email Custom</h2>
-            <p className={DC_TYPOGRAPHY.body}>Pakai SMTP custom sebagai prioritas pengiriman email sistem.</p>
+            <h2 className={DC_TYPOGRAPHY.sectionTitle}>Server Email</h2>
+            <p className={DC_TYPOGRAPHY.body}>Aktifkan pengiriman email notifikasi sistem. Saat nonaktif, seluruh email tidak dikirim.</p>
           </div>
           <div className="flex items-center gap-3">
             <Badge className="border-cyan-400/30 bg-cyan-500/10 text-cyan-100">
-              {settings.enabled ? "Custom aktif" : "Fallback .env"}
+              {settings.enabled ? "Email aktif" : "Email nonaktif"}
             </Badge>
             <Switch checked={settings.enabled} onCheckedChange={(value) => updateSetting("enabled", value)} />
           </div>

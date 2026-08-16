@@ -191,12 +191,7 @@ export function ExecutiveDashboardAnalysisOverview({
     totalReports > 0
       ? `${formatDashboardPercent(productRate)} terhadap total Laporan Jaring`
       : "Belum ada pembanding laporan";
-  const personnelHref =
-    role === "executive"
-      ? "/dashboard/personel-lapangan"
-      : role === "operational_intelligence_manager"
-        ? "/dashboard/oim/monitoring-lapangan"
-        : "/dashboard/personel-lapangan";
+  const personnelHref = "/dashboard/personel-lapangan";
 
   const scopeAreas =
     data.scope.areas.length > 0
@@ -215,8 +210,7 @@ export function ExecutiveDashboardAnalysisOverview({
       : data.scope.scopeDescription;
 
   const canViewIntelligenceProducts = role !== "field_coordinator";
-  const isLeadershipRole =
-    role === "executive" || role === "regional_commander" || role === "operational_intelligence_manager";
+  const isLeadershipRole = role === "executive" || role === "regional_commander";
 
   return (
     <section aria-labelledby="analysis-overview-heading" className="space-y-4">

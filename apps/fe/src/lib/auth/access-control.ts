@@ -54,16 +54,6 @@ export const accessControlRoles = {
     task: ["read"],
     assignment: ["read"],
   }),
-  [SYSTEM_ROLES.OPERATIONAL_INTELLIGENCE_MANAGER]: accessControl.newRole({
-    dashboard: ["read"],
-    organization: ["read"],
-    position: ["read"],
-    area: ["read"],
-    directive: ["acknowledge", "read"],
-    uuk: ["read"],
-    task: ["assign", "cancel", "create", "read", "reassign", "update"],
-    assignment: ["read"],
-  }),
   [SYSTEM_ROLES.FIELD_COORDINATOR]: accessControl.newRole({
     dashboard: ["read"],
     organization: ["read"],

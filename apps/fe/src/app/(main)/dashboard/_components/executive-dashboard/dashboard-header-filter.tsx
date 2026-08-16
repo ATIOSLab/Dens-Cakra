@@ -31,7 +31,6 @@ const PERIODS = [
 const DASHBOARD_TITLES: Record<string, string> = {
   executive: `Dashboard ${DOMAIN_TERMS.deputyLeader}`,
   regional_commander: "Dashboard Komando Regional",
-  operational_intelligence_manager: "Dashboard Intelijen Operasional",
   field_coordinator: `Dashboard ${DOMAIN_TERMS.fieldCoordinatorRole}`,
 };
 

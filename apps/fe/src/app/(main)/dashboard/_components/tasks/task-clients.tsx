@@ -4363,10 +4363,6 @@ function CommandHierarchyFlow() {
   const steps = [
     { label: "Pusat Komando", desc: "Pemberi mandat utama STR" },
     { label: DOMAIN_TERMS.regionalCommanderRole, desc: "Pengarah dan pengawas wilayah" },
-    {
-      label: `${DOMAIN_TERMS.operationalIntelligenceManagerRole} (${DOMAIN_TERMS.operationalIntelligenceManagerShort})`,
-      desc: "Pengelola penugasan lapangan",
-    },
     { label: DOMAIN_TERMS.fieldCoordinatorRole, desc: "Pengawas taktis lapangan" },
     { label: DOMAIN_TERMS.fieldOfficer, desc: "Pelaksana operasi langsung" },
   ];

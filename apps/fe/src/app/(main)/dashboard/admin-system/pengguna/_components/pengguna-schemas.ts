@@ -5,7 +5,7 @@ import { DOMAIN_TERMS } from "@/lib/domain/terminology";
 const provisionRoleSchema = z.enum([
   "EXECUTIVE",
   "REGIONAL_COMMANDER",
-  "OPERATIONAL_INTELLIGENCE_MANAGER",
+
   "FIELD_COORDINATOR",
   "FIELD_OFFICER",
 ]);

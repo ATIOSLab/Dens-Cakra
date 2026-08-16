@@ -25,9 +25,6 @@ export function resolveGaswilDetailHref(role: SystemRole | undefined, reference:
   if ((role === SYSTEM_ROLES.FIELD_COORDINATOR || role === SYSTEM_ROLES.REGIONAL_COMMANDER) && reference.assignmentId) {
     return `/dashboard/personel-lapangan/${reference.assignmentId}`;
   }
-  if (role === SYSTEM_ROLES.OPERATIONAL_INTELLIGENCE_MANAGER && reference.assignmentId) {
-    return `/dashboard/oim/monitoring-lapangan/personel/${reference.assignmentId}`;
-  }
   return null;
 }
 

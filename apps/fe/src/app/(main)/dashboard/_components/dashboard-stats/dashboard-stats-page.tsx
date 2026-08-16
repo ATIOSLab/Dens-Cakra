@@ -15,7 +15,6 @@ export async function DashboardStatsPage({ role, searchParams }: DashboardStatsP
   if (
     role === "executive" ||
     role === "regional_commander" ||
-    role === "operational_intelligence_manager" ||
     role === "field_coordinator"
   ) {
     return <ExecutiveDashboardPage role={role} searchParams={searchParams} />;

@@ -7,7 +7,6 @@ export type RoleCode =
   | "ADMIN_SYSTEM"
   | "EXECUTIVE"
   | "REGIONAL_COMMANDER"
-  | "OPERATIONAL_INTELLIGENCE_MANAGER"
   | "FIELD_COORDINATOR"
   | "FIELD_OFFICER";
 export type PositionCode =
@@ -208,10 +207,6 @@ export const ROLE_CODE_OPTIONS: Array<{
   { value: "ADMIN_SYSTEM", label: DOMAIN_TERMS.adminSystemRole },
   { value: "EXECUTIVE", label: DOMAIN_TERMS.executiveRole },
   { value: "REGIONAL_COMMANDER", label: DOMAIN_TERMS.regionalCommanderRole },
-  {
-    value: "OPERATIONAL_INTELLIGENCE_MANAGER",
-    label: DOMAIN_TERMS.operationalIntelligenceManagerRole,
-  },
   { value: "FIELD_COORDINATOR", label: DOMAIN_TERMS.fieldCoordinatorRole },
   { value: "FIELD_OFFICER", label: DOMAIN_TERMS.fieldOfficer },
 ];
@@ -235,7 +230,6 @@ export const ROLE_CODE_TO_AUTH_ROLE: Record<RoleCode, SystemRole> = {
   ADMIN_SYSTEM: SYSTEM_ROLES.ADMIN_SYSTEM,
   EXECUTIVE: SYSTEM_ROLES.EXECUTIVE,
   REGIONAL_COMMANDER: SYSTEM_ROLES.REGIONAL_COMMANDER,
-  OPERATIONAL_INTELLIGENCE_MANAGER: SYSTEM_ROLES.OPERATIONAL_INTELLIGENCE_MANAGER,
   FIELD_COORDINATOR: SYSTEM_ROLES.FIELD_COORDINATOR,
   FIELD_OFFICER: SYSTEM_ROLES.FIELD_OFFICER,
 };
@@ -479,26 +473,6 @@ export function getAssignmentRbacSummary(
       isDirectorate
         ? `Direktorat/Ditwil memakai supervisi provinsi non-DKI atau kota/kabupaten DKI. Cakupan saat ini: ${formatAreaLevels(areaScopes)}.`
         : `Kabinda/Binda wajib jalur BINDA dengan cakupan Provinsi. Cakupan saat ini: ${formatAreaLevels(areaScopes)}.`,
-    );
-  }
-
-  if (roleCode === "OPERATIONAL_INTELLIGENCE_MANAGER") {
-    const isDirectorate = branch === "DIRECTORATE";
-    return buildSummary(
-      {
-        roleCode,
-        roleLabel,
-        lineLabel: isDirectorate ? DOMAIN_TERMS.centralSupervisionLine : DOMAIN_TERMS.commandTerritorialLine,
-        functionLabel: isDirectorate ? DOMAIN_TERMS.anevDirectorate : DOMAIN_TERMS.anevBinda,
-        branchLabel,
-        scopeRequirement: isDirectorate ? "Provinsi non-DKI atau Kota/Kabupaten DKI" : "Provinsi komando Binda",
-      },
-      isDirectorate
-        ? hasValidDirectorateScope(areaScopes)
-        : branch === "BINDA" && hasOnlyAreaLevels(areaScopes, ["PROVINCE"]),
-      isDirectorate
-        ? `Anev Direktorat mengikuti scope supervisi Direktorat/Ditwil. Cakupan saat ini: ${formatAreaLevels(areaScopes)}.`
-        : `Anev Binda wajib jalur BINDA dengan cakupan Provinsi. Cakupan saat ini: ${formatAreaLevels(areaScopes)}.`,
     );
   }
 

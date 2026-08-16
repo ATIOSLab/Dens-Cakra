@@ -18,7 +18,6 @@ type PageProps = {
 export default async function LaporanJaringDetailPage({ params, searchParams }: PageProps) {
   const principal = await requireRole(
     SYSTEM_ROLES.EXECUTIVE,
-    SYSTEM_ROLES.OPERATIONAL_INTELLIGENCE_MANAGER,
     SYSTEM_ROLES.FIELD_OFFICER,
     SYSTEM_ROLES.FIELD_COORDINATOR,
     SYSTEM_ROLES.REGIONAL_COMMANDER,

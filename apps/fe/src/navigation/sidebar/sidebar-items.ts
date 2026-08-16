@@ -48,7 +48,6 @@ export interface NavGroup {
 
 const EXECUTIVE_ROLE = [SYSTEM_ROLES.EXECUTIVE];
 const REGIONAL_COMMANDER_ROLE = [SYSTEM_ROLES.REGIONAL_COMMANDER];
-const OIM_ROLE = [SYSTEM_ROLES.OPERATIONAL_INTELLIGENCE_MANAGER];
 const FIELD_COORDINATOR_ROLE = [SYSTEM_ROLES.FIELD_COORDINATOR];
 const FIELD_OFFICER_ROLE = [SYSTEM_ROLES.FIELD_OFFICER];
 const ADMIN_SYSTEM_ROLE = [SYSTEM_ROLES.ADMIN_SYSTEM];
@@ -61,7 +60,6 @@ const LEADERSHIP_MONITORING_ROLES = [
 const INTELLIGENCE_DATA_READ_ROLES = [
   SYSTEM_ROLES.EXECUTIVE,
   SYSTEM_ROLES.REGIONAL_COMMANDER,
-  SYSTEM_ROLES.OPERATIONAL_INTELLIGENCE_MANAGER,
   SYSTEM_ROLES.FIELD_COORDINATOR,
   SYSTEM_ROLES.FIELD_OFFICER,
 ];
@@ -142,60 +140,60 @@ export const sidebarItems: NavGroup[] = [
       {
         id: "oim-home",
         title: "Beranda",
-        url: SYSTEM_ROLE_HOME_ROUTES[SYSTEM_ROLES.OPERATIONAL_INTELLIGENCE_MANAGER],
+        url: "/dashboard/oim",
         icon: DOMAIN_VISUALS.home.Icon,
-        roles: OIM_ROLE,
+        roles: EXECUTIVE_AND_REGIONAL_ROLES,
       },
       {
         id: "oim-directives",
         title: "Direktif & Tugas",
         url: "/dashboard/oim/direktif-tugas",
         icon: DOMAIN_VISUALS.briefing.Icon,
-        roles: OIM_ROLE,
+        roles: EXECUTIVE_AND_REGIONAL_ROLES,
       },
       {
         id: "oim-incoming-reports",
         title: "Laporan Masuk",
         url: "/dashboard/oim/laporan-masuk",
         icon: DOMAIN_VISUALS.jaringReport.Icon,
-        roles: OIM_ROLE,
+        roles: EXECUTIVE_AND_REGIONAL_ROLES,
       },
       {
         id: "oim-analysis",
         title: "Analisis Intelijen",
         url: "/dashboard/oim/analisis-intelijen",
         icon: SUPPORT_VISUALS.analysis.Icon,
-        roles: OIM_ROLE,
+        roles: EXECUTIVE_AND_REGIONAL_ROLES,
       },
       {
         id: "oim-products",
         title: DOMAIN_TERMS.intelligenceReport,
         icon: DOMAIN_VISUALS.intelligenceReport.Icon,
-        roles: OIM_ROLE,
+        roles: EXECUTIVE_AND_REGIONAL_ROLES,
         subItems: [
           {
             id: "oim-information-reports-list",
             title: `Daftar ${DOMAIN_TERMS.informationReport}`,
             url: "/dashboard/oim/laporan-informasi",
-            roles: OIM_ROLE,
+            roles: EXECUTIVE_AND_REGIONAL_ROLES,
           },
           {
             id: "oim-information-reports-create",
             title: `Buat ${DOMAIN_TERMS.informationReport}`,
             url: "/dashboard/oim/laporan-informasi/buat",
-            roles: OIM_ROLE,
+            roles: EXECUTIVE_AND_REGIONAL_ROLES,
           },
           {
             id: "oim-products-list",
             title: "Daftar Laporan Intelijen",
             url: "/dashboard/oim/produk-intelijen/daftar-produk",
-            roles: OIM_ROLE,
+            roles: EXECUTIVE_AND_REGIONAL_ROLES,
           },
           {
             id: "oim-products-create",
             title: "Buat Laporan Intelijen",
             url: "/dashboard/oim/produk-intelijen/buat-produk",
-            roles: OIM_ROLE,
+            roles: EXECUTIVE_AND_REGIONAL_ROLES,
           },
         ],
       },
@@ -218,14 +216,14 @@ export const sidebarItems: NavGroup[] = [
         title: "Monitoring Lapangan",
         url: "/dashboard/oim/monitoring-lapangan",
         icon: DOMAIN_VISUALS.monitoring.Icon,
-        roles: OIM_ROLE,
+        roles: EXECUTIVE_AND_REGIONAL_ROLES,
       },
       {
         id: "oim-situation-map",
         title: "Peta Situasi",
         url: "/dashboard/oim/peta-situasi",
         icon: DOMAIN_VISUALS.intelligenceNetworkMap.Icon,
-        roles: OIM_ROLE,
+        roles: EXECUTIVE_AND_REGIONAL_ROLES,
       },
       {
         id: "field-coordinator-home",

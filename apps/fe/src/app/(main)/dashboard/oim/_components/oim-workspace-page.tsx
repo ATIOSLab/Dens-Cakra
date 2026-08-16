@@ -36,7 +36,7 @@ function rows(value: unknown): Array<Record<string, unknown>> {
 }
 
 export async function OimWorkspacePage({ view, params = {}, searchParams = {}, productContext }: Props) {
-  await requireRole(SYSTEM_ROLES.OPERATIONAL_INTELLIGENCE_MANAGER);
+  await requireRole(SYSTEM_ROLES.EXECUTIVE, SYSTEM_ROLES.REGIONAL_COMMANDER);
   const errors: string[] = [];
   const page = typeof searchParams.page === "string" ? searchParams.page : "1";
   const areaId = typeof searchParams.areaId === "string" ? searchParams.areaId : undefined;

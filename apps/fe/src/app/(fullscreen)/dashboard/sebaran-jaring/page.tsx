@@ -265,10 +265,7 @@ async function getScopedRegionData(sessionRole: string) {
 
   if (scopedCities.length === 0) {
     if (!isExecutiveOrAdmin) {
-      if (
-        userRoleCode === SYSTEM_ROLES.REGIONAL_COMMANDER ||
-        userRoleCode === SYSTEM_ROLES.OPERATIONAL_INTELLIGENCE_MANAGER
-      ) {
+      if (userRoleCode === SYSTEM_ROLES.REGIONAL_COMMANDER) {
         allowedAdminLevels = ["CITY", "DISTRICT", "VILLAGE"];
       } else if (userRoleCode === SYSTEM_ROLES.FIELD_COORDINATOR) {
         allowedAdminLevels = ["DISTRICT", "VILLAGE"];

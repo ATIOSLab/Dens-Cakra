@@ -115,7 +115,6 @@ async function readApi<T>(response: Response) {
 
 function productListRoute(role: SystemRole) {
   if (role === "executive") return "/dashboard/executive/produk-intelijen";
-  if (role === "operational_intelligence_manager") return "/dashboard/oim/produk-intelijen/daftar-produk";
   if (role === "regional_commander") return "/dashboard/regional-commander/laporan-produk-intelijen";
   return "/dashboard/baket";
 }
@@ -127,7 +126,6 @@ function productDetailRoute(role: SystemRole, productId: string | undefined) {
 
 function taskDetailRoute(role: SystemRole, taskId: string | undefined) {
   if (role === "regional_commander") return `/dashboard/regional-commander/monitoring-tugas/${taskId}`;
-  if (role === "operational_intelligence_manager") return `/dashboard/oim/direktif-tugas/${taskId}`;
   if (role === "field_coordinator") return `/dashboard/field-coordinator/tugas-operasional/${taskId}`;
   return "/dashboard/executive/pusat-komando/direktif";
 }
@@ -135,18 +133,12 @@ function taskDetailRoute(role: SystemRole, taskId: string | undefined) {
 function directiveDetailRoute(role: SystemRole, directiveId: string | undefined) {
   if (role === "executive") return `/dashboard/executive/pusat-komando/direktif/${directiveId}`;
   if (role === "regional_commander") return "/dashboard/regional-commander/direktif-penjabaran-uuk-str";
-  if (role === "operational_intelligence_manager") return "/dashboard/oim/direktif-tugas";
   return "/dashboard/field-coordinator/tugas-operasional";
 }
 
 function fieldOfficerDetailRoute(role: SystemRole, assignmentId: string | undefined, userProfileId: string | null) {
   if (role === "executive") {
     return userProfileId ? `/dashboard/personel-lapangan/${userProfileId}` : "/dashboard/personel-lapangan";
-  }
-  if (role === "operational_intelligence_manager") {
-    return assignmentId
-      ? `/dashboard/oim/monitoring-lapangan/personel/${assignmentId}`
-      : "/dashboard/oim/monitoring-lapangan";
   }
   return assignmentId ? `/dashboard/personel-lapangan/${assignmentId}` : "/dashboard/personel-lapangan";
 }

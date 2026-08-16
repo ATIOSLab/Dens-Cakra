@@ -294,7 +294,7 @@ function oimPositionTitleFrom(position?: PositionRecord | null) {
     const roleCode = current.role?.code?.toUpperCase();
     const positionCode = current.code?.toUpperCase();
 
-    if (roleCode === "OPERATIONAL_INTELLIGENCE_MANAGER" || positionCode === "KABAGOPS" || positionCode === "KASUBDIT") {
+    if (positionCode === "KABAGOPS" || positionCode === "KASUBDIT") {
       return current.title ?? null;
     }
 

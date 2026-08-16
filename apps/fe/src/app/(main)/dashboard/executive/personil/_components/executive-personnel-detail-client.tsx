@@ -91,7 +91,6 @@ function personnelPositionLabel(assignment?: PersonnelAssignment | null) {
   if (code === "FIELD_OFFICER" || code === "GASWIL") return DOMAIN_TERMS.fieldOfficer;
   if (code === "FIELD_COORDINATOR" || code === "KORWIL") return DOMAIN_TERMS.fieldCoordinatorRole;
   if (code === "REGIONAL_COMMANDER") return DOMAIN_TERMS.regionalCommanderRole;
-  if (code === "OPERATIONAL_INTELLIGENCE_MANAGER") return DOMAIN_TERMS.operationalIntelligenceManagerRole;
   if (code === "EXECUTIVE") return DOMAIN_TERMS.executiveRole;
   return assignment?.title ?? "Belum ada jabatan aktif";
 }
