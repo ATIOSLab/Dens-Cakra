@@ -952,8 +952,7 @@ export function LaporanPembinaanCoordinatorClient() {
               options={[
                 {
                   value: "ALL",
-                  label:
-                    gaswilOptions.length === 0 ? "Petugas Wilayah belum tersedia" : "Semua Gaswil",
+                  label: gaswilOptions.length === 0 ? "Petugas Wilayah belum tersedia" : "Semua Gaswil",
                   disabled: gaswilOptions.length === 0,
                 },
                 ...gaswilOptions.map((gaswil) => ({
@@ -967,9 +966,7 @@ export function LaporanPembinaanCoordinatorClient() {
                 setPage(1);
               }}
               disabled={gaswilOptions.length === 0}
-              placeholder={
-                gaswilOptions.length === 0 ? "Petugas Wilayah belum tersedia" : "Semua Gaswil"
-              }
+              placeholder={gaswilOptions.length === 0 ? "Petugas Wilayah belum tersedia" : "Semua Gaswil"}
               searchPlaceholder="Cari Petugas Wilayah (Gaswil)..."
               emptyText="Petugas Wilayah (Gaswil) tidak ditemukan."
               className={cn(DC_CONTROLS.selectTrigger, "w-full text-xs")}
