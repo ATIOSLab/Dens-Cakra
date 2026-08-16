@@ -4421,9 +4421,9 @@ export function TaskDetailClient({
   task,
   editHref,
   assignmentHref,
-  hideTargetAreas: _hideTargetAreas = false,
-  hideAssignments: _hideAssignments = false,
-  assignmentTitle: _assignmentTitle = "Penugasan",
+  hideTargetAreas = false,
+  hideAssignments = false,
+  assignmentTitle = "Penugasan",
 }: TaskDetailClientProps) {
   const router = useRouter();
   const showStructuredUuk = hasStructuredUukSections(task);
@@ -4469,12 +4469,14 @@ export function TaskDetailClient({
           </div>
 
           <div className="flex flex-wrap gap-x-4 gap-y-1.5 font-mono text-muted-foreground text-xs">
-            <div className="flex items-center gap-1">
-              <MapIcon className="size-3 text-muted-foreground/60" />
-              <span>
-                WILAYAH: <span className="text-[var(--dc-text-primary)]">{areaSummary ?? "-"}</span>
-              </span>
-            </div>
+            {!hideTargetAreas && (
+              <div className="flex items-center gap-1">
+                <MapIcon className="size-3 text-muted-foreground/60" />
+                <span>
+                  WILAYAH: <span className="text-[var(--dc-text-primary)]">{areaSummary ?? "-"}</span>
+                </span>
+              </div>
+            )}
             <div className="flex items-center gap-1">
               <Calendar className="size-3 text-muted-foreground/60" />
               <span>
@@ -4491,12 +4493,12 @@ export function TaskDetailClient({
               <Link href={editHref}>Ubah Draf</Link>
             </Button>
           ) : null}
-          {assignmentHref ? (
+          {!hideAssignments && assignmentHref ? (
             <Button
               asChild
               className="h-8 cursor-pointer rounded-[4px] bg-[var(--dc-primary)] font-mono text-[var(--dc-text-inverse)] text-xs shadow-none hover:bg-[var(--dc-primary-hover)]"
             >
-              <Link href={assignmentHref}>Kelola Penugasan</Link>
+              <Link href={assignmentHref}>{assignmentTitle}</Link>
             </Button>
           ) : null}
         </div>
@@ -4552,12 +4554,14 @@ export function TaskDetailClient({
                   {task.directiveVersion?.directive?.commandNumber ?? "-"}
                 </div>
               </div>
-              <div className="space-y-1">
-                <div className="text-[9px] text-muted-foreground/60 uppercase">Cakupan Wilayah</div>
-                <div className="truncate font-semibold text-[var(--dc-text-primary)]" title={areaSummary}>
-                  {areaSummary ?? "-"}
+              {!hideTargetAreas && (
+                <div className="space-y-1">
+                  <div className="text-[9px] text-muted-foreground/60 uppercase">Cakupan Wilayah</div>
+                  <div className="truncate font-semibold text-[var(--dc-text-primary)]" title={areaSummary}>
+                    {areaSummary ?? "-"}
+                  </div>
                 </div>
-              </div>
+              )}
               <div className="space-y-1">
                 <div className="text-[9px] text-muted-foreground/60 uppercase">Batas Waktu</div>
                 <div className="truncate font-semibold text-[var(--dc-text-primary)]">
