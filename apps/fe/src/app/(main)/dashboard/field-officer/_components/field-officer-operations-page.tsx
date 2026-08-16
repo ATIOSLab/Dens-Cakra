@@ -853,9 +853,6 @@ export function FieldOfficerOperationsPage({
     payload: {
       categoryId: string;
       urgency: "LOW" | "NORMAL" | "HIGH" | "URGENT";
-      normalizedContent?: string;
-      fieldOfficerNote?: string;
-      taskAssignmentId?: string;
     },
   ) => {
     await runAction(`baket:${messageId}`, async () => {
@@ -2105,7 +2102,6 @@ export function FieldOfficerOperationsPage({
                               jaring={workspace.jaring.find((item) => item.id === message.jaringId)}
                               gaswilName={workspace.profile.name}
                               categories={workspace.reportCategories}
-                              tasks={workspace.tasks}
                               busy={isBusy === `baket:${message.id}`}
                               onCreate={(payload) => createBaket(message.id, payload)}
                             />
@@ -3137,7 +3133,6 @@ function BaketCandidateForm({
   jaring,
   gaswilName,
   categories,
-  tasks,
   busy,
   onCreate,
 }: {
@@ -3145,24 +3140,13 @@ function BaketCandidateForm({
   jaring?: FieldOfficerJaring;
   gaswilName: string;
   categories: ReportCategory[];
-  tasks: FieldOfficerTask[];
   busy: boolean;
-  onCreate: (payload: {
-    categoryId: string;
-    urgency: "LOW" | "NORMAL" | "HIGH" | "URGENT";
-    normalizedContent?: string;
-    fieldOfficerNote?: string;
-    taskAssignmentId?: string;
-  }) => Promise<void>;
+  onCreate: (payload: { categoryId: string; urgency: "LOW" | "NORMAL" | "HIGH" | "URGENT" }) => Promise<void>;
 }) {
   const [categoryId, setCategoryId] = useState("");
   const [urgency, setUrgency] = useState<"LOW" | "NORMAL" | "HIGH" | "URGENT">("NORMAL");
-  const [urgencyConfirmed, setUrgencyConfirmed] = useState(false);
   const [showCreateConfirm, setShowCreateConfirm] = useState(false);
-  const [normalizedContent, setNormalizedContent] = useState(message.content ?? "");
-  const [fieldOfficerNote, setFieldOfficerNote] = useState("");
-  const [taskAssignmentId, setTaskAssignmentId] = useState("");
-  const canCreate = Boolean(categoryId && urgencyConfirmed && normalizedContent.trim());
+  const canCreate = Boolean(categoryId);
 
   return (
     <div className="tactical-card space-y-6 border-emerald-500/25 bg-emerald-500/[0.02]">
@@ -3316,13 +3300,7 @@ function BaketCandidateForm({
               >
                 TINGKAT URGENSI <span className="text-[var(--tactical-red)]">*</span>
               </label>
-              <Select
-                value={urgency}
-                onValueChange={(value) => {
-                  setUrgency(value as typeof urgency);
-                  setUrgencyConfirmed(false);
-                }}
-              >
+              <Select value={urgency} onValueChange={(value) => setUrgency(value as typeof urgency)}>
                 <SelectTrigger
                   id="baket-urgency"
                   className="tactical-input w-full border-[var(--tactical-border)] bg-black/10 font-mono text-[var(--tactical-text-primary)] dark:bg-white/[0.02]"
@@ -3339,86 +3317,14 @@ function BaketCandidateForm({
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label
-              htmlFor="normalized-content"
-              className="block font-mono font-semibold text-[10px] text-[var(--tactical-text-secondary)] uppercase tracking-wider"
-            >
-              ISI NORMALISASI LAPORAN <span className="text-[var(--tactical-red)]">*</span>
-            </label>
-            <Textarea
-              id="normalized-content"
-              value={normalizedContent}
-              onChange={(event) => setNormalizedContent(event.target.value)}
-              placeholder="Tuliskan isi laporan dengan bahasa formal..."
-              className="tactical-input min-h-24 w-full"
-            />
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <label
-                htmlFor="related-task"
-                className="block font-mono font-semibold text-[10px] text-[var(--tactical-text-secondary)] uppercase tracking-wider"
-              >
-                TUGAS OPERASIONAL TERKAIT
-              </label>
-              <Select
-                value={taskAssignmentId ? taskAssignmentId : "none"}
-                onValueChange={(value) => setTaskAssignmentId(value === "none" ? "" : value)}
-              >
-                <SelectTrigger
-                  id="related-task"
-                  className="tactical-input w-full border-[var(--tactical-border)] bg-black/10 text-[var(--tactical-text-primary)] dark:bg-white/[0.02]"
-                >
-                  <SelectValue placeholder="TANPA TUGAS" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">TANPA TUGAS</SelectItem>
-                  {tasks.map((task) => (
-                    <SelectItem key={task.assignmentId} value={task.assignmentId}>
-                      {task.title.toUpperCase()}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label
-              htmlFor="field-officer-note"
-              className="block font-mono font-semibold text-[10px] text-[var(--tactical-text-secondary)] uppercase tracking-wider"
-            >
-              CATATAN PETUGAS WILAYAH (GASWIL)
-            </label>
-            <Textarea
-              id="field-officer-note"
-              value={fieldOfficerNote}
-              onChange={(event) => setFieldOfficerNote(event.target.value)}
-              placeholder="Catatan tambahan Petugas Wilayah (Gaswil) mengenai situasi lapangan..."
-              className="tactical-input min-h-16 w-full"
-            />
-          </div>
-
-          <div className="mt-4 flex flex-col gap-4 border-[var(--tactical-border)] border-t pt-2 font-mono sm:flex-row sm:items-center sm:justify-between">
-            <label className="flex cursor-pointer select-none items-center gap-2.5 text-[var(--tactical-text-secondary)] text-xs">
-              <input
-                type="checkbox"
-                checked={urgencyConfirmed}
-                onChange={(event) => setUrgencyConfirmed(event.target.checked)}
-                className="size-4 shrink-0 rounded border-[var(--tactical-border)] bg-transparent text-[var(--tactical-blue)] focus:ring-0 focus:ring-offset-0"
-              />
-              <span className="text-[10px]">KONFIRMASI SOP: Konfirmasi urgensi {getUrgencyLabel(urgency)}.</span>
-            </label>
-
+          <div className="mt-4 flex items-center justify-end border-[var(--tactical-border)] border-t pt-4 font-mono">
             <button
               type="button"
               disabled={!canCreate || busy}
               onClick={() => setShowCreateConfirm(true)}
               className="h-[40px] cursor-pointer rounded-[4px] bg-[#16A34A] px-[18px] font-semibold text-white text-xs uppercase tracking-[0.04em] shadow-[0_0_18px_rgba(22,163,74,0.25)] transition-all duration-180 hover:-translate-y-[1px] hover:bg-[#15803D] hover:brightness-105 active:scale-[0.98] active:bg-[#166534] disabled:opacity-50"
             >
-              {busy ? "MENYIMPAN..." : "FORMULASIKAN BAKET"}
+              {busy ? "MENYIMPAN..." : "JADIKAN BAKET"}
             </button>
           </div>
 
@@ -3429,7 +3335,7 @@ function BaketCandidateForm({
                   KONFIRMASI BAKET
                 </AlertDialogTitle>
                 <AlertDialogDescription className="text-[var(--tactical-text-secondary)] text-xs">
-                  Buat baket dari laporan jaring ini sekarang?
+                  Jadikan laporan Jaring ini sebagai Baket dengan kategori dan urgensi yang dipilih?
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter className="mt-4 flex flex-wrap justify-end gap-2">
@@ -3442,14 +3348,11 @@ function BaketCandidateForm({
                     void onCreate({
                       categoryId,
                       urgency,
-                      normalizedContent: normalizedContent.trim(),
-                      fieldOfficerNote: fieldOfficerNote.trim() ? fieldOfficerNote.trim() : undefined,
-                      taskAssignmentId: taskAssignmentId ? taskAssignmentId : undefined,
                     });
                   }}
                   className="h-9 cursor-pointer rounded-[4px] bg-[#16A34A] px-4 font-semibold text-white text-xs uppercase tracking-wider hover:bg-[#15803D]"
                 >
-                  YA, BUAT BAKET
+                  YA, JADIKAN BAKET
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
