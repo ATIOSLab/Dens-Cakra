@@ -40,7 +40,7 @@ import { NativeSelect } from "@/components/ui/native-select";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/table-pagination";
-import { apiBrowserFetch } from "@/lib/api/browser-client";
+import { apiBrowserFetch, apiBrowserMutation } from "@/lib/api/browser-client";
 import {
   buildAreaFilterSubtitle,
   buildDistrictFilterOptions,
@@ -298,6 +298,34 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
 
   // View Mode: Card vs Table
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
+
+  // Unread/BARU state untuk Gaswil (cache laporan yang sudah dibaca di localStorage)
+  const [readReportIds, setReadReportIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!isFieldOfficer) return;
+    try {
+      const stored = JSON.parse(localStorage.getItem("read_reports_jaring") || "[]");
+      setReadReportIds(new Set(stored));
+    } catch {
+      // Abaikan cache lokal yang tidak valid.
+    }
+  }, [isFieldOfficer]);
+
+  function markReportAsRead(reportId: string) {
+    if (!reportId) return;
+    void apiBrowserMutation("PATCH", `/jaring/reports/${reportId}/read`).catch(() => undefined);
+    try {
+      const stored: string[] = JSON.parse(localStorage.getItem("read_reports_jaring") || "[]");
+      if (!stored.includes(reportId)) {
+        stored.push(reportId);
+        localStorage.setItem("read_reports_jaring", JSON.stringify(stored));
+        setReadReportIds(new Set(stored));
+      }
+    } catch {
+      // Abaikan cache lokal yang tidak dapat ditulis.
+    }
+  }
 
   // Filters
   const [search, setSearch] = useState("");
@@ -1211,6 +1239,7 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                 item.jaringAlias ||
                 item.jaringCode ||
                 `# ${item.id.slice(0, 8)}`;
+              const isUnread = isFieldOfficer && !readReportIds.has(item.id);
               const title = item.displayTitle || item.content || "Laporan sedang dibuat";
               const mediaCount = item.media?.length || item.counts?.media || 0;
               const partsCount = item.messages?.length || item.counts?.contentParts || 0;
@@ -1241,6 +1270,14 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                         <span className="px-2 py-0.5 rounded text-[11px] font-mono font-medium bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-300">
                           {refNum}
                         </span>
+                        {isUnread ? (
+                          <Badge
+                            variant="outline"
+                            className="h-4 px-1 py-0 font-mono text-[9px] font-semibold border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                          >
+                            BARU
+                          </Badge>
+                        ) : null}
                       </div>
 
                       {/* Verification Status Badge */}
@@ -1306,6 +1343,9 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                     <Button
                       asChild
                       variant="outline"
+                      onClick={() => {
+                        if (isFieldOfficer && item.status === "SUBMITTED") markReportAsRead(item.id);
+                      }}
                       className="w-full h-9 text-xs font-bold gap-2 border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-500 transition-colors uppercase tracking-wider"
                     >
                       <Link href={`/dashboard/laporan-jaring/${item.id}`}>
@@ -1388,6 +1428,7 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                   const _urgencyStyle = getUrgencyCardStyle(item.urgency);
                   const displayStatus = getReportDisplayStatus(item);
                   const refNum = item.referenceNumber || item.jaringAlias || item.jaringCode || item.id.slice(0, 8);
+                  const isUnread = isFieldOfficer && !readReportIds.has(item.id);
                   const messageCount = item.messages?.length ?? item.counts?.contentParts ?? 0;
                   const mediaCount = item.media?.length ?? item.counts?.media ?? 0;
 
@@ -1508,7 +1549,17 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
 
                       {isColVisible("refNum") && (
                         <TableCell className="font-mono text-xs font-medium text-foreground align-middle">
-                          {refNum}
+                          <div className="flex items-center gap-1.5">
+                            <span>{refNum}</span>
+                            {isUnread ? (
+                              <Badge
+                                variant="outline"
+                                className="h-4 px-1 py-0 font-mono text-[9px] font-semibold border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                              >
+                                BARU
+                              </Badge>
+                            ) : null}
+                          </div>
                         </TableCell>
                       )}
 
@@ -1517,6 +1568,9 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                           asChild
                           variant="outline"
                           size="sm"
+                          onClick={() => {
+                            if (isFieldOfficer && item.status === "SUBMITTED") markReportAsRead(item.id);
+                          }}
                           className="h-8 gap-1.5 rounded-md border-sky-500/30 px-2.5 font-medium text-sky-600 text-xs hover:bg-sky-500/10 dark:text-sky-400"
                         >
                           <Link href={`/dashboard/laporan-jaring/${item.id}`}>
