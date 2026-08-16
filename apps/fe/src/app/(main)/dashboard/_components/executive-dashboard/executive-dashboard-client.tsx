@@ -178,6 +178,7 @@ export function ExecutiveDashboardClient({
   const [autoRefresh, setAutoRefresh] = useState(true);
   const initialRequest = useRef(true);
   const didApplyDefaultAreaFilter = useRef(false);
+  const isLeadershipRole = role === "executive" || role === "regional_commander";
 
   const defaultAreaId = useMemo(
     () => findDkiJakartaProvinceFilterId(flattenDashboardAreaTree(filters?.areaTree)),
@@ -393,9 +394,11 @@ export function ExecutiveDashboardClient({
             Laporan yang Perlu Didahulukan
           </h2>
         </div>
-        <div id="leadership-attention" className="scroll-mt-24">
-          <LeadershipAttentionPanel items={data.overview.attention} buildHref={buildHref} />
-        </div>
+        {isLeadershipRole ? (
+          <div id="leadership-attention" className="scroll-mt-24">
+            <LeadershipAttentionPanel items={data.overview.attention} buildHref={buildHref} />
+          </div>
+        ) : null}
         <div id="priority-reports" className="scroll-mt-24">
           <PriorityReportPanel operations={data.operations} buildHref={buildHref} />
         </div>

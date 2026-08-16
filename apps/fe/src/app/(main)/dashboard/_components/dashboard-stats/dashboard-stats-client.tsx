@@ -460,7 +460,8 @@ export function DashboardStatsClient({ initialData, initialError, role }: Dashbo
   ];
 
   const visibleCards = summaryCards.filter(
-    (card) => hasSection("summaryCards") && (card.section === "summaryCards" || hasSection(card.section)),
+    (card) =>
+      hasSection("summaryCards") && (card.section === "summaryCards" || hasSection(card.section)) && card.value > 0,
   );
 
   /* ── Task pipeline data ── */
@@ -534,7 +535,7 @@ export function DashboardStatsClient({ initialData, initialError, role }: Dashbo
       )}
 
       {/* ── Summary Cards ── */}
-      {hasSection("summaryCards") && (
+      {hasSection("summaryCards") && visibleCards.length > 0 && (
         <section
           className={cn(
             "grid gap-4",
