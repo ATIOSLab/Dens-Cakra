@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     const body = (await request.json()) as {
       code: string;
       name: string;
-      userId: string;
+      userId?: string | null;
       operationalAssignmentId?: string | null;
       scopeAreaIds?: string[];
       scopeAreaId?: string | null;
@@ -32,8 +32,8 @@ export async function POST(request: NextRequest) {
         code: body.code,
         name: body.name,
         config: {
-          userId: body.userId,
-          operationalAssignmentId: body.operationalAssignmentId,
+          ...(body.userId ? { userId: body.userId } : {}),
+          ...(body.operationalAssignmentId ? { operationalAssignmentId: body.operationalAssignmentId } : {}),
           scopeAreaIds: body.scopeAreaIds,
           scopeAreaId: body.scopeAreaId,
           scopeAreaCode: body.scopeAreaCode,

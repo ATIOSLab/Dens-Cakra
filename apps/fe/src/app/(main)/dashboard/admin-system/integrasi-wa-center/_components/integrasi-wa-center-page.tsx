@@ -36,20 +36,9 @@ import { DC_CONTROLS, DC_TYPOGRAPHY, DOMAIN_VISUALS } from "@/lib/domain/visual-
 import { cn } from "@/lib/utils";
 import type { WhatsappControlChannel } from "@/server/field-ops/types";
 
-import {
-  type AreaSearchResult,
-  type CommandRouteType,
-  getUserAssignments,
-  type UserListItem,
-} from "../../pengguna/_components/pengguna-types";
+import type { AreaSearchResult } from "../../pengguna/_components/pengguna-types";
 
-type CoordinatorAreaOption = AreaSearchResult & {
-  branch: CommandRouteType | null;
-  label: string;
-  userId: string;
-  assignmentId: string;
-  coordinatorName: string;
-};
+type AreaOption = AreaSearchResult & { label: string };
 
 type ChannelGroup = {
   key: string;
@@ -59,14 +48,14 @@ type ChannelGroup = {
   channels: WhatsappControlChannel[];
 };
 
-const REPORT_SCOPE_LEVELS = new Set(["PROVINCE", "REGENCY", "CITY"]);
+const AREA_SEARCH_LEVELS = ["PROVINCE", "CITY", "REGENCY", "DISTRICT"] as const;
 
-function areaOptionKey(area: CoordinatorAreaOption) {
-  return `${area.id}:${area.branch ?? "default"}:${area.assignmentId}`;
-}
-
-function sameAssignment(left: CoordinatorAreaOption, right: CoordinatorAreaOption) {
-  return left.userId === right.userId && left.assignmentId === right.assignmentId;
+function areaLevelLabel(level?: string | null) {
+  if (level === "PROVINCE") return "Provinsi";
+  if (level === "CITY") return "Kota";
+  if (level === "REGENCY") return "Kabupaten";
+  if (level === "DISTRICT") return "Kecamatan";
+  return level ?? "Wilayah";
 }
 
 function tone(status: string) {
@@ -217,10 +206,11 @@ export function AdminWaCenterPage() {
   const [pairingChannelId, setPairingChannelId] = useState<string | null>(null);
 
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const [selectedAreas, setSelectedAreas] = useState<CoordinatorAreaOption[]>([]);
+  const [selectedAreas, setSelectedAreas] = useState<AreaOption[]>([]);
 
   const [areaQuery, setAreaQuery] = useState("");
-  const [allCoordinatorAreas, setAllCoordinatorAreas] = useState<CoordinatorAreaOption[]>([]);
+  const [areaOptions, setAreaOptions] = useState<AreaOption[]>([]);
+  const [areasLoading, setAreasLoading] = useState(false);
   const deferredAreaQuery = useDeferredValue(areaQuery);
   const [comboOpen, setComboOpen] = useState(false);
 
@@ -230,110 +220,69 @@ export function AdminWaCenterPage() {
 
   useEffect(() => {
     let cancelled = false;
-    async function loadAvailableAreas() {
+    const keyword = deferredAreaQuery.trim();
+
+    if (keyword.length < 2) {
+      setAreaOptions([]);
+      return;
+    }
+
+    async function loadAreas() {
+      setAreasLoading(true);
       try {
-        let allUsers: UserListItem[] = [];
-        let page = 1;
-        let hasMore = true;
+        const responses = await Promise.all(
+          AREA_SEARCH_LEVELS.map((level) =>
+            apiBrowserFetch<AreaSearchResult[]>("/administrative-areas", {
+              query: {
+                search: keyword,
+                level,
+                isActive: true,
+                page: 1,
+                limit: 200,
+              },
+            }),
+          ),
+        );
 
-        while (hasMore && !cancelled) {
-          const users = await apiBrowserFetch<UserListItem[]>("/user-profiles", {
-            query: {
-              roleCode: "FIELD_COORDINATOR",
-              limit: 100,
-              page: page,
-            },
-          });
+        if (cancelled) return;
 
-          if (users.length > 0) {
-            allUsers = [...allUsers, ...users];
-          }
-
-          if (users.length < 100) {
-            hasMore = false;
-          } else {
-            page++;
-          }
-        }
-
-        if (!cancelled) {
-          const optionMap = new Map<string, CoordinatorAreaOption>();
-          allUsers.forEach((user) => {
-            const assignments = getUserAssignments(user);
-            assignments.forEach((assignment) => {
-              const branch = assignment.branch || assignment.seat?.branch || assignment.position?.branch || null;
-              assignment.areaScopes?.forEach((scope) => {
-                if (scope.area && REPORT_SCOPE_LEVELS.has(scope.area.level)) {
-                  const area = scope.area as AreaSearchResult;
-                  const key = `${area.id}-${branch || "default"}-${assignment.id}`;
-                  if (!optionMap.has(key)) {
-                    const routeLabel = branchLabel(branch);
-                    const coordinatorName =
-                      user.fullName || user.username || user.authUser.name || "Koordinator Wilayah";
-                    const areaLabel = area.parent?.name ? `${area.parent.name} / ${area.name}` : area.name;
-                    const label = routeLabel ? `${areaLabel} (${routeLabel})` : areaLabel;
-
-                    optionMap.set(key, {
-                      ...area,
-                      branch,
-                      label,
-                      userId: user.id,
-                      assignmentId: assignment.id,
-                      coordinatorName,
-                    });
-                  }
-                }
-              });
+        const optionMap = new Map<string, AreaOption>();
+        for (const area of responses.flat()) {
+          if (!optionMap.has(area.id)) {
+            const hierarchyLabel = area.parent?.name ? `${area.parent.name} / ${area.name}` : area.name;
+            optionMap.set(area.id, {
+              ...area,
+              label: `${hierarchyLabel} (${areaLevelLabel(area.level)})`,
             });
-          });
-
-          const sortedOptions = Array.from(optionMap.values()).sort((a, b) => {
-            const branchDiff = branchSortOrder(a.branch) - branchSortOrder(b.branch);
-            if (branchDiff !== 0) return branchDiff;
-            const levelDiff = areaLevelSortOrder(a.level) - areaLevelSortOrder(b.level);
-            if (levelDiff !== 0) return levelDiff;
-            return a.label.localeCompare(b.label);
-          });
-          setAllCoordinatorAreas(sortedOptions);
+          }
         }
+
+        const merged = Array.from(optionMap.values()).sort((left, right) => {
+          const levelDiff = areaLevelSortOrder(left.level) - areaLevelSortOrder(right.level);
+          if (levelDiff !== 0) return levelDiff;
+          return left.label.localeCompare(right.label, "id-ID");
+        });
+        setAreaOptions(merged);
       } catch (err) {
-        console.error("Failed to load areas", err);
+        console.error("Gagal memuat wilayah pelaporan", err);
+        if (!cancelled) setAreaOptions([]);
+      } finally {
+        if (!cancelled) setAreasLoading(false);
       }
     }
-    void loadAvailableAreas();
+
+    void loadAreas();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [deferredAreaQuery]);
 
-  const areaQueryStr = deferredAreaQuery.trim().toLowerCase();
-  const areaResults = useMemo(() => {
-    const source = selectedAreas[0]
-      ? allCoordinatorAreas.filter((area) => sameAssignment(area, selectedAreas[0]))
-      : allCoordinatorAreas;
-    if (!areaQueryStr) return source;
-    return source.filter(
-      (a) => a.label.toLowerCase().includes(areaQueryStr) || a.parent?.name?.toLowerCase().includes(areaQueryStr),
+  const selectedAreaKeys = useMemo(() => new Set(selectedAreas.map((area) => area.id)), [selectedAreas]);
+
+  const toggleSelectedArea = (area: AreaOption) => {
+    setSelectedAreas((current) =>
+      current.some((item) => item.id === area.id) ? current.filter((item) => item.id !== area.id) : [...current, area],
     );
-  }, [allCoordinatorAreas, areaQueryStr, selectedAreas]);
-
-  const selectedAreaKeys = useMemo(() => new Set(selectedAreas.map(areaOptionKey)), [selectedAreas]);
-
-  const toggleSelectedArea = (area: CoordinatorAreaOption) => {
-    setSelectedAreas((current) => {
-      const key = areaOptionKey(area);
-      if (current.some((item) => areaOptionKey(item) === key)) {
-        return current.filter((item) => areaOptionKey(item) !== key);
-      }
-      if (current[0] && !sameAssignment(current[0], area)) {
-        return [area];
-      }
-      return [...current, area].sort((left, right) => {
-        const levelDiff = areaLevelSortOrder(left.level) - areaLevelSortOrder(right.level);
-        if (levelDiff !== 0) return levelDiff;
-        return left.label.localeCompare(right.label, "id-ID");
-      });
-    });
   };
 
   const handleCreate = async () => {
@@ -342,10 +291,10 @@ export function AdminWaCenterPage() {
     try {
       setBusyKey("create");
 
-      const codeBase = makeCodePart(`${primaryArea.coordinatorName}_${primaryArea.code}`);
+      const codeBase = makeCodePart(`${primaryArea.name}_${primaryArea.officialCode ?? primaryArea.code}`);
       const areaSuffix =
         selectedAreas.length > 1 ? `${primaryArea.name} + ${selectedAreas.length - 1} wilayah` : primaryArea.name;
-      const nameBase = `${primaryArea.coordinatorName} - ${areaSuffix}`;
+      const nameBase = selectedAreas.length > 1 ? areaSuffix : primaryArea.name;
 
       const response = await fetch("/api/admin-system/integrasi-wa-center", {
         method: "POST",
@@ -353,15 +302,12 @@ export function AdminWaCenterPage() {
         body: JSON.stringify({
           code: `WA_${codeBase}`,
           name: `Bot WA ${nameBase}`,
-          userId: primaryArea.userId,
-          operationalAssignmentId: primaryArea.assignmentId,
           scopeAreaIds: selectedAreas.map((area) => area.id),
           scopeAreaId: primaryArea.id,
           scopeAreaCode: primaryArea.officialCode ?? primaryArea.code,
           scopeAreaName: primaryArea.name,
           scopeAreaLevel: primaryArea.level,
           scopeAreaParentName: primaryArea.parent?.name ?? null,
-          scopeBranch: primaryArea.branch,
         }),
       });
 
@@ -372,6 +318,7 @@ export function AdminWaCenterPage() {
       }
       setIsAddOpen(false);
       setSelectedAreas([]);
+      setAreaQuery("");
       await loadChannels();
 
       // Auto request QR setelah ditambahkan
@@ -571,7 +518,8 @@ export function AdminWaCenterPage() {
               <DialogHeader>
                 <DialogTitle>Tambah Koneksi WhatsApp</DialogTitle>
                 <DialogDescription>
-                  Pilih satu atau beberapa provinsi/kota/kabupaten yang pelaporan Jaringnya memakai koneksi ini.
+                  Pilih provinsi, kota/kabupaten, atau kecamatan tempat Jaring terverifikasi melapor. Seluruh laporan
+                  Jaring di wilayah tersebut akan masuk ke koneksi ini.
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
@@ -596,15 +544,21 @@ export function AdminWaCenterPage() {
                       className="w-[min(520px,calc(100vw-32px))] border-border bg-card p-0 text-card-foreground"
                     >
                       <Command className="bg-transparent text-foreground" shouldFilter={false}>
-                        <CommandInput placeholder="Cari wilayah..." value={areaQuery} onValueChange={setAreaQuery} />
+                        <CommandInput
+                          placeholder="Cari wilayah (min. 2 huruf)..."
+                          value={areaQuery}
+                          onValueChange={setAreaQuery}
+                        />
                         <CommandList>
                           <CommandEmpty className="py-4 text-center text-sm text-muted-foreground">
-                            Tidak ada wilayah yang ditemukan.
+                            {areasLoading || areaQuery.trim().length < 2
+                              ? "Ketik minimal 2 huruf untuk mencari wilayah."
+                              : "Tidak ada wilayah yang ditemukan."}
                           </CommandEmpty>
                           <CommandGroup>
-                            {areaResults.map((area) => (
+                            {areaOptions.map((area) => (
                               <CommandItem
-                                key={areaOptionKey(area)}
+                                key={area.id}
                                 value={area.label}
                                 onSelect={() => {
                                   toggleSelectedArea(area);
@@ -614,7 +568,7 @@ export function AdminWaCenterPage() {
                                 <Check
                                   className={cn(
                                     "mr-2 size-4",
-                                    selectedAreaKeys.has(areaOptionKey(area)) ? "opacity-100" : "opacity-0",
+                                    selectedAreaKeys.has(area.id) ? "opacity-100" : "opacity-0",
                                   )}
                                 />
                                 <span className="min-w-0 flex-1 truncate">
@@ -630,15 +584,15 @@ export function AdminWaCenterPage() {
                   {selectedAreas.length > 0 ? (
                     <div className="flex flex-wrap gap-1.5 rounded-md border border-border/70 bg-muted/20 p-2">
                       {selectedAreas.map((area) => (
-                        <Badge key={areaOptionKey(area)} variant="outline" className="max-w-full gap-1 truncate">
+                        <Badge key={area.id} variant="outline" className="max-w-full gap-1 truncate">
                           {area.parent?.name ? `${area.parent.name} / ${area.name}` : area.name}
                         </Badge>
                       ))}
                     </div>
                   ) : (
                     <p className="text-xs text-muted-foreground">
-                      Satu wilayah boleh dipakai lebih dari satu koneksi WhatsApp. Pilihan berikutnya dibatasi pada
-                      penugasan koordinator yang sama.
+                      Satu wilayah boleh dipakai lebih dari satu koneksi WhatsApp. Pilih beberapa wilayah sekaligus bila
+                      perlu.
                     </p>
                   )}
                 </div>
@@ -746,7 +700,7 @@ export function AdminWaCenterPage() {
                         </div>
                         <div className="min-w-0">
                           <h3 className={cn(DC_TYPOGRAPHY.cardTitle, "text-base")}>
-                            {channel.coordinatorName || channel.name}
+                            {channel.name || channel.coordinatorName}
                           </h3>
                           <p className={cn(DC_TYPOGRAPHY.body, "break-words")}>
                             {scopeAreas.length > 1

@@ -1196,7 +1196,7 @@ export async function createWhatsappControlChannel(
     code: string;
     name: string;
     config: {
-      userId: string;
+      userId?: string;
       scopeAreaIds?: string[];
       [key: string]: unknown;
     };
