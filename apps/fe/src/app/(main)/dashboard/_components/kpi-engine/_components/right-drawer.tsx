@@ -8,6 +8,19 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 
 type DataRecord = Record<string, unknown>;
 
+type KpiIndicator = {
+  code: string;
+  score?: number | null;
+  sample?: number | null;
+};
+
+type AuditLog = {
+  id?: string;
+  title?: string;
+  message?: string;
+  timestamp?: string;
+};
+
 interface RightDrawerProps {
   readonly isOpen: boolean;
   readonly onClose: () => void;
@@ -127,7 +140,7 @@ export function RightDrawer({ isOpen, onClose, type, data }: RightDrawerProps) {
             {hasHistory && (
               <div className="mt-2 h-40 w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={data.history as any}>
+                  <LineChart data={data.history as Array<Record<string, unknown>>}>
                     <CartesianGrid strokeDasharray="3 3" className="stroke-[var(--dc-divider)]" strokeWidth={0.5} />
                     <XAxis dataKey="date" className="font-mono text-[9px]" stroke="var(--dc-text-muted)" />
                     <YAxis domain={[0, 100]} className="font-mono text-[9px]" stroke="var(--dc-text-muted)" />
@@ -157,7 +170,7 @@ export function RightDrawer({ isOpen, onClose, type, data }: RightDrawerProps) {
               Kinerja per Indikator
             </h5>
             <div className="space-y-2">
-              {indicators.map((ind: any) => {
+              {indicators.map((ind: KpiIndicator) => {
                 const kpiScore = ind.score !== null && ind.score !== undefined ? Number(ind.score) : null;
                 const formattedKpiScore =
                   kpiScore === null ? "-" : kpiScore.toLocaleString("id-ID", { maximumFractionDigits: 1 });
@@ -231,7 +244,7 @@ export function RightDrawer({ isOpen, onClose, type, data }: RightDrawerProps) {
                 Riwayat Evaluasi
               </h5>
               <div className="relative space-y-4 border-[var(--dc-divider)] border-l pl-4 text-xs">
-                {(data.auditLogs as Array<any>).map((log: any, idx: number) => (
+                {(data.auditLogs as AuditLog[]).map((log: AuditLog, idx: number) => (
                   <div key={log.id ?? idx} className="relative">
                     <span className="absolute top-0.5 -left-[21px] size-2.5 rounded-full bg-[var(--dc-primary)] ring-4 ring-[var(--dc-sidebar)]" />
                     <p className="font-semibold text-[var(--dc-text-primary)]">{log.title ?? log.message}</p>

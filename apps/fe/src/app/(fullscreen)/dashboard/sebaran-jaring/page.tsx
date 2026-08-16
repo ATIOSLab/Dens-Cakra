@@ -244,7 +244,7 @@ async function getScopedRegionData(sessionRole: string) {
         scopedCities.push({
           id: cScope.areaId,
           name: cScope.name,
-          level: cScope.level as any,
+          level: cScope.level as JaringAdministrativeArea["level"],
         } as JaringAdministrativeArea);
       }
     } else if (levelsInScope.has("DISTRICT") || levelsInScope.has("VILLAGE")) {

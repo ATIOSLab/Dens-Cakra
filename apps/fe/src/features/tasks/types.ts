@@ -65,6 +65,7 @@ export type TaskSummary = {
     directive?: {
       id: string;
       commandNumber: string;
+      ownerUnit?: OrganizationUnitOption | null;
     } | null;
   } | null;
   uukStrVersion?: {

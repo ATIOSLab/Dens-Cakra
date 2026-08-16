@@ -21,6 +21,7 @@ import {
   Star,
   User,
 } from "lucide-react";
+import type { GeoJSONSource } from "maplibre-gl";
 import { toast } from "sonner";
 
 import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";
@@ -135,13 +136,31 @@ function formatTimeAgo(value: unknown) {
   return new Intl.DateTimeFormat("id-ID", { dateStyle: "short" }).format(date);
 }
 
-function getCoords(location: any): [number, number] | null {
+type GisMapPoint = {
+  id: string;
+  fullName: string;
+  title: string;
+  unitName: string;
+  status: string;
+  coords: [number, number];
+  email: string;
+  phone: string;
+  location: Record<string, unknown> | null | undefined;
+  kind: string;
+  photo: string;
+};
+
+type GisClusterNode =
+  | { isCluster: true; id: string; coords: [number, number]; count: number; points: GisMapPoint[] }
+  | { isCluster: false; id?: string; coords?: [number, number]; point: GisMapPoint };
+
+function getCoords(location: Record<string, unknown> | null | undefined): [number, number] | null {
   const geom = location?.geometry;
-  if (!geom || !Array.isArray(geom.coordinates) || geom.coordinates.length < 2) {
-    return null;
-  }
-  const lng = Number(geom.coordinates[0]);
-  const lat = Number(geom.coordinates[1]);
+  if (!geom || typeof geom !== "object") return null;
+  const coords = (geom as Record<string, unknown>).coordinates;
+  if (!Array.isArray(coords) || coords.length < 2) return null;
+  const lng = Number(coords[0]);
+  const lat = Number(coords[1]);
   return Number.isFinite(lng) && Number.isFinite(lat) ? [lng, lat] : null;
 }
 
@@ -230,7 +249,7 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
   const [mapFilterStatus, setMapFilterStatus] = useState<"ALL" | "ONLINE" | "OFFLINE" | "EMERGENCY">("ALL");
   const [mapSearchQuery, setMapSearchQuery] = useState("");
   const [showTravelPath, setShowTravelPath] = useState(true);
-  const [selectedGisPoint, setSelectedGisPoint] = useState<any | null>(null);
+  const [selectedGisPoint, setSelectedGisPoint] = useState<GisMapPoint | null>(null);
   const [mapZoom, setMapZoom] = useState(7);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; pointId: string } | null>(null);
   const [activeWorkspaceTab, setActiveWorkspaceTab] = useState("list-view");
@@ -314,7 +333,7 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
 
   // Convert raw data to standardized GIS map point records
   const mapPoints = useMemo(() => {
-    const points: any[] = [];
+    const points: GisMapPoint[] = [];
     for (const assignment of assignments) {
       const profile = record(assignment.userProfile);
       const position = record(assignment.position);
@@ -344,7 +363,7 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
   }, [assignments, locationMap]);
 
   // Handle GIS Point selection zoom animations
-  const handleSelectPoint = (point: any) => {
+  const handleSelectPoint = (point: GisMapPoint) => {
     setSelectedGisPoint(point);
     const map = mapRef.current?.getMap();
     if (map && point.coords) {
@@ -419,12 +438,12 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
   }, [filteredMapPoints]);
 
   // Simple pure JS distance-based clustering
-  const clusterPoints = (pts: any[], zoomVal: number) => {
+  const clusterPoints = (pts: GisMapPoint[], zoomVal: number): GisClusterNode[] => {
     if (zoomVal >= 10) {
       return pts.map((p) => ({ isCluster: false, point: p }));
     }
 
-    const clusters: any[] = [];
+    const clusters: GisClusterNode[] = [];
     const distanceThreshold = 0.5 * (14 - zoomVal);
     const processed = new Set<string>();
 
@@ -504,7 +523,7 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
     const layerId = "travel-path-layer";
 
     if (showTravelPath && pathCoordinates.length > 1) {
-      const geojson: any = {
+      const geojson: GeoJSON.Feature<GeoJSON.LineString> = {
         type: "Feature",
         properties: {},
         geometry: {
@@ -515,7 +534,7 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
 
       try {
         if (mapObj.getSource(sourceId)) {
-          (mapObj.getSource(sourceId) as any).setData(geojson);
+          (mapObj.getSource(sourceId) as GeoJSONSource).setData(geojson);
         } else {
           mapObj.addSource(sourceId, {
             type: "geojson",
@@ -1599,7 +1618,9 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
               <span>STATUS:</span>
               <select
                 value={mapFilterStatus}
-                onChange={(e: any) => setMapFilterStatus(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                  setMapFilterStatus(e.target.value as typeof mapFilterStatus)
+                }
                 className="h-7 rounded-[3px] border border-border bg-transparent px-2 text-[10px] text-foreground font-mono focus:outline-none cursor-pointer"
               >
                 <option value="ALL" className="bg-card">

@@ -1631,7 +1631,7 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
   const [photoPreviewOpen, setPhotoPreviewOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"information" | "reports" | "coaching">("information");
 
-  const [reports, setReports] = useState<any[]>([]);
+  const [reports, setReports] = useState<JaringReportItem[]>([]);
   const [reportsLoading, setReportsLoading] = useState(false);
   const [reportsLoaded, setReportsLoaded] = useState(false);
   const [expandedReportIds, setExpandedReportIds] = useState<Set<string>>(new Set());
@@ -1699,7 +1699,9 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
       async function loadReports() {
         setReportsLoading(true);
         try {
-          const res = await apiBrowserFetch<{ items?: any[] } | any[]>(`/jaring/${item.id}/reports`);
+          const res = await apiBrowserFetch<{ items?: JaringReportItem[] } | JaringReportItem[]>(
+            `/jaring/${item.id}/reports`,
+          );
           if (!cancelled) {
             const itemsList = Array.isArray(res) ? res : res?.items || [];
             setReports(itemsList);

@@ -2861,7 +2861,7 @@ export function OimIncomingForwardingListClient({ sources, tasks }: OimIncomingF
       }
 
       // 2. Date period filter
-      const dateStr = (source as any).createdAt || (source as any).currentVersion?.createdAt;
+      const dateStr = source.currentVersion?.createdAt;
       if (dateStr) {
         const createdDate = new Date(dateStr);
         if (filterStartDate) {
@@ -3468,7 +3468,7 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
               <span>
                 TANGGAL:{" "}
                 <span className="text-[var(--dc-text-primary)]">
-                  {(source as any).createdAt ? formatDate((source as any).createdAt) : "-"}
+                  {source.currentVersion?.createdAt ? formatDate(source.currentVersion.createdAt) : "-"}
                 </span>
               </span>
             </div>
@@ -4523,7 +4523,7 @@ export function TaskDetailClient({
               <div className="space-y-1">
                 <div className="text-[9px] text-muted-foreground/60 uppercase">Regional</div>
                 <div className="truncate font-semibold text-[var(--dc-text-primary)]">
-                  {(task.directiveVersion?.directive as any)?.ownerUnit?.name ?? "-"}
+                  {task.directiveVersion?.directive?.ownerUnit?.name ?? "-"}
                 </div>
               </div>
               <div className="space-y-1">

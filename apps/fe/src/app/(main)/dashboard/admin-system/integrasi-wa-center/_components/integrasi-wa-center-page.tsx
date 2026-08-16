@@ -313,9 +313,7 @@ export function AdminWaCenterPage() {
       : allCoordinatorAreas;
     if (!areaQueryStr) return source;
     return source.filter(
-      (a) =>
-        a.label.toLowerCase().includes(areaQueryStr) ||
-        (a.parent?.name?.toLowerCase().includes(areaQueryStr)),
+      (a) => a.label.toLowerCase().includes(areaQueryStr) || a.parent?.name?.toLowerCase().includes(areaQueryStr),
     );
   }, [allCoordinatorAreas, areaQueryStr, selectedAreas]);
 
