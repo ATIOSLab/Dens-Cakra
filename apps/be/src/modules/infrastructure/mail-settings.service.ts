@@ -99,10 +99,10 @@ export class MailSettingsService {
       where: { key: SMTP_SETTING_KEY },
     });
     const resolved = await this.resolveSettingsValue(row?.value, row?.isSecret);
-    const source = row && resolved.enabled ? 'custom' : 'env';
+    const source = row ? 'custom' : 'env';
 
     return {
-      enabled: resolved.enabled,
+      enabled: row ? resolved.enabled : true,
       from: resolved.from,
       host: resolved.host,
       passwordSet: resolved.pass.length > 0,
@@ -188,17 +188,29 @@ export class MailSettingsService {
     body: TestSmtpSettingsDto,
     context: AuthorizationContext,
   ): Promise<{ to: string; sent: true }> {
-    await this.sendMail({
-      to: body.to,
-      subject: '[DENS CAKRA] Tes konfigurasi SMTP',
-      text: 'Tes konfigurasi SMTP DENS CAKRA berhasil dikirim.',
-      html: `
-        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827; max-width: 640px; margin: 0 auto; padding: 24px;">
-          <h2 style="margin: 0 0 16px;">Tes Konfigurasi SMTP</h2>
-          <p>Email ini dikirim otomatis untuk memastikan konfigurasi SMTP DENS CAKRA dapat digunakan.</p>
-        </div>
-      `,
-    });
+    const config = await this.resolveTransportConfig();
+    if (!config) {
+      throw new ApiException(
+        'EMAIL_DISABLED',
+        'Pengiriman email dinonaktifkan melalui pengaturan SMTP. Aktifkan terlebih dahulu untuk menguji SMTP.',
+        409,
+      );
+    }
+
+    await sendMail(
+      {
+        to: body.to,
+        subject: '[DENS CAKRA] Tes konfigurasi SMTP',
+        text: 'Tes konfigurasi SMTP DENS CAKRA berhasil dikirim.',
+        html: `
+          <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827; max-width: 640px; margin: 0 auto; padding: 24px;">
+            <h2 style="margin: 0 0 16px;">Tes Konfigurasi SMTP</h2>
+            <p>Email ini dikirim otomatis untuk memastikan konfigurasi SMTP DENS CAKRA dapat digunakan.</p>
+          </div>
+        `,
+      },
+      config,
+    );
 
     await this.prisma.auditLog.create({
       data: {
@@ -216,7 +228,15 @@ export class MailSettingsService {
   }
 
   async sendMail(options: SendMailOptions): Promise<void> {
-    await sendMail(options, await this.resolveTransportConfig());
+    const config = await this.resolveTransportConfig();
+    if (!config) {
+      this.logger.warn(
+        'Pengiriman email dinonaktifkan melalui pengaturan SMTP; pesan dilewati.',
+      );
+      return;
+    }
+
+    await sendMail(options, config);
   }
 
   queueMail(options: SendMailOptions): void {
@@ -228,14 +248,19 @@ export class MailSettingsService {
     });
   }
 
-  private async resolveTransportConfig(): Promise<SmtpMailConfig> {
+  private async resolveTransportConfig(): Promise<SmtpMailConfig | null> {
     const row = await this.prisma.systemSetting.findUnique({
       where: { key: SMTP_SETTING_KEY },
     });
-    const resolved = await this.resolveSettingsValue(row?.value, row?.isSecret);
 
-    if (!row || !resolved.enabled) {
+    if (!row) {
       return defaultSmtpMailConfig();
+    }
+
+    const resolved = await this.resolveSettingsValue(row.value, row.isSecret);
+
+    if (!resolved.enabled) {
+      return null;
     }
 
     this.assertComplete(resolved);

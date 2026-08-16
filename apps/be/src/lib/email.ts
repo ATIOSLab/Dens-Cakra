@@ -101,19 +101,25 @@ function completeStoredSettings(
   };
 }
 
-export async function resolveSmtpMailConfig(): Promise<SmtpMailConfig> {
+export async function resolveSmtpMailConfig(): Promise<SmtpMailConfig | null> {
   const fallback = defaultSmtpMailConfig();
 
   try {
     const row = await prisma.systemSetting.findUnique({
       where: { key: SMTP_SETTING_KEY },
     });
-    const value = row?.isSecret
+    if (!row) {
+      return fallback;
+    }
+    const value = row.isSecret
       ? isEncryptedValue(row.value)
         ? decryptStoredSettings(row.value)
         : null
-      : (row?.value as StoredSmtpSettings | null | undefined);
-    return (value ? completeStoredSettings(value) : null) ?? fallback;
+      : (row.value as StoredSmtpSettings | null | undefined);
+    if (!value || value.enabled !== true) {
+      return null;
+    }
+    return completeStoredSettings(value) ?? fallback;
   } catch {
     return fallback;
   }
@@ -126,6 +132,14 @@ export async function sendMail({
   to,
 }: SendMailOptions, config?: SmtpMailConfig): Promise<void> {
   const resolvedConfig = config ?? (await resolveSmtpMailConfig());
+
+  if (!resolvedConfig) {
+    logger.warn(
+      'Pengiriman email dinonaktifkan melalui pengaturan SMTP; pesan dilewati.',
+    );
+    return;
+  }
+
   const transporter = nodemailer.createTransport({
     host: resolvedConfig.host,
     port: resolvedConfig.port,
