@@ -111,7 +111,7 @@ export const sidebarItems: NavGroup[] = [
       },
       {
         id: "executive-intelligence-products",
-        title: DOMAIN_TERMS.intelligenceReport,
+        title: "Produk Intelijen",
         url: "/dashboard/executive/produk-intelijen",
         icon: DOMAIN_VISUALS.intelligenceReport.Icon,
         roles: EXECUTIVE_ROLE,
@@ -132,17 +132,10 @@ export const sidebarItems: NavGroup[] = [
       },
       {
         id: "regional-intelligence-products",
-        title: DOMAIN_TERMS.intelligenceReport,
+        title: "Produk Intelijen",
         url: "/dashboard/regional-commander/laporan-produk-intelijen",
         icon: DOMAIN_VISUALS.intelligenceReport.Icon,
         roles: REGIONAL_COMMANDER_ROLE,
-      },
-      {
-        id: "oim-home",
-        title: "Beranda",
-        url: "/dashboard/oim",
-        icon: DOMAIN_VISUALS.home.Icon,
-        roles: EXECUTIVE_AND_REGIONAL_ROLES,
       },
       {
         id: "oim-directives",
@@ -427,7 +420,6 @@ export function getSidebarItemsForRole(role: SystemRole): NavGroup[] {
   const homeIds = new Set([
     "executive-home",
     "regional-home",
-    "oim-home",
     "field-coordinator-home",
     "beranda-field-officer",
     "admin-system-home",
