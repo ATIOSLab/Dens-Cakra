@@ -31,7 +31,7 @@ Sebelum menganggap revisi selesai:
 | --- | --- | --- | --- |
 | Deputi II | Deputi II | `executive`, `EXECUTIVE` | Label UI untuk role pusat pada dashboard Deputi II; identifier teknis tetap `executive`. |
 | Kepala BIN Daerah (Kabinda) | Kepala BIN Daerah (Kabinda) | `regional_commander`, `REGIONAL_COMMANDER` | Label UI untuk role regional. "Komandan Regional" tidak dipakai lagi. Untuk cabang supervisi (branch DIRECTORATE) gunakan "Direktur Direktorat/Ditwil". |
-| Manajer Intelijen Operasional | Manajer Intelijen Operasional | `operational_intelligence_manager` | OIM boleh dipakai sebagai singkatan di ruang sempit setelah label lengkap jelas. |
+| Manajer Intelijen Operasional | Manajer Intelijen Operasional (OIM) | fungsi Anev; tidak lagi role tersendiri | OIM/Anev adalah fungsi analis yang melekat pada Kabinda (branch BINDA) atau Direktorat/Ditwil (branch DIRECTORATE). Tidak ada system role `operational_intelligence_manager` lagi. |
 | Koordinator Wilayah (Korwil) | Koordinator Wilayah (Korwil) | `field_coordinator`, `FIELD_COORDINATOR`, position code seperti `KORWIL` | Label UI untuk role/jabatan Korwil. Identifier teknis tetap dipertahankan. |
 | Petugas Wilayah | Petugas Wilayah (Gaswil) | `field_officer`, `FIELD_OFFICER` | Jangan pakai Handler untuk UI. |
 | Personel Lapangan | Personel Lapangan | assignment/personel operasional | Gunakan untuk label netral ketika data teknis belum membedakan Gaswil, Korwil, atau petugas organik. |
@@ -53,7 +53,7 @@ Dokumen ini menjadi aturan final untuk pembentukan unit organisasi, jabatan/role
 | Konsep | Makna | Aturan |
 | --- | --- | --- |
 | Unit organisasi/wilayah | Tempat pengguna berada. | Contoh: BIN Pusat, Kedeputian II, Direktorat 21-25, BIN Daerah (Binda), Kota/Kabupaten, Kecamatan. |
-| Jabatan/role | Kedudukan pengguna dalam sistem. | Contoh: Deputi II, Kepala BIN Daerah (Kabinda), Manajer Intelijen Operasional (OIM), Koordinator Wilayah (Korwil), Petugas Wilayah (Gaswil), Jaring. |
+| Jabatan/role | Kedudukan pengguna dalam sistem. | Contoh: Deputi II, Kepala BIN Daerah (Kabinda), Koordinator Wilayah (Korwil), Petugas Wilayah (Gaswil), Jaring. |
 | Fungsi | Tugas tambahan yang melekat pada pengguna tertentu. | Contoh: Anev Binda, Anev Direktorat, Anev Kedeputian. Fungsi bukan tingkat wilayah. |
 | Cakupan akses | Wilayah data yang boleh dibaca atau dikelola. | Harus dihitung dari role, fungsi, unit organisasi, wilayah penugasan, dan kewenangan tindakan. |
 
