@@ -493,7 +493,7 @@ export function AdminWaCenterPage() {
   const AdminIcon = DOMAIN_VISUALS.admin.Icon;
 
   return (
-    <main className="space-y-6 p-6">
+    <main className="mx-auto w-full max-w-[1600px] space-y-6 p-4 sm:p-6">
       <section className="flex flex-wrap items-start justify-between gap-3">
         <div className="max-w-3xl">
           <p className="text-muted-foreground text-sm">Admin Sistem</p>
@@ -613,7 +613,7 @@ export function AdminWaCenterPage() {
         </div>
       </section>
 
-      <section className="grid gap-3 md:grid-cols-4">
+      <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Card className={DC_CONTROLS.card}>
           <CardContent className="flex items-center gap-4 p-4">
             <AdminIcon className={cn("size-9", DOMAIN_VISUALS.admin.iconClass)} />
@@ -689,7 +689,7 @@ export function AdminWaCenterPage() {
 
                 return (
                   <Card key={channel.id} className={cn(DC_CONTROLS.card, "overflow-hidden")}>
-                    <CardContent className="grid gap-4 p-4 lg:grid-cols-[1.2fr_1fr_220px]">
+                    <CardContent className="grid gap-4 p-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_240px] lg:gap-6">
                       <div className="min-w-0 space-y-3">
                         <div className="flex flex-wrap items-center gap-2">
                           <Badge className={tone(channel.status)}>{channelStatusLabel(channel.status)}</Badge>
