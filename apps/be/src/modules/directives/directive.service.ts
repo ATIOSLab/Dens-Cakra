@@ -1370,7 +1370,6 @@ export class DirectiveService {
               role: {
                 code: {
                   in: [
-                    RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER,
                     RoleCode.REGIONAL_COMMANDER,
                     RoleCode.FIELD_COORDINATOR,
                     RoleCode.FIELD_OFFICER,

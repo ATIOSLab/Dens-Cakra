@@ -335,7 +335,7 @@ async function loadContext() {
 
   const [operationalManager, regionalCommander, executive] = await Promise.all([
     findAssignment({
-      roleCode: RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER,
+      roleCode: RoleCode.REGIONAL_COMMANDER,
       branch: CommandRouteType.BINDA,
       areaCode: JAKARTA_PROVINCE_CODE,
     }),

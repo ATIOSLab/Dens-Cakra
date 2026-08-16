@@ -42,7 +42,7 @@ export class UukController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
     ],
   })
@@ -77,7 +77,7 @@ export class UukController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
     ],
   })
@@ -96,7 +96,7 @@ export class UukController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
     ],
   })
@@ -134,7 +134,7 @@ export class UukController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
     ],
   })

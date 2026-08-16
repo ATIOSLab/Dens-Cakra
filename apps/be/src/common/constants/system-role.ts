@@ -1,7 +1,6 @@
 export const SYSTEM_ROLES = {
   EXECUTIVE: 'executive',
   REGIONAL_COMMANDER: 'regional_commander',
-  OPERATIONAL_INTELLIGENCE_MANAGER: 'operational_intelligence_manager',
   FIELD_COORDINATOR: 'field_coordinator',
   FIELD_OFFICER: 'field_officer',
   ADMIN_SYSTEM: 'admin_system',
@@ -21,12 +20,6 @@ export const SYSTEM_ROLE_CATALOG = [
     label: 'Kepala BIN Daerah (Kabinda)',
     summary:
       'Menjabarkan direktif, mengendalikan operasi wilayah, serta melakukan review dan persetujuan regional.',
-  },
-  {
-    key: SYSTEM_ROLES.OPERATIONAL_INTELLIGENCE_MANAGER,
-    label: 'Manajer Intelijen Operasional',
-    summary:
-      'Menerima Baket, melakukan verifikasi formal dan Neraca Penilaian, lalu menyusun produk intelijen.',
   },
   {
     key: SYSTEM_ROLES.FIELD_COORDINATOR,

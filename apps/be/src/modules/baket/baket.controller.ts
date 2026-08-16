@@ -58,7 +58,7 @@ export class BaketController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -100,7 +100,7 @@ export class BaketController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -137,7 +137,7 @@ export class BaketController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -176,7 +176,7 @@ export class BaketController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -335,7 +335,7 @@ export class BaketController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -352,7 +352,7 @@ export class BaketController {
     operationId: 'apiBak016',
     contractId: 'API-BAK-016',
     summary: 'Minta pengembangan/revisi',
-    roles: ['operational_intelligence_manager'],
+    roles: ['executive', 'regional_commander'],
     successStatus: 201,
     idempotent: true,
   })
@@ -371,7 +371,7 @@ export class BaketController {
     operationId: 'apiBak017',
     contractId: 'API-BAK-017',
     summary: 'Tutup permintaan revisi',
-    roles: ['operational_intelligence_manager'],
+    roles: ['executive', 'regional_commander'],
     idempotent: true,
   })
   async resolveRevisionRequest(
@@ -389,7 +389,7 @@ export class BaketController {
     operationId: 'apiBak018',
     contractId: 'API-BAK-018',
     summary: 'Batalkan permintaan revisi',
-    roles: ['operational_intelligence_manager'],
+    roles: ['executive', 'regional_commander'],
     idempotent: true,
   })
   async cancelRevisionRequest(
@@ -410,7 +410,7 @@ export class BaketController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -430,7 +430,7 @@ export class BaketController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -450,7 +450,7 @@ export class BaketController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
     ],
   })
   async listVerifications(
@@ -465,7 +465,7 @@ export class BaketController {
     operationId: 'apiVer002',
     contractId: 'API-VER-002',
     summary: 'Buat canonical verification',
-    roles: ['operational_intelligence_manager'],
+    roles: ['executive', 'regional_commander'],
     successStatus: 201,
     idempotent: true,
   })
@@ -487,7 +487,7 @@ export class BaketController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
     ],
   })
   async getVerification(
@@ -504,7 +504,7 @@ export class BaketController {
     operationId: 'apiVer004',
     contractId: 'API-VER-004',
     summary: 'Mulai verification',
-    roles: ['operational_intelligence_manager'],
+    roles: ['executive', 'regional_commander'],
     idempotent: true,
   })
   async startVerification(
@@ -521,7 +521,7 @@ export class BaketController {
     operationId: 'apiVer005',
     contractId: 'API-VER-005',
     summary: 'Edit draft/in-progress verification',
-    roles: ['operational_intelligence_manager'],
+    roles: ['executive', 'regional_commander'],
   })
   async updateVerification(
     @Param('verificationId', ParseUUIDPipe) verificationId: string,
@@ -538,7 +538,7 @@ export class BaketController {
     operationId: 'apiVer007',
     contractId: 'API-VER-007',
     summary: 'Ganti cross references',
-    roles: ['operational_intelligence_manager'],
+    roles: ['executive', 'regional_commander'],
     idempotent: true,
   })
   async replaceCrossReferences(
@@ -560,7 +560,7 @@ export class BaketController {
     operationId: 'apiVer008',
     contractId: 'API-VER-008',
     summary: 'Selesaikan verification valid',
-    roles: ['operational_intelligence_manager'],
+    roles: ['executive', 'regional_commander'],
     idempotent: true,
   })
   async completeVerification(
@@ -582,7 +582,7 @@ export class BaketController {
     operationId: 'apiVer009',
     contractId: 'API-VER-009',
     summary: 'Kembalikan untuk pengembangan',
-    roles: ['operational_intelligence_manager'],
+    roles: ['executive', 'regional_commander'],
     idempotent: true,
   })
   async needsDevelopment(
@@ -600,7 +600,7 @@ export class BaketController {
     operationId: 'apiVer010',
     contractId: 'API-VER-010',
     summary: 'Tolak Baket',
-    roles: ['operational_intelligence_manager'],
+    roles: ['executive', 'regional_commander'],
     idempotent: true,
   })
   async rejectVerification(
@@ -621,7 +621,7 @@ export class BaketController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
     ],
   })
   async verificationScore(

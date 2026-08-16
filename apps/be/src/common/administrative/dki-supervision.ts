@@ -25,7 +25,6 @@ export const DKI_REGENCY_CITY_LEVELS = [
 ] as const;
 export const DIRECTORATE_SUPERVISION_ROLE_CODES = [
   RoleCode.REGIONAL_COMMANDER,
-  RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER,
 ] as const;
 
 export const DKI_SUPERVISION_RBAC_POLICY = {

@@ -133,14 +133,14 @@ describe('DomainScopeService', () => {
     const service = new DomainScopeService(prisma as never);
     const context: AuthorizationContext = {
       authUserId: 'auth',
-      authRole: 'operational_intelligence_manager',
+      authRole: 'regional_commander',
       userProfileId: 'profile',
       userProfileStatus: UserProfileStatus.ACTIVE,
       primaryAssignmentId: 'oim-a',
       positionId: 'oim',
-      positionCode: RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER,
+      positionCode: RoleCode.REGIONAL_COMMANDER,
       positionTitle: 'Kasubdit',
-      roleCode: RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER,
+      roleCode: RoleCode.REGIONAL_COMMANDER,
       organizationUnitId: 'subdit',
       organizationUnitName: 'Subdit',
       organizationUnitType: CommandRouteType.DIRECTORATE,

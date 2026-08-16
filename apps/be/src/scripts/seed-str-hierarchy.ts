@@ -453,10 +453,6 @@ function rolePositionTitle(roleCode: RoleCode, branch: CommandRouteType) {
       : 'Kepala BIN Daerah (Kabinda)';
   }
 
-  if (roleCode === RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER) {
-    return 'Manajer Intelijen Operasional (OIM)';
-  }
-
   if (roleCode === RoleCode.FIELD_COORDINATOR) {
     return 'Koordinator Wilayah (Korwil)';
   }
@@ -474,9 +470,7 @@ function branchOrganizationName(branch: CommandRouteType, roleCode: RoleCode) {
   }
 
   if (branch === CommandRouteType.DIRECTORATE) {
-    return roleCode === RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER
-      ? 'Direktorat Supervisi'
-      : 'Direktorat';
+    return 'Direktorat';
   }
 
   return 'Binda';
@@ -732,7 +726,6 @@ async function loadAssignments() {
           in: [
             RoleCode.EXECUTIVE,
             RoleCode.REGIONAL_COMMANDER,
-            RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER,
             RoleCode.FIELD_COORDINATOR,
             RoleCode.FIELD_OFFICER,
           ],
@@ -838,7 +831,7 @@ function buildChains(assignments: AssignmentNode[]) {
 
     const oim = assignments.find(
       (assignment) =>
-        assignment.roleCode === RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER &&
+        assignment.roleCode === RoleCode.REGIONAL_COMMANDER &&
         assignment.branch === CommandRouteType.BINDA &&
         assignment.areaScopes.some(
           (area) => area.areaId === regionalArea.areaId,

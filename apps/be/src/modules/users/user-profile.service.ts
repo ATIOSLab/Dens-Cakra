@@ -57,7 +57,6 @@ export class UserProfileService {
             code: {
               in: [
                 RoleCode.REGIONAL_COMMANDER,
-                RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER,
               ],
             },
           },
@@ -1048,7 +1047,6 @@ export class UserProfileService {
       case 'executive':
         return [AdministrativeLevel.COUNTRY];
       case 'regional_commander':
-      case 'operational_intelligence_manager':
         if (branch === CommandRouteType.DIRECTORATE) {
           return [
             AdministrativeLevel.PROVINCE,

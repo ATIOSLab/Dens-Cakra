@@ -332,12 +332,12 @@ function mapRoleAreaPolicy(positionCode: PositionCode): {
       };
     case PositionCode.KASUBDIT:
       return {
-        roleCode: RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER,
+        roleCode: RoleCode.REGIONAL_COMMANDER,
         branch: CommandRouteType.DIRECTORATE,
       };
     case PositionCode.KABAGOPS:
       return {
-        roleCode: RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER,
+        roleCode: RoleCode.REGIONAL_COMMANDER,
         branch: CommandRouteType.BINDA,
       };
     case PositionCode.STAF_SUBDIT:

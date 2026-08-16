@@ -91,7 +91,7 @@ export class IntelligenceProductsController {
     operationId: 'apiTpl001',
     contractId: 'API-TPL-001',
     summary: 'Daftar jenis produk intelijen',
-    roles: ['admin_system', 'operational_intelligence_manager'],
+    roles: ['admin_system', 'executive', 'regional_commander'],
   })
   async listProductTypes(@Query() query: ProductTypeQuery) {
     return apiResult(await this.service.listProductTypes(query));
@@ -102,7 +102,7 @@ export class IntelligenceProductsController {
     operationId: 'apiTpl002',
     contractId: 'API-TPL-002',
     summary: 'Buat jenis produk',
-    roles: ['admin_system', 'operational_intelligence_manager'],
+    roles: ['admin_system', 'executive', 'regional_commander'],
     successStatus: 201,
     idempotent: true,
   })
@@ -118,7 +118,7 @@ export class IntelligenceProductsController {
     operationId: 'apiTpl003',
     contractId: 'API-TPL-003',
     summary: 'Ubah metadata jenis produk',
-    roles: ['admin_system', 'operational_intelligence_manager'],
+    roles: ['admin_system', 'executive', 'regional_commander'],
   })
   async updateProductType(
     @Param('productTypeId', ParseUUIDPipe) productTypeId: string,
@@ -135,7 +135,7 @@ export class IntelligenceProductsController {
     operationId: 'apiTpl004',
     contractId: 'API-TPL-004',
     summary: 'Daftar versi template',
-    roles: ['admin_system', 'operational_intelligence_manager'],
+    roles: ['admin_system', 'executive', 'regional_commander'],
   })
   async listTemplates(
     @Param('productTypeId', ParseUUIDPipe) productTypeId: string,
@@ -149,7 +149,7 @@ export class IntelligenceProductsController {
     operationId: 'apiTpl005',
     contractId: 'API-TPL-005',
     summary: 'Buat template version',
-    roles: ['admin_system', 'operational_intelligence_manager'],
+    roles: ['admin_system', 'executive', 'regional_commander'],
     successStatus: 201,
     idempotent: true,
   })
@@ -168,7 +168,7 @@ export class IntelligenceProductsController {
     operationId: 'apiTpl006',
     contractId: 'API-TPL-006',
     summary: 'Detail template',
-    roles: ['admin_system', 'operational_intelligence_manager'],
+    roles: ['admin_system', 'executive', 'regional_commander'],
   })
   async getTemplate(@Param('templateId', ParseUUIDPipe) templateId: string) {
     return apiResult(await this.service.getTemplate(templateId));
@@ -179,7 +179,7 @@ export class IntelligenceProductsController {
     operationId: 'apiTpl007',
     contractId: 'API-TPL-007',
     summary: 'Aktifkan template',
-    roles: ['admin_system', 'operational_intelligence_manager'],
+    roles: ['admin_system', 'executive', 'regional_commander'],
     idempotent: true,
   })
   async activateTemplate(
@@ -197,7 +197,7 @@ export class IntelligenceProductsController {
     operationId: 'apiTpl008',
     contractId: 'API-TPL-008',
     summary: 'Validasi payload produk terhadap template',
-    roles: ['operational_intelligence_manager'],
+    roles: ['executive', 'regional_commander'],
     idempotent: true,
   })
   async validateTemplate(
@@ -215,7 +215,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
     ],
   })
   async listProducts(
@@ -233,7 +233,7 @@ export class IntelligenceProductsController {
     operationId: 'apiPrd002',
     contractId: 'API-PRD-002',
     summary: 'Buat produk dan versi awal',
-    roles: ['operational_intelligence_manager'],
+    roles: ['executive', 'regional_commander'],
     successStatus: 201,
     idempotent: true,
   })
@@ -249,7 +249,7 @@ export class IntelligenceProductsController {
     operationId: 'apiPrd021',
     contractId: 'API-PRD-021',
     summary: 'Koreksi metadata produk draft',
-    roles: ['operational_intelligence_manager'],
+    roles: ['executive', 'regional_commander'],
   })
   async updateProduct(
     @Param('productId', ParseUUIDPipe) productId: string,
@@ -269,7 +269,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
     ],
   })
   async getProduct(
@@ -290,7 +290,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
     ],
   })
   async productVersions(
@@ -308,7 +308,7 @@ export class IntelligenceProductsController {
     operationId: 'apiPrd005',
     contractId: 'API-PRD-005',
     summary: 'Buat versi revisi produk',
-    roles: ['operational_intelligence_manager'],
+    roles: ['executive', 'regional_commander'],
     successStatus: 201,
     idempotent: true,
   })
@@ -330,7 +330,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
     ],
   })
   async getProductVersion(
@@ -345,7 +345,7 @@ export class IntelligenceProductsController {
     operationId: 'apiPrd007',
     contractId: 'API-PRD-007',
     summary: 'Edit product version draft',
-    roles: ['operational_intelligence_manager'],
+    roles: ['executive', 'regional_commander'],
   })
   async updateProductVersion(
     @Param('versionId', ParseUUIDPipe) versionId: string,
@@ -362,7 +362,7 @@ export class IntelligenceProductsController {
     operationId: 'apiPrd008',
     contractId: 'API-PRD-008',
     summary: 'Ganti source verifications',
-    roles: ['operational_intelligence_manager'],
+    roles: ['executive', 'regional_commander'],
     idempotent: true,
   })
   async replaceVerifications(
@@ -380,7 +380,7 @@ export class IntelligenceProductsController {
     operationId: 'apiPrd009',
     contractId: 'API-PRD-009',
     summary: 'Ganti source analyses',
-    roles: ['operational_intelligence_manager'],
+    roles: ['executive', 'regional_commander'],
     idempotent: true,
   })
   async replaceAnalyses(
@@ -398,7 +398,7 @@ export class IntelligenceProductsController {
     operationId: 'apiPrd010',
     contractId: 'API-PRD-010',
     summary: 'Ganti lampiran',
-    roles: ['operational_intelligence_manager'],
+    roles: ['executive', 'regional_commander'],
     idempotent: true,
   })
   async replaceAttachments(
@@ -416,7 +416,7 @@ export class IntelligenceProductsController {
     operationId: 'apiPrd011',
     contractId: 'API-PRD-011',
     summary: 'Validasi kesiapan submit',
-    roles: ['operational_intelligence_manager'],
+    roles: ['executive', 'regional_commander'],
     idempotent: true,
   })
   async validateProductVersion(
@@ -433,7 +433,7 @@ export class IntelligenceProductsController {
     operationId: 'apiPrd012',
     contractId: 'API-PRD-012',
     summary: 'Submit ke approval regional',
-    roles: ['operational_intelligence_manager'],
+    roles: ['executive', 'regional_commander'],
     idempotent: true,
   })
   async submitProduct(
@@ -454,7 +454,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
     ],
   })
   async traceability(
@@ -474,7 +474,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
     ],
   })
   async timeline(
@@ -489,7 +489,7 @@ export class IntelligenceProductsController {
     operationId: 'apiPrd015',
     contractId: 'API-PRD-015',
     summary: 'Arsipkan produk',
-    roles: ['operational_intelligence_manager'],
+    roles: ['executive', 'regional_commander'],
     idempotent: true,
   })
   async archiveProduct(
@@ -521,7 +521,7 @@ export class IntelligenceProductsController {
     operationId: 'apiApr002',
     contractId: 'API-APR-002',
     summary: 'Buat ulang workflow jika belum ada',
-    roles: ['operational_intelligence_manager'],
+    roles: ['executive', 'regional_commander'],
     successStatus: 201,
     idempotent: true,
   })
@@ -543,7 +543,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
     ],
   })
   async getWorkflow(
@@ -563,7 +563,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
     ],
   })
   async getStep(@Param('stepId', ParseUUIDPipe) stepId: string) {
@@ -662,7 +662,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
     ],
   })
   async workflowTimeline(
@@ -679,7 +679,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
     ],
   })
   async listDistributions(@Query() query: DistributionQuery) {
@@ -697,7 +697,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
     ],
     successStatus: 201,
     idempotent: true,
@@ -720,7 +720,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
     ],
   })
   async getDistribution(
@@ -755,7 +755,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
     ],
     idempotent: true,
   })
@@ -812,7 +812,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
     ],
   })
   async distributionSummary(
@@ -829,7 +829,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -874,7 +874,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
     ],
   })
@@ -907,7 +907,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
     ],
   })
@@ -926,7 +926,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
     ],
   })
@@ -945,7 +945,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
     ],
   })
@@ -966,7 +966,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
     ],
   })
@@ -987,7 +987,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
     ],
   })
@@ -1008,7 +1008,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
     ],
   })
@@ -1027,7 +1027,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -1056,7 +1056,7 @@ export class IntelligenceProductsController {
       'field_coordinator',
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
     ],
   })
   async fieldOfficerDashboard(
@@ -1075,7 +1075,7 @@ export class IntelligenceProductsController {
       'field_coordinator',
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
     ],
   })
   async fieldOfficerWorkspaceSummary(
@@ -1092,7 +1092,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -1112,7 +1112,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
     ],
   })
@@ -1131,7 +1131,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -1151,7 +1151,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -1171,7 +1171,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -1191,7 +1191,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -1214,7 +1214,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -1237,7 +1237,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -1268,7 +1268,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -1288,7 +1288,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -1310,7 +1310,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -1332,7 +1332,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -1355,7 +1355,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
     ],
     idempotent: true,
@@ -1382,7 +1382,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
     ],
     idempotent: true,
@@ -1405,7 +1405,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
     ],
     idempotent: true,
@@ -1428,7 +1428,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
     ],
     idempotent: true,
@@ -1451,7 +1451,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
     ],
     idempotent: true,
@@ -1474,7 +1474,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
     ],
     idempotent: true,
@@ -1497,7 +1497,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -1517,7 +1517,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
     ],
     successStatus: 201,
@@ -1538,7 +1538,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -1555,7 +1555,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
     ],
   })
@@ -1575,7 +1575,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -1599,7 +1599,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
     ],
     idempotent: true,
@@ -1620,7 +1620,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -1641,7 +1641,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -1663,7 +1663,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -1685,7 +1685,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -1734,7 +1734,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
     ],
   })
@@ -1770,7 +1770,7 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
       'field_officer',
     ],

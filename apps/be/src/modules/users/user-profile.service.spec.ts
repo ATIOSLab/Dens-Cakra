@@ -329,13 +329,13 @@ describe('UserProfileService Directorate/Ditwil DKI supervision scope', () => {
         level: AdministrativeLevel.CITY,
         ancestorLinks: [{ ancestor: dkiProvince }],
       },
-      RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER,
+      RoleCode.REGIONAL_COMMANDER,
     );
 
     await expect(
       service.changePrimaryAssignment(
         'target-profile',
-        input('jakpus', RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER),
+        input('jakpus', RoleCode.REGIONAL_COMMANDER),
         actor,
       ),
     ).resolves.toMatchObject({

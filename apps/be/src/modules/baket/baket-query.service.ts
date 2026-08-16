@@ -251,7 +251,7 @@ export class BaketQueryService {
         ? { status: query.status }
         : requestedStatuses?.length
           ? { status: { in: requestedStatuses } }
-          : context.roleCode === 'OPERATIONAL_INTELLIGENCE_MANAGER'
+          : context.roleCode === 'EXECUTIVE' || context.roleCode === 'REGIONAL_COMMANDER'
             ? { status: { in: intakeStatuses } }
             : {}),
       ...(query.urgency

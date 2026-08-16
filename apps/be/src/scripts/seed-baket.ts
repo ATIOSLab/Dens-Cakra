@@ -217,7 +217,7 @@ async function loadSeedChains(): Promise<SeedChain[]> {
         isActive: true,
         code: {
           in: [
-            RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER,
+            RoleCode.REGIONAL_COMMANDER,
             RoleCode.FIELD_COORDINATOR,
             RoleCode.FIELD_OFFICER,
           ],
@@ -318,7 +318,7 @@ async function loadSeedChains(): Promise<SeedChain[]> {
   return assignments
     .filter(
       (assignment) =>
-        assignment.roleCode === RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER &&
+        assignment.roleCode === RoleCode.REGIONAL_COMMANDER &&
         assignment.branch === CommandRouteType.BINDA &&
         assignment.area !== null,
     )

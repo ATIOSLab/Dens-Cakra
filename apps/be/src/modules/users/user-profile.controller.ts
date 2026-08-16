@@ -254,7 +254,7 @@ export class UserProfileController {
       'admin_system',
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
       'field_officer',
     ],

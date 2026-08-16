@@ -23,7 +23,6 @@ const adminSystemAdminPermissions = {
 export const accessControlRoles = {
   [SYSTEM_ROLES.EXECUTIVE]: accessControl.newRole({}),
   [SYSTEM_ROLES.REGIONAL_COMMANDER]: accessControl.newRole({}),
-  [SYSTEM_ROLES.OPERATIONAL_INTELLIGENCE_MANAGER]: accessControl.newRole({}),
   [SYSTEM_ROLES.FIELD_COORDINATOR]: accessControl.newRole({}),
   [SYSTEM_ROLES.FIELD_OFFICER]: accessControl.newRole({}),
   [SYSTEM_ROLES.ADMIN_SYSTEM]: accessControl.newRole({

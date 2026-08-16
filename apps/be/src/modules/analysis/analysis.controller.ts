@@ -47,7 +47,7 @@ export class AnalysisController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
     ],
   })
   async list(
@@ -62,7 +62,7 @@ export class AnalysisController {
     operationId: 'apiAnl002',
     contractId: 'API-ANL-002',
     summary: 'Buat analysis case',
-    roles: ['operational_intelligence_manager'],
+    roles: ['executive', 'regional_commander'],
     successStatus: 201,
     idempotent: true,
   })
@@ -81,7 +81,7 @@ export class AnalysisController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
     ],
   })
   async get(
@@ -96,7 +96,7 @@ export class AnalysisController {
     operationId: 'apiAnl017',
     contractId: 'API-ANL-017',
     summary: 'Finalkan analysis dan kunci versi aktif',
-    roles: ['operational_intelligence_manager'],
+    roles: ['executive', 'regional_commander'],
     idempotent: true,
   })
   async finalize(
@@ -114,7 +114,7 @@ export class AnalysisController {
     operationId: 'apiAnl016',
     contractId: 'API-ANL-016',
     summary: 'Kirim analysis ke review manusia',
-    roles: ['operational_intelligence_manager'],
+    roles: ['executive', 'regional_commander'],
     idempotent: true,
   })
   async submitReview(
@@ -132,7 +132,7 @@ export class AnalysisController {
     operationId: 'apiAnl004',
     contractId: 'API-ANL-004',
     summary: 'Edit analysis case',
-    roles: ['operational_intelligence_manager'],
+    roles: ['executive', 'regional_commander'],
   })
   async update(
     @Param('caseId', ParseUUIDPipe) caseId: string,
@@ -147,7 +147,7 @@ export class AnalysisController {
     operationId: 'apiAnl005',
     contractId: 'API-ANL-005',
     summary: 'Ganti sumber verification',
-    roles: ['operational_intelligence_manager'],
+    roles: ['executive', 'regional_commander'],
     idempotent: true,
   })
   async replaceSources(
@@ -168,7 +168,7 @@ export class AnalysisController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
     ],
   })
   async versions(
@@ -183,7 +183,7 @@ export class AnalysisController {
     operationId: 'apiAnl007',
     contractId: 'API-ANL-007',
     summary: 'Buat versi analysis',
-    roles: ['operational_intelligence_manager'],
+    roles: ['executive', 'regional_commander'],
     successStatus: 201,
     idempotent: true,
   })
@@ -205,7 +205,7 @@ export class AnalysisController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
     ],
   })
   async getVersion(
@@ -220,7 +220,7 @@ export class AnalysisController {
     operationId: 'apiAnl009',
     contractId: 'API-ANL-009',
     summary: 'Edit analysis version',
-    roles: ['operational_intelligence_manager'],
+    roles: ['executive', 'regional_commander'],
   })
   async updateVersion(
     @Param('versionId', ParseUUIDPipe) versionId: string,
@@ -237,7 +237,7 @@ export class AnalysisController {
     operationId: 'apiAnl010',
     contractId: 'API-ANL-010',
     summary: 'Ganti entities',
-    roles: ['operational_intelligence_manager'],
+    roles: ['executive', 'regional_commander'],
     idempotent: true,
   })
   async replaceEntities(
@@ -255,7 +255,7 @@ export class AnalysisController {
     operationId: 'apiAnl011',
     contractId: 'API-ANL-011',
     summary: 'Ganti relationships',
-    roles: ['operational_intelligence_manager'],
+    roles: ['executive', 'regional_commander'],
     idempotent: true,
   })
   async replaceRelationships(
@@ -273,7 +273,7 @@ export class AnalysisController {
     operationId: 'apiAnl012',
     contractId: 'API-ANL-012',
     summary: 'Validate analysis',
-    roles: ['operational_intelligence_manager'],
+    roles: ['executive', 'regional_commander'],
     idempotent: true,
   })
   async validateVersion(
@@ -294,7 +294,7 @@ export class AnalysisController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
     ],
   })
   async graph(
@@ -312,7 +312,7 @@ export class AnalysisController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
     ],
   })
   async traceability(
@@ -327,7 +327,7 @@ export class AnalysisController {
     operationId: 'apiAnl015',
     contractId: 'API-ANL-015',
     summary: 'Archive analysis',
-    roles: ['operational_intelligence_manager'],
+    roles: ['executive', 'regional_commander'],
     idempotent: true,
   })
   async archive(

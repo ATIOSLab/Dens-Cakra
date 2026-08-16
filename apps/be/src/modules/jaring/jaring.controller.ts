@@ -87,7 +87,7 @@ export class JaringController {
     roles: [
       'admin_system',
       'field_officer',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
     ],
   })
   async listOccupations(@Query() query: JaringOccupationQuery) {
@@ -135,7 +135,7 @@ export class JaringController {
     roles: [
       'admin_system',
       'field_officer',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
       'regional_commander',
       'executive',
@@ -188,7 +188,7 @@ export class JaringController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -489,7 +489,7 @@ export class JaringController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -510,7 +510,7 @@ export class JaringController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -562,7 +562,7 @@ export class JaringController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -582,7 +582,7 @@ export class JaringController {
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
+      'executive', 'regional_commander',
       'field_coordinator',
       'field_officer',
     ],

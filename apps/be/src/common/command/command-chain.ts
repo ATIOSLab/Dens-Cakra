@@ -11,7 +11,6 @@ import {
 const COMMAND_PARENT_ROLE: Partial<Record<RoleCode, RoleCode>> = {
   [RoleCode.FIELD_OFFICER]: RoleCode.FIELD_COORDINATOR,
   [RoleCode.FIELD_COORDINATOR]: RoleCode.REGIONAL_COMMANDER,
-  [RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER]: RoleCode.REGIONAL_COMMANDER,
 };
 
 export function commandParentRole(roleCode: RoleCode): RoleCode | null {
