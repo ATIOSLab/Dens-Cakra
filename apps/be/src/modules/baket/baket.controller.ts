@@ -58,7 +58,8 @@ export class BaketController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -100,7 +101,8 @@ export class BaketController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -137,7 +139,8 @@ export class BaketController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -176,7 +179,8 @@ export class BaketController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -335,7 +339,8 @@ export class BaketController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -410,7 +415,8 @@ export class BaketController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -430,7 +436,8 @@ export class BaketController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -450,7 +457,8 @@ export class BaketController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
     ],
   })
   async listVerifications(
@@ -487,7 +495,8 @@ export class BaketController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
     ],
   })
   async getVerification(
@@ -621,12 +630,16 @@ export class BaketController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
     ],
   })
   async verificationScore(
     @Param('verificationId', ParseUUIDPipe) verificationId: string,
+    @CurrentAccessContext() context: AuthorizationContext,
   ) {
-    return apiResult(await this.baketService.verificationScore(verificationId));
+    return apiResult(
+      await this.baketService.verificationScore(verificationId, context),
+    );
   }
 }

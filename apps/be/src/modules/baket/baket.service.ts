@@ -1,5 +1,4 @@
-import {
-  Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import {
   AreaResolutionMethod,
   BaketStatus,
@@ -92,6 +91,7 @@ export class BaketService {
       where: { id: versionId },
       include: { baket: true },
     });
+    await this.scope.assertBaket(context, version.baketId);
     const editableStatuses: BaketStatus[] = [
       BaketStatus.DRAFT,
       BaketStatus.READY_TO_SEND,
@@ -872,10 +872,20 @@ export class BaketService {
     return verification;
   }
 
+  private async assertVerificationScope(
+    context: AuthorizationContext,
+    verificationId: string,
+  ) {
+    const verification =
+      await this.baketQuery.verificationDetail(verificationId);
+    await this.scope.assertBaket(context, verification.baketVersion.baketId);
+  }
+
   async startVerification(
     verificationId: string,
     context: AuthorizationContext,
   ) {
+    await this.assertVerificationScope(context, verificationId);
     const detail =
       await this.baketVerification.startVerification(verificationId);
     await this.audit(
@@ -892,6 +902,7 @@ export class BaketService {
     body: UpdateVerificationDto,
     context: AuthorizationContext,
   ) {
+    await this.assertVerificationScope(context, verificationId);
     const detail = await this.baketVerification.updateVerification(
       verificationId,
       body,
@@ -910,6 +921,7 @@ export class BaketService {
     body: ReplaceCrossReferencesDto,
     context: AuthorizationContext,
   ) {
+    await this.assertVerificationScope(context, verificationId);
     const crossReferences = await this.baketVerification.replaceCrossReferences(
       verificationId,
       body,
@@ -928,6 +940,7 @@ export class BaketService {
     body: CompleteVerificationDto,
     context: AuthorizationContext,
   ) {
+    await this.assertVerificationScope(context, verificationId);
     const detail = await this.baketVerification.completeVerification(
       verificationId,
       body,
@@ -946,6 +959,7 @@ export class BaketService {
     body: NeedsDevelopmentDto,
     context: AuthorizationContext,
   ) {
+    await this.assertVerificationScope(context, verificationId);
     const result = await this.baketVerification.needsDevelopment(
       verificationId,
       body,
@@ -968,6 +982,7 @@ export class BaketService {
     body: RejectVerificationDto,
     context: AuthorizationContext,
   ) {
+    await this.assertVerificationScope(context, verificationId);
     const detail = await this.baketVerification.rejectVerification(
       verificationId,
       body,
@@ -984,7 +999,11 @@ export class BaketService {
     return detail;
   }
 
-  verificationScore(verificationId: string) {
+  async verificationScore(
+    verificationId: string,
+    context: AuthorizationContext,
+  ) {
+    await this.assertVerificationScope(context, verificationId);
     return this.baketVerification.verificationScore(verificationId);
   }
 }
