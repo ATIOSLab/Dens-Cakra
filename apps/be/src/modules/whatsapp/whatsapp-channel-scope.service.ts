@@ -20,11 +20,6 @@ export class WhatsAppChannelScopeService {
 
   async isJaringAllowed(channel: ChannelScopeRecord, jaringAreaIds: string[]) {
     const config = this.readConfig(channel.config);
-    const userId = typeof config.userId === 'string' ? config.userId : null;
-    const operationalAssignmentId =
-      typeof config.operationalAssignmentId === 'string'
-        ? config.operationalAssignmentId
-        : null;
     const scopeAreaId =
       typeof config.scopeAreaId === 'string' ? config.scopeAreaId : null;
     const explicitScopeAreaIds = this.uniqueAreaIds([
@@ -32,58 +27,50 @@ export class WhatsAppChannelScopeService {
       scopeAreaId,
     ]);
 
-    if (!userId || jaringAreaIds.length === 0) {
+    if (jaringAreaIds.length === 0) {
       return false;
     }
 
-    const channelUser = (await this.prisma.userProfile.findUnique({
-      where: { id: userId },
-      include: {
-        operationalAssignments: {
-          where: { isActive: true, validUntil: null },
-          include: {
-            areaScopes: {
-              where: { validUntil: null },
-              select: { areaId: true },
+    let channelAreaIds = explicitScopeAreaIds;
+
+    if (channelAreaIds.length === 0) {
+      // Kompatibilitas: kanal lama yang belum menetapkan wilayah eksplisit memakai
+      // cakupan penugasan aktif pengelola sebagai wilayah pelaporan.
+      const userId = typeof config.userId === 'string' ? config.userId : null;
+      const operationalAssignmentId =
+        typeof config.operationalAssignmentId === 'string'
+          ? config.operationalAssignmentId
+          : null;
+
+      if (!userId) return false;
+
+      const channelUser = (await this.prisma.userProfile.findUnique({
+        where: { id: userId },
+        include: {
+          operationalAssignments: {
+            where: { isActive: true, validUntil: null },
+            include: {
+              areaScopes: {
+                where: { validUntil: null },
+                select: { areaId: true },
+              },
             },
           },
         },
-      },
-    })) as { operationalAssignments?: AssignmentScopeRecord[] } | null;
-    const activeAssignments = channelUser?.operationalAssignments ?? [];
-    const scopedAssignments = operationalAssignmentId
-      ? activeAssignments.filter(
-          (assignment) => assignment.id === operationalAssignmentId,
-        )
-      : activeAssignments;
-    let channelAreaIds = scopedAssignments.flatMap((assignment) =>
-      assignment.areaScopes.map((scope) => scope.areaId),
-    );
+      })) as { operationalAssignments?: AssignmentScopeRecord[] } | null;
+      const activeAssignments = channelUser?.operationalAssignments ?? [];
+      const scopedAssignments = operationalAssignmentId
+        ? activeAssignments.filter(
+            (assignment) => assignment.id === operationalAssignmentId,
+          )
+        : activeAssignments;
+      channelAreaIds = scopedAssignments.flatMap((assignment) =>
+        assignment.areaScopes.map((scope) => scope.areaId),
+      );
 
-    if (channelAreaIds.length === 0) {
-      return false;
-    }
-
-    if (explicitScopeAreaIds.length > 0) {
-      for (const areaId of explicitScopeAreaIds) {
-        const scopeAllowed =
-          channelAreaIds.includes(areaId) ||
-          Boolean(
-            await this.prisma.administrativeAreaClosure.findFirst({
-              where: {
-                ancestorId: { in: channelAreaIds },
-                descendantId: areaId,
-              },
-              select: { ancestorId: true },
-            }),
-          );
-
-        if (!scopeAllowed) {
-          return false;
-        }
+      if (channelAreaIds.length === 0) {
+        return false;
       }
-
-      channelAreaIds = explicitScopeAreaIds;
     }
 
     if (jaringAreaIds.some((areaId) => channelAreaIds.includes(areaId))) {

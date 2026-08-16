@@ -248,24 +248,9 @@ describe('IntegrationService', () => {
         integrationChannel: {
           findFirstOrThrow,
         },
-        userProfile: {
-          findUnique: jest.fn(() =>
-            Promise.resolve({
-              operationalAssignments: [
-                {
-                  id: 'assignment-id',
-                  areaScopes: [{ areaId: 'area-provinsi' }],
-                },
-              ],
-            }),
-          ),
-        },
-        administrativeAreaClosure: {
+        administrativeArea: {
           findMany: jest.fn(() =>
-            Promise.resolve([
-              { descendantId: 'area-kota-a' },
-              { descendantId: 'area-kota-b' },
-            ]),
+            Promise.resolve([{ id: 'area-kota-a' }, { id: 'area-kota-b' }]),
           ),
         },
         auditLog: {
@@ -298,11 +283,10 @@ describe('IntegrationService', () => {
         } as never,
       );
 
-      expect(prisma.administrativeAreaClosure.findMany).toHaveBeenCalledWith(
+      expect(prisma.administrativeArea.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            ancestorId: { in: ['area-provinsi'] },
-            descendantId: { in: ['area-kota-a', 'area-kota-b'] },
+            id: { in: ['area-kota-a', 'area-kota-b'] },
           }),
         }),
       );

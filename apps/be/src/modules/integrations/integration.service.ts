@@ -28,12 +28,6 @@ import type {
 } from './integration.dto.js';
 import { WhatsappBotRuntimeService } from './whatsapp-bot-runtime.service.js';
 
-type AssignmentAreaScopeRecord = { areaId: string };
-type AssignmentScopeRecord = {
-  id: string;
-  isActive?: boolean;
-  areaScopes: AssignmentAreaScopeRecord[];
-};
 type ControlScopeAreaRecord = {
   id: string;
   code: string;
@@ -148,81 +142,19 @@ export class IntegrationService {
       return;
     }
 
-    const userId = typeof config.userId === 'string' ? config.userId : null;
-    const operationalAssignmentId =
-      typeof config.operationalAssignmentId === 'string'
-        ? config.operationalAssignmentId
-        : null;
-
-    if (!userId) {
-      throw new ApiException(
-        'WHATSAPP_SCOPE_USER_REQUIRED',
-        'Pengelola koneksi WhatsApp wajib dipilih sebelum wilayah pelaporan ditetapkan.',
-        400,
-      );
-    }
-
-    const channelUser = (await this.prisma.userProfile.findUnique({
-      where: { id: userId },
-      include: {
-        operationalAssignments: {
-          where: { isActive: true, validUntil: null },
-          include: {
-            areaScopes: {
-              where: { validUntil: null },
-              select: { areaId: true },
-            },
-          },
-        },
-      },
-    })) as { operationalAssignments?: AssignmentScopeRecord[] } | null;
-    const activeAssignments = channelUser?.operationalAssignments ?? [];
-    const scopedAssignments = operationalAssignmentId
-      ? activeAssignments.filter(
-          (assignment) => assignment.id === operationalAssignmentId,
-        )
-      : activeAssignments;
-    const assignmentAreaIds = [
-      ...new Set(
-        scopedAssignments.flatMap((assignment) =>
-          assignment.areaScopes.map((scope) => scope.areaId),
-        ),
-      ),
-    ];
-
-    if (assignmentAreaIds.length === 0) {
-      throw new ApiException(
-        'WHATSAPP_SCOPE_ASSIGNMENT_REQUIRED',
-        'Penugasan aktif pengelola belum memiliki cakupan wilayah.',
-        400,
-      );
-    }
-
-    const directAreaIds = new Set(assignmentAreaIds);
-    const candidateDescendantIds = scopeAreaIds.filter(
-      (areaId) => !directAreaIds.has(areaId),
-    );
-    const descendantLinks =
-      candidateDescendantIds.length > 0
-        ? ((await this.prisma.administrativeAreaClosure.findMany({
-            where: {
-              ancestorId: { in: assignmentAreaIds },
-              descendantId: { in: candidateDescendantIds },
-            },
-            select: { descendantId: true },
-          })) as Array<{ descendantId: string }>)
-        : [];
-    const allowedDescendantIds = new Set(
-      descendantLinks.map((link) => link.descendantId),
-    );
-    const invalidAreaIds = candidateDescendantIds.filter(
-      (areaId) => !allowedDescendantIds.has(areaId),
+    const knownAreas = await this.prisma.administrativeArea.findMany({
+      where: { id: { in: scopeAreaIds }, isActive: true, deletedAt: null },
+      select: { id: true },
+    });
+    const knownAreaIds = new Set(knownAreas.map((area) => area.id));
+    const invalidAreaIds = scopeAreaIds.filter(
+      (areaId) => !knownAreaIds.has(areaId),
     );
 
     if (invalidAreaIds.length > 0) {
       throw new ApiException(
-        'WHATSAPP_SCOPE_OUTSIDE_ASSIGNMENT',
-        'Wilayah pelaporan WhatsApp harus berada di dalam cakupan penugasan aktif pengelola.',
+        'WHATSAPP_SCOPE_INVALID_AREA',
+        'Wilayah pelaporan WhatsApp tidak valid atau sudah tidak aktif. Pilih wilayah administratif yang tersedia.',
         400,
       );
     }
@@ -595,7 +527,9 @@ export class IntegrationService {
     const where: Prisma.WhatsAppDeviceActivityLogWhereInput = {
       ...(query.channelId ? { channelId: query.channelId } : {}),
       ...(query.scopeAreaId ? { scopeAreaId: query.scopeAreaId } : {}),
-      ...(normalizedPhone ? { phoneNumber: { contains: normalizedPhone } } : {}),
+      ...(normalizedPhone
+        ? { phoneNumber: { contains: normalizedPhone } }
+        : {}),
       ...(query.connectionStatus
         ? { connectionStatus: query.connectionStatus }
         : {}),
@@ -697,7 +631,10 @@ export class IntegrationService {
         }),
       ]);
 
-    const channelMap = new Map<string, { id: string; code: string; name: string }>();
+    const channelMap = new Map<
+      string,
+      { id: string; code: string; name: string }
+    >();
     const areaMap = new Map<
       string,
       {
@@ -801,7 +738,9 @@ export class IntegrationService {
     context: AuthorizationContext,
   ) {
     const emails = [
-      ...new Set(body.emails.map((email) => this.normalizeNotificationEmail(email))),
+      ...new Set(
+        body.emails.map((email) => this.normalizeNotificationEmail(email)),
+      ),
     ].filter(Boolean);
 
     if (emails.length === 0) {
@@ -923,7 +862,11 @@ export class IntegrationService {
     }
 
     const channel = await this.prisma.integrationChannel.create({
-      data: { ...body, code: await this.resolveUniqueCode(body.code), config: this.vault.encrypt(config) },
+      data: {
+        ...body,
+        code: await this.resolveUniqueCode(body.code),
+        config: this.vault.encrypt(config),
+      },
     });
     await this.audit(context, 'INTEGRATION.CREATE', channel.id);
     return this.view(channel);

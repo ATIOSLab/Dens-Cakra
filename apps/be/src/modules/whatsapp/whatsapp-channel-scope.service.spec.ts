@@ -81,25 +81,13 @@ describe('WhatsAppChannelScopeService', () => {
     ).resolves.toBe(false);
   });
 
-  it('membatasi channel ke wilayah pilihan dalam assignment aktif', async () => {
+  it('menolak jaring di luar wilayah pilihan channel', async () => {
     const prisma = {
-      userProfile: {
-        findUnique: jest.fn(() =>
-          Promise.resolve({
-            operationalAssignments: [
-              {
-                id: 'assignment-id',
-                areaScopes: [{ areaId: 'area-provinsi' }],
-              },
-            ],
-          }),
-        ),
-      },
+      userProfile: { findUnique: jest.fn() },
       administrativeAreaClosure: {
         findFirst: jest
           .fn<() => Promise<{ ancestorId: string } | null>>()
-          .mockResolvedValueOnce({ ancestorId: 'area-provinsi' })
-          .mockResolvedValueOnce(null),
+          .mockResolvedValue(null),
       },
     };
     const service = new WhatsAppChannelScopeService(
@@ -108,19 +96,11 @@ describe('WhatsAppChannelScopeService', () => {
     );
 
     await expect(
-      service.isJaringAllowed(
-        {
-          config: {
-            userId: 'user-id',
-            operationalAssignmentId: 'assignment-id',
-            scopeAreaId: 'area-kota',
-          },
-        },
-        ['area-luar'],
-      ),
+      service.isJaringAllowed({ config: { scopeAreaId: 'area-kota' } }, [
+        'area-luar',
+      ]),
     ).resolves.toBe(false);
-    expect(prisma.administrativeAreaClosure.findFirst).toHaveBeenNthCalledWith(
-      2,
+    expect(prisma.administrativeAreaClosure.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
           ancestorId: { in: ['area-kota'] },
@@ -132,23 +112,11 @@ describe('WhatsAppChannelScopeService', () => {
 
   it('mengizinkan jaring turunan dari wilayah pilihan channel', async () => {
     const prisma = {
-      userProfile: {
-        findUnique: jest.fn(() =>
-          Promise.resolve({
-            operationalAssignments: [
-              {
-                id: 'assignment-id',
-                areaScopes: [{ areaId: 'area-provinsi' }],
-              },
-            ],
-          }),
-        ),
-      },
+      userProfile: { findUnique: jest.fn() },
       administrativeAreaClosure: {
         findFirst: jest
           .fn<() => Promise<{ ancestorId: string } | null>>()
-          .mockResolvedValueOnce({ ancestorId: 'area-provinsi' })
-          .mockResolvedValueOnce({ ancestorId: 'area-kota' }),
+          .mockResolvedValue({ ancestorId: 'area-kota' }),
       },
     };
     const service = new WhatsAppChannelScopeService(
@@ -157,39 +125,41 @@ describe('WhatsAppChannelScopeService', () => {
     );
 
     await expect(
-      service.isJaringAllowed(
-        {
-          config: {
-            userId: 'user-id',
-            operationalAssignmentId: 'assignment-id',
-            scopeAreaId: 'area-kota',
-          },
-        },
-        ['area-kecamatan'],
-      ),
+      service.isJaringAllowed({ config: { scopeAreaId: 'area-kota' } }, [
+        'area-kecamatan',
+      ]),
     ).resolves.toBe(true);
   });
 
-  it('mengizinkan satu koneksi WhatsApp untuk beberapa wilayah pilihan dalam assignment aktif', async () => {
+  it('mengizinkan channel dengan wilayah pilihan tanpa pengelola (userId)', async () => {
     const prisma = {
-      userProfile: {
-        findUnique: jest.fn(() =>
-          Promise.resolve({
-            operationalAssignments: [
-              {
-                id: 'assignment-id',
-                areaScopes: [{ areaId: 'area-provinsi' }],
-              },
-            ],
-          }),
-        ),
-      },
+      userProfile: { findUnique: jest.fn() },
       administrativeAreaClosure: {
         findFirst: jest
           .fn<() => Promise<{ ancestorId: string } | null>>()
-          .mockResolvedValueOnce({ ancestorId: 'area-provinsi' })
-          .mockResolvedValueOnce({ ancestorId: 'area-provinsi' })
-          .mockResolvedValueOnce({ ancestorId: 'area-kota-b' }),
+          .mockResolvedValue({ ancestorId: 'area-kota' }),
+      },
+    };
+    const service = new WhatsAppChannelScopeService(
+      prisma as never,
+      {} as never,
+    );
+
+    await expect(
+      service.isJaringAllowed({ config: { scopeAreaIds: ['area-kota'] } }, [
+        'area-kecamatan',
+      ]),
+    ).resolves.toBe(true);
+    expect(prisma.userProfile.findUnique).not.toHaveBeenCalled();
+  });
+
+  it('mengizinkan beberapa wilayah pilihan dalam satu koneksi WhatsApp', async () => {
+    const prisma = {
+      userProfile: { findUnique: jest.fn() },
+      administrativeAreaClosure: {
+        findFirst: jest
+          .fn<() => Promise<{ ancestorId: string } | null>>()
+          .mockResolvedValue({ ancestorId: 'area-kota-b' }),
       },
     };
     const service = new WhatsAppChannelScopeService(
@@ -201,16 +171,13 @@ describe('WhatsAppChannelScopeService', () => {
       service.isJaringAllowed(
         {
           config: {
-            userId: 'user-id',
-            operationalAssignmentId: 'assignment-id',
             scopeAreaIds: ['area-kota-a', 'area-kota-b', 'area-kota-a'],
           },
         },
         ['area-kecamatan-b'],
       ),
     ).resolves.toBe(true);
-    expect(prisma.administrativeAreaClosure.findFirst).toHaveBeenNthCalledWith(
-      3,
+    expect(prisma.administrativeAreaClosure.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
           ancestorId: { in: ['area-kota-a', 'area-kota-b'] },
