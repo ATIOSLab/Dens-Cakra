@@ -37,6 +37,12 @@ export interface CoachingReportItem {
     officialCode?: string | null;
     parent?: CoachingReportItem["assignedArea"] | null;
   } | null;
+  attachments?: Array<{
+    fileId: string;
+    caption?: string | null;
+    fileName?: string | null;
+    mimeType?: string | null;
+  }>;
 }
 
 export interface CreateCoachingReportPayload {

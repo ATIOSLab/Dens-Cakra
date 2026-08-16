@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { useSearchParams } from "next/navigation";
 
-import { Clock, FileText, Phone, RefreshCw, User } from "lucide-react";
+import { Clock, FileText, ImageIcon, Phone, RefreshCw, User } from "lucide-react";
 import { toast } from "sonner";
 
 import { GaswilEntityLink } from "@/components/domain/gaswil-entity-link";
@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EvidenceAttachmentViewer } from "@/features/baket/components/evidence-attachment-viewer";
 import { apiBrowserFetch } from "@/lib/api/browser-client";
 import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
@@ -202,6 +203,32 @@ export function LaporanPembinaanDetailCoordinatorClient({ reportId }: { reportId
                 </div>
               </CardContent>
             </Card>
+
+            {report.attachments && report.attachments.length > 0 ? (
+              <Card className="border-slate-200/80 dark:border-white/10 shadow-xs">
+                <CardHeader className="border-b border-slate-100 dark:border-white/5 pb-4">
+                  <CardTitle className="font-heading font-bold text-xl tracking-tight text-foreground flex items-center gap-2">
+                    <ImageIcon className="size-4 text-emerald-500" /> Lampiran Foto
+                    <span className="text-xs font-medium text-muted-foreground">
+                      {report.attachments.length} berkas
+                    </span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                    {report.attachments.map((attachment) => (
+                      <EvidenceAttachmentViewer
+                        key={attachment.fileId}
+                        src={`/api/files/${attachment.fileId}`}
+                        fileName={attachment.fileName ?? attachment.fileId}
+                        mimeType={attachment.mimeType}
+                        caption={attachment.caption}
+                      />
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            ) : null}
           </div>
 
           {/* SIDEBAR METADATA COLUMN */}
