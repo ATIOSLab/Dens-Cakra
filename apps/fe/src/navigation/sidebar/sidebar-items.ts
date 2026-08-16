@@ -1,4 +1,4 @@
-import { ClipboardList, Inbox, type LucideIcon, Map as MapIcon, UserPlus } from "lucide-react";
+import { ClipboardList, type LucideIcon, UserPlus } from "lucide-react";
 
 import { DOMAIN_TERMS } from "@/lib/domain/terminology";
 import { DOMAIN_VISUALS, SUPPORT_VISUALS } from "@/lib/domain/visual-system";
@@ -355,35 +355,6 @@ export const sidebarItems: NavGroup[] = [
         roles: FIELD_OFFICER_ROLE,
       },
       {
-        id: "gaswil-workspace",
-        title: "Ruang Kerja Gaswil",
-        icon: DOMAIN_VISUALS.gaswil.Icon,
-        roles: FIELD_OFFICER_ROLE,
-        subItems: [
-          {
-            id: "gaswil-inbox",
-            title: "Kotak Masuk Jaring",
-            url: "/dashboard/field-officer/kotak-masuk-jaring",
-            icon: Inbox,
-            roles: FIELD_OFFICER_ROLE,
-          },
-          {
-            id: "gaswil-tasks",
-            title: "Tugas Saya",
-            url: "/dashboard/field-officer/tugas-saya",
-            icon: ClipboardList,
-            roles: FIELD_OFFICER_ROLE,
-          },
-          {
-            id: "gaswil-task-map",
-            title: "Peta Tugas",
-            url: "/dashboard/field-officer/peta-tugas",
-            icon: MapIcon,
-            roles: FIELD_OFFICER_ROLE,
-          },
-        ],
-      },
-      {
         id: "korwil-workspace",
         title: "Ruang Kerja Korwil",
         icon: DOMAIN_VISUALS.command.Icon,
@@ -518,7 +489,7 @@ export function getSidebarItemsForRole(role: SystemRole): NavGroup[] {
   const personnelNetworkOrder = new Map(
     ["field-coordinator-gaswil", "field-coordinator-jaring"].map((id, index) => [id, index]),
   );
-  const workspaceIds = new Set(["gaswil-workspace", "korwil-workspace", "regional-workspace"]);
+  const workspaceIds = new Set(["korwil-workspace", "regional-workspace"]);
 
   const sections = [
     { id: 1, label: "Ringkasan", matches: (item: NavMainItem) => homeIds.has(item.id) },
