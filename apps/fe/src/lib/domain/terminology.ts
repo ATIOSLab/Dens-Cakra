@@ -9,8 +9,6 @@
 export const DOMAIN_TERMS = {
   executiveRole: "Deputi II",
   regionalCommanderRole: "Kepala BIN Daerah (Kabinda)",
-  operationalIntelligenceManagerRole: "Manajer Intelijen Operasional",
-  operationalIntelligenceManagerShort: "OIM",
   fieldCoordinatorRole: "Koordinator Wilayah (Korwil)",
   adminSystemRole: "Admin Sistem",
   nationalAgency: "Badan Intelijen Negara",

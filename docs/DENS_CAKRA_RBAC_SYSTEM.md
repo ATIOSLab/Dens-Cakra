@@ -121,6 +121,8 @@ Menu dan halaman harus mengikuti role dan scope aktif:
 - Gaswil melihat cakupan kecamatan dan Jaring binaannya.
 - Jaring hanya terkait kanal pelaporan miliknya.
 
+Manajer Intelijen Operasional (OIM/Anev) bukan role tersendiri. Fungsi analis evaluasi (Anev) melekat pada Kabinda (branch BINDA) atau Direktorat/Ditwil (branch DIRECTORATE), sehingga akses workspace analisis/verifikasi/produk dimiliki bersama oleh `executive` (Deputi II) dan `regional_commander` (Kabinda).
+
 Filter wilayah harus berjenjang dan tidak boleh menampilkan pilihan di luar scope pengguna.
 
 ## Larangan
