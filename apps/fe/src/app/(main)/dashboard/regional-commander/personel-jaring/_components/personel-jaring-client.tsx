@@ -1812,7 +1812,7 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
                   {/* Foto dan metadata profil */}
                   <div className="size-14 rounded-[3px] border border-border bg-secondary/15 flex items-center justify-center text-muted-foreground shrink-0 overflow-hidden">
                     {selectedGisPoint.photo ? (
-                      // eslint-disable-next-line @next/next/no-img-element
+                      // biome-ignore lint/performance/noImgElement: native img (avatar/thumbnail) with fixed sizing.
                       <img
                         src={selectedGisPoint.photo}
                         alt={selectedGisPoint.fullName}

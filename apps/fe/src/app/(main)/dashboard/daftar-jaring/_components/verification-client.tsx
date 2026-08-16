@@ -1555,7 +1555,7 @@ export function JaringReportCardItem({
                     }}
                     className="group relative size-20 rounded-md overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 hover:ring-2 hover:ring-sky-500/50 transition-all cursor-zoom-in"
                   >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    {/* biome-ignore lint/performance/noImgElement: native img (avatar/thumbnail) with fixed sizing. */}
                     <img
                       src={reportAttachmentThumbnailUrl(photoUrl)}
                       alt={`Foto ${idx + 1}`}
@@ -1607,7 +1607,7 @@ export function JaringReportCardItem({
         <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
           <DialogContent className="max-w-3xl p-2 bg-slate-950/95 border-slate-800">
             <div className="relative flex justify-center items-center max-h-[80vh] overflow-hidden rounded">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
+              {/* biome-ignore lint/performance/noImgElement: native img (avatar/thumbnail) with fixed sizing. */}
               <img
                 src={selectedImage}
                 alt="Preview foto laporan"
@@ -1815,7 +1815,7 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
                         className="group relative size-full cursor-zoom-in overflow-hidden"
                         aria-label={`Buka popup foto ${jaringDisplayName(item)}`}
                       >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        {/* biome-ignore lint/performance/noImgElement: native img (avatar/thumbnail) with fixed sizing. */}
                         <img
                           src={selectedPhotoUrl}
                           alt={`Foto ${jaringDisplayName(item)}`}
@@ -2115,7 +2115,7 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
               </DialogDescription>
             </DialogHeader>
             <div className="grid min-h-0 place-items-center overflow-auto rounded-md border border-white/10 bg-black">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
+              {/* biome-ignore lint/performance/noImgElement: native img (avatar/thumbnail) with fixed sizing. */}
               <img
                 src={selectedPhotoUrl}
                 alt={`Foto profil Jaring ${jaringDisplayName(item)}`}

@@ -853,7 +853,7 @@ export function JaringRegistrationForm({ jaringId }: JaringRegistrationFormProps
                     <div className="flex flex-col gap-3 rounded-md border border-dashed p-3 sm:flex-row sm:items-center">
                       <div className="flex size-24 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-muted">
                         {displayedPhotoUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
+                          // biome-ignore lint/performance/noImgElement: native img (avatar/thumbnail) with fixed sizing.
                           <img src={displayedPhotoUrl} alt="Preview foto Jaring" className="size-full object-cover" />
                         ) : (
                           <ImagePlus className="size-8 text-muted-foreground" />
