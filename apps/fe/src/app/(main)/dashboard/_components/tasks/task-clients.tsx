@@ -4669,7 +4669,7 @@ export function AssignmentBoardClient({
         const parsed = JSON.parse(message);
         if (Array.isArray(parsed) && parsed.length > 0) {
           const first = parsed[0];
-          if (first.path && first.path.includes("assigneeAssignmentId")) {
+          if (first.path?.includes("assigneeAssignmentId")) {
             message = "Silakan pilih assignee (petugas) terlebih dahulu.";
           } else if (first.message) {
             message = first.message;

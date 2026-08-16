@@ -130,7 +130,7 @@ function isPersonnelOnline(
   freshness?: { activeWithinMinutes: number; recentWithinHours: number },
 ) {
   const lastLocation = item.lastLocation ?? item.assignment?.lastLocation;
-  if (!lastLocation || !lastLocation.capturedAt) return false;
+  if (!lastLocation?.capturedAt) return false;
 
   const _activeWithinMinutes = freshness?.activeWithinMinutes ?? 30;
   const recentWithinHours = freshness?.recentWithinHours ?? 24;

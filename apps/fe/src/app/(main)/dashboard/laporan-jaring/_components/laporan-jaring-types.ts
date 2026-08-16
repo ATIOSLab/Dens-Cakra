@@ -99,10 +99,10 @@ export type ResolvedAreaDetail = {
 };
 
 export function formatFullAreaName(area?: ResolvedAreaDetail | null): string {
-  if (!area || !area.name) return "-";
+  if (!area?.name) return "-";
   const parts: string[] = [];
   let current: ResolvedAreaDetail | null | undefined = area;
-  while (current && current.name) {
+  while (current?.name) {
     parts.push(current.name);
     current = current.parent;
   }

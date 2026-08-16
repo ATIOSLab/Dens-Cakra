@@ -315,7 +315,7 @@ export function AdminWaCenterPage() {
     return source.filter(
       (a) =>
         a.label.toLowerCase().includes(areaQueryStr) ||
-        (a.parent?.name && a.parent.name.toLowerCase().includes(areaQueryStr)),
+        (a.parent?.name?.toLowerCase().includes(areaQueryStr)),
     );
   }, [allCoordinatorAreas, areaQueryStr, selectedAreas]);
 
@@ -378,7 +378,7 @@ export function AdminWaCenterPage() {
 
       // Auto request QR setelah ditambahkan
       const createdChannel = body as WhatsappControlChannel;
-      if (createdChannel && createdChannel.id) {
+      if (createdChannel?.id) {
         void runAction(createdChannel.id, "request-qr");
       }
     } catch (createError) {

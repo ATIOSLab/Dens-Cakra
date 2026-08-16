@@ -639,7 +639,7 @@ export function NationalMap() {
           pingLongitude !== null && pingLatitude !== null ? [pingLongitude, pingLatitude] : coordinates;
 
         setSelection((current) => {
-          if (!current || current.kind !== "personnel" || current.properties.assignmentId !== assignmentId) {
+          if (current?.kind !== "personnel" || current.properties.assignmentId !== assignmentId) {
             return current;
           }
           return {
@@ -662,7 +662,7 @@ export function NationalMap() {
       } catch (detailError) {
         if (requestId !== personnelRequestId.current) return;
         setSelection((current) => {
-          if (!current || current.kind !== "personnel" || current.properties.assignmentId !== assignmentId) {
+          if (current?.kind !== "personnel" || current.properties.assignmentId !== assignmentId) {
             return current;
           }
           return {
@@ -731,7 +731,7 @@ export function NationalMap() {
       const summary = record(await apiBrowserFetch("/map/area-summary", { query: { areaId } }));
       const summaryKpis = record(summary.kpis);
       setSelection((current: SelectionType | null) => {
-        if (!current || current.kind !== "area" || current.properties.areaId !== areaId) return current;
+        if (current?.kind !== "area" || current.properties.areaId !== areaId) return current;
         return {
           ...current,
           summary: {
@@ -747,7 +747,7 @@ export function NationalMap() {
       });
     } catch (summaryError) {
       setSelection((current) => {
-        if (!current || current.kind !== "area" || current.properties.areaId !== areaId) return current;
+        if (current?.kind !== "area" || current.properties.areaId !== areaId) return current;
         return {
           ...current,
           loading: false,
@@ -806,7 +806,7 @@ export function NationalMap() {
       const detail = await apiBrowserFetch(`/bakets/${baketId}`);
       if (requestId !== reportRequestId.current) return;
       setSelection((current) => {
-        if (!current || current.kind !== "report" || current.properties.baketId !== baketId) return current;
+        if (current?.kind !== "report" || current.properties.baketId !== baketId) return current;
         return {
           ...current,
           properties: mergeReportDetails(current.properties, detail),
@@ -817,7 +817,7 @@ export function NationalMap() {
     } catch (detailError) {
       if (requestId !== reportRequestId.current) return;
       setSelection((current) => {
-        if (!current || current.kind !== "report" || current.properties.baketId !== baketId) return current;
+        if (current?.kind !== "report" || current.properties.baketId !== baketId) return current;
         return {
           ...current,
           loading: false,

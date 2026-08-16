@@ -116,7 +116,7 @@ function formatReportDateTime(value: unknown) {
 
 export function MapInspector({ selection, onClear }: MapInspectorProps) {
   const clusterStats = useMemo(() => {
-    if (!selection || selection.kind !== "cluster") return null;
+    if (selection?.kind !== "cluster") return null;
     const statuses: Record<string, number> = {};
     const units: Record<string, number> = {};
     let activeCount = 0;
