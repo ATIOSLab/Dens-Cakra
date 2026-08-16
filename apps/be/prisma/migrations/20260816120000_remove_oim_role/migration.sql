@@ -14,7 +14,7 @@ SET "roleId" = (SELECT "id" FROM "Role" WHERE "code" = 'REGIONAL_COMMANDER' LIMI
 WHERE "roleId" = (SELECT "id" FROM "Role" WHERE "code" = 'OPERATIONAL_INTELLIGENCE_MANAGER' LIMIT 1);
 
 -- 2. Update the coarse authorization role string on users.
-UPDATE "User"
+UPDATE "user"
 SET "role" = 'regional_commander'
 WHERE "role" = 'operational_intelligence_manager';
 
