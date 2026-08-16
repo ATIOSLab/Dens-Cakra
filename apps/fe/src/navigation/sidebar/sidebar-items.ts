@@ -1,4 +1,4 @@
-import type { LucideIcon } from "lucide-react";
+import { ClipboardList, Inbox, type LucideIcon, Map as MapIcon, UserPlus } from "lucide-react";
 
 import { DOMAIN_TERMS } from "@/lib/domain/terminology";
 import { DOMAIN_VISUALS, SUPPORT_VISUALS } from "@/lib/domain/visual-system";
@@ -354,6 +354,93 @@ export const sidebarItems: NavGroup[] = [
         icon: DOMAIN_VISUALS.home.Icon,
         roles: FIELD_OFFICER_ROLE,
       },
+      {
+        id: "gaswil-workspace",
+        title: "Ruang Kerja Gaswil",
+        icon: DOMAIN_VISUALS.gaswil.Icon,
+        roles: FIELD_OFFICER_ROLE,
+        subItems: [
+          {
+            id: "gaswil-inbox",
+            title: "Kotak Masuk Jaring",
+            url: "/dashboard/field-officer/kotak-masuk-jaring",
+            icon: Inbox,
+            roles: FIELD_OFFICER_ROLE,
+          },
+          {
+            id: "gaswil-tasks",
+            title: "Tugas Saya",
+            url: "/dashboard/field-officer/tugas-saya",
+            icon: ClipboardList,
+            roles: FIELD_OFFICER_ROLE,
+          },
+          {
+            id: "gaswil-task-map",
+            title: "Peta Tugas",
+            url: "/dashboard/field-officer/peta-tugas",
+            icon: MapIcon,
+            roles: FIELD_OFFICER_ROLE,
+          },
+        ],
+      },
+      {
+        id: "korwil-workspace",
+        title: "Ruang Kerja Korwil",
+        icon: DOMAIN_VISUALS.command.Icon,
+        roles: FIELD_COORDINATOR_ROLE,
+        subItems: [
+          {
+            id: "korwil-tasks",
+            title: "Tugas Operasional",
+            url: "/dashboard/field-coordinator/tugas-operasional",
+            icon: ClipboardList,
+            roles: FIELD_COORDINATOR_ROLE,
+          },
+          {
+            id: "korwil-monitoring",
+            title: "Monitoring Tugas",
+            url: "/dashboard/field-coordinator/monitoring-tugas",
+            icon: DOMAIN_VISUALS.monitoring.Icon,
+            roles: FIELD_COORDINATOR_ROLE,
+          },
+          {
+            id: "korwil-assignment",
+            title: "Penugasan Petugas Wilayah",
+            url: "/dashboard/field-coordinator/penugasan-field-officer",
+            icon: UserPlus,
+            roles: FIELD_COORDINATOR_ROLE,
+          },
+        ],
+      },
+      {
+        id: "regional-workspace",
+        title: "Ruang Kerja Regional",
+        icon: DOMAIN_VISUALS.command.Icon,
+        roles: REGIONAL_COMMANDER_ROLE,
+        subItems: [
+          {
+            id: "regional-uuk",
+            title: "Direktif & Penjabaran UUK/STR",
+            url: "/dashboard/regional-commander/direktif-penjabaran-uuk-str",
+            icon: DOMAIN_VISUALS.briefing.Icon,
+            roles: REGIONAL_COMMANDER_ROLE,
+          },
+          {
+            id: "regional-kpi",
+            title: "KPI & Evaluasi",
+            url: "/dashboard/regional-commander/kpi-evaluasi",
+            icon: DOMAIN_VISUALS.performance.Icon,
+            roles: REGIONAL_COMMANDER_ROLE,
+          },
+          {
+            id: "regional-early-warning-map",
+            title: "Peta Peringatan Dini",
+            url: "/dashboard/regional-commander/peta-peringatan-dini",
+            icon: DOMAIN_VISUALS.notification.Icon,
+            roles: REGIONAL_COMMANDER_ROLE,
+          },
+        ],
+      },
     ],
   },
 ];
@@ -431,21 +518,24 @@ export function getSidebarItemsForRole(role: SystemRole): NavGroup[] {
   const personnelNetworkOrder = new Map(
     ["field-coordinator-gaswil", "field-coordinator-jaring"].map((id, index) => [id, index]),
   );
+  const workspaceIds = new Set(["gaswil-workspace", "korwil-workspace", "regional-workspace"]);
 
   const sections = [
     { id: 1, label: "Ringkasan", matches: (item: NavMainItem) => homeIds.has(item.id) },
+    { id: 2, label: "Ruang Kerja", matches: (item: NavMainItem) => workspaceIds.has(item.id) },
     {
-      id: 2,
+      id: 3,
       label: "Komando & Monitoring",
       matches: (item: NavMainItem) =>
         !homeIds.has(item.id) &&
+        !workspaceIds.has(item.id) &&
         !personnelNetworkIds.has(item.id) &&
         !entityIds.has(item.id) &&
         !administrationIds.has(item.id),
     },
-    { id: 3, label: "Personel & Jaring", matches: (item: NavMainItem) => personnelNetworkIds.has(item.id) },
-    { id: 4, label: "Data & Produk Intelijen", matches: (item: NavMainItem) => entityIds.has(item.id) },
-    { id: 5, label: "Administrasi Sistem", matches: (item: NavMainItem) => administrationIds.has(item.id) },
+    { id: 4, label: "Personel & Jaring", matches: (item: NavMainItem) => personnelNetworkIds.has(item.id) },
+    { id: 5, label: "Data & Produk Intelijen", matches: (item: NavMainItem) => entityIds.has(item.id) },
+    { id: 6, label: "Administrasi Sistem", matches: (item: NavMainItem) => administrationIds.has(item.id) },
   ];
 
   return sections
