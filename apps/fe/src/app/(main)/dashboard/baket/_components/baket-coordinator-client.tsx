@@ -60,6 +60,12 @@ import { resolveJaringIdentity } from "@/lib/domain/jaring-identity";
 import { sortReportCategories } from "@/lib/domain/report-category-order";
 import { DC_TYPOGRAPHY, DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
+import {
+  SYSTEM_ROLE_HOME_ROUTES,
+  SYSTEM_ROLE_LABELS,
+  SYSTEM_ROLES,
+  type SystemRole,
+} from "@/navigation/sidebar/system-roles";
 
 import {
   ALL_BAKET_STATUS_QUERY,
@@ -185,7 +191,14 @@ const BAKET_SOURCE_LABELS = {
   placementArea: "Wilayah Sumber",
 } as const;
 
-export function BaketCoordinatorClient() {
+export function BaketCoordinatorClient({ role }: { role?: SystemRole } = {}) {
+  const isFieldOfficer = role === SYSTEM_ROLES.FIELD_OFFICER;
+  const breadcrumbRoot = isFieldOfficer
+    ? {
+        label: SYSTEM_ROLE_LABELS[SYSTEM_ROLES.FIELD_OFFICER],
+        href: SYSTEM_ROLE_HOME_ROUTES[SYSTEM_ROLES.FIELD_OFFICER],
+      }
+    : { label: "Monitoring", href: "/dashboard" };
   const searchParams = useSearchParams();
   const initialStartDate = dateInputFromSearchParams(searchParams, ["from", "periodStart"]);
   const initialEndDate = dateInputFromSearchParams(searchParams, ["to", "periodEnd"]);
@@ -503,7 +516,7 @@ export function BaketCoordinatorClient() {
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbLink href="/dashboard">Monitoring</BreadcrumbLink>
+            <BreadcrumbLink href={breadcrumbRoot.href}>{breadcrumbRoot.label}</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>

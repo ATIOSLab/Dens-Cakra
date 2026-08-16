@@ -56,6 +56,12 @@ import { jakartaBoundaryIso, resolveJakartaPeriodRange } from "@/lib/domain/date
 import { resolveJaringIdentity } from "@/lib/domain/jaring-identity";
 import { DC_CONTROLS, DC_TYPOGRAPHY, DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
+import {
+  SYSTEM_ROLE_HOME_ROUTES,
+  SYSTEM_ROLE_LABELS,
+  SYSTEM_ROLES,
+  type SystemRole,
+} from "@/navigation/sidebar/system-roles";
 
 import {
   alignJaringReportCategorySummary,
@@ -266,7 +272,14 @@ const LAPORAN_JARING_COLUMNS: ColumnOption[] = [
   { id: "refNum", label: "Nomor Referensi" },
 ];
 
-export function LaporanJaringCoordinatorClient() {
+export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } = {}) {
+  const isFieldOfficer = role === SYSTEM_ROLES.FIELD_OFFICER;
+  const breadcrumbRoot = isFieldOfficer
+    ? {
+        label: SYSTEM_ROLE_LABELS[SYSTEM_ROLES.FIELD_OFFICER],
+        href: SYSTEM_ROLE_HOME_ROUTES[SYSTEM_ROLES.FIELD_OFFICER],
+      }
+    : { label: "Monitoring", href: "/dashboard" };
   const searchParams = useSearchParams();
   const initialReportFilters = resolveInitialReportFilters(searchParams);
   const [reports, setReports] = useState<JaringReportSessionDetail[]>([]);
@@ -712,7 +725,7 @@ export function LaporanJaringCoordinatorClient() {
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbLink href="/dashboard">Monitoring</BreadcrumbLink>
+            <BreadcrumbLink href={breadcrumbRoot.href}>{breadcrumbRoot.label}</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
