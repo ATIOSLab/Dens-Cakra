@@ -81,6 +81,7 @@ const MAX_CONTENT_ENTRIES = 30;
 const MAX_MEDIA = 10;
 const MAX_CONTENT_LENGTH = 10_000;
 const CAPTURE_ACK_DEBOUNCE_MS = 5_000;
+const SUBMIT_DEDUP_WINDOW_MS = 15 * 60_000;
 
 const REFERENCE_AREA_CODE_OVERRIDES = new Map<string, string>([
   ['DAERAH KHUSUS IBUKOTA JAKARTA', 'JKT'],
@@ -533,6 +534,27 @@ export class WhatsAppReportFlowService
       areaResolution?.area?.areaId ?? null,
     );
 
+    const contentChecksum = createHash('sha256').update(content).digest('hex');
+    const duplicate = await this.prisma.whatsAppMessage.findFirst({
+      where: {
+        jaringId: session.jaringId,
+        contentChecksum,
+        receivedAt: { gte: new Date(Date.now() - SUBMIT_DEDUP_WINDOW_MS) },
+      },
+      orderBy: { receivedAt: 'desc' },
+      select: { referenceNumber: true },
+    });
+
+    if (duplicate) {
+      await this.purgeDraftSession(session.id);
+      await reply([
+        duplicate.referenceNumber
+          ? `Informasi ini sudah pernah dikirim sebelumnya.\nKode Pengiriman: *${duplicate.referenceNumber}*\n\nTidak perlu mengirim ulang.`
+          : 'Informasi ini sudah pernah dikirim sebelumnya. Tidak perlu mengirim ulang.',
+      ]);
+      return;
+    }
+
     const submitted = await this.prisma.$transaction(async (tx) => {
       const counter = await tx.whatsAppReportReferenceCounter.upsert({
         where: { dateKey },
@@ -561,7 +583,7 @@ export class WhatsAppReportFlowService
           areaResolvedAt: areaResolution?.resolvedAt ?? null,
           status: WhatsAppMessageStatus.RECEIVED,
           validationSummary: WhatsAppValidationSummary.NOT_CHECKED,
-          contentChecksum: createHash('sha256').update(content).digest('hex'),
+          contentChecksum,
           rawPayload: {
             source: 'WHATSAPP_BOT_REPORT_COLLECTOR',
             reportSessionId: session.id,

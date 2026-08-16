@@ -93,6 +93,7 @@ function createFixture() {
     whatsAppReportContentPart: { create: jest.fn().mockResolvedValue({}) },
     whatsAppReportMedia: { create: jest.fn().mockResolvedValue({}) },
     whatsAppReportHistory: { create: jest.fn().mockResolvedValue({}) },
+    whatsAppMessage: { findFirst: jest.fn().mockResolvedValue(null) },
     fileAsset: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
   };
   const storage = { remove: jest.fn().mockResolvedValue(undefined) };
@@ -525,6 +526,52 @@ describe('WhatsAppReportFlowService simplified collector', () => {
     expect(input.reply.mock.calls[0][0][0]).not.toContain(
       'MENUNGGU VERIFIKASI',
     );
+  });
+
+  it('deduplicates an identical report submitted again within the window', async () => {
+    const { service, prisma, txMessageCreate } = createFixture();
+    const ready = activeSession({
+      jaringId: 'jaring-id',
+      fieldOfficerAssignmentId: 'assignment-id',
+      content: 'Narasi situasi wilayah',
+      latitude: -6.2,
+      longitude: 106.8,
+      locationAccuracyMeters: 8,
+      locationCapturedAt: new Date(),
+      locationType: 'LIVE_LOCATION',
+      media: [
+        {
+          id: 'media-id',
+          fileId: 'file-id',
+          caption: 'Dokumentasi',
+          file: { id: 'file-id', storageKey: 'draft/file.jpg' },
+        },
+      ],
+    });
+    prisma.whatsAppReportSession.findUnique.mockResolvedValue(ready);
+    prisma.whatsAppMessage.findFirst.mockResolvedValue({
+      referenceNumber: 'JKT-SEL-20260805-000001',
+    });
+    const target = service as any;
+    const purge = jest.spyOn(target, 'purgeDraftSession').mockResolvedValue(true);
+    const input = inbound('selesai');
+
+    await service.handle(input);
+
+    expect(prisma.whatsAppMessage.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          jaringId: 'jaring-id',
+          contentChecksum: expect.any(String),
+          receivedAt: expect.objectContaining({ gte: expect.any(Date) }),
+        }),
+      }),
+    );
+    expect(txMessageCreate).not.toHaveBeenCalled();
+    expect(purge).toHaveBeenCalledWith('session-id');
+    expect(input.reply).toHaveBeenCalledWith([
+      expect.stringContaining('sudah pernah dikirim'),
+    ]);
   });
 
   it('cancels immediately and confirms deletion', async () => {
