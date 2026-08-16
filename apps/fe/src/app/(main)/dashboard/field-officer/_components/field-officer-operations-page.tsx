@@ -56,6 +56,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { EvidenceImageViewer } from "@/features/baket/components/evidence-image-viewer";
 import { apiBrowserFetch } from "@/lib/api/browser-client";
+import { getUrgencyLabel } from "@/lib/domain/operational-presentation";
 import { sortReportCategories } from "@/lib/domain/report-category-order";
 import { DOMAIN_TERMS } from "@/lib/domain/terminology";
 import { DC_TYPOGRAPHY, DOMAIN_VISUALS } from "@/lib/domain/visual-system";
@@ -169,7 +170,7 @@ function baketStatusLabel(status?: string | null, sentToPositionTitle?: string |
 }
 
 function baketUrgencyLabel(urgency?: string | null) {
-  return urgency ? urgency.toUpperCase() : "-";
+  return urgency ? getUrgencyLabel(urgency).toUpperCase() : "-";
 }
 
 function urgencyTone(urgency?: string | null) {
@@ -1242,10 +1243,10 @@ export function FieldOfficerOperationsPage({
                     className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-slate-900 text-sm dark:border-white/10 dark:bg-[#131A26] dark:text-white"
                   >
                     <option value="">Semua Prioritas</option>
-                    <option value="LOW">LOW</option>
-                    <option value="NORMAL">NORMAL</option>
-                    <option value="HIGH">HIGH</option>
-                    <option value="URGENT">URGENT</option>
+                    <option value="LOW">Rendah</option>
+                    <option value="NORMAL">Normal</option>
+                    <option value="HIGH">Tinggi</option>
+                    <option value="URGENT">Mendesak</option>
                   </select>
                 </div>
 
@@ -3329,10 +3330,10 @@ function BaketCandidateForm({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="font-mono">
-                  <SelectItem value="LOW">LOW</SelectItem>
+                  <SelectItem value="LOW">RENDAH</SelectItem>
                   <SelectItem value="NORMAL">NORMAL</SelectItem>
-                  <SelectItem value="HIGH">HIGH</SelectItem>
-                  <SelectItem value="URGENT">URGENT</SelectItem>
+                  <SelectItem value="HIGH">TINGGI</SelectItem>
+                  <SelectItem value="URGENT">MENDESAK</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -3408,7 +3409,7 @@ function BaketCandidateForm({
                 onChange={(event) => setUrgencyConfirmed(event.target.checked)}
                 className="size-4 shrink-0 rounded border-[var(--tactical-border)] bg-transparent text-[var(--tactical-blue)] focus:ring-0 focus:ring-offset-0"
               />
-              <span className="text-[10px]">KONFIRMASI SOP: Konfirmasi urgensi {urgency}.</span>
+              <span className="text-[10px]">KONFIRMASI SOP: Konfirmasi urgensi {getUrgencyLabel(urgency)}.</span>
             </label>
 
             <button
