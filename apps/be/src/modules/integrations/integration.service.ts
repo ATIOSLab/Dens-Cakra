@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { randomBytes } from 'node:crypto';
 import {
   IntegrationStatus,
   Prisma,
@@ -922,10 +923,26 @@ export class IntegrationService {
     }
 
     const channel = await this.prisma.integrationChannel.create({
-      data: { ...body, config: this.vault.encrypt(config) },
+      data: { ...body, code: await this.resolveUniqueCode(body.code), config: this.vault.encrypt(config) },
     });
     await this.audit(context, 'INTEGRATION.CREATE', channel.id);
     return this.view(channel);
+  }
+
+  /**
+   * Satu wilayah boleh memiliki lebih dari satu nomor WhatsApp. Karena `code`
+   * unik, tambahkan suffix acak bila basis code (mis. `WA_<koordinator>_<area>`)
+   * sudah dipakai channel lain, agar kanal kedua untuk wilayah yang sama tetap bisa dibuat.
+   */
+  private async resolveUniqueCode(baseCode: string): Promise<string> {
+    const trimmed = baseCode.trim().slice(0, 80);
+    const existing = await this.prisma.integrationChannel.findUnique({
+      where: { code: trimmed },
+      select: { id: true },
+    });
+    if (!existing) return trimmed;
+    const suffix = randomBytes(3).toString('hex').toUpperCase();
+    return `${trimmed.slice(0, 74)}_${suffix}`;
   }
 
   async detail(id: string) {
