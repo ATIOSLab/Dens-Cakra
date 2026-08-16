@@ -43,6 +43,7 @@ export function SebaranJaringLeadershipStrip({
     const reporting = agents.filter((agent) => agent.hasReport).length;
     const reportCount = agents.reduce((total, agent) => total + agent.reportCount, 0);
     const baketCount = agents.reduce((total, agent) => total + agent.baketCount, 0);
+    const jaringCount = agents.reduce((total, agent) => total + (agent.jaringCount ?? 0), 0);
     const preciseCoordinates = agents.filter((agent) =>
       coordinateSourceMode === "laporan"
         ? agent.latestReportLat != null && agent.latestReportLng != null
@@ -64,6 +65,7 @@ export function SebaranJaringLeadershipStrip({
       reporting,
       reportCount,
       baketCount,
+      jaringCount,
       preciseCoordinates,
       topDistrict,
     };
@@ -101,11 +103,7 @@ export function SebaranJaringLeadershipStrip({
             icon={Users}
             label={copy.displayedMetricLabel}
             value={summary.total}
-            detail={
-              mode === "gaswil"
-                ? `${summary.preciseCoordinates.toLocaleString("id-ID")} lokasi terakhir`
-                : `${summary.verified.toLocaleString("id-ID")} ${copy.statusLabels.VERIFIED.toLowerCase()}`
-            }
+            detail={`${(mode === "gaswil" ? summary.active : summary.verified).toLocaleString("id-ID")} ${copy.statusLabels.VERIFIED.toLowerCase()}`}
           />
           <Metric
             icon={ShieldCheck}
@@ -125,7 +123,7 @@ export function SebaranJaringLeadershipStrip({
             value={summary.active}
             detail={
               mode === "gaswil"
-                ? `${summary.pending.toLocaleString("id-ID")} offline`
+                ? `${summary.pending.toLocaleString("id-ID")} ${copy.statusLabels.PENDING.toLowerCase()}`
                 : `${rate(summary.active, summary.total)}% dari tampilan`
             }
             tone="green"
@@ -135,16 +133,30 @@ export function SebaranJaringLeadershipStrip({
             icon={RadioTower}
             label={copy.reportingMetricLabel}
             value={mode === "jaring" ? summary.reporting : summary.reportCount}
-            detail={`${summary.reportCount.toLocaleString("id-ID")} laporan - ${summary.baketCount.toLocaleString("id-ID")} Baket`}
+            detail={
+              mode === "gaswil"
+                ? "laporan jaring binaan"
+                : `${summary.reportCount.toLocaleString("id-ID")} laporan - ${summary.baketCount.toLocaleString("id-ID")} Baket`
+            }
             tone="cyan"
           />
-          <Metric
-            icon={MapPinCheck}
-            label={copy.coordinateMetricLabel}
-            value={`${rate(summary.preciseCoordinates, summary.total)}%`}
-            detail={`${summary.preciseCoordinates.toLocaleString("id-ID")} titik aktual`}
-            tone={summary.preciseCoordinates === summary.total ? "green" : "amber"}
-          />
+          {mode === "gaswil" ? (
+            <Metric
+              icon={Users}
+              label="Jaring Binaan"
+              value={summary.jaringCount}
+              detail="total jaring dibina"
+              tone="cyan"
+            />
+          ) : (
+            <Metric
+              icon={MapPinCheck}
+              label={copy.coordinateMetricLabel}
+              value={`${rate(summary.preciseCoordinates, summary.total)}%`}
+              detail={`${summary.preciseCoordinates.toLocaleString("id-ID")} titik aktual`}
+              tone={summary.preciseCoordinates === summary.total ? "green" : "amber"}
+            />
+          )}
           <Metric
             icon={AlertCircle}
             label="Wilayah Terpadat"

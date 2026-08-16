@@ -402,12 +402,15 @@ export function JaringDistributionClient({
       setSelectedCityId(cityId);
       setSelectedDistrictId(null);
       setSelectedVillageId(null);
+      setAdminLevel((current) => {
+        if (!cityId) return "PROVINCE";
+        if (current === "PROVINCE") return "CITY";
+        return current;
+      });
       const city = cities.find((c) => c.id === cityId);
-      if (mapRef.current && city) {
-        fitCity(mapRef.current, city, isRightPanelOpen);
-      } else if (mapRef.current && !cityId) {
-        setAdminLevel("PROVINCE");
-        fitAllCities(mapRef.current, cities);
+      if (mapRef.current) {
+        if (city) fitCity(mapRef.current, city, isRightPanelOpen);
+        else fitAllCities(mapRef.current, cities);
       }
     },
     [cities, isRightPanelOpen],

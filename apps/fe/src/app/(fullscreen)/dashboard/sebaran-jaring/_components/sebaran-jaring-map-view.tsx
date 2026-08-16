@@ -341,7 +341,7 @@ export function SebaranJaringMapView({
           />
 
           {/* Cluster Badges on Map (Aggregated according to adminLevel or displayMode === 'cluster') */}
-          {(displayMode === "cluster" || (displayMode === "marker" && isClusterMode)) &&
+          {(adminLevel === "PROVINCE" || displayMode === "cluster" || (displayMode === "marker" && isClusterMode)) &&
             (() => {
               if (adminLevel === "CITY") {
                 if (!selectedCity) return null;
@@ -477,8 +477,11 @@ export function SebaranJaringMapView({
               });
             })()}
 
-          {/* Individual Jaring markers according to the selected coordinate source. */}
+          {/* Individual Jaring markers according to the selected coordinate source.
+              Hanya ditampilkan ketika sebuah wilayah (kota/kabupaten dst.) sudah dipilih,
+              agar tampilan seluruh provinsi tetap ringan. */}
           {displayMode === "marker" &&
+            adminLevel !== "PROVINCE" &&
             agentsWithCoordinates.map((agent) => {
               const isSelected = selectedJaring?.id === agent.id;
               const statusMeta = statusPresentationForMode(mode, agent.status);
@@ -670,7 +673,7 @@ export function SebaranJaringMapView({
             })}
           </div>
 
-          {displayMode === "marker" ? (
+          {displayMode === "marker" && adminLevel !== "PROVINCE" ? (
             <label className="flex items-center justify-between border-slate-200 border-t pt-2 dark:border-slate-800/80">
               <span className="font-mono text-[10px] text-slate-500 dark:text-slate-400">TAMPILKAN KELOMPOK</span>
               <input
