@@ -24,17 +24,17 @@
   border-width: 1px;
 }
 
-.tickerViewport:hover .tickerTrack,
-.tickerViewport:focus-within .tickerTrack {
-  animation-play-state: paused;
-}
-
 .tickerTrack {
   display: flex;
   width: max-content;
   min-width: 100%;
   animation: ticker-scroll 52s linear infinite;
   will-change: transform;
+}
+
+.tickerViewport:hover .tickerTrack,
+.tickerViewport:focus-within .tickerTrack {
+  animation-play-state: paused;
 }
 
 @keyframes ticker-scroll {
