@@ -443,7 +443,7 @@ export function JaringDistributionClient({
   }, []);
 
   return (
-    <div className="relative h-screen w-screen overflow-hidden bg-slate-950 text-slate-100 font-sans select-none flex flex-col">
+    <div className="relative flex h-screen w-screen select-none flex-col overflow-hidden bg-slate-950 font-sans text-slate-100">
       {/* 1. Command Center Telemetry Header */}
       <SebaranJaringHeader
         cities={cities}
@@ -461,7 +461,7 @@ export function JaringDistributionClient({
       />
 
       {/* 2. Main Workspace Layout */}
-      <div className="relative flex-1 w-full overflow-hidden flex">
+      <div className="relative flex w-full flex-1 overflow-hidden">
         {/* Left Sidebar Panel */}
         <SebaranJaringLeftPanel
           isOpen={isLeftPanelOpen}
@@ -502,7 +502,7 @@ export function JaringDistributionClient({
         />
 
         {/* Center GIS Map Workspace & Floating Telemetry Bar */}
-        <div className="flex-1 relative h-full w-full overflow-hidden">
+        <div className="relative h-full w-full flex-1 overflow-hidden">
           <SebaranJaringLeadershipStrip
             agents={filteredAgents}
             regionLabel={summaryStats.regionName}

@@ -123,7 +123,7 @@ export function BaketDetail({ baket }: BaketDetailProps) {
             />
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="font-mono font-bold text-sm text-violet-600 dark:text-violet-400">
+                <span className="font-bold font-mono text-sm text-violet-600 dark:text-violet-400">
                   {getBaketReferenceLabel(baket)}
                 </span>
                 <Badge variant="outline" className="font-semibold">
@@ -147,13 +147,13 @@ export function BaketDetail({ baket }: BaketDetailProps) {
 
       {/* SECTION 1 — LAPORAN JARING SUMBER */}
       <Card className="overflow-hidden rounded-xl border border-slate-200/80 bg-card shadow-xs dark:border-white/10">
-        <CardHeader className="p-4 border-b border-slate-200/80 bg-slate-50/50 md:p-5 dark:border-white/10 dark:bg-slate-900/40">
+        <CardHeader className="border-slate-200/80 border-b bg-slate-50/50 p-4 md:p-5 dark:border-white/10 dark:bg-slate-900/40">
           <div className="flex items-center gap-3">
-            <div className="flex size-8 items-center justify-center rounded-lg bg-sky-500/10 font-bold text-xs text-sky-600 dark:text-sky-400">
+            <div className="flex size-8 items-center justify-center rounded-lg bg-sky-500/10 font-bold text-sky-600 text-xs dark:text-sky-400">
               1
             </div>
             <div>
-              <CardTitle className="text-sm font-bold uppercase tracking-wide">Laporan Jaring Sumber</CardTitle>
+              <CardTitle className="font-bold text-sm uppercase tracking-wide">Laporan Jaring Sumber</CardTitle>
               <CardDescription className="text-xs">
                 Laporan Jaring yang dipilih Petugas Wilayah (Gaswil) untuk diolah menjadi Bahan Keterangan (Baket).
               </CardDescription>
@@ -166,11 +166,11 @@ export function BaketDetail({ baket }: BaketDetailProps) {
           <div className="flex items-center gap-2 rounded-lg border border-slate-200/80 bg-slate-50/40 p-3 text-xs dark:border-white/10 dark:bg-slate-900/30">
             <Clock className="size-3.5 text-sky-600 dark:text-sky-400" />
             <span className="font-medium text-muted-foreground">Waktu Dikirim:</span>
-            <span className="font-mono text-sm text-foreground">{formatDateTime(getBaketDate(baket))}</span>
+            <span className="font-mono text-foreground text-sm">{formatDateTime(getBaketDate(baket))}</span>
           </div>
 
           <div className="space-y-1.5">
-            <span className="text-xs font-medium text-muted-foreground">Tampilan Pesan WhatsApp Chat Bubble:</span>
+            <span className="font-medium text-muted-foreground text-xs">Tampilan Pesan WhatsApp Chat Bubble:</span>
             <WhatsAppReportThread
               senderAlias={senderAlias}
               messages={sourceMessageItems}
@@ -181,7 +181,7 @@ export function BaketDetail({ baket }: BaketDetailProps) {
           {hasLocation ? (
             <div className="space-y-2 rounded-lg border border-slate-200/80 bg-slate-50/40 p-3.5 dark:border-white/10 dark:bg-slate-900/30">
               <div className="flex items-center justify-between">
-                <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                <span className="flex items-center gap-1.5 font-semibold text-foreground text-xs">
                   <MapPin className="size-4 text-sky-600 dark:text-sky-400" />
                   Informasi Lokasi & Koordinat GPS
                 </span>
@@ -190,7 +190,7 @@ export function BaketDetail({ baket }: BaketDetailProps) {
                     href={googleMapsUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-xs font-semibold text-sky-600 hover:underline dark:text-sky-400"
+                    className="inline-flex items-center gap-1 font-semibold text-sky-600 text-xs hover:underline dark:text-sky-400"
                   >
                     Buka Google Maps <ExternalLink className="size-3" />
                   </a>
@@ -217,14 +217,14 @@ export function BaketDetail({ baket }: BaketDetailProps) {
 
       {/* SECTION 2 — BAHAN KETERANGAN (BAKET) */}
       <Card className="overflow-hidden rounded-xl border border-slate-200/80 bg-card shadow-xs dark:border-white/10">
-        <CardHeader className="p-4 border-b border-slate-200/80 bg-slate-50/50 md:p-5 dark:border-white/10 dark:bg-slate-900/40">
+        <CardHeader className="border-slate-200/80 border-b bg-slate-50/50 p-4 md:p-5 dark:border-white/10 dark:bg-slate-900/40">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex size-8 items-center justify-center rounded-lg bg-violet-500/10 font-bold text-xs text-violet-600 dark:text-violet-400">
+              <div className="flex size-8 items-center justify-center rounded-lg bg-violet-500/10 font-bold text-violet-600 text-xs dark:text-violet-400">
                 2
               </div>
               <div>
-                <CardTitle className="text-sm font-bold uppercase tracking-wide">Bahan Keterangan (Baket)</CardTitle>
+                <CardTitle className="font-bold text-sm uppercase tracking-wide">Bahan Keterangan (Baket)</CardTitle>
                 <CardDescription className="text-xs">
                   Kategori, urgensi, dan narasi Baket yang disusun dari Laporan Jaring.
                 </CardDescription>
@@ -263,7 +263,7 @@ export function BaketDetail({ baket }: BaketDetailProps) {
 
           <div className="space-y-1">
             <span className="font-medium text-muted-foreground">Formulasi Isi Baket:</span>
-            <div className="rounded-lg border border-slate-200/80 bg-slate-50 p-3.5 font-mono text-xs leading-relaxed whitespace-pre-wrap dark:border-white/10 dark:bg-slate-950/40">
+            <div className="whitespace-pre-wrap rounded-lg border border-slate-200/80 bg-slate-50 p-3.5 font-mono text-xs leading-relaxed dark:border-white/10 dark:bg-slate-950/40">
               {content || "-"}
             </div>
           </div>
@@ -300,8 +300,8 @@ export function BaketDetail({ baket }: BaketDetailProps) {
 
       {/* SECTION — LOKASI & WILAYAH ADMINISTRATIF */}
       <Card className="overflow-hidden rounded-xl border border-slate-200/80 bg-card shadow-xs dark:border-white/10">
-        <CardHeader className="p-4 border-b border-slate-200/80 bg-slate-50/50 md:p-5 dark:border-white/10 dark:bg-slate-900/40">
-          <CardTitle className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide">
+        <CardHeader className="border-slate-200/80 border-b bg-slate-50/50 p-4 md:p-5 dark:border-white/10 dark:bg-slate-900/40">
+          <CardTitle className="flex items-center gap-2 font-bold text-sm uppercase tracking-wide">
             <MapPin className="size-4 text-violet-600 dark:text-violet-400" />
             Lokasi & Wilayah Administratif
           </CardTitle>
@@ -316,7 +316,7 @@ export function BaketDetail({ baket }: BaketDetailProps) {
               urgency={version?.urgency}
             />
           ) : (
-            <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+            <p className="rounded-lg border border-dashed p-4 text-muted-foreground text-sm">
               Koordinat lokasi belum tersedia pada Baket ini.
             </p>
           )}
@@ -326,10 +326,10 @@ export function BaketDetail({ baket }: BaketDetailProps) {
 
       {/* SECTION — LAMPIRAN MEDIA */}
       <Card className="overflow-hidden rounded-xl border border-slate-200/80 bg-card shadow-xs dark:border-white/10">
-        <CardHeader className="p-4 border-b border-slate-200/80 bg-slate-50/50 md:p-5 dark:border-white/10 dark:bg-slate-900/40">
+        <CardHeader className="border-slate-200/80 border-b bg-slate-50/50 p-4 md:p-5 dark:border-white/10 dark:bg-slate-900/40">
           <div className="flex items-center gap-2">
             <ImageIcon className="size-4 text-violet-600 dark:text-violet-400" />
-            <CardTitle className="text-sm font-bold uppercase tracking-wide">Lampiran Media</CardTitle>
+            <CardTitle className="font-bold text-sm uppercase tracking-wide">Lampiran Media</CardTitle>
             <Badge variant="secondary">{attachments.length} berkas</Badge>
           </div>
         </CardHeader>
@@ -351,7 +351,7 @@ export function BaketDetail({ baket }: BaketDetailProps) {
               })}
             </div>
           ) : (
-            <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+            <p className="rounded-lg border border-dashed p-4 text-muted-foreground text-sm">
               Baket ini tidak memiliki lampiran media.
             </p>
           )}

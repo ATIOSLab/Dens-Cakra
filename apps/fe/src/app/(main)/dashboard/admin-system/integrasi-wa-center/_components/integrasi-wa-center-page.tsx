@@ -496,7 +496,7 @@ export function AdminWaCenterPage() {
     <main className="space-y-6 p-6">
       <section className="flex flex-wrap items-start justify-between gap-3">
         <div className="max-w-3xl">
-          <p className="text-sm text-muted-foreground">Admin Sistem</p>
+          <p className="text-muted-foreground text-sm">Admin Sistem</p>
           <h1 className={DC_TYPOGRAPHY.pageTitle}>Integrasi WhatsApp</h1>
           <p className={DC_TYPOGRAPHY.body}>
             Kelola koneksi bot pusat, nomor pengirim, status sesi, dan cakupan wilayah operasional WhatsApp Center.
@@ -550,7 +550,7 @@ export function AdminWaCenterPage() {
                           onValueChange={setAreaQuery}
                         />
                         <CommandList>
-                          <CommandEmpty className="py-4 text-center text-sm text-muted-foreground">
+                          <CommandEmpty className="py-4 text-center text-muted-foreground text-sm">
                             {areasLoading || areaQuery.trim().length < 2
                               ? "Ketik minimal 2 huruf untuk mencari wilayah."
                               : "Tidak ada wilayah yang ditemukan."}
@@ -590,7 +590,7 @@ export function AdminWaCenterPage() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-muted-foreground text-xs">
                       Satu wilayah boleh dipakai lebih dari satu koneksi WhatsApp. Pilih beberapa wilayah sekaligus bila
                       perlu.
                     </p>
@@ -619,7 +619,7 @@ export function AdminWaCenterPage() {
             <AdminIcon className={cn("size-9", DOMAIN_VISUALS.admin.iconClass)} />
             <div>
               <p className={DC_TYPOGRAPHY.metadata}>TOTAL KONEKSI</p>
-              <p className="text-2xl font-semibold">{channels.length}</p>
+              <p className="font-semibold text-2xl">{channels.length}</p>
             </div>
           </CardContent>
         </Card>
@@ -628,7 +628,7 @@ export function AdminWaCenterPage() {
             <CheckCircle2 className="size-9 text-emerald-300" />
             <div>
               <p className={DC_TYPOGRAPHY.metadata}>TERHUBUNG</p>
-              <p className="text-2xl font-semibold">{connectedCount}</p>
+              <p className="font-semibold text-2xl">{connectedCount}</p>
             </div>
           </CardContent>
         </Card>
@@ -637,7 +637,7 @@ export function AdminWaCenterPage() {
             <QrCode className="size-9 text-cyan-300" />
             <div>
               <p className={DC_TYPOGRAPHY.metadata}>PROSES PAIRING</p>
-              <p className="text-2xl font-semibold">{pendingCount}</p>
+              <p className="font-semibold text-2xl">{pendingCount}</p>
             </div>
           </CardContent>
         </Card>
@@ -646,7 +646,7 @@ export function AdminWaCenterPage() {
             <Activity className="size-9 text-amber-300" />
             <div>
               <p className={DC_TYPOGRAPHY.metadata}>TERPUTUS / ERROR</p>
-              <p className="text-2xl font-semibold">{disconnectedCount}</p>
+              <p className="font-semibold text-2xl">{disconnectedCount}</p>
             </div>
           </CardContent>
         </Card>
@@ -669,7 +669,7 @@ export function AdminWaCenterPage() {
       <div className="grid gap-5">
         {groupedChannels.map((group) => (
           <section key={group.key} className="grid gap-3">
-            <div className="flex flex-wrap items-end justify-between gap-3 border-b border-border/70 pb-2">
+            <div className="flex flex-wrap items-end justify-between gap-3 border-border/70 border-b pb-2">
               <div>
                 <h2 className={DC_TYPOGRAPHY.sectionTitle}>{group.title}</h2>
                 {group.subtitle ? <p className={DC_TYPOGRAPHY.metadata}>{group.subtitle}</p> : null}
@@ -711,11 +711,11 @@ export function AdminWaCenterPage() {
                         <div className="grid gap-2 sm:grid-cols-2">
                           <div className="rounded-md border border-border/70 bg-muted/20 p-3">
                             <p className={DC_TYPOGRAPHY.metadata}>NOMOR WHATSAPP</p>
-                            <p className="break-all font-mono text-sm font-semibold text-foreground">{phoneNumber}</p>
+                            <p className="break-all font-mono font-semibold text-foreground text-sm">{phoneNumber}</p>
                           </div>
                           <div className="rounded-md border border-border/70 bg-muted/20 p-3">
                             <p className={DC_TYPOGRAPHY.metadata}>SINYAL TERAKHIR</p>
-                            <p className="text-sm font-semibold text-foreground">{formatDateTime(lastSignalAt)}</p>
+                            <p className="font-semibold text-foreground text-sm">{formatDateTime(lastSignalAt)}</p>
                           </div>
                         </div>
                       </div>
@@ -732,11 +732,11 @@ export function AdminWaCenterPage() {
                               ))}
                             </div>
                           ) : (
-                            <p className="mt-2 text-sm text-muted-foreground">Belum terpetakan</p>
+                            <p className="mt-2 text-muted-foreground text-sm">Belum terpetakan</p>
                           )}
                         </div>
                         {channel.lastError ? (
-                          <div className="rounded-md border border-destructive/25 bg-destructive/10 p-3 text-sm text-destructive">
+                          <div className="rounded-md border border-destructive/25 bg-destructive/10 p-3 text-destructive text-sm">
                             {channel.lastError}
                           </div>
                         ) : null}
@@ -804,8 +804,8 @@ export function AdminWaCenterPage() {
                                   </div>
                                 ) : channel.pairingCode ? (
                                   <div className="text-center">
-                                    <p className="mb-2 text-sm text-muted-foreground">Kode pairing:</p>
-                                    <span className="text-4xl font-bold tracking-[0.3em] text-cyan-600">
+                                    <p className="mb-2 text-muted-foreground text-sm">Kode pairing:</p>
+                                    <span className="font-bold text-4xl text-cyan-600 tracking-[0.3em]">
                                       {channel.pairingCode}
                                     </span>
                                   </div>
@@ -833,7 +833,7 @@ export function AdminWaCenterPage() {
                             </DialogContent>
                           </Dialog>
                         ) : (
-                          <div className="flex w-full items-center justify-center gap-2 rounded-md border border-emerald-400/25 bg-emerald-500/10 px-3 py-2 text-sm font-medium text-emerald-200">
+                          <div className="flex w-full items-center justify-center gap-2 rounded-md border border-emerald-400/25 bg-emerald-500/10 px-3 py-2 font-medium text-emerald-200 text-sm">
                             <CheckCircle2 className="size-4" />
                             WhatsApp terhubung
                           </div>
