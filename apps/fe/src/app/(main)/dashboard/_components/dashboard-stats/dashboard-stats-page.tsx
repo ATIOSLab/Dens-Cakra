@@ -12,11 +12,7 @@ type DashboardStatsPageProps = {
 };
 
 export async function DashboardStatsPage({ role, searchParams }: DashboardStatsPageProps) {
-  if (
-    role === "executive" ||
-    role === "regional_commander" ||
-    role === "field_coordinator"
-  ) {
+  if (role === "executive" || role === "regional_commander" || role === "field_coordinator") {
     return <ExecutiveDashboardPage role={role} searchParams={searchParams} />;
   }
 

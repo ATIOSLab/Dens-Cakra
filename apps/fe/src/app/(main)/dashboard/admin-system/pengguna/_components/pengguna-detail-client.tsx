@@ -66,10 +66,7 @@ type PenggunaDetailClientProps = {
 };
 
 type DialogState = null | "activate" | "reset-password" | "suspend" | "lock" | "unlock" | "archive" | "transfer";
-type ProvisionRoleCode = Extract<
-  RoleCode,
-  "EXECUTIVE" | "REGIONAL_COMMANDER" | "FIELD_COORDINATOR" | "FIELD_OFFICER"
->;
+type ProvisionRoleCode = Extract<RoleCode, "EXECUTIVE" | "REGIONAL_COMMANDER" | "FIELD_COORDINATOR" | "FIELD_OFFICER">;
 type BranchValue = CommandRouteType;
 type AreaLevel = "COUNTRY" | "PROVINCE" | "REGENCY" | "CITY" | "DISTRICT";
 
@@ -116,7 +113,6 @@ function isProvisionRoleCode(roleCode?: string | null): roleCode is ProvisionRol
   return (
     roleCode === "EXECUTIVE" ||
     roleCode === "REGIONAL_COMMANDER" ||
-
     roleCode === "FIELD_COORDINATOR" ||
     roleCode === "FIELD_OFFICER"
   );
@@ -128,9 +124,7 @@ function isDirectorateSupervisionRole(roleCode: ProvisionRoleCode) {
 
 function getProvisionRoleOptions(branch: BranchValue) {
   const allowedRoleCodes: ProvisionRoleCode[] =
-    branch === "PUSAT"
-      ? ["EXECUTIVE"]
-      : ["REGIONAL_COMMANDER", "FIELD_COORDINATOR", "FIELD_OFFICER"];
+    branch === "PUSAT" ? ["EXECUTIVE"] : ["REGIONAL_COMMANDER", "FIELD_COORDINATOR", "FIELD_OFFICER"];
 
   return ROLE_CODE_OPTIONS.filter((option): option is { value: ProvisionRoleCode; label: string } =>
     allowedRoleCodes.includes(option.value as ProvisionRoleCode),

@@ -172,7 +172,9 @@ export function SmtpSettingsPage() {
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/70 pb-4">
           <div>
             <h2 className={DC_TYPOGRAPHY.sectionTitle}>Server Email</h2>
-            <p className={DC_TYPOGRAPHY.body}>Aktifkan pengiriman email notifikasi sistem. Saat nonaktif, seluruh email tidak dikirim.</p>
+            <p className={DC_TYPOGRAPHY.body}>
+              Aktifkan pengiriman email notifikasi sistem. Saat nonaktif, seluruh email tidak dikirim.
+            </p>
           </div>
           <div className="flex items-center gap-3">
             <Badge className="border-cyan-400/30 bg-cyan-500/10 text-cyan-100">

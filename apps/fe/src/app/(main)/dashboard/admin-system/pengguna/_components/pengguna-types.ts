@@ -3,12 +3,7 @@ import { DOMAIN_TERMS } from "@/lib/domain/terminology";
 import { SYSTEM_ROLE_LABELS, SYSTEM_ROLES, type SystemRole } from "@/navigation/sidebar/system-roles";
 
 export type UserProfileStatus = "PENDING" | "ACTIVE" | "SUSPENDED" | "ARCHIVED";
-export type RoleCode =
-  | "ADMIN_SYSTEM"
-  | "EXECUTIVE"
-  | "REGIONAL_COMMANDER"
-  | "FIELD_COORDINATOR"
-  | "FIELD_OFFICER";
+export type RoleCode = "ADMIN_SYSTEM" | "EXECUTIVE" | "REGIONAL_COMMANDER" | "FIELD_COORDINATOR" | "FIELD_OFFICER";
 export type PositionCode =
   | "ADMIN"
   | "DEPUTI_II"

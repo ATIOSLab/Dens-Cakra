@@ -7,13 +7,7 @@ const projectRoot = process.cwd();
 const sourceRoot = path.join(projectRoot, "src");
 const appRoot = path.join(sourceRoot, "app");
 
-const roleNames = [
-  "ADMIN_SYSTEM",
-  "EXECUTIVE",
-  "FIELD_COORDINATOR",
-  "FIELD_OFFICER",
-  "REGIONAL_COMMANDER",
-];
+const roleNames = ["ADMIN_SYSTEM", "EXECUTIVE", "FIELD_COORDINATOR", "FIELD_OFFICER", "REGIONAL_COMMANDER"];
 
 const expectedRouteRoles = [
   { prefix: "/dashboard/admin-system", roles: ["ADMIN_SYSTEM"] },
@@ -31,12 +25,7 @@ const expectedRouteRoles = [
   { prefix: "/dashboard/laporan-pembinaan-jaring/baru", roles: ["FIELD_OFFICER"] },
   {
     prefix: "/dashboard/baket",
-    roles: [
-      "EXECUTIVE",
-      "FIELD_OFFICER",
-      "FIELD_COORDINATOR",
-      "REGIONAL_COMMANDER",
-    ],
+    roles: ["EXECUTIVE", "FIELD_OFFICER", "FIELD_COORDINATOR", "REGIONAL_COMMANDER"],
   },
   {
     prefix: "/dashboard/daftar-jaring",
@@ -44,12 +33,7 @@ const expectedRouteRoles = [
   },
   {
     prefix: "/dashboard/laporan-jaring",
-    roles: [
-      "EXECUTIVE",
-      "FIELD_OFFICER",
-      "FIELD_COORDINATOR",
-      "REGIONAL_COMMANDER",
-    ],
+    roles: ["EXECUTIVE", "FIELD_OFFICER", "FIELD_COORDINATOR", "REGIONAL_COMMANDER"],
   },
   {
     prefix: "/dashboard/laporan-pembinaan-jaring",
