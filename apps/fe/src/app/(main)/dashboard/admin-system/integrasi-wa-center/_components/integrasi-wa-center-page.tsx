@@ -295,26 +295,40 @@ export function AdminWaCenterPage() {
   };
 
   const groupedChannels = useMemo<ChannelGroup[]>(() => {
-    return channels
-      .map((channel) => {
-        const branchText = branchLabel(channel.scopeBranch);
-        const hierarchyText = compactAreaHierarchy(channel);
-        const title = channel.name || channel.coordinatorName || hierarchyText || "Belum terpetakan";
-        const subtitleParts = [branchText, hierarchyText !== title ? hierarchyText : null].filter(Boolean);
-        const sortKey = [
-          branchSortOrder(channel.scopeBranch).toString().padStart(2, "0"),
-          areaLevelSortOrder(channel.scopeAreaLevel).toString().padStart(2, "0"),
-          title,
-        ].join(":");
+    const groups = new Map<string, ChannelGroup>();
 
-        return {
-          key: channel.id,
+    for (const channel of channels) {
+      const branchText = branchLabel(channel.scopeBranch);
+      const hierarchyText = compactAreaHierarchy(channel);
+      const scopeAreas = channelScopeAreas(channel);
+      const scopeIds = (channel.scopeAreaIds ?? scopeAreas.map((area) => area.id)).slice().sort().join(",");
+      const groupKey = `${channel.scopeBranch ?? "UNMAPPED"}:${scopeIds || hierarchyText}`;
+      const title = hierarchyText || channel.coordinatorRegion || "Belum terpetakan";
+      const sortKey = [
+        branchSortOrder(channel.scopeBranch).toString().padStart(2, "0"),
+        areaLevelSortOrder(channel.scopeAreaLevel).toString().padStart(2, "0"),
+        title,
+      ].join(":");
+
+      const current =
+        groups.get(groupKey) ??
+        ({
+          key: groupKey,
           title,
-          subtitle: subtitleParts.join(" / "),
+          subtitle: branchText ?? "",
           sortKey,
-          channels: [channel],
-        } satisfies ChannelGroup;
-      })
+          channels: [],
+        } satisfies ChannelGroup);
+
+      current.channels.push(channel);
+      groups.set(groupKey, current);
+    }
+
+    return Array.from(groups.values())
+      .map((group) => ({
+        ...group,
+        channels: group.channels.sort((left, right) => (left.name ?? "").localeCompare(right.name ?? "")),
+      }))
       .sort((left, right) => left.sortKey.localeCompare(right.sortKey));
   }, [channels]);
 
