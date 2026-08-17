@@ -191,7 +191,7 @@ export function ExecutiveDashboardAnalysisOverview({
     totalReports > 0
       ? `${formatDashboardPercent(productRate)} terhadap total Laporan Jaring`
       : "Belum ada pembanding laporan";
-  const personnelHref = "/dashboard/personel-lapangan";
+  const personnelHref = "/dashboard/petugas-wilayah";
 
   const scopeAreas =
     data.scope.areas.length > 0

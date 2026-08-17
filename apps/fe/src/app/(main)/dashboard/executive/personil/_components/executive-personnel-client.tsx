@@ -74,7 +74,7 @@ const PERSONNEL_SORT_COLLATOR = new Intl.Collator("id-ID", {
 });
 
 const DEFAULT_PAGE_CONFIG: ResolvedPersonnelPageConfig = {
-  basePath: "/dashboard/personel-lapangan",
+  basePath: "/dashboard/petugas-wilayah",
   title: "Petugas Wilayah (Gaswil)",
   description:
     "Konsolidasi Petugas Wilayah (Gaswil), wilayah penugasan, Jaring binaan, status sinyal, dan aktivitas operasional.",

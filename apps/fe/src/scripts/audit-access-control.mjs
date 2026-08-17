@@ -19,7 +19,7 @@ const expectedRouteRoles = [
   { prefix: "/dashboard/maps-intelijen-network", roles: ["EXECUTIVE", "REGIONAL_COMMANDER"] },
   { prefix: "/dashboard/sebaran-jaring", roles: ["EXECUTIVE", "FIELD_COORDINATOR", "REGIONAL_COMMANDER"] },
   { prefix: "/dashboard/sebaran-gaswil", roles: ["EXECUTIVE", "FIELD_COORDINATOR", "REGIONAL_COMMANDER"] },
-  { prefix: "/dashboard/personel-lapangan", roles: ["EXECUTIVE", "FIELD_COORDINATOR", "REGIONAL_COMMANDER"] },
+  { prefix: "/dashboard/petugas-wilayah", roles: ["EXECUTIVE", "FIELD_COORDINATOR", "REGIONAL_COMMANDER"] },
   { prefix: "/dashboard/daftar-jaring/baru", roles: ["FIELD_OFFICER"] },
   { prefix: "/dashboard/daftar-jaring/[jaringId]/edit", roles: ["FIELD_OFFICER"] },
   { prefix: "/dashboard/laporan-pembinaan-jaring/baru", roles: ["FIELD_OFFICER"] },

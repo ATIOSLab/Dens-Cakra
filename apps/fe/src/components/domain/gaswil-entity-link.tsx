@@ -17,13 +17,13 @@ export type GaswilEntityReference = {
 export function resolveGaswilDetailHref(role: SystemRole | undefined, reference: GaswilEntityReference) {
   if (reference.href) return reference.href;
   if (role === SYSTEM_ROLES.EXECUTIVE && reference.userProfileId) {
-    return `/dashboard/personel-lapangan/${reference.userProfileId}`;
+    return `/dashboard/petugas-wilayah/${reference.userProfileId}`;
   }
   if (role === SYSTEM_ROLES.ADMIN_SYSTEM && reference.userProfileId) {
     return `/dashboard/admin-system/pengguna/${reference.userProfileId}`;
   }
   if ((role === SYSTEM_ROLES.FIELD_COORDINATOR || role === SYSTEM_ROLES.REGIONAL_COMMANDER) && reference.assignmentId) {
-    return `/dashboard/personel-lapangan/${reference.assignmentId}`;
+    return `/dashboard/petugas-wilayah/${reference.assignmentId}`;
   }
   return null;
 }

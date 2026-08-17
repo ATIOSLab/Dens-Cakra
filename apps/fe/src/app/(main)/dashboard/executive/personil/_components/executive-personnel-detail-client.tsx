@@ -313,7 +313,7 @@ const tabTriggerClass =
 
 export function ExecutivePersonnelDetailClient({
   detail,
-  backHref = "/dashboard/personel-lapangan",
+  backHref = "/dashboard/petugas-wilayah",
   userRole = "executive",
 }: {
   detail: PersonnelDetail;

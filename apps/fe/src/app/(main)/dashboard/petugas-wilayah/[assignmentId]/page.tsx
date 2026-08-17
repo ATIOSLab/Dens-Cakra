@@ -1,4 +1,4 @@
-import { PersonelLapanganDetailPage } from "../_components/personel-lapangan-page";
+import { PetugasWilayahDetailPage } from "../_components/petugas-wilayah-page";
 
 export const dynamic = "force-dynamic";
 
@@ -8,5 +8,5 @@ type PageProps = {
 
 export default async function Page({ params }: PageProps) {
   const { assignmentId } = await params;
-  return <PersonelLapanganDetailPage assignmentId={assignmentId} />;
+  return <PetugasWilayahDetailPage assignmentId={assignmentId} />;
 }

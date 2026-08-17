@@ -64,6 +64,15 @@ const nextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      {
+        source: "/dashboard/personel-lapangan/:path*",
+        destination: "/dashboard/petugas-wilayah/:path*",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

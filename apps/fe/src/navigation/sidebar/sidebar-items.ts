@@ -221,7 +221,7 @@ export const sidebarItems: NavGroup[] = [
           {
             id: "field-coordinator-gaswil-list",
             title: "Daftar Petugas Wilayah",
-            url: "/dashboard/personel-lapangan",
+            url: "/dashboard/petugas-wilayah",
             roles: LEADERSHIP_MONITORING_ROLES,
           },
         ],

@@ -138,9 +138,9 @@ function directiveDetailRoute(role: SystemRole, directiveId: string | undefined)
 
 function fieldOfficerDetailRoute(role: SystemRole, assignmentId: string | undefined, userProfileId: string | null) {
   if (role === "executive") {
-    return userProfileId ? `/dashboard/personel-lapangan/${userProfileId}` : "/dashboard/personel-lapangan";
+    return userProfileId ? `/dashboard/petugas-wilayah/${userProfileId}` : "/dashboard/petugas-wilayah";
   }
-  return assignmentId ? `/dashboard/personel-lapangan/${assignmentId}` : "/dashboard/personel-lapangan";
+  return assignmentId ? `/dashboard/petugas-wilayah/${assignmentId}` : "/dashboard/petugas-wilayah";
 }
 
 export function ExecutiveDashboardClient({

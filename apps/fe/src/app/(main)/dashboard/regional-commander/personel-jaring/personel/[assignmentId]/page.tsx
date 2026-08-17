@@ -17,7 +17,7 @@ export default async function Page({ params }: PageProps) {
 
   return (
     <ExecutivePersonnelDetailClient
-      backHref="/dashboard/personel-lapangan"
+      backHref="/dashboard/petugas-wilayah"
       detail={detail}
       userRole="regional_commander"
     />

@@ -115,7 +115,7 @@ async function fetchExecutiveAreaFilters(queryState: PersonnelListQueryState): P
   };
 }
 
-export async function PersonelLapanganPage({ searchParams }: { searchParams?: Promise<RouteSearchParams> }) {
+export async function PetugasWilayahPage({ searchParams }: { searchParams?: Promise<RouteSearchParams> }) {
   const session = await requireRole(
     SYSTEM_ROLES.EXECUTIVE,
     SYSTEM_ROLES.FIELD_COORDINATOR,
@@ -128,7 +128,7 @@ export async function PersonelLapanganPage({ searchParams }: { searchParams?: Pr
     : isRegional
       ? "/regional-commander/personnel"
       : "/field-coordinator/personnel";
-  const basePath = "/dashboard/personel-lapangan";
+  const basePath = "/dashboard/petugas-wilayah";
 
   const queryState = buildQueryState(await searchParams);
   const commonQuery = {
@@ -186,7 +186,7 @@ export async function PersonelLapanganPage({ searchParams }: { searchParams?: Pr
   );
 }
 
-export async function PersonelLapanganDetailPage({ assignmentId }: { assignmentId: string }) {
+export async function PetugasWilayahDetailPage({ assignmentId }: { assignmentId: string }) {
   const session = await requireRole(
     SYSTEM_ROLES.EXECUTIVE,
     SYSTEM_ROLES.FIELD_COORDINATOR,
@@ -199,7 +199,7 @@ export async function PersonelLapanganDetailPage({ assignmentId }: { assignmentI
     : isRegional
       ? "/regional-commander/personnel"
       : "/field-coordinator/personnel";
-  const basePath = "/dashboard/personel-lapangan";
+  const basePath = "/dashboard/petugas-wilayah";
 
   const detail = await apiServerGet<PersonnelDetail>(`${apiPath}/${assignmentId}`).catch(() => null);
 

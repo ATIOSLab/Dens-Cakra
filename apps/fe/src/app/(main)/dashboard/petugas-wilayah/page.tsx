@@ -1,4 +1,4 @@
-import { PersonelLapanganPage } from "./_components/personel-lapangan-page";
+import { PetugasWilayahPage } from "./_components/petugas-wilayah-page";
 
 export const dynamic = "force-dynamic";
 
@@ -7,5 +7,5 @@ type PageProps = {
 };
 
 export default async function Page({ searchParams }: PageProps) {
-  return <PersonelLapanganPage searchParams={searchParams} />;
+  return <PetugasWilayahPage searchParams={searchParams} />;
 }

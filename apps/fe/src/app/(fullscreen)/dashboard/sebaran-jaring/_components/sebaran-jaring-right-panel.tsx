@@ -429,7 +429,7 @@ export function SebaranJaringRightPanel({
             <Link
               href={
                 selectedJaring.detailHref ??
-                (isGaswilMode ? "/dashboard/personel-lapangan" : `/dashboard/daftar-jaring/${selectedJaring.id}`)
+                (isGaswilMode ? "/dashboard/petugas-wilayah" : `/dashboard/daftar-jaring/${selectedJaring.id}`)
               }
               target="_blank"
               rel="noopener noreferrer"

@@ -117,8 +117,8 @@ function isGaswilActive(feature?: PersonnelMapFeature) {
 }
 
 function detailHref(item: PersonnelListItem, role: string) {
-  if (role === SYSTEM_ROLES.EXECUTIVE) return `/dashboard/personel-lapangan/${item.id}`;
-  return item.assignment?.id ? `/dashboard/personel-lapangan/${item.assignment.id}` : "/dashboard/personel-lapangan";
+  if (role === SYSTEM_ROLES.EXECUTIVE) return `/dashboard/petugas-wilayah/${item.id}`;
+  return item.assignment?.id ? `/dashboard/petugas-wilayah/${item.assignment.id}` : "/dashboard/petugas-wilayah";
 }
 
 function gaswilEntry(
