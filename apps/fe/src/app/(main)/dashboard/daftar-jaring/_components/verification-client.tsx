@@ -73,7 +73,6 @@ import { apiBrowserFetch, apiBrowserMutation } from "@/lib/api/browser-client";
 import { buildAreaFilterSubtitle, findDkiJakartaProvinceFilterId } from "@/lib/domain/area-filter";
 import { DOMAIN_TERMS } from "@/lib/domain/terminology";
 import { DC_CONTROLS, DC_TYPOGRAPHY, DOMAIN_VISUALS } from "@/lib/domain/visual-system";
-import { matchesPhoneSearch } from "@/lib/search/phone-search";
 import { cn } from "@/lib/utils";
 import { SYSTEM_ROLES } from "@/navigation/sidebar/system-roles";
 
@@ -212,20 +211,11 @@ function jaringPlacementRows(item: RegistrationJaring) {
     .map((name) => ({ label: "Cakupan", value: name }));
 }
 
-function jaringPlacementSummary(item: RegistrationJaring) {
-  const rows = jaringPlacementRows(item);
-  return rows.length > 0 ? rows.map((row) => row.value).join(" / ") : "Belum ditetapkan";
-}
-
 function compareJaringFullName(left: RegistrationJaring, right: RegistrationJaring) {
   const leftName = jaringFullNameSortKey(left);
   const rightName = jaringFullNameSortKey(right);
   const result = leftName.localeCompare(rightName, "id", { sensitivity: "base" });
   return result || jaringDisplayName(left).localeCompare(jaringDisplayName(right), "id", { sensitivity: "base" });
-}
-
-function areaNames(item: RegistrationJaring) {
-  return jaringPlacementSummary(item);
 }
 
 type AreaFilterOption = {
@@ -337,14 +327,10 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
     return hasAreaInHierarchy(item, district, ["DISTRICT"]);
   }, []);
 
-  const matchesVillage = useCallback((item: RegistrationJaring, village: string) => {
-    return hasAreaInHierarchy(item, village, ["VILLAGE", "URBAN_VILLAGE"]);
-  }, []);
-
   // Extract unique provinces, cities, districts, villages & officers for filter options
   const uniqueProvinces = useMemo(() => {
     const options = new Map<string, AreaFilterOption>();
-    for (const item of items) {
+    for (const item of initialItems) {
       addAreaOption(options, findJaringArea(item, ["PROVINCE"]));
       for (const cov of item.areaCoverages) {
         let area: JaringAdministrativeArea | null | undefined = cov.area;
@@ -355,7 +341,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
       }
     }
     return sortedAreaOptions(options);
-  }, [items]);
+  }, [initialItems]);
 
   const defaultProvinceFilter = useMemo(() => findDkiJakartaProvinceFilterId(uniqueProvinces), [uniqueProvinces]);
 
@@ -372,7 +358,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
 
   const uniqueCities = useMemo(() => {
     const options = new Map<string, AreaFilterOption>();
-    for (const item of items) {
+    for (const item of initialItems) {
       if (provinceFilter !== "ALL" && !matchesProvince(item, provinceFilter)) continue;
       addAreaOption(options, jaringCity(item));
       for (const cov of item.areaCoverages) {
@@ -382,11 +368,11 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
       }
     }
     return sortedAreaOptions(options);
-  }, [items, matchesProvince, provinceFilter]);
+  }, [initialItems, matchesProvince, provinceFilter]);
 
   const uniqueDistricts = useMemo(() => {
     const options = new Map<string, AreaFilterOption>();
-    for (const item of items) {
+    for (const item of initialItems) {
       if (provinceFilter !== "ALL" && !matchesProvince(item, provinceFilter)) continue;
       if (cityFilter !== "ALL" && !matchesCity(item, cityFilter)) continue;
       addAreaOption(options, jaringDistrict(item));
@@ -397,11 +383,11 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
       }
     }
     return sortedAreaOptions(options);
-  }, [items, cityFilter, matchesCity, matchesProvince, provinceFilter]);
+  }, [initialItems, cityFilter, matchesCity, matchesProvince, provinceFilter]);
 
   const uniqueVillages = useMemo(() => {
     const options = new Map<string, AreaFilterOption>();
-    for (const item of items) {
+    for (const item of initialItems) {
       if (provinceFilter !== "ALL" && !matchesProvince(item, provinceFilter)) continue;
       if (cityFilter !== "ALL" && !matchesCity(item, cityFilter)) continue;
       if (districtFilter !== "ALL" && !matchesDistrict(item, districtFilter)) continue;
@@ -413,60 +399,83 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
       }
     }
     return sortedAreaOptions(options);
-  }, [items, cityFilter, districtFilter, matchesCity, matchesDistrict, matchesProvince, provinceFilter]);
+  }, [initialItems, cityFilter, districtFilter, matchesCity, matchesDistrict, matchesProvince, provinceFilter]);
 
   const uniqueOfficers = useMemo(() => {
     const set = new Set<string>();
-    for (const item of items) {
+    for (const item of initialItems) {
       const name = officerName(item);
       if (name && name !== "-") set.add(name);
     }
     return Array.from(set).sort();
-  }, [items]);
+  }, [initialItems]);
 
-  // Base filtered items (non-status filters applied: City, District, Village, Officer, Search)
-  const baseFilteredItems = useMemo(() => {
-    return items.filter((item) => {
-      if (!matchesProvince(item, provinceFilter)) return false;
-      if (!matchesCity(item, cityFilter)) return false;
-      if (!matchesDistrict(item, districtFilter)) return false;
-      if (!matchesVillage(item, villageFilter)) return false;
-      if (officerFilter !== "ALL" && officerName(item) !== officerFilter) return false;
-      if (search.trim()) {
-        const q = search.toLowerCase().trim();
-        const alias = (item.aliasName ?? "").toLowerCase();
-        const name = (item.fullName ?? "").toLowerCase();
-        const address = (item.address ?? "").toLowerCase();
-        const occ = (item.occupation?.name ?? "").toLowerCase();
-        const workplace = (item.workplace ?? "").toLowerCase();
-        const area = areaNames(item).toLowerCase();
-        const fo = officerName(item).toLowerCase();
-        return (
-          alias.includes(q) ||
-          name.includes(q) ||
-          address.includes(q) ||
-          occ.includes(q) ||
-          workplace.includes(q) ||
-          area.includes(q) ||
-          fo.includes(q) ||
-          matchesPhoneSearch(item.whatsappNumber, search)
-        );
+  // Server-side filtered items: the backend applies area, search, and officer
+  // filters in the database so the list stays correct for large datasets.
+  const serverAreaId =
+    [villageFilter, districtFilter, cityFilter, provinceFilter].find((value) => value !== "ALL") ?? undefined;
+
+  const officerAssignmentId = useMemo(() => {
+    if (officerFilter === "ALL") return undefined;
+    for (const item of initialItems) {
+      const [caretaker] = item.caretakerAssignments;
+      if (caretaker?.fieldOfficerAssignment.userProfile.fullName === officerFilter) {
+        return caretaker.fieldOfficerAssignment.id;
       }
-      return true;
-    });
-  }, [
-    items,
-    provinceFilter,
-    cityFilter,
-    districtFilter,
-    villageFilter,
-    officerFilter,
-    search,
-    matchesProvince,
-    matchesCity,
-    matchesDistrict,
-    matchesVillage,
-  ]);
+    }
+    return undefined;
+  }, [initialItems, officerFilter]);
+
+  const [isLoadingItems, setIsLoadingItems] = useState(false);
+  const loadRequestRef = useRef(0);
+
+  const loadItems = useCallback(async () => {
+    const requestId = ++loadRequestRef.current;
+    setIsLoadingItems(true);
+    try {
+      const fetchStatus = async (registrationStatus: RegistrationJaring["registrationStatus"]) => {
+        const results: RegistrationJaring[] = [];
+        let page = 1;
+        let batch: RegistrationJaring[];
+        do {
+          batch = await apiBrowserFetch<RegistrationJaring[]>("/jaring", {
+            query: {
+              registrationStatus,
+              search: search.trim() || undefined,
+              areaId: serverAreaId,
+              fieldOfficerAssignmentId: officerAssignmentId,
+              page,
+              limit: 100,
+            },
+          });
+          results.push(...batch);
+          page += 1;
+        } while (batch.length === 100);
+        return results;
+      };
+      const lists = await Promise.all((["PENDING", "APPROVED", "REJECTED"] as const).map(fetchStatus));
+      if (requestId !== loadRequestRef.current) return;
+      setItems(lists.flat());
+      setPage(1);
+    } catch {
+      if (requestId === loadRequestRef.current) {
+        toast.error("Gagal memuat data Jaring dari server.");
+      }
+    } finally {
+      if (requestId === loadRequestRef.current) setIsLoadingItems(false);
+    }
+  }, [search, serverAreaId, officerAssignmentId]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      void loadItems();
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [loadItems]);
+
+  // Non-status filters (area, search, officer) are applied server-side, so the
+  // fetched list is already narrowed; status filtering remains client-side.
+  const baseFilteredItems = items;
 
   // Dynamically calculate summary metrics from baseFilteredItems
   const summary = useMemo(() => {
@@ -565,6 +574,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
 
   function handleRefresh() {
     setIsRefreshing(true);
+    void loadItems();
     router.refresh();
     setTimeout(() => {
       setIsRefreshing(false);
@@ -924,10 +934,10 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
               variant="outline"
               size="sm"
               onClick={handleRefresh}
-              disabled={isRefreshing}
+              disabled={isRefreshing || isLoadingItems}
               className="h-8 gap-1.5 rounded-lg"
             >
-              <RefreshCw className={cn("size-3.5", isRefreshing && "animate-spin text-primary")} />
+              <RefreshCw className={cn("size-3.5", (isRefreshing || isLoadingItems) && "animate-spin text-primary")} />
               <span className="hidden sm:inline">Muat Ulang</span>
             </Button>
           </div>
