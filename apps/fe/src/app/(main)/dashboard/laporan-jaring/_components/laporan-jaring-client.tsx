@@ -526,7 +526,7 @@ export function LaporanJaringClient() {
               </p>
             </div>
             <Badge variant="outline" className="rounded-full font-mono text-[11px]">
-              {search || jaringFilter !== "ALL" || periodPreset !== "ALL" || startDate || endDate
+              {search || jaringFilter !== "ALL" || periodPreset !== "TODAY" || startDate || endDate
                 ? "Filter aktif"
                 : "Tanpa filter"}
             </Badge>
@@ -584,7 +584,6 @@ export function LaporanJaringClient() {
                   }}
                   className={cn(DC_CONTROLS.selectTrigger, "h-8 min-w-[150px] text-xs")}
                 >
-                  <option value="ALL">Semua Periode</option>
                   <option value="TODAY">Hari Ini</option>
                   <option value="LAST_7_DAYS">7 Hari Terakhir</option>
                   <option value="LAST_30_DAYS">30 Hari Terakhir</option>
@@ -634,14 +633,14 @@ export function LaporanJaringClient() {
                 visibleColumns={visibleColumns}
                 onChange={setVisibleColumns}
               />
-              {(search || jaringFilter !== "ALL" || periodPreset !== "ALL" || startDate || endDate) && (
+              {(search || jaringFilter !== "ALL" || periodPreset !== "TODAY" || startDate || endDate) && (
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => {
                     setSearch("");
                     setJaringFilter("ALL");
-                    setPeriodPreset("ALL");
+                    setPeriodPreset("TODAY");
                     setStartDate("");
                     setEndDate("");
                     setPage(1);

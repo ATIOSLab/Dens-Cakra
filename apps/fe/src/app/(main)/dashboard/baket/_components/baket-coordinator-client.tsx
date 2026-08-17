@@ -464,7 +464,7 @@ export function BaketCoordinatorClient({ role }: { role?: SystemRole } = {}) {
     setRegencyFilter("ALL");
     setDistrictFilter("ALL");
     setVillageFilter("ALL");
-    setPeriodPreset("ALL");
+    setPeriodPreset("TODAY");
     setStartDate("");
     setEndDate("");
     setPage(1);
@@ -682,7 +682,11 @@ export function BaketCoordinatorClient({ role }: { role?: SystemRole } = {}) {
                 aria-label="Filter Kota/Kabupaten"
                 value={regencyFilter}
                 options={[
-                  { value: "ALL", label: "Semua Kota/Kabupaten" },
+                  {
+                    value: "ALL",
+                    label: provinceFilter === "ALL" ? "Pilih Provinsi dahulu" : "Semua Kota/Kabupaten",
+                    disabled: provinceFilter === "ALL",
+                  },
                   ...regencyOptions.map((regency) => ({ value: regency.id, label: regency.name })),
                 ]}
                 onValueChange={(value) => {
@@ -691,7 +695,8 @@ export function BaketCoordinatorClient({ role }: { role?: SystemRole } = {}) {
                   setVillageFilter("ALL");
                   setPage(1);
                 }}
-                placeholder="Semua Kota/Kabupaten"
+                disabled={provinceFilter === "ALL"}
+                placeholder={provinceFilter === "ALL" ? "Pilih Provinsi dahulu" : "Semua Kota/Kabupaten"}
                 searchPlaceholder="Cari Kota/Kabupaten..."
                 emptyText="Kota/Kabupaten tidak ditemukan."
                 className="h-9 w-full border-slate-200 dark:border-white/10"
@@ -704,7 +709,11 @@ export function BaketCoordinatorClient({ role }: { role?: SystemRole } = {}) {
                 aria-label="Filter Kecamatan"
                 value={districtFilter}
                 options={[
-                  { value: "ALL", label: "Semua Kecamatan" },
+                  {
+                    value: "ALL",
+                    label: regencyFilter === "ALL" ? "Pilih Kota/Kabupaten dahulu" : "Semua Kecamatan",
+                    disabled: regencyFilter === "ALL",
+                  },
                   ...districtOptions.map((district) => ({ value: district.id, label: district.name })),
                 ]}
                 onValueChange={(value) => {
@@ -712,7 +721,8 @@ export function BaketCoordinatorClient({ role }: { role?: SystemRole } = {}) {
                   setVillageFilter("ALL");
                   setPage(1);
                 }}
-                placeholder="Semua Kecamatan"
+                disabled={!isFieldCoordinator && regencyFilter === "ALL"}
+                placeholder={regencyFilter === "ALL" ? "Pilih Kota/Kabupaten dahulu" : "Semua Kecamatan"}
                 searchPlaceholder="Cari Kecamatan..."
                 emptyText="Kecamatan tidak ditemukan."
                 className="h-9 w-full border-slate-200 dark:border-white/10"
@@ -724,14 +734,19 @@ export function BaketCoordinatorClient({ role }: { role?: SystemRole } = {}) {
               aria-label="Filter Kelurahan atau Desa"
               value={villageFilter}
               options={[
-                { value: "ALL", label: "Semua Kelurahan" },
+                {
+                  value: "ALL",
+                  label: !isFieldOfficer && districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan",
+                  disabled: !isFieldOfficer && districtFilter === "ALL",
+                },
                 ...villageOptions.map((village) => ({ value: village.id, label: village.name })),
               ]}
               onValueChange={(value) => {
                 setVillageFilter(value);
                 setPage(1);
               }}
-              placeholder="Semua Kelurahan"
+              disabled={!isFieldOfficer && districtFilter === "ALL"}
+              placeholder={!isFieldOfficer && districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan"}
               searchPlaceholder="Cari Kelurahan/Desa..."
               emptyText="Kelurahan/Desa tidak ditemukan."
               className="h-9 w-full border-slate-200 dark:border-white/10"
@@ -747,7 +762,6 @@ export function BaketCoordinatorClient({ role }: { role?: SystemRole } = {}) {
               }}
               className="h-9 text-xs border-slate-200 dark:border-white/10 w-full"
             >
-              <option value="ALL">Semua Periode</option>
               <option value="TODAY">Hari Ini</option>
               <option value="LAST_7_DAYS">7 Hari Terakhir</option>
               <option value="LAST_30_DAYS">30 Hari Terakhir</option>
@@ -764,7 +778,7 @@ export function BaketCoordinatorClient({ role }: { role?: SystemRole } = {}) {
           regencyFilter !== "ALL" ||
           districtFilter !== "ALL" ||
           villageFilter !== "ALL" ||
-          periodPreset !== "ALL" ||
+          periodPreset !== "TODAY" ||
           startDate ||
           endDate ? (
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-3 border-t border-slate-100 dark:border-white/5 text-xs">
@@ -806,7 +820,7 @@ export function BaketCoordinatorClient({ role }: { role?: SystemRole } = {}) {
                 regencyFilter !== "ALL" ||
                 districtFilter !== "ALL" ||
                 villageFilter !== "ALL" ||
-                periodPreset !== "ALL" ||
+                periodPreset !== "TODAY" ||
                 startDate ||
                 endDate) && (
                 <Button

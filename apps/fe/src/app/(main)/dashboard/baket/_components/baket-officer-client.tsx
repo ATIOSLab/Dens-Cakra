@@ -420,7 +420,6 @@ export function BaketOfficerClient() {
                   }}
                   className="h-8 text-xs bg-background min-w-[150px]"
                 >
-                  <option value="ALL">Semua Periode</option>
                   <option value="TODAY">Hari Ini</option>
                   <option value="LAST_7_DAYS">7 Hari Terakhir</option>
                   <option value="LAST_30_DAYS">30 Hari Terakhir</option>
@@ -479,7 +478,7 @@ export function BaketOfficerClient() {
               {(search ||
                 urgencyFilter !== "ALL" ||
                 categoryFilter !== "ALL" ||
-                periodPreset !== "ALL" ||
+                periodPreset !== "TODAY" ||
                 startDate ||
                 endDate) && (
                 <Button
@@ -489,7 +488,7 @@ export function BaketOfficerClient() {
                     setSearch("");
                     setUrgencyFilter("ALL");
                     setCategoryFilter("ALL");
-                    setPeriodPreset("ALL");
+                    setPeriodPreset("TODAY");
                     setStartDate("");
                     setEndDate("");
                     setPage(1);

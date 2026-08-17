@@ -867,7 +867,11 @@ export function LaporanPembinaanCoordinatorClient({ role }: { role?: SystemRole 
                 aria-label="Filter Kota/Kabupaten"
                 value={regencyFilter}
                 options={[
-                  { value: "ALL", label: "Semua Kota/Kabupaten" },
+                  {
+                    value: "ALL",
+                    label: provinceFilter === "ALL" ? "Pilih Provinsi dahulu" : "Semua Kota/Kabupaten",
+                    disabled: provinceFilter === "ALL",
+                  },
                   ...regencyOptions.map((regency) => ({ value: regency.id, label: regency.name })),
                 ]}
                 onValueChange={(nextRegency) => {
@@ -878,7 +882,8 @@ export function LaporanPembinaanCoordinatorClient({ role }: { role?: SystemRole 
                   setJaringFilter("ALL");
                   setPage(1);
                 }}
-                placeholder="Semua Kota/Kabupaten"
+                disabled={provinceFilter === "ALL"}
+                placeholder={provinceFilter === "ALL" ? "Pilih Provinsi dahulu" : "Semua Kota/Kabupaten"}
                 searchPlaceholder="Cari kota/kabupaten..."
                 emptyText="Kota/Kabupaten tidak ditemukan."
                 className={cn(DC_CONTROLS.selectTrigger, "w-full")}
@@ -890,7 +895,11 @@ export function LaporanPembinaanCoordinatorClient({ role }: { role?: SystemRole 
               aria-label="Filter Kecamatan"
               value={districtFilter}
               options={[
-                { value: "ALL", label: "Semua Kecamatan" },
+                {
+                  value: "ALL",
+                  label: regencyFilter === "ALL" ? "Pilih Kota/Kabupaten dahulu" : "Semua Kecamatan",
+                  disabled: regencyFilter === "ALL",
+                },
                 ...districtOptions.map((district) => ({ value: district.id, label: district.name })),
               ]}
               onValueChange={(value) => {
@@ -900,7 +909,8 @@ export function LaporanPembinaanCoordinatorClient({ role }: { role?: SystemRole 
                 setJaringFilter("ALL");
                 setPage(1);
               }}
-              placeholder="Semua Kecamatan"
+              disabled={!isFieldCoordinator && regencyFilter === "ALL"}
+              placeholder={regencyFilter === "ALL" ? "Pilih Kota/Kabupaten dahulu" : "Semua Kecamatan"}
               searchPlaceholder="Cari kecamatan..."
               emptyText="Kecamatan tidak ditemukan."
               className={cn(DC_CONTROLS.selectTrigger, "w-full")}
@@ -911,7 +921,11 @@ export function LaporanPembinaanCoordinatorClient({ role }: { role?: SystemRole 
               aria-label="Filter Kelurahan atau Desa"
               value={villageFilter}
               options={[
-                { value: "ALL", label: "Semua Kelurahan" },
+                {
+                  value: "ALL",
+                  label: districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan",
+                  disabled: districtFilter === "ALL",
+                },
                 ...villageOptions.map((village) => ({ value: village.id, label: village.name })),
               ]}
               onValueChange={(value) => {
@@ -920,7 +934,8 @@ export function LaporanPembinaanCoordinatorClient({ role }: { role?: SystemRole 
                 setJaringFilter("ALL");
                 setPage(1);
               }}
-              placeholder="Semua Kelurahan"
+              disabled={districtFilter === "ALL"}
+              placeholder={districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan"}
               searchPlaceholder="Cari kelurahan/desa..."
               emptyText="Kelurahan/Desa tidak ditemukan."
               className={cn(DC_CONTROLS.selectTrigger, "w-full")}
@@ -982,7 +997,6 @@ export function LaporanPembinaanCoordinatorClient({ role }: { role?: SystemRole 
               }}
               className={cn(DC_CONTROLS.selectTrigger, "w-full")}
             >
-              <option value="ALL">Semua Periode</option>
               <option value="TODAY">Hari Ini</option>
               <option value="LAST_7_DAYS">7 Hari Terakhir</option>
               <option value="LAST_30_DAYS">30 Hari Terakhir</option>

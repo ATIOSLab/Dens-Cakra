@@ -776,7 +776,11 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
                 aria-label="Filter Kota/Kabupaten"
                 value={cityFilter}
                 options={[
-                  { value: "ALL", label: "Semua Kota/Kabupaten" },
+                  {
+                    value: "ALL",
+                    label: provinceFilter === "ALL" ? "Pilih Provinsi dahulu" : "Semua Kota/Kabupaten",
+                    disabled: provinceFilter === "ALL",
+                  },
                   ...uniqueCities.map((city) => ({ value: city.id, label: city.name })),
                 ]}
                 onValueChange={(value) => {
@@ -785,7 +789,8 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
                   setVillageFilter("ALL");
                   setPage(1);
                 }}
-                placeholder="Semua Kota/Kabupaten"
+                disabled={provinceFilter === "ALL"}
+                placeholder={provinceFilter === "ALL" ? "Pilih Provinsi dahulu" : "Semua Kota/Kabupaten"}
                 searchPlaceholder="Cari kota/kabupaten..."
                 emptyText="Kota/Kabupaten tidak ditemukan."
                 className="h-9 w-full min-w-[150px] sm:w-auto"
@@ -798,7 +803,11 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
                 aria-label="Filter Kecamatan"
                 value={districtFilter}
                 options={[
-                  { value: "ALL", label: "Semua Kecamatan" },
+                  {
+                    value: "ALL",
+                    label: cityFilter === "ALL" ? "Pilih Kota/Kabupaten dahulu" : "Semua Kecamatan",
+                    disabled: cityFilter === "ALL",
+                  },
                   ...uniqueDistricts.map((dist) => ({ value: dist.id, label: dist.name })),
                 ]}
                 onValueChange={(value) => {
@@ -806,7 +815,8 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
                   setVillageFilter("ALL");
                   setPage(1);
                 }}
-                placeholder="Semua Kecamatan"
+                disabled={!isFieldCoordinator && cityFilter === "ALL"}
+                placeholder={cityFilter === "ALL" ? "Pilih Kota/Kabupaten dahulu" : "Semua Kecamatan"}
                 searchPlaceholder="Cari kecamatan..."
                 emptyText="Kecamatan tidak ditemukan."
                 className="h-9 w-full min-w-[150px] sm:w-auto"
@@ -818,14 +828,19 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
               aria-label="Filter Kelurahan/Desa"
               value={villageFilter}
               options={[
-                { value: "ALL", label: "Semua Kelurahan" },
+                {
+                  value: "ALL",
+                  label: !isFieldOfficer && districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan",
+                  disabled: !isFieldOfficer && districtFilter === "ALL",
+                },
                 ...uniqueVillages.map((vill) => ({ value: vill.id, label: vill.name })),
               ]}
               onValueChange={(value) => {
                 setVillageFilter(value);
                 setPage(1);
               }}
-              placeholder="Semua Kelurahan"
+              disabled={!isFieldOfficer && districtFilter === "ALL"}
+              placeholder={!isFieldOfficer && districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan"}
               searchPlaceholder="Cari kelurahan/desa..."
               emptyText="Kelurahan/Desa tidak ditemukan."
               className="h-9 w-full min-w-[150px] sm:w-auto"
@@ -1943,7 +1958,6 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
                     }}
                     className="h-8 text-xs bg-background min-w-[150px]"
                   >
-                    <option value="ALL">Semua Periode</option>
                     <option value="TODAY">Hari Ini</option>
                     <option value="LAST_7_DAYS">7 Hari Terakhir</option>
                     <option value="LAST_30_DAYS">30 Hari Terakhir</option>

@@ -46,7 +46,7 @@ export function resolveDashboardDetailPeriodPreset(
   if (period === "TODAY" || period === "LAST_7_DAYS" || period === "LAST_30_DAYS" || period === "CUSTOM") {
     return period;
   }
-  return "ALL";
+  return "TODAY";
 }
 
 export function resolveJakartaPeriodRange(preset: PeriodPreset, startDate = "", endDate = "", now = new Date()) {

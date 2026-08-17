@@ -389,7 +389,6 @@ export function LaporanPembinaanClient() {
             }}
             className="h-9 w-full border-slate-200 dark:border-white/10"
           >
-            <option value="ALL">Semua Periode</option>
             <option value="TODAY">Hari Ini</option>
             <option value="LAST_7_DAYS">7 Hari Terakhir</option>
             <option value="LAST_30_DAYS">30 Hari Terakhir</option>

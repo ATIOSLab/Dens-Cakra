@@ -695,7 +695,7 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
     setAttachmentFilter("");
     setCoordinateSourceFilter("");
     setLocationFilter("");
-    setPeriodPreset("ALL");
+    setPeriodPreset("TODAY");
     setStartDate("");
     setEndDate("");
     setPage(1);
@@ -903,7 +903,7 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
             attachmentFilter ||
             coordinateSourceFilter ||
             locationFilter ||
-            periodPreset !== "ALL" ||
+            periodPreset !== "TODAY" ||
             startDate ||
             endDate
               ? "Filter aktif"
@@ -980,7 +980,13 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                 options={[
                   {
                     value: "ALL",
-                    label: isDkiScoped ? "Semua Kota/Kabupaten DKI" : "Semua Kota/Kabupaten",
+                    label:
+                      provinceFilter === "ALL"
+                        ? "Pilih Provinsi dahulu"
+                        : isDkiScoped
+                          ? "Semua Kota/Kabupaten DKI"
+                          : "Semua Kota/Kabupaten",
+                    disabled: provinceFilter === "ALL",
                   },
                   ...regencyOptions.map((regency) => ({ value: regency.id, label: regency.name })),
                 ]}
@@ -990,7 +996,14 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                   setVillageFilter("ALL");
                   setPage(1);
                 }}
-                placeholder={isDkiScoped ? "Semua Kota/Kabupaten DKI" : "Semua Kota/Kabupaten"}
+                disabled={provinceFilter === "ALL"}
+                placeholder={
+                  provinceFilter === "ALL"
+                    ? "Pilih Provinsi dahulu"
+                    : isDkiScoped
+                      ? "Semua Kota/Kabupaten DKI"
+                      : "Semua Kota/Kabupaten"
+                }
                 searchPlaceholder="Cari Kota/Kabupaten..."
                 emptyText="Kota/Kabupaten tidak ditemukan."
                 className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full")}
@@ -1003,7 +1016,11 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                 aria-label="Filter Kecamatan"
                 value={districtFilter}
                 options={[
-                  { value: "ALL", label: "Semua Kecamatan" },
+                  {
+                    value: "ALL",
+                    label: regencyFilter === "ALL" ? "Pilih Kota/Kabupaten dahulu" : "Semua Kecamatan",
+                    disabled: regencyFilter === "ALL",
+                  },
                   ...districtOptions.map((district) => ({ value: district.id, label: district.name })),
                 ]}
                 onValueChange={(value) => {
@@ -1011,7 +1028,8 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                   setVillageFilter("ALL");
                   setPage(1);
                 }}
-                placeholder="Semua Kecamatan"
+                disabled={!isFieldCoordinator && regencyFilter === "ALL"}
+                placeholder={regencyFilter === "ALL" ? "Pilih Kota/Kabupaten dahulu" : "Semua Kecamatan"}
                 searchPlaceholder="Cari Kecamatan..."
                 emptyText="Kecamatan tidak ditemukan."
                 className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full")}
@@ -1026,13 +1044,18 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                 setVillageFilter(event.target.value);
                 setPage(1);
               }}
+              disabled={!isFieldOfficer && districtFilter === "ALL"}
               className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full")}
             >
-              <option value="ALL">Semua Kelurahan</option>
+              <option value="ALL">
+                {!isFieldOfficer && districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan"}
+              </option>
               {villageOptions.map((village) => (
                 <option key={village.id} value={village.id}>
                   {village.name}
-                  {districtFilter === "ALL" && village.districtName ? ` - ${village.districtName}` : ""}
+                  {!isFieldOfficer && districtFilter === "ALL" && village.districtName
+                    ? ` - ${village.districtName}`
+                    : ""}
                 </option>
               ))}
             </NativeSelect>
@@ -1087,7 +1110,6 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
               }}
               className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full")}
             >
-              <option value="ALL">Semua Periode</option>
               <option value="TODAY">Hari Ini</option>
               <option value="LAST_7_DAYS">7 Hari Terakhir</option>
               <option value="LAST_30_DAYS">30 Hari Terakhir</option>
@@ -1111,7 +1133,7 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
           attachmentFilter ||
           coordinateSourceFilter ||
           locationFilter ||
-          periodPreset !== "ALL" ||
+          periodPreset !== "TODAY" ||
           startDate ||
           endDate ? (
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-3 border-t border-slate-100 dark:border-white/5 text-xs">
@@ -1159,7 +1181,7 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                 attachmentFilter ||
                 coordinateSourceFilter ||
                 locationFilter ||
-                periodPreset !== "ALL" ||
+                periodPreset !== "TODAY" ||
                 startDate ||
                 endDate) && (
                 <Button
