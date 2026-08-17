@@ -1383,31 +1383,33 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
               </div>
             )}
 
-            {/* Regency selection */}
-            <div className="space-y-1.5">
-              <div className="font-mono text-[9px] text-[var(--dc-text-muted)] uppercase tracking-wider">
-                KABUPATEN / KOTA
+            {/* Regency selection (sembunyikan untuk Korwil yang sudah ter-scope) */}
+            {config.showRegencyFilter !== false && (
+              <div className="space-y-1.5">
+                <div className="font-mono text-[9px] text-[var(--dc-text-muted)] uppercase tracking-wider">
+                  KABUPATEN / KOTA
+                </div>
+                <SearchableSelect
+                  aria-label="Filter Kota/Kabupaten"
+                  value={queryState.regencyId || "ALL"}
+                  options={[
+                    { value: "ALL", label: "Semua Kota/Kabupaten" },
+                    ...areaFilters.regencies.map((area) => ({ value: area.id, label: area.name })),
+                  ]}
+                  onValueChange={(val) =>
+                    applyFilter({
+                      regencyId: val === "ALL" ? "" : val,
+                      districtId: "",
+                    })
+                  }
+                  placeholder="Semua Kota/Kabupaten"
+                  searchPlaceholder="Cari Kota/Kabupaten..."
+                  emptyText="Kota/Kabupaten tidak ditemukan."
+                  className={dynamicFilterClassName}
+                  contentClassName={dynamicFilterContentClassName}
+                />
               </div>
-              <SearchableSelect
-                aria-label="Filter Kota/Kabupaten"
-                value={queryState.regencyId || "ALL"}
-                options={[
-                  { value: "ALL", label: "Semua Kota/Kabupaten" },
-                  ...areaFilters.regencies.map((area) => ({ value: area.id, label: area.name })),
-                ]}
-                onValueChange={(val) =>
-                  applyFilter({
-                    regencyId: val === "ALL" ? "" : val,
-                    districtId: "",
-                  })
-                }
-                placeholder="Semua Kota/Kabupaten"
-                searchPlaceholder="Cari Kota/Kabupaten..."
-                emptyText="Kota/Kabupaten tidak ditemukan."
-                className={dynamicFilterClassName}
-                contentClassName={dynamicFilterContentClassName}
-              />
-            </div>
+            )}
 
             {/* District selection */}
             <div className="space-y-1.5">

@@ -27,7 +27,7 @@ import {
   getBaketDate,
   getBaketDisplayTitle,
   getBaketJaringIdentitySource,
-  getBaketSourceReferenceLabel,
+  getBaketReferenceLabel,
 } from "./baket-data";
 
 type BaketDetailProps = {
@@ -58,7 +58,7 @@ export function BaketDetail({ baket }: BaketDetailProps) {
   const urgencyLabel = getUrgencyLabel(version?.urgency);
   const urgencyBadgeClass = getUrgencyBadgeClass(version?.urgency);
   const categoryName = baket.reportCategory?.name ?? "Belum tersedia";
-  const sourceReference = getBaketSourceReferenceLabel(baket);
+  const sourceReference = getBaketReferenceLabel(baket);
   const senderAlias = baket.primaryJaring?.aliasName ?? baket.primaryJaring?.fullName ?? "Pengirim Jaring";
 
   const rawLat = version?.latitude;

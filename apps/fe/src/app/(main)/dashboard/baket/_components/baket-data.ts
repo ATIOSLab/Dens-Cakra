@@ -132,21 +132,16 @@ export function getBaketDate(item: BaketRecord) {
 }
 
 export function getBaketReferenceLabel(item: BaketRecord) {
-  const categoryCode = item.reportCategory?.code?.trim();
-  return categoryCode ? `${categoryCode}-${item.id.slice(0, 8)}` : item.id.slice(0, 8);
-}
-
-export function getBaketVersionLabel(item: BaketRecord) {
-  return `Versi ${item.currentVersionNumber}`;
-}
-
-export function getBaketSourceReferenceLabel(item: BaketRecord) {
   const version = currentBaketVersion(item);
   for (const source of version?.sourceMessages ?? []) {
     const reference = source.message?.referenceNumber?.trim();
     if (reference) return reference;
   }
-  return null;
+  return item.id.slice(0, 8);
+}
+
+export function getBaketVersionLabel(item: BaketRecord) {
+  return `Versi ${item.currentVersionNumber}`;
 }
 
 export function getBaketCategoryId(item: BaketRecord) {

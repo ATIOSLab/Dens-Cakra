@@ -289,6 +289,8 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
   const { activeRole } = useRoleWorkspace();
   const canPerformAction = activeRole === SYSTEM_ROLES.FIELD_COORDINATOR;
   const isFieldOfficer = activeRole === SYSTEM_ROLES.FIELD_OFFICER;
+  const isFieldCoordinator = activeRole === SYSTEM_ROLES.FIELD_COORDINATOR;
+  const isNationalRole = activeRole === SYSTEM_ROLES.EXECUTIVE || activeRole === SYSTEM_ROLES.NATIONAL_LEADER;
   const [items, setItems] = useState<RegistrationJaring[]>(initialItems);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>(() => {
@@ -745,69 +747,70 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-3 flex-1">
-            {/* Filter Wilayah (disembunyikan untuk Gaswil karena sudah ter-scope) */}
+            {/* Filter Provinsi (hanya role nasional: Deputi II / KaBIN) */}
+            {isNationalRole && (
+              <SearchableSelect
+                aria-label="Filter Provinsi"
+                value={provinceFilter}
+                options={[
+                  { value: "ALL", label: "Semua Provinsi" },
+                  ...uniqueProvinces.map((province) => ({ value: province.id, label: province.name })),
+                ]}
+                onValueChange={(value) => {
+                  setProvinceFilter(value);
+                  setCityFilter("ALL");
+                  setDistrictFilter("ALL");
+                  setVillageFilter("ALL");
+                  setPage(1);
+                }}
+                placeholder="Semua Provinsi"
+                searchPlaceholder="Cari provinsi..."
+                emptyText="Provinsi tidak ditemukan."
+                className="h-9 w-full min-w-[150px] sm:w-auto"
+              />
+            )}
+
+            {/* Filter Kota / Kabupaten (sembunyikan untuk Korwil & Gaswil yang sudah ter-scope) */}
+            {!isFieldOfficer && !isFieldCoordinator && (
+              <SearchableSelect
+                aria-label="Filter Kota/Kabupaten"
+                value={cityFilter}
+                options={[
+                  { value: "ALL", label: "Semua Kota/Kabupaten" },
+                  ...uniqueCities.map((city) => ({ value: city.id, label: city.name })),
+                ]}
+                onValueChange={(value) => {
+                  setCityFilter(value);
+                  setDistrictFilter("ALL");
+                  setVillageFilter("ALL");
+                  setPage(1);
+                }}
+                placeholder="Semua Kota/Kabupaten"
+                searchPlaceholder="Cari kota/kabupaten..."
+                emptyText="Kota/Kabupaten tidak ditemukan."
+                className="h-9 w-full min-w-[150px] sm:w-auto"
+              />
+            )}
+
+            {/* Filter Kecamatan (sembunyikan untuk Gaswil) */}
             {!isFieldOfficer && (
-              <>
-                {/* Filter Provinsi */}
-                <SearchableSelect
-                  aria-label="Filter Provinsi"
-                  value={provinceFilter}
-                  options={[
-                    { value: "ALL", label: "Semua Provinsi" },
-                    ...uniqueProvinces.map((province) => ({ value: province.id, label: province.name })),
-                  ]}
-                  onValueChange={(value) => {
-                    setProvinceFilter(value);
-                    setCityFilter("ALL");
-                    setDistrictFilter("ALL");
-                    setVillageFilter("ALL");
-                    setPage(1);
-                  }}
-                  placeholder="Semua Provinsi"
-                  searchPlaceholder="Cari provinsi..."
-                  emptyText="Provinsi tidak ditemukan."
-                  className="h-9 w-full min-w-[150px] sm:w-auto"
-                />
-
-                {/* Filter Kota / Kabupaten */}
-                <SearchableSelect
-                  aria-label="Filter Kota/Kabupaten"
-                  value={cityFilter}
-                  options={[
-                    { value: "ALL", label: "Semua Kota/Kabupaten" },
-                    ...uniqueCities.map((city) => ({ value: city.id, label: city.name })),
-                  ]}
-                  onValueChange={(value) => {
-                    setCityFilter(value);
-                    setDistrictFilter("ALL");
-                    setVillageFilter("ALL");
-                    setPage(1);
-                  }}
-                  placeholder="Semua Kota/Kabupaten"
-                  searchPlaceholder="Cari kota/kabupaten..."
-                  emptyText="Kota/Kabupaten tidak ditemukan."
-                  className="h-9 w-full min-w-[150px] sm:w-auto"
-                />
-
-                {/* Filter Kecamatan */}
-                <SearchableSelect
-                  aria-label="Filter Kecamatan"
-                  value={districtFilter}
-                  options={[
-                    { value: "ALL", label: "Semua Kecamatan" },
-                    ...uniqueDistricts.map((dist) => ({ value: dist.id, label: dist.name })),
-                  ]}
-                  onValueChange={(value) => {
-                    setDistrictFilter(value);
-                    setVillageFilter("ALL");
-                    setPage(1);
-                  }}
-                  placeholder="Semua Kecamatan"
-                  searchPlaceholder="Cari kecamatan..."
-                  emptyText="Kecamatan tidak ditemukan."
-                  className="h-9 w-full min-w-[150px] sm:w-auto"
-                />
-              </>
+              <SearchableSelect
+                aria-label="Filter Kecamatan"
+                value={districtFilter}
+                options={[
+                  { value: "ALL", label: "Semua Kecamatan" },
+                  ...uniqueDistricts.map((dist) => ({ value: dist.id, label: dist.name })),
+                ]}
+                onValueChange={(value) => {
+                  setDistrictFilter(value);
+                  setVillageFilter("ALL");
+                  setPage(1);
+                }}
+                placeholder="Semua Kecamatan"
+                searchPlaceholder="Cari kecamatan..."
+                emptyText="Kecamatan tidak ditemukan."
+                className="h-9 w-full min-w-[150px] sm:w-auto"
+              />
             )}
 
             {/* Filter Kelurahan / Desa (untuk Gaswil = wilayah desanya) */}

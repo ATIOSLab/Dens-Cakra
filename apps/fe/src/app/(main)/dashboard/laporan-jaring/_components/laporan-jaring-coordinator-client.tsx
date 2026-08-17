@@ -274,6 +274,8 @@ const LAPORAN_JARING_COLUMNS: ColumnOption[] = [
 
 export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } = {}) {
   const isFieldOfficer = role === SYSTEM_ROLES.FIELD_OFFICER;
+  const isFieldCoordinator = role === SYSTEM_ROLES.FIELD_COORDINATOR;
+  const isNationalRole = role === SYSTEM_ROLES.EXECUTIVE || role === SYSTEM_ROLES.NATIONAL_LEADER;
   const breadcrumbRoot = isFieldOfficer
     ? {
         label: SYSTEM_ROLE_LABELS[SYSTEM_ROLES.FIELD_OFFICER],
@@ -947,8 +949,8 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
 
           {/* MIDDLE ROW: Structured Grid of Filter Dropdowns */}
           <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-[repeat(auto-fit,minmax(240px,1fr))]">
-            {/* Filter Provinsi */}
-            {!isFieldOfficer && provinceOptions.length > 0 && (
+            {/* Filter Provinsi (hanya role nasional: Deputi II / KaBIN) */}
+            {isNationalRole && provinceOptions.length > 0 && (
               <SearchableSelect
                 aria-label="Filter Provinsi"
                 value={provinceFilter}
@@ -970,8 +972,8 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
               />
             )}
 
-            {/* 3. Filter Kota/Kabupaten */}
-            {!isFieldOfficer && (regencyOptions.length > 0 || provinceOptions.length > 0) && (
+            {/* 3. Filter Kota/Kabupaten (sembunyikan untuk Korwil & Gaswil yang sudah ter-scope) */}
+            {!isFieldOfficer && !isFieldCoordinator && (regencyOptions.length > 0 || provinceOptions.length > 0) && (
               <SearchableSelect
                 aria-label="Filter Kota/Kabupaten"
                 value={regencyFilter}

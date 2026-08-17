@@ -125,9 +125,10 @@ export async function PetugasWilayahPage({ searchParams }: { searchParams?: Prom
     SYSTEM_ROLES.FIELD_COORDINATOR,
     SYSTEM_ROLES.REGIONAL_COMMANDER,
   );
-  const isExecutive = session.role === SYSTEM_ROLES.EXECUTIVE;
+  const isNationalRole = session.role === SYSTEM_ROLES.EXECUTIVE || session.role === SYSTEM_ROLES.NATIONAL_LEADER;
   const isRegional = session.role === SYSTEM_ROLES.REGIONAL_COMMANDER;
-  const apiPath = isExecutive
+  const isFieldCoordinator = session.role === SYSTEM_ROLES.FIELD_COORDINATOR;
+  const apiPath = isNationalRole
     ? "/executive/personnel"
     : isRegional
       ? "/regional-commander/personnel"
@@ -144,7 +145,7 @@ export async function PetugasWilayahPage({ searchParams }: { searchParams?: Prom
   const [listResult, map, areaFilters] = await Promise.all([
     fetchAllPages<PersonnelListItem>(apiPath, commonQuery),
     apiServerGet<PersonnelMapPayload>(`${apiPath}/map`, commonQuery),
-    isExecutive
+    isNationalRole
       ? fetchExecutiveAreaFilters(queryState)
       : apiServerGet<PersonnelAreaFilters>(`${apiPath}/area-filters`, {
           ...(queryState.provinceId ? { provinceId: queryState.provinceId } : {}),
@@ -162,20 +163,21 @@ export async function PetugasWilayahPage({ searchParams }: { searchParams?: Prom
       pageConfig={{
         basePath,
         title: "Petugas Wilayah (Gaswil)",
-        description: isExecutive
-          ? `Pantau ${DOMAIN_TERMS.fieldOfficer}, ${DOMAIN_TERMS.assignmentArea.toLowerCase()}, ${DOMAIN_TERMS.jaring} binaan, status sinyal, dan posisi operasional dalam cakupan ${DOMAIN_TERMS.executiveRole}.`
+        description: isNationalRole
+          ? `Pantau ${DOMAIN_TERMS.fieldOfficer}, ${DOMAIN_TERMS.assignmentArea.toLowerCase()}, ${DOMAIN_TERMS.jaring} binaan, status sinyal, dan posisi operasional dalam cakupan nasional.`
           : isRegional
             ? `Pantau ${DOMAIN_TERMS.fieldOfficer}, ${DOMAIN_TERMS.assignmentArea.toLowerCase()}, ${DOMAIN_TERMS.jaring} binaan, status sinyal, dan posisi operasional dalam cakupan ${DOMAIN_TERMS.regionalCommanderRole}.`
             : `Pantau ${DOMAIN_TERMS.fieldOfficer}, ${DOMAIN_TERMS.assignmentArea.toLowerCase()}, ${DOMAIN_TERMS.jaring} binaan, status sinyal, dan posisi operasional dalam cakupan ${DOMAIN_TERMS.fieldCoordinatorRole}.`,
         tableTabLabel: "Daftar Petugas Wilayah",
         mapTabLabel: "Peta Penugasan",
-        detailTarget: isExecutive ? "userProfile" : "assignment",
+        detailTarget: isNationalRole ? "userProfile" : "assignment",
         showMapTab: false,
         showExecutiveSummary: false,
-        showProvinceFilter: true,
+        showProvinceFilter: isNationalRole,
+        showRegencyFilter: !isFieldCoordinator,
         layoutVariant: "directory",
         searchPlaceholder: `Cari nama, nomor HP, jabatan, ${DOMAIN_TERMS.assignmentArea.toLowerCase()}, atau ${DOMAIN_TERMS.jaring}...`,
-        scopeLabel: isExecutive ? "Cakupan supervisi" : "Cakupan penugasan",
+        scopeLabel: isNationalRole ? "Cakupan nasional" : "Cakupan penugasan",
         totalPersonnelLabel: "Total Petugas Wilayah",
         personnelColumnLabel: "Petugas Wilayah",
         jaringKpiLabel: `${DOMAIN_TERMS.jaring} Binaan`,
@@ -197,9 +199,9 @@ export async function PetugasWilayahDetailPage({ assignmentId }: { assignmentId:
     SYSTEM_ROLES.FIELD_COORDINATOR,
     SYSTEM_ROLES.REGIONAL_COMMANDER,
   );
-  const isExecutive = session.role === SYSTEM_ROLES.EXECUTIVE;
+  const isNationalRole = session.role === SYSTEM_ROLES.EXECUTIVE || session.role === SYSTEM_ROLES.NATIONAL_LEADER;
   const isRegional = session.role === SYSTEM_ROLES.REGIONAL_COMMANDER;
-  const apiPath = isExecutive
+  const apiPath = isNationalRole
     ? "/executive/personnel"
     : isRegional
       ? "/regional-commander/personnel"

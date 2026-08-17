@@ -19,5 +19,5 @@ export default async function LaporanPembinaanJaringMainPage() {
     return <LaporanPembinaanClient />;
   }
 
-  return <LaporanPembinaanCoordinatorClient />;
+  return <LaporanPembinaanCoordinatorClient role={principal.role} />;
 }

@@ -41,6 +41,7 @@ import { jakartaBoundaryIso, jakartaDateKey, resolveJakartaPeriodRange } from "@
 import { resolveJaringIdentity } from "@/lib/domain/jaring-identity";
 import { DC_CONTROLS, DC_TYPOGRAPHY, DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
+import { SYSTEM_ROLES, type SystemRole } from "@/navigation/sidebar/system-roles";
 
 import type { CoachingReportItem, PeriodeFilterOption } from "./laporan-pembinaan-types";
 
@@ -219,7 +220,9 @@ const PEMBINAAN_COLUMNS: ColumnOption[] = [
   { id: "waktuPembinaan", label: "Waktu Pembinaan" },
 ];
 
-export function LaporanPembinaanCoordinatorClient() {
+export function LaporanPembinaanCoordinatorClient({ role }: { role?: SystemRole } = {}) {
+  const isFieldCoordinator = role === SYSTEM_ROLES.FIELD_COORDINATOR;
+  const isNationalRole = role === SYSTEM_ROLES.EXECUTIVE || role === SYSTEM_ROLES.NATIONAL_LEADER;
   const [reports, setReports] = useState<CoachingReportItem[]>([]);
   const [jaringList, setJaringList] = useState<RawJaringItem[]>([]);
   const [areaScopes, setAreaScopes] = useState<AdministrativeAreaScope[]>([]);
@@ -833,8 +836,8 @@ export function LaporanPembinaanCoordinatorClient() {
 
           {/* ROW 2: Structured Grid of Filters */}
           <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-[repeat(auto-fit,minmax(240px,1fr))]">
-            {/* 1. Filter Provinsi */}
-            {provinceOptions.length > 0 && (
+            {/* 1. Filter Provinsi (hanya role nasional: Deputi II / KaBIN) */}
+            {isNationalRole && provinceOptions.length > 0 && (
               <SearchableSelect
                 aria-label="Filter Provinsi"
                 value={provinceFilter}
@@ -858,8 +861,8 @@ export function LaporanPembinaanCoordinatorClient() {
               />
             )}
 
-            {/* 2. Filter Kota/Kabupaten */}
-            {(regencyOptions.length > 0 || provinceOptions.length > 0) && (
+            {/* 2. Filter Kota/Kabupaten (sembunyikan untuk Korwil yang sudah ter-scope) */}
+            {!isFieldCoordinator && (regencyOptions.length > 0 || provinceOptions.length > 0) && (
               <SearchableSelect
                 aria-label="Filter Kota/Kabupaten"
                 value={regencyFilter}

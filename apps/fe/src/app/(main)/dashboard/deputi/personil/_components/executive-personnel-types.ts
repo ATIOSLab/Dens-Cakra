@@ -221,6 +221,7 @@ export type PersonnelListProps = {
     showMapTab?: boolean;
     showExecutiveSummary?: boolean;
     showProvinceFilter?: boolean;
+    showRegencyFilter?: boolean;
     layoutVariant?: "tactical" | "directory";
     searchPlaceholder?: string;
     scopeLabel?: string;

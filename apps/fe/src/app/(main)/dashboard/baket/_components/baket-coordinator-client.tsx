@@ -193,6 +193,8 @@ const BAKET_SOURCE_LABELS = {
 
 export function BaketCoordinatorClient({ role }: { role?: SystemRole } = {}) {
   const isFieldOfficer = role === SYSTEM_ROLES.FIELD_OFFICER;
+  const isFieldCoordinator = role === SYSTEM_ROLES.FIELD_COORDINATOR;
+  const isNationalRole = role === SYSTEM_ROLES.EXECUTIVE || role === SYSTEM_ROLES.NATIONAL_LEADER;
   const breadcrumbRoot = isFieldOfficer
     ? {
         label: SYSTEM_ROLE_LABELS[SYSTEM_ROLES.FIELD_OFFICER],
@@ -651,8 +653,8 @@ export function BaketCoordinatorClient({ role }: { role?: SystemRole } = {}) {
               className="h-9 w-full border-slate-200 dark:border-white/10"
             />
 
-            {/* 4. Filter Provinsi */}
-            {!isFieldOfficer && provinceOptions.length > 0 && (
+            {/* 4. Filter Provinsi (hanya role nasional: Deputi II / KaBIN) */}
+            {isNationalRole && provinceOptions.length > 0 && (
               <SearchableSelect
                 aria-label="Filter Provinsi"
                 value={provinceFilter}
@@ -674,8 +676,8 @@ export function BaketCoordinatorClient({ role }: { role?: SystemRole } = {}) {
               />
             )}
 
-            {/* 5. Filter Kota/Kabupaten */}
-            {!isFieldOfficer && (regencyOptions.length > 0 || provinceOptions.length > 0) && (
+            {/* 5. Filter Kota/Kabupaten (sembunyikan untuk Korwil & Gaswil yang sudah ter-scope) */}
+            {!isFieldOfficer && !isFieldCoordinator && (regencyOptions.length > 0 || provinceOptions.length > 0) && (
               <SearchableSelect
                 aria-label="Filter Kota/Kabupaten"
                 value={regencyFilter}
@@ -879,15 +881,23 @@ export function BaketCoordinatorClient({ role }: { role?: SystemRole } = {}) {
                         {refNum}
                       </span>
 
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "text-[10px] px-2.5 py-0.5 font-bold shrink-0 border uppercase tracking-wider",
-                          urgencyStyle.badge,
-                        )}
-                      >
-                        {urgencyStyle.label}
-                      </Badge>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "text-[10px] px-2.5 py-0.5 font-bold border uppercase tracking-wider",
+                            urgencyStyle.badge,
+                          )}
+                        >
+                          {urgencyStyle.label}
+                        </Badge>
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] px-2.5 py-0.5 font-semibold border border-violet-500/40 bg-violet-500/10 text-violet-700 dark:text-violet-400"
+                        >
+                          {item.reportCategory?.name ?? "Tanpa Kategori"}
+                        </Badge>
+                      </div>
                     </div>
 
                     <div>
@@ -1102,15 +1112,23 @@ export function BaketCoordinatorClient({ role }: { role?: SystemRole } = {}) {
 
                       {isColVisible("urgensi") && (
                         <TableCell className="align-middle text-center">
-                          <Badge
-                            variant="outline"
-                            className={cn(
-                              "text-[10px] px-2.5 py-0.5 font-bold shrink-0 border uppercase tracking-wider",
-                              urgencyStyle.badge,
-                            )}
-                          >
-                            {urgencyStyle.label}
-                          </Badge>
+                          <div className="flex items-center justify-center gap-1.5">
+                            <Badge
+                              variant="outline"
+                              className={cn(
+                                "text-[10px] px-2.5 py-0.5 font-bold shrink-0 border uppercase tracking-wider",
+                                urgencyStyle.badge,
+                              )}
+                            >
+                              {urgencyStyle.label}
+                            </Badge>
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] px-2.5 py-0.5 font-semibold border border-violet-500/40 bg-violet-500/10 text-violet-700 dark:text-violet-400 whitespace-nowrap"
+                            >
+                              {item.reportCategory?.name ?? "Tanpa Kategori"}
+                            </Badge>
+                          </div>
                         </TableCell>
                       )}
 
