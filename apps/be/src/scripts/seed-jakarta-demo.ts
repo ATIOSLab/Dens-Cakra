@@ -32,6 +32,7 @@ import {
   TaskStatus,
   VerificationCheckStatus,
   VerificationStatus,
+  WhatsAppMessageStatus,
 } from '../generated/prisma/client.js';
 import { prisma } from '../modules/prisma/prisma.service.js';
 
@@ -193,6 +194,33 @@ function trimAreaName(value: string) {
     .trim()
     .replace(/^Kota Administrasi /, '')
     .replace(/^Kabupaten Administrasi /, '');
+}
+
+const DEMO_CITY_CODE_OVERRIDES: Record<string, string> = {
+  JAKARTA_PUSAT: 'PST',
+  JAKARTA_UTARA: 'UTR',
+  JAKARTA_BARAT: 'BRT',
+  JAKARTA_SELATAN: 'SEL',
+  JAKARTA_TIMUR: 'TMR',
+  KEPULAUAN_SERIBU: 'KSR',
+};
+
+function demoCityCode(areaName: string) {
+  const normalized = areaName
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .replace(/[^A-Z]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+  return DEMO_CITY_CODE_OVERRIDES[normalized] ?? normalized.slice(0, 3).padEnd(3, 'X');
+}
+
+function demoDateKey(date: Date) {
+  const wib = new Date(date.getTime() + 7 * 60 * 60 * 1000);
+  const yyyy = wib.getUTCFullYear();
+  const mm = String(wib.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(wib.getUTCDate()).padStart(2, '0');
+  return `${yyyy}${mm}${dd}`;
 }
 
 function fallbackCoordinates(code: string) {
@@ -623,6 +651,19 @@ async function seedAreaBakets(params: {
   operationalManager: Assignment;
 }) {
   const records: DemoBaket[] = [];
+  const channel = await prisma.integrationChannel.findUnique({
+    where: { code: 'WA_CENTER_MAIN' },
+    select: { id: true },
+  });
+  const jaringPhones = new Map<string, string>();
+  for (const jaringId of params.jaringIds) {
+    const jaring = await prisma.jaring.findUnique({
+      where: { id: jaringId },
+      select: { whatsappNumber: true },
+    });
+    if (jaring?.whatsappNumber) jaringPhones.set(jaringId, jaring.whatsappNumber);
+  }
+  let referenceCounter = 0;
   for (
     let reportIndex = 0;
     reportIndex < baketStatuses.length;
@@ -724,6 +765,39 @@ async function seedAreaBakets(params: {
         createdAt: eventTime,
       },
     });
+    if (channel) {
+      referenceCounter += 1;
+      const messageId = deterministicUuid(`jakarta-demo:message:${key}`);
+      const sourceJaringId =
+        params.jaringIds[reportIndex % params.jaringIds.length];
+      const referenceNumber = `JKT-${demoCityCode(area.name)}-${demoDateKey(eventTime)}-${String(referenceCounter).padStart(6, '0')}`;
+      await prisma.whatsAppMessage.upsert({
+        where: { id: messageId },
+        update: { referenceNumber, content: originalContent },
+        create: {
+          id: messageId,
+          integrationChannelId: channel.id,
+          externalMessageId: `demo:report:${key}`,
+          senderPhone: jaringPhones.get(sourceJaringId) ?? '+6288800000000',
+          jaringId: sourceJaringId,
+          categoryId,
+          content: originalContent,
+          referenceNumber,
+          latitude: area.centroidLatitude + offset,
+          longitude: area.centroidLongitude - offset,
+          receivedAt: eventTime,
+          status: WhatsAppMessageStatus.RECEIVED,
+          rawPayload: { seeded: true },
+        },
+      });
+      await prisma.baketVersionSourceMessage.upsert({
+        where: {
+          baketVersionId_messageId: { baketVersionId: versionId, messageId },
+        },
+        update: {},
+        create: { baketVersionId: versionId, messageId },
+      });
+    }
     await prisma.baketVersionAttachment.upsert({
       where: {
         baketVersionId_fileId: { baketVersionId: versionId, fileId: photo.id },
