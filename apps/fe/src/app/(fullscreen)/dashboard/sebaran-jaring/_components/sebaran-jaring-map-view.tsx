@@ -26,9 +26,9 @@ import {
   type JaringDistributionEntry,
   type MapStyleMode,
   SATELLITE_TILES,
-  STATUS_COLORS,
   STREET_TILES,
   signalLabelForMode,
+  statusOptionsForMode,
   statusPresentationForMode,
   villageCoordinate,
 } from "./sebaran-jaring-types";
@@ -135,8 +135,9 @@ const DISTRIBUTION_POPUP_OFFSET = {
 
 function agentCoordinate(agent: JaringDistributionEntry, source: CoordinateSourceMode): [number, number] | null {
   if (source === "laporan") {
-    if (agent.latestReportLng == null || agent.latestReportLat == null) return null;
-    return [agent.latestReportLng, agent.latestReportLat];
+    if (agent.latestReportLng != null && agent.latestReportLat != null) {
+      return [agent.latestReportLng, agent.latestReportLat];
+    }
   }
   return [agent.longitude, agent.latitude];
 }
@@ -536,16 +537,6 @@ export function SebaranJaringMapView({
                       {copy.statusLabels[selectedJaring.status] ||
                         statusPresentationForMode(mode, selectedJaring.status).label}
                     </Badge>
-                    {mode === "jaring" ? (
-                      <Badge
-                        className={cn(
-                          "border-none px-1.5 py-0 font-semibold text-[10px] text-white",
-                          selectedJaring.isActive ? "bg-emerald-600" : "bg-red-600",
-                        )}
-                      >
-                        {selectedJaring.isActive ? DOMAIN_TERMS.jaringActive90Days : DOMAIN_TERMS.jaringInactive90Days}
-                      </Badge>
-                    ) : null}
                     <button
                       type="button"
                       onClick={(e) => {
@@ -598,11 +589,7 @@ export function SebaranJaringMapView({
                     <span
                       className={cn(
                         "font-bold text-[11px]",
-                        selectedJaring.isActive
-                          ? "text-emerald-400"
-                          : mode === "gaswil"
-                            ? "text-slate-400"
-                            : "text-red-400",
+                        selectedJaring.isActive ? "text-emerald-400" : "text-slate-400",
                       )}
                     >
                       {signalLabelForMode(mode, selectedJaring.isActive)}
@@ -661,11 +648,10 @@ export function SebaranJaringMapView({
             LEGENDA
           </div>
           <div className="space-y-1.5">
-            {Object.keys(STATUS_COLORS).map((key) => {
-              const status = key as keyof typeof STATUS_COLORS;
+            {statusOptionsForMode(mode).map((status) => {
               const val = statusPresentationForMode(mode, status);
               return (
-                <div key={key} className="flex items-center gap-2 text-[11px]">
+                <div key={status} className="flex items-center gap-2 text-[11px]">
                   <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: val.bg }} />
                   <span className="text-slate-700 dark:text-slate-300">{copy.statusLabels[status]}</span>
                 </div>

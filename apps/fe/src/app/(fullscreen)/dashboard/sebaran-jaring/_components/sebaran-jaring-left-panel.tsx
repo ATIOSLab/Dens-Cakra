@@ -18,7 +18,7 @@ import type {
   JaringDistributionCity,
   JaringDistributionVillage,
 } from "./sebaran-jaring-types";
-import { DISTRIBUTION_ENTITY_COPY, statusPresentationForMode } from "./sebaran-jaring-types";
+import { DISTRIBUTION_ENTITY_COPY, statusOptionsForMode, statusPresentationForMode } from "./sebaran-jaring-types";
 
 type Props = {
   isOpen: boolean;
@@ -238,7 +238,12 @@ export function SebaranJaringLeftPanel({
           </div>
 
           {/* 4 Stat Metric Cards Grid */}
-          <div className="grid grid-cols-2 gap-2 text-center xl:grid-cols-4">
+          <div
+            className={cn(
+              "grid grid-cols-2 gap-2 text-center",
+              mode === "gaswil" ? "xl:grid-cols-4" : "xl:grid-cols-3",
+            )}
+          >
             <div className="p-1.5 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
               <div className="font-bold text-sm text-cyan-600 dark:text-cyan-400">{summaryStats.total}</div>
               <div className="text-[9px] text-slate-500 dark:text-slate-400 font-mono">{copy.totalSummaryLabel}</div>
@@ -255,12 +260,14 @@ export function SebaranJaringLeftPanel({
                 {copy.statusLabels.PENDING}
               </div>
             </div>
-            <div className="p-1.5 rounded bg-white dark:bg-slate-900 border border-red-200 dark:border-red-900/60">
-              <div className="font-bold text-sm text-red-600 dark:text-red-400">{summaryStats.rejected}</div>
-              <div className="text-[9px] text-red-600/80 dark:text-red-500/80 font-mono">
-                {copy.statusLabels.REJECTED}
+            {mode === "gaswil" ? (
+              <div className="p-1.5 rounded bg-white dark:bg-slate-900 border border-red-200 dark:border-red-900/60">
+                <div className="font-bold text-sm text-red-600 dark:text-red-400">{summaryStats.rejected}</div>
+                <div className="text-[9px] text-red-600/80 dark:text-red-500/80 font-mono">
+                  {copy.statusLabels.REJECTED}
+                </div>
               </div>
-            </div>
+            ) : null}
           </div>
         </div>
 
@@ -290,13 +297,7 @@ export function SebaranJaringLeftPanel({
               <span>Semua Status</span>
             </label>
 
-            {(
-              [
-                ["VERIFIED", copy.statusLabels.VERIFIED],
-                ["PENDING", copy.statusLabels.PENDING],
-                ["REJECTED", copy.statusLabels.REJECTED],
-              ] as const
-            ).map(([key, label]) => (
+            {statusOptionsForMode(mode).map((key) => (
               <label
                 key={key}
                 htmlFor={`sebaran-status-${key.toLowerCase()}`}
@@ -318,7 +319,7 @@ export function SebaranJaringLeftPanel({
                   className="size-2 rounded-full shrink-0"
                   style={{ backgroundColor: statusPresentationForMode(mode, key).bg }}
                 />
-                <span className="text-[11px] truncate">{label}</span>
+                <span className="text-[11px] truncate">{copy.statusLabels[key]}</span>
               </label>
             ))}
           </div>

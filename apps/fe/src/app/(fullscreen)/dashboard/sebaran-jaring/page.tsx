@@ -124,12 +124,6 @@ function formatRelativeDate(dateStr?: string | null): string {
   return new Intl.DateTimeFormat("id-ID", { day: "2-digit", month: "short", year: "numeric" }).format(date);
 }
 
-function deriveOperationalStatus(item: RegistrationJaring): AgentOperationalStatus {
-  if (item.registrationStatus === "APPROVED") return "VERIFIED";
-  if (item.registrationStatus === "PENDING") return "PENDING";
-  return "REJECTED";
-}
-
 function distributionEntry(
   item: RegistrationJaring,
   index: number,
@@ -175,7 +169,6 @@ function distributionEntry(
   const latestReportLat = hasReportCoordinates ? Number(reportLatitude) : null;
   const latestReportLng = hasReportCoordinates ? Number(reportLongitude) : null;
 
-  const status = deriveOperationalStatus(item);
   const reportCount = realReportCount;
 
   const latestActivityDate = latestSession?.submittedAt ?? null;
@@ -183,6 +176,8 @@ function distributionEntry(
 
   const threeMonthsAgo = Date.now() - 90 * 24 * 60 * 60 * 1000;
   const isActive = Boolean(latestActivityDate && new Date(latestActivityDate).getTime() >= threeMonthsAgo);
+
+  const status: AgentOperationalStatus = isActive ? "VERIFIED" : "PENDING";
 
   return {
     id: item.id,
@@ -433,14 +428,12 @@ export default async function SebaranJaringPage() {
     SYSTEM_ROLES.FIELD_COORDINATOR,
   );
 
-  const [approvedItems, pendingItems, rejectedItems, scopedData] = await Promise.all([
+  const [approvedItems, scopedData] = await Promise.all([
     fetchAllByRegistrationStatus("APPROVED"),
-    fetchAllByRegistrationStatus("PENDING"),
-    fetchAllByRegistrationStatus("REJECTED"),
     getScopedRegionData(session.role),
   ]);
 
-  const allItems = [...approvedItems, ...pendingItems, ...rejectedItems];
+  const allItems = approvedItems;
   const { scopedCities, allowedDistrictIds, allowedAdminLevels } = scopedData;
 
   const citiesDistribution = await Promise.all(

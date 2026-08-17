@@ -173,6 +173,11 @@ export const PERSONNEL_LOCATION_VISUALS = {
   OFFLINE: { label: "Tidak Terhubung", colorClass: "text-slate-400", markerColor: "#64748b" },
 } as const;
 
+export const JARING_ACTIVITY_VISUALS = {
+  ACTIVE: { label: "Aktif", colorClass: "text-emerald-300", markerColor: "#10b981" },
+  INACTIVE: { label: "Tidak Aktif", colorClass: "text-slate-400", markerColor: "#64748b" },
+} as const;
+
 export const DC_TYPOGRAPHY = {
   pageTitle: "font-sans text-3xl font-semibold tracking-normal text-foreground",
   sectionTitle: "font-sans text-lg font-semibold tracking-normal text-foreground",

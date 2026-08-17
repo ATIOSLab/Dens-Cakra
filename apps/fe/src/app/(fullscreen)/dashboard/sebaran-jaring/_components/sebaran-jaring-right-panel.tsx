@@ -167,16 +167,6 @@ export function SebaranJaringRightPanel({
                     >
                       {copy.statusLabels[agent.status] || statusMeta.label}
                     </Badge>
-                    {mode === "jaring" ? (
-                      <Badge
-                        className={cn(
-                          "max-w-full whitespace-normal border-none px-1.5 py-0 text-[9px] text-white leading-3 font-semibold",
-                          agent.isActive ? "bg-emerald-600" : "bg-red-600",
-                        )}
-                      >
-                        {agent.isActive ? DOMAIN_TERMS.jaringActive90Days : DOMAIN_TERMS.jaringInactive90Days}
-                      </Badge>
-                    ) : null}
                   </div>
                   <span className="font-mono text-[10px] text-slate-500 shrink-0">{agent.lastActivityTime}</span>
                 </div>
@@ -264,16 +254,6 @@ export function SebaranJaringRightPanel({
                 {copy.statusLabels[selectedJaring.status] ||
                   statusPresentationForMode(mode, selectedJaring.status).label}
               </Badge>
-              {!isGaswilMode ? (
-                <Badge
-                  className={cn(
-                    "max-w-full whitespace-normal border-none px-1.5 py-0 text-[10px] text-white leading-3 font-semibold",
-                    selectedJaring.isActive ? "bg-emerald-600" : "bg-red-600",
-                  )}
-                >
-                  {selectedJaring.isActive ? DOMAIN_TERMS.jaringActive90Days : DOMAIN_TERMS.jaringInactive90Days}
-                </Badge>
-              ) : null}
             </div>
             <button
               type="button"
@@ -403,7 +383,7 @@ export function SebaranJaringRightPanel({
                   className={cn(
                     "text-[10px] px-2 py-0.5 border-none font-semibold",
                     "text-white",
-                    selectedJaring.isActive ? "bg-emerald-600" : "bg-red-600",
+                    selectedJaring.isActive ? "bg-emerald-600" : "bg-slate-600",
                   )}
                 >
                   {signalLabelForMode(mode, selectedJaring.isActive)}

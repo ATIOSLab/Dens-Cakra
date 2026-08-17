@@ -185,7 +185,7 @@ export function JaringDistributionClient({
   const [mapStyleMode, setMapStyleMode] = useState<MapStyleMode>("dark");
   const [dateRange, setDateRange] = useState<DateRangeOption>("ALL");
   const [isClusterMode, setIsClusterMode] = useState<boolean>(true);
-  const [coordinateSourceMode, setCoordinateSourceMode] = useState<CoordinateSourceMode>("domisili");
+  const [coordinateSourceMode, setCoordinateSourceMode] = useState<CoordinateSourceMode>("laporan");
   const effectiveCoordinateSourceMode: CoordinateSourceMode = mode === "gaswil" ? "domisili" : coordinateSourceMode;
 
   // Panel Visibilities

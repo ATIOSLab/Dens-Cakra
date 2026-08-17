@@ -4,7 +4,6 @@ import { useMemo } from "react";
 
 import { Activity, AlertCircle, MapPinCheck, RadioTower, ShieldCheck, Users } from "lucide-react";
 
-import { DOMAIN_TERMS } from "@/lib/domain/terminology";
 import { cn } from "@/lib/utils";
 
 import {
@@ -107,19 +106,15 @@ export function SebaranJaringLeadershipStrip({
           />
           <Metric
             icon={ShieldCheck}
-            label={copy.verificationMetricLabel}
-            value={mode === "gaswil" ? summary.preciseCoordinates : `${rate(summary.verified, summary.total)}%`}
-            detail={
-              mode === "gaswil"
-                ? `${rate(summary.preciseCoordinates, summary.total)}% dari tampilan`
-                : `${summary.pending.toLocaleString("id-ID")} menunggu`
-            }
-            tone={mode === "gaswil" || summary.pending === 0 ? "green" : "amber"}
-            onClick={mode === "gaswil" ? undefined : summary.pending > 0 ? onShowPending : undefined}
+            label={copy.statusLabels.PENDING}
+            value={summary.pending}
+            detail={`${rate(summary.pending, summary.total)}% dari tampilan`}
+            tone={summary.pending === 0 ? "green" : "amber"}
+            onClick={summary.pending > 0 ? onShowPending : undefined}
           />
           <Metric
             icon={Activity}
-            label={mode === "jaring" ? DOMAIN_TERMS.jaringActive90Days : copy.activeMetricLabel}
+            label={mode === "jaring" ? copy.statusLabels.VERIFIED : copy.activeMetricLabel}
             value={summary.active}
             detail={
               mode === "gaswil"

@@ -1,4 +1,4 @@
-import { DOMAIN_VISUALS, PERSONNEL_LOCATION_VISUALS } from "@/lib/domain/visual-system";
+import { DOMAIN_VISUALS, JARING_ACTIVITY_VISUALS, PERSONNEL_LOCATION_VISUALS } from "@/lib/domain/visual-system";
 
 export type AgentOperationalStatus = "VERIFIED" | "PENDING" | "REJECTED";
 
@@ -135,12 +135,17 @@ export const STATUS_COLORS: Record<
   { bg: string; border: string; label: string; dotClass: string }
 > = {
   VERIFIED: {
-    bg: DOMAIN_VISUALS.jaring.markerColor,
-    border: DOMAIN_VISUALS.jaring.markerColor,
-    label: "Disetujui",
-    dotClass: "bg-cyan-500",
+    bg: JARING_ACTIVITY_VISUALS.ACTIVE.markerColor,
+    border: JARING_ACTIVITY_VISUALS.ACTIVE.markerColor,
+    label: JARING_ACTIVITY_VISUALS.ACTIVE.label,
+    dotClass: "bg-emerald-500",
   },
-  PENDING: { bg: "#f59e0b", border: "#d97706", label: "Menunggu Tinjauan", dotClass: "bg-amber-500" },
+  PENDING: {
+    bg: JARING_ACTIVITY_VISUALS.INACTIVE.markerColor,
+    border: JARING_ACTIVITY_VISUALS.INACTIVE.markerColor,
+    label: JARING_ACTIVITY_VISUALS.INACTIVE.label,
+    dotClass: "bg-slate-500",
+  },
   REJECTED: { bg: "#e11d48", border: "#be123c", label: "Ditolak", dotClass: "bg-rose-500" },
 };
 
@@ -173,7 +178,11 @@ export function signalLabelForMode(mode: DistributionEntityMode, isActive: boole
   if (mode === "gaswil") {
     return isActive ? PERSONNEL_LOCATION_VISUALS.ONLINE.label : PERSONNEL_LOCATION_VISUALS.OFFLINE.label;
   }
-  return isActive ? "Aktif 90 Hari" : "Tidak Aktif 90 Hari";
+  return isActive ? JARING_ACTIVITY_VISUALS.ACTIVE.label : JARING_ACTIVITY_VISUALS.INACTIVE.label;
+}
+
+export function statusOptionsForMode(mode: DistributionEntityMode): AgentOperationalStatus[] {
+  return mode === "gaswil" ? ["VERIFIED", "PENDING", "REJECTED"] : ["VERIFIED", "PENDING"];
 }
 
 export const DISTRIBUTION_ENTITY_COPY: Record<DistributionEntityMode, DistributionEntityCopy> = {
@@ -199,8 +208,8 @@ export const DISTRIBUTION_ENTITY_COPY: Record<DistributionEntityMode, Distributi
     emptyListText: "Tidak ada Jaring sesuai wilayah dan filter aktif.",
     detailLinkLabel: "Lihat Detail Jaring",
     statusLabels: {
-      VERIFIED: "Disetujui",
-      PENDING: "Menunggu Tinjauan",
+      VERIFIED: JARING_ACTIVITY_VISUALS.ACTIVE.label,
+      PENDING: JARING_ACTIVITY_VISUALS.INACTIVE.label,
       REJECTED: "Ditolak",
     },
   },
