@@ -766,7 +766,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
                   placeholder="Semua Provinsi"
                   searchPlaceholder="Cari provinsi..."
                   emptyText="Provinsi tidak ditemukan."
-                  className="h-9 w-full min-w-[150px] text-xs sm:w-auto"
+                  className="h-9 w-full min-w-[150px] sm:w-auto"
                 />
 
                 {/* Filter Kota / Kabupaten */}
@@ -786,7 +786,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
                   placeholder="Semua Kota/Kabupaten"
                   searchPlaceholder="Cari kota/kabupaten..."
                   emptyText="Kota/Kabupaten tidak ditemukan."
-                  className="h-9 w-full min-w-[150px] text-xs sm:w-auto"
+                  className="h-9 w-full min-w-[150px] sm:w-auto"
                 />
 
                 {/* Filter Kecamatan */}
@@ -805,7 +805,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
                   placeholder="Semua Kecamatan"
                   searchPlaceholder="Cari kecamatan..."
                   emptyText="Kecamatan tidak ditemukan."
-                  className="h-9 w-full min-w-[150px] text-xs sm:w-auto"
+                  className="h-9 w-full min-w-[150px] sm:w-auto"
                 />
               </>
             )}
@@ -825,7 +825,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
               placeholder="Semua Kelurahan"
               searchPlaceholder="Cari kelurahan/desa..."
               emptyText="Kelurahan/Desa tidak ditemukan."
-              className="h-9 w-full min-w-[150px] text-xs sm:w-auto"
+              className="h-9 w-full min-w-[150px] sm:w-auto"
             />
 
             {/* Filter Status */}

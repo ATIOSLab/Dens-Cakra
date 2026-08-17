@@ -2264,7 +2264,9 @@ export function FieldCoordinatorMonitoringClient({
                           size="sm"
                           className="h-7 rounded-[4px] bg-[var(--dc-primary)] font-mono text-[10px] text-[var(--dc-text-inverse)] hover:bg-[var(--dc-primary-hover)]"
                         >
-                          <Link href={`/dashboard/koordinator-wilayah/monitoring-tugas/${task.id}`}>Buka Monitoring</Link>
+                          <Link href={`/dashboard/koordinator-wilayah/monitoring-tugas/${task.id}`}>
+                            Buka Monitoring
+                          </Link>
                         </Button>
                       </div>
                     </div>
@@ -3143,7 +3145,9 @@ export function OimIncomingForwardingListClient({ sources, tasks }: OimIncomingF
                         </Button>
                       ) : (
                         <Button asChild size="sm" variant="success">
-                          <Link href={`/dashboard/anev/direktif-tugas/baru?uukStrId=${source.id}`}>Baca & Teruskan</Link>
+                          <Link href={`/dashboard/anev/direktif-tugas/baru?uukStrId=${source.id}`}>
+                            Baca & Teruskan
+                          </Link>
                         </Button>
                       )}
                     </div>

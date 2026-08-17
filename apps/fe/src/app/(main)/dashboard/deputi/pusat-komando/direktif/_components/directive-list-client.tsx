@@ -560,9 +560,7 @@ export function DirectiveListClient({ directives }: DirectiveListClientProps) {
                               variant="outline"
                               className="border-[var(--dc-border-subtle)] bg-[var(--dc-surface)] text-[var(--dc-text-primary)] hover:bg-[var(--dc-surface-hover)]"
                             >
-                              <Link href={`/dashboard/deputi/pusat-komando/direktif/${directive.id}/edit`}>
-                                Edit
-                              </Link>
+                              <Link href={`/dashboard/deputi/pusat-komando/direktif/${directive.id}/edit`}>Edit</Link>
                             </Button>
                             <Button
                               asChild

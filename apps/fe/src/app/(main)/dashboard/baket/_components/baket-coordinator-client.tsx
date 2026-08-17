@@ -648,7 +648,7 @@ export function BaketCoordinatorClient({ role }: { role?: SystemRole } = {}) {
               placeholder="Semua Kategori"
               searchPlaceholder="Cari kategori..."
               emptyText="Kategori tidak ditemukan."
-              className="h-9 w-full border-slate-200 text-xs dark:border-white/10"
+              className="h-9 w-full border-slate-200 dark:border-white/10"
             />
 
             {/* 4. Filter Provinsi */}
@@ -670,7 +670,7 @@ export function BaketCoordinatorClient({ role }: { role?: SystemRole } = {}) {
                 placeholder="Semua Provinsi"
                 searchPlaceholder="Cari Provinsi..."
                 emptyText="Provinsi tidak ditemukan."
-                className="h-9 w-full border-slate-200 text-xs dark:border-white/10"
+                className="h-9 w-full border-slate-200 dark:border-white/10"
               />
             )}
 
@@ -692,7 +692,7 @@ export function BaketCoordinatorClient({ role }: { role?: SystemRole } = {}) {
                 placeholder="Semua Kota/Kabupaten"
                 searchPlaceholder="Cari Kota/Kabupaten..."
                 emptyText="Kota/Kabupaten tidak ditemukan."
-                className="h-9 w-full border-slate-200 text-xs dark:border-white/10"
+                className="h-9 w-full border-slate-200 dark:border-white/10"
               />
             )}
 
@@ -713,7 +713,7 @@ export function BaketCoordinatorClient({ role }: { role?: SystemRole } = {}) {
                 placeholder="Semua Kecamatan"
                 searchPlaceholder="Cari Kecamatan..."
                 emptyText="Kecamatan tidak ditemukan."
-                className="h-9 w-full border-slate-200 text-xs dark:border-white/10"
+                className="h-9 w-full border-slate-200 dark:border-white/10"
               />
             )}
 
@@ -732,7 +732,7 @@ export function BaketCoordinatorClient({ role }: { role?: SystemRole } = {}) {
               placeholder="Semua Kelurahan"
               searchPlaceholder="Cari Kelurahan/Desa..."
               emptyText="Kelurahan/Desa tidak ditemukan."
-              className="h-9 w-full border-slate-200 text-xs dark:border-white/10"
+              className="h-9 w-full border-slate-200 dark:border-white/10"
             />
 
             {/* 8. Filter Periode Waktu */}

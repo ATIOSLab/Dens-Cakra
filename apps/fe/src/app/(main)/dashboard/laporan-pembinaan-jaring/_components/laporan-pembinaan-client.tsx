@@ -356,7 +356,7 @@ export function LaporanPembinaanClient() {
               setJaringFilter("ALL");
               setPage(1);
             }}
-            className="h-9 w-full border-slate-200 text-xs dark:border-white/10"
+            className="h-9 w-full border-slate-200 dark:border-white/10"
           >
             <option value="ALL">Semua Kelurahan</option>
             {villageAreas.map((v) => (
@@ -387,7 +387,7 @@ export function LaporanPembinaanClient() {
               setPeriodeFilter(e.target.value as PeriodeFilterOption);
               setPage(1);
             }}
-            className="h-9 w-full border-slate-200 text-xs dark:border-white/10"
+            className="h-9 w-full border-slate-200 dark:border-white/10"
           >
             <option value="ALL">Semua Periode</option>
             <option value="TODAY">Hari Ini</option>

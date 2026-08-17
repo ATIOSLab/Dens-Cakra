@@ -966,7 +966,7 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                 placeholder="Semua Provinsi"
                 searchPlaceholder="Cari Provinsi..."
                 emptyText="Provinsi tidak ditemukan."
-                className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full text-xs")}
+                className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full")}
               />
             )}
 
@@ -991,7 +991,7 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                 placeholder={isDkiScoped ? "Semua Kota/Kabupaten DKI" : "Semua Kota/Kabupaten"}
                 searchPlaceholder="Cari Kota/Kabupaten..."
                 emptyText="Kota/Kabupaten tidak ditemukan."
-                className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full text-xs")}
+                className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full")}
               />
             )}
 
@@ -1012,7 +1012,7 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                 placeholder="Semua Kecamatan"
                 searchPlaceholder="Cari Kecamatan..."
                 emptyText="Kecamatan tidak ditemukan."
-                className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full text-xs")}
+                className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full")}
               />
             )}
 
@@ -1024,7 +1024,7 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                 setVillageFilter(event.target.value);
                 setPage(1);
               }}
-              className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full text-xs")}
+              className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full")}
             >
               <option value="ALL">Semua Kelurahan</option>
               {villageOptions.map((village) => (
@@ -1055,7 +1055,7 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                 placeholder={gaswilOptions.length === 0 ? "Petugas Wilayah belum tersedia" : "Semua Gaswil"}
                 searchPlaceholder="Cari Petugas Wilayah (Gaswil)..."
                 emptyText="Petugas Wilayah (Gaswil) tidak ditemukan."
-                className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full text-xs")}
+                className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full")}
               />
             )}
 
@@ -1083,7 +1083,7 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                 setPeriodPreset(event.target.value as typeof periodPreset);
                 setPage(1);
               }}
-              className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full text-xs")}
+              className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full")}
             >
               <option value="ALL">Semua Periode</option>
               <option value="TODAY">Hari Ini</option>

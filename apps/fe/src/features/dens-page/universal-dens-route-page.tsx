@@ -1,6 +1,6 @@
-import { ComingSoonPage } from "@/app/(main)/dashboard/coming-soon/page";
 import type { OimView } from "@/app/(main)/dashboard/anev/_components/oim-types";
 import { OimWorkspacePage } from "@/app/(main)/dashboard/anev/_components/oim-workspace-page";
+import { ComingSoonPage } from "@/app/(main)/dashboard/coming-soon/page";
 import { DOMAIN_TERMS } from "@/lib/domain/terminology";
 
 type UniversalDensRoutePageProps = {

@@ -442,9 +442,7 @@ export function UukListClient({ directives, uuks }: UukListClientProps) {
                           <div className="flex justify-end gap-2">
                             {relatedUuk ? (
                               <Button asChild size="sm">
-                                <Link
-                                  href={`/dashboard/kabinda/direktif-penjabaran-uuk-str/${relatedUuk.id}`}
-                                >
+                                <Link href={`/dashboard/kabinda/direktif-penjabaran-uuk-str/${relatedUuk.id}`}>
                                   Lihat Penerusan
                                 </Link>
                               </Button>

@@ -1090,9 +1090,7 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
                               </CardDescription>
                             </div>
                             <Button asChild className="h-8 shrink-0 font-mono text-[10px]" size="sm" variant="outline">
-                              <Link
-                                href={`/dashboard/kabinda/personel-jaring/personel/${text(assignment.id)}`}
-                              >
+                              <Link href={`/dashboard/kabinda/personel-jaring/personel/${text(assignment.id)}`}>
                                 DETAIL LENGKAP
                               </Link>
                             </Button>

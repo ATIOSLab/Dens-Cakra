@@ -854,7 +854,7 @@ export function LaporanPembinaanCoordinatorClient() {
                 placeholder="Semua Provinsi"
                 searchPlaceholder="Cari provinsi..."
                 emptyText="Provinsi tidak ditemukan."
-                className={cn(DC_CONTROLS.selectTrigger, "w-full text-xs")}
+                className={cn(DC_CONTROLS.selectTrigger, "w-full")}
               />
             )}
 
@@ -878,7 +878,7 @@ export function LaporanPembinaanCoordinatorClient() {
                 placeholder="Semua Kota/Kabupaten"
                 searchPlaceholder="Cari kota/kabupaten..."
                 emptyText="Kota/Kabupaten tidak ditemukan."
-                className={cn(DC_CONTROLS.selectTrigger, "w-full text-xs")}
+                className={cn(DC_CONTROLS.selectTrigger, "w-full")}
               />
             )}
 
@@ -900,7 +900,7 @@ export function LaporanPembinaanCoordinatorClient() {
               placeholder="Semua Kecamatan"
               searchPlaceholder="Cari kecamatan..."
               emptyText="Kecamatan tidak ditemukan."
-              className={cn(DC_CONTROLS.selectTrigger, "w-full text-xs")}
+              className={cn(DC_CONTROLS.selectTrigger, "w-full")}
             />
 
             {/* 3. Filter Kelurahan/Desa */}
@@ -920,7 +920,7 @@ export function LaporanPembinaanCoordinatorClient() {
               placeholder="Semua Kelurahan"
               searchPlaceholder="Cari kelurahan/desa..."
               emptyText="Kelurahan/Desa tidak ditemukan."
-              className={cn(DC_CONTROLS.selectTrigger, "w-full text-xs")}
+              className={cn(DC_CONTROLS.selectTrigger, "w-full")}
             />
 
             {/* 4. Filter Petugas Wilayah (Gaswil) */}
@@ -947,7 +947,7 @@ export function LaporanPembinaanCoordinatorClient() {
               placeholder={gaswilOptions.length === 0 ? "Petugas Wilayah belum tersedia" : "Semua Gaswil"}
               searchPlaceholder="Cari Petugas Wilayah (Gaswil)..."
               emptyText="Petugas Wilayah (Gaswil) tidak ditemukan."
-              className={cn(DC_CONTROLS.selectTrigger, "w-full text-xs")}
+              className={cn(DC_CONTROLS.selectTrigger, "w-full")}
             />
 
             {/* 5. Filter Jaring */}
@@ -977,7 +977,7 @@ export function LaporanPembinaanCoordinatorClient() {
                 }
                 setPage(1);
               }}
-              className={cn(DC_CONTROLS.selectTrigger, "w-full text-xs")}
+              className={cn(DC_CONTROLS.selectTrigger, "w-full")}
             >
               <option value="ALL">Semua Periode</option>
               <option value="TODAY">Hari Ini</option>
