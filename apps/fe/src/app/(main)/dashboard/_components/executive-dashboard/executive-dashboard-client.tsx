@@ -125,7 +125,6 @@ function productDetailRoute(role: SystemRole, productId: string | undefined) {
 }
 
 function taskDetailRoute(role: SystemRole, taskId: string | undefined) {
-  if (role === "regional_commander") return `/dashboard/kabinda/monitoring-tugas/${taskId}`;
   if (role === "field_coordinator") return `/dashboard/koordinator-wilayah/tugas-operasional/${taskId}`;
   return "/dashboard/deputi/pusat-komando/direktif";
 }
