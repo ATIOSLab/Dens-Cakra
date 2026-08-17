@@ -58,6 +58,7 @@ export const auth = betterAuth({
   databaseHooks: {
     user: {
       create: {
+        // eslint-disable-next-line @typescript-eslint/require-await -- better-auth mengharuskan hook async
         before: async (user) => ({
           data: {
             ...user,

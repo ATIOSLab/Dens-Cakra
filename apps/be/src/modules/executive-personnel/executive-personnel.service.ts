@@ -1247,10 +1247,7 @@ export class ExecutivePersonnelService {
     };
   }
 
-  private assignmentDetail(
-    assignment: ActiveAssignment,
-    ping: LatestPing,
-  ) {
+  private assignmentDetail(assignment: ActiveAssignment, ping: LatestPing) {
     return {
       ...this.assignmentSummary(assignment),
       isPrimary: assignment.isPrimary,

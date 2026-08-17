@@ -86,8 +86,8 @@ function buildService(
         areaScopes: areas.map((item) => ({ area: item })),
       } as never),
     },
-    $transaction: jest.fn(async (callback: (client: typeof tx) => unknown) =>
-      callback(tx),
+    $transaction: jest.fn((callback: (client: typeof tx) => unknown) =>
+      Promise.resolve(callback(tx)),
     ),
   };
 

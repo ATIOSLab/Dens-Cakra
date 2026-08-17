@@ -43,7 +43,7 @@ describe('ApplicationCacheService', () => {
   it('isolates cache entries by authorization scope identity', async () => {
     const { cache } = createMemoryCache();
     const service = new ApplicationCacheService(cache);
-    const loader = jest.fn(async () => ({ total: loader.mock.calls.length }));
+    const loader = jest.fn(() => Promise.resolve({ total: loader.mock.calls.length }));
 
     await service.getOrSet(
       {
@@ -83,7 +83,7 @@ describe('ApplicationCacheService', () => {
         identity: { bbox: [1, 2, 3, 4] },
         ttlMs: 15_000,
       },
-      async () => ({ type: 'FeatureCollection' }),
+      () => Promise.resolve({ type: 'FeatureCollection' }),
     );
 
     const ttl = set.mock.calls.find(
@@ -96,7 +96,7 @@ describe('ApplicationCacheService', () => {
   it('uses generation invalidation without scanning keys', async () => {
     const { cache } = createMemoryCache();
     const service = new ApplicationCacheService(cache);
-    const loader = jest.fn(async () => loader.mock.calls.length);
+    const loader = jest.fn(() => Promise.resolve(loader.mock.calls.length));
     const options = {
       namespace: 'report-categories' as const,
       identity: { active: true },
@@ -150,7 +150,7 @@ describe('ApplicationCacheService', () => {
           identity: {},
           ttlMs: 60_000,
         },
-        async () => ['database'],
+        () => Promise.resolve(['database']),
       ),
     ).resolves.toEqual(['database']);
   });

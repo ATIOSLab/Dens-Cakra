@@ -47,7 +47,7 @@ export function sanitizeAuditValue(
         .slice(0, 100)
         .map((entry) => sanitizeNested(entry, depth + 1));
     }
-    if (typeof item === "object" && item !== null) {
+    if (typeof item === 'object' && item !== null) {
       return Object.fromEntries(
         Object.entries(item as Record<string, unknown>)
           .slice(0, 100)

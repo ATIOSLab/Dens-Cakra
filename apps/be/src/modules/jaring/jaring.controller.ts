@@ -294,7 +294,7 @@ export class JaringController {
     roles: ['field_officer'],
     idempotent: true,
   })
-  async activate(
+  activate(
     @Param('jaringId', ParseUUIDPipe) id: string,
     @Body() body: ReasonDto,
     @CurrentAccessContext() context: AuthorizationContext,
@@ -310,7 +310,7 @@ export class JaringController {
     roles: ['field_officer'],
     idempotent: true,
   })
-  async deactivate(
+  deactivate(
     @Param('jaringId', ParseUUIDPipe) id: string,
     @Body() body: ReasonDto,
     @CurrentAccessContext() context: AuthorizationContext,

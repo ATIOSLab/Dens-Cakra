@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import type { CreateJaringDto, UpdateJaringDto } from './jaring.dto.js';
+import type { CreateJaringDto } from './jaring.dto.js';
 import { JaringService } from './jaring.service.js';
 
 describe('JaringService registration security', () => {
@@ -547,7 +547,7 @@ describe('JaringService registration security', () => {
         findMany: jest.fn(() =>
           Promise.resolve([{ aliasName: 'Z01004' }, { aliasName: 'Z01999X' }]),
         ),
-        create: jest.fn((input: JaringCreateInput) =>
+        create: jest.fn((_input: JaringCreateInput) =>
           Promise.resolve(createdJaring),
         ),
         findFirstOrThrow: jest.fn(() => Promise.resolve(createdJaring)),

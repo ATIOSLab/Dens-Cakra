@@ -107,7 +107,7 @@ export class MailSettingsService {
     const row = await this.prisma.systemSetting.findUnique({
       where: { key: SMTP_SETTING_KEY },
     });
-    const resolved = await this.resolveSettingsValue(row?.value, row?.isSecret);
+    const resolved = this.resolveSettingsValue(row?.value, row?.isSecret);
     const source = row ? 'custom' : 'env';
 
     return {
@@ -130,7 +130,7 @@ export class MailSettingsService {
     const before = await this.prisma.systemSetting.findUnique({
       where: { key: SMTP_SETTING_KEY },
     });
-    const previous = await this.resolveSettingsValue(
+    const previous = this.resolveSettingsValue(
       before?.value,
       before?.isSecret,
     );
@@ -264,7 +264,7 @@ export class MailSettingsService {
       return defaultSmtpMailConfig();
     }
 
-    const resolved = await this.resolveSettingsValue(row.value, row.isSecret);
+    const resolved = this.resolveSettingsValue(row.value, row.isSecret);
 
     if (!resolved.enabled) {
       return null;
@@ -282,10 +282,10 @@ export class MailSettingsService {
     };
   }
 
-  private async resolveSettingsValue(
+  private resolveSettingsValue(
     value: unknown,
     isSecret?: boolean,
-  ): Promise<SmtpSettingsValue> {
+  ): SmtpSettingsValue {
     if (value && isSecret && isEncryptedValue(value)) {
       return this.normalizeValue(this.vault.decrypt<SmtpSettingsValue>(value));
     }

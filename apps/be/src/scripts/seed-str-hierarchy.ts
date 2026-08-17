@@ -464,7 +464,7 @@ function rolePositionTitle(roleCode: RoleCode, branch: CommandRouteType) {
   return 'Admin Sistem';
 }
 
-function branchOrganizationName(branch: CommandRouteType, roleCode: RoleCode) {
+function branchOrganizationName(branch: CommandRouteType, _roleCode: RoleCode) {
   if (branch === CommandRouteType.PUSAT) {
     return 'Pusat';
   }

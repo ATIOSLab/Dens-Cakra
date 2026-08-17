@@ -670,7 +670,7 @@ export class UukService {
     });
   }
 
-  async createVersion(
+  createVersion(
     uukStrId: string,
     body: CreateUukRevisionDto,
     context: AuthorizationContext,
@@ -691,7 +691,7 @@ export class UukService {
     return this.versionDetail(versionId, context);
   }
 
-  async updateVersion(
+  updateVersion(
     versionId: string,
     body: UpdateUukVersionDto,
     context: AuthorizationContext,
@@ -708,7 +708,7 @@ export class UukService {
     this.assertForwardingImmutable();
   }
 
-  async replaceSections(
+  replaceSections(
     versionId: string,
     body: ReplaceSectionsDto,
     context: AuthorizationContext,

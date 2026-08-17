@@ -27,7 +27,7 @@ import {
   getBaketDate,
   getBaketDisplayTitle,
   getBaketJaringIdentitySource,
-  getBaketReferenceLabel,
+  getBaketSourceReferenceLabel,
 } from "./baket-data";
 
 type BaketDetailProps = {
@@ -58,7 +58,7 @@ export function BaketDetail({ baket }: BaketDetailProps) {
   const urgencyLabel = getUrgencyLabel(version?.urgency);
   const urgencyBadgeClass = getUrgencyBadgeClass(version?.urgency);
   const categoryName = baket.reportCategory?.name ?? "Belum tersedia";
-  const sourceReference = getBaketReferenceLabel(baket);
+  const sourceReference = getBaketSourceReferenceLabel(baket);
   const senderAlias = baket.primaryJaring?.aliasName ?? baket.primaryJaring?.fullName ?? "Pengirim Jaring";
 
   const rawLat = version?.latitude;
@@ -116,7 +116,9 @@ export function BaketDetail({ baket }: BaketDetailProps) {
                   <span className="font-bold font-mono text-sm text-violet-600 dark:text-violet-400">
                     {sourceReference}
                   </span>
-                ) : null}
+                ) : (
+                  <span className="font-mono text-sm text-muted-foreground">Tanpa referensi</span>
+                )}
                 <Badge variant="outline" className={cn("font-semibold", urgencyBadgeClass)}>
                   Urgensi: {urgencyLabel}
                 </Badge>

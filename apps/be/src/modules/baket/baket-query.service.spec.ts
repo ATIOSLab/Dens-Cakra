@@ -58,7 +58,7 @@ describe('BaketQueryService detail serialization', () => {
     type FindManyInput = {
       where?: Record<string, unknown>;
     };
-    const findMany = jest.fn((input: FindManyInput) => []);
+    const findMany = jest.fn((_input: FindManyInput) => []);
     const count = jest.fn(() => 0);
     const service = new BaketQueryService(
       { baket: { findMany, count } } as never,

@@ -303,12 +303,14 @@ export class WhatsappBotRuntimeService
     }
   }
 
-  async onModuleDestroy() {
+  onModuleDestroy() {
     this.shuttingDown = true;
     for (const runtime of this.runtimes.values()) {
       try {
         runtime.socket?.ws?.close();
-      } catch {}
+      } catch {
+        // Socket mungkin sudah tertutup — abaikan.
+      }
     }
   }
 
@@ -494,13 +496,13 @@ export class WhatsappBotRuntimeService
 
       runtime.socket = socket;
       socket.ev.on('creds.update', () => {
-        runtime.credsSavePromise = runtime.credsSavePromise
+        void (runtime.credsSavePromise = runtime.credsSavePromise
           .then(() => saveCreds())
           .catch((error: unknown) => {
             this.logger.error(
               `Failed to save WhatsApp credentials for ${channel.code}: ${this.messageOf(error)}`,
             );
-          });
+          }));
       });
       socket.ev.on('connection.update', async (update) => {
         await this.handleConnectionUpdate(
@@ -620,7 +622,9 @@ export class WhatsappBotRuntimeService
         this.runtimes.delete(channel.id);
         try {
           socket.ws?.close();
-        } catch {}
+        } catch {
+          // Abaikan error ini secara sengaja.
+        }
         await this.persistState(
           channel.id,
           {
@@ -1545,11 +1549,15 @@ export class WhatsappBotRuntimeService
       if (logout) {
         await runtime.socket?.logout();
       }
-    } catch {}
+    } catch {
+          // Abaikan error ini secara sengaja.
+        }
 
     try {
       runtime.socket?.ws?.close();
-    } catch {}
+    } catch {
+          // Abaikan error ini secara sengaja.
+        }
 
     this.runtimes.delete(channelId);
   }
@@ -2082,13 +2090,17 @@ export class WhatsappBotRuntimeService
 
       try {
         await socket.sendPresenceUpdate('composing', remoteJid);
-      } catch {}
+      } catch {
+          // Abaikan error ini secara sengaja.
+        }
 
       await sleep(typingMs);
 
       try {
         await socket.sendPresenceUpdate('paused', remoteJid);
-      } catch {}
+      } catch {
+          // Abaikan error ini secara sengaja.
+        }
 
       if (typeof reply === 'string') {
         await socket.sendMessage(remoteJid, { text });
@@ -2228,7 +2240,9 @@ export class WhatsappBotRuntimeService
   private printTerminalQr(qr: string) {
     try {
       qrcodeTerminal.generate(qr, { small: true });
-    } catch {}
+    } catch {
+          // Abaikan error ini secara sengaja.
+        }
   }
 
   private messageOf(error: unknown) {

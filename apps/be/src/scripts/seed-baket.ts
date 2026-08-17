@@ -387,7 +387,6 @@ async function upsertVerifiedBaket(params: {
   const coordinateOffset = ((sequence % 7) - 3) * 0.001;
   const latitude = area.centroidLatitude + coordinateOffset;
   const longitude = area.centroidLongitude - coordinateOffset;
-  const title = `${topic.title} di ${area.name}`;
 
   await prisma.$transaction(async (tx) => {
     await tx.jaring.upsert({
