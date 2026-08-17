@@ -161,8 +161,6 @@ export function buildRegencyFilterOptions(areaScopes: AdministrativeAreaFilterSc
 }
 
 export function buildDistrictFilterOptions(areaScopes: AdministrativeAreaFilterScope[], regencyFilter: string) {
-  if (regencyFilter === "ALL") return [];
-
   const regencies = areaScopes.filter((area) => isRegencyLevel(area.level));
   const districts = new Map<string, DistrictFilterOption>();
 
@@ -171,12 +169,13 @@ export function buildDistrictFilterOptions(areaScopes: AdministrativeAreaFilterS
     if (!id || !isDistrictLevel(area.level)) continue;
 
     const regency = resolveDistrictRegency(area, regencies);
-    if ((regency ? areaScopeId(regency) : area.parentAreaId) !== regencyFilter) continue;
+    const regencyId = regency ? areaScopeId(regency) : (area.parentAreaId ?? null);
+    if (regencyFilter !== "ALL" && regencyId !== regencyFilter) continue;
 
     districts.set(id, {
       id,
       name: area.name,
-      regencyId: regency ? areaScopeId(regency) : (area.parentAreaId ?? null),
+      regencyId,
       regencyName: regency ? regency.name : null,
     });
   }

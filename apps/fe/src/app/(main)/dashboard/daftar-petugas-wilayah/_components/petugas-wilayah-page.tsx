@@ -86,21 +86,24 @@ async function fetchAllPages<T>(path: string, query: QueryParams = {}) {
 }
 
 async function fetchExecutiveAreaFilters(queryState: PersonnelListQueryState): Promise<PersonnelAreaFilters> {
-  const [provinceResult, regenciesFromRegency, regenciesFromCity, districts] = await Promise.all([
+  const [provinceResult, regencies, districts] = await Promise.all([
     fetchAllPages<PersonnelAreaOption>("/administrative-areas", {
       level: "PROVINCE",
       isActive: true,
     }),
     queryState.provinceId
-      ? apiServerGet<PersonnelAreaOption[]>(`/administrative-areas/${queryState.provinceId}/children`, {
-          level: "REGENCY",
-        })
-      : Promise.resolve([]),
-    queryState.provinceId
-      ? apiServerGet<PersonnelAreaOption[]>(`/administrative-areas/${queryState.provinceId}/children`, {
+      ? Promise.all([
+          apiServerGet<PersonnelAreaOption[]>(`/administrative-areas/${queryState.provinceId}/children`, {
+            level: "REGENCY",
+          }).catch(() => []),
+          apiServerGet<PersonnelAreaOption[]>(`/administrative-areas/${queryState.provinceId}/children`, {
+            level: "CITY",
+          }).catch(() => []),
+        ]).then(([fromRegency, fromCity]) => [...fromRegency, ...fromCity])
+      : fetchAllPages<PersonnelAreaOption>("/administrative-areas", {
           level: "CITY",
-        })
-      : Promise.resolve([]),
+          isActive: true,
+        }).then((result) => result.data),
     queryState.regencyId
       ? apiServerGet<PersonnelAreaOption[]>(`/administrative-areas/${queryState.regencyId}/children`, {
           level: "DISTRICT",
@@ -110,7 +113,7 @@ async function fetchExecutiveAreaFilters(queryState: PersonnelListQueryState): P
 
   return {
     provinces: sortAreaOptions(provinceResult.data),
-    regencies: sortAreaOptions([...regenciesFromRegency, ...regenciesFromCity]),
+    regencies: sortAreaOptions(regencies),
     districts: sortAreaOptions(districts),
   };
 }

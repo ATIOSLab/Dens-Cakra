@@ -1364,11 +1364,7 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
                   aria-label="Filter Provinsi"
                   value={queryState.provinceId || "ALL"}
                   options={[
-                    {
-                      value: "ALL",
-                      label: "Pilih Provinsi/Binda terlebih dahulu",
-                      disabled: areaFilters.provinces.length > 0,
-                    },
+                    { value: "ALL", label: "Semua Provinsi" },
                     ...areaFilters.provinces.map((area) => ({ value: area.id, label: area.name })),
                   ]}
                   onValueChange={(val) =>
@@ -1378,7 +1374,7 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
                       districtId: "",
                     })
                   }
-                  placeholder="Pilih Provinsi/Binda terlebih dahulu"
+                  placeholder="Semua Provinsi"
                   searchPlaceholder="Cari Provinsi..."
                   emptyText="Provinsi tidak ditemukan."
                   className={dynamicFilterClassName}
@@ -1395,16 +1391,8 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
               <SearchableSelect
                 aria-label="Filter Kota/Kabupaten"
                 value={queryState.regencyId || "ALL"}
-                disabled={config.showProvinceFilter ? !queryState.provinceId : false}
                 options={[
-                  {
-                    value: "ALL",
-                    label:
-                      config.showProvinceFilter && !queryState.provinceId
-                        ? "Pilih Provinsi/Binda dahulu"
-                        : "Semua Kota/Kabupaten",
-                    disabled: config.showProvinceFilter && !queryState.provinceId,
-                  },
+                  { value: "ALL", label: "Semua Kota/Kabupaten" },
                   ...areaFilters.regencies.map((area) => ({ value: area.id, label: area.name })),
                 ]}
                 onValueChange={(val) =>
@@ -1413,14 +1401,10 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
                     districtId: "",
                   })
                 }
-                placeholder={
-                  config.showProvinceFilter && !queryState.provinceId
-                    ? "Pilih Provinsi/Binda dahulu"
-                    : "Semua Kota/Kabupaten"
-                }
+                placeholder="Semua Kota/Kabupaten"
                 searchPlaceholder="Cari Kota/Kabupaten..."
                 emptyText="Kota/Kabupaten tidak ditemukan."
-                className={cn(dynamicFilterClassName, "disabled:cursor-not-allowed disabled:opacity-30")}
+                className={dynamicFilterClassName}
                 contentClassName={dynamicFilterContentClassName}
               />
             </div>
@@ -1431,13 +1415,8 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
               <SearchableSelect
                 aria-label="Filter Kecamatan"
                 value={queryState.districtId || "ALL"}
-                disabled={!queryState.regencyId}
                 options={[
-                  {
-                    value: "ALL",
-                    label: queryState.regencyId ? "Semua Kecamatan" : "Pilih Kota/Kabupaten dahulu",
-                    disabled: !queryState.regencyId,
-                  },
+                  { value: "ALL", label: "Semua Kecamatan" },
                   ...areaFilters.districts.map((area) => ({ value: area.id, label: area.name })),
                 ]}
                 onValueChange={(val) =>
@@ -1445,10 +1424,10 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
                     districtId: val === "ALL" ? "" : val,
                   })
                 }
-                placeholder={queryState.regencyId ? "Semua Kecamatan" : "Pilih Kota/Kabupaten dahulu"}
+                placeholder="Semua Kecamatan"
                 searchPlaceholder="Cari Kecamatan..."
                 emptyText="Kecamatan tidak ditemukan."
-                className={cn(dynamicFilterClassName, "disabled:cursor-not-allowed disabled:opacity-30")}
+                className={dynamicFilterClassName}
                 contentClassName={dynamicFilterContentClassName}
               />
             </div>

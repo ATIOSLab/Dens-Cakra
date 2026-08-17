@@ -9,6 +9,7 @@ export const REPORT_CATEGORY_DISPLAY_ORDER = [
 ] as const;
 
 type ReportCategoryOrderItem = {
+  id?: string | null;
   code?: string | null;
   name?: string | null;
 };
@@ -69,5 +70,13 @@ export function compareReportCategories<T extends ReportCategoryOrderItem>(left:
 }
 
 export function sortReportCategories<T extends ReportCategoryOrderItem>(categories: readonly T[] | null | undefined) {
-  return [...(categories ?? [])].sort(compareReportCategories);
+  const seen = new Set<string>();
+  return (categories ?? [])
+    .filter((category) => {
+      const key = category.id ?? `${normalizeCategoryToken(category.code)}:${normalizeCategoryToken(category.name)}`;
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .sort(compareReportCategories);
 }

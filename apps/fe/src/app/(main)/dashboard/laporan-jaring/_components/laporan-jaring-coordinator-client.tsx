@@ -953,7 +953,7 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                 aria-label="Filter Provinsi"
                 value={provinceFilter}
                 options={[
-                  { value: "ALL", label: "Pilih Provinsi/Binda terlebih dahulu", disabled: provinceOptions.length > 0 },
+                  { value: "ALL", label: "Semua Provinsi" },
                   ...provinceOptions.map((province) => ({ value: province.id, label: province.name })),
                 ]}
                 onValueChange={(value) => {
@@ -963,7 +963,7 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                   setVillageFilter("ALL");
                   setPage(1);
                 }}
-                placeholder="Pilih Provinsi/Binda terlebih dahulu"
+                placeholder="Semua Provinsi"
                 searchPlaceholder="Cari Provinsi..."
                 emptyText="Provinsi tidak ditemukan."
                 className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full text-xs")}
@@ -978,13 +978,7 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                 options={[
                   {
                     value: "ALL",
-                    label:
-                      provinceOptions.length > 0 && provinceFilter === "ALL"
-                        ? "Pilih Provinsi/Binda dahulu"
-                        : isDkiScoped
-                          ? "Semua Kota/Kabupaten DKI"
-                          : "Semua Kota/Kabupaten",
-                    disabled: provinceOptions.length > 0 && provinceFilter === "ALL",
+                    label: isDkiScoped ? "Semua Kota/Kabupaten DKI" : "Semua Kota/Kabupaten",
                   },
                   ...regencyOptions.map((regency) => ({ value: regency.id, label: regency.name })),
                 ]}
@@ -994,14 +988,7 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                   setVillageFilter("ALL");
                   setPage(1);
                 }}
-                disabled={provinceOptions.length > 0 && provinceFilter === "ALL"}
-                placeholder={
-                  provinceOptions.length > 0 && provinceFilter === "ALL"
-                    ? "Pilih Provinsi/Binda dahulu"
-                    : isDkiScoped
-                      ? "Semua Kota/Kabupaten DKI"
-                      : "Semua Kota/Kabupaten"
-                }
+                placeholder={isDkiScoped ? "Semua Kota/Kabupaten DKI" : "Semua Kota/Kabupaten"}
                 searchPlaceholder="Cari Kota/Kabupaten..."
                 emptyText="Kota/Kabupaten tidak ditemukan."
                 className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full text-xs")}
@@ -1014,11 +1001,7 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                 aria-label="Filter Kecamatan"
                 value={districtFilter}
                 options={[
-                  {
-                    value: "ALL",
-                    label: regencyFilter === "ALL" ? "Pilih Kota/Kabupaten dahulu" : "Semua Kecamatan",
-                    disabled: regencyFilter === "ALL",
-                  },
+                  { value: "ALL", label: "Semua Kecamatan" },
                   ...districtOptions.map((district) => ({ value: district.id, label: district.name })),
                 ]}
                 onValueChange={(value) => {
@@ -1026,8 +1009,7 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                   setVillageFilter("ALL");
                   setPage(1);
                 }}
-                disabled={regencyFilter === "ALL"}
-                placeholder={regencyFilter === "ALL" ? "Pilih Kota/Kabupaten dahulu" : "Semua Kecamatan"}
+                placeholder="Semua Kecamatan"
                 searchPlaceholder="Cari Kecamatan..."
                 emptyText="Kecamatan tidak ditemukan."
                 className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full text-xs")}
@@ -1042,18 +1024,13 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                 setVillageFilter(event.target.value);
                 setPage(1);
               }}
-              disabled={!isFieldOfficer && districtFilter === "ALL"}
               className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full text-xs")}
             >
-              <option value="ALL">
-                {!isFieldOfficer && districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan"}
-              </option>
+              <option value="ALL">Semua Kelurahan</option>
               {villageOptions.map((village) => (
                 <option key={village.id} value={village.id}>
                   {village.name}
-                  {!isFieldOfficer && districtFilter === "ALL" && village.districtName
-                    ? ` - ${village.districtName}`
-                    : ""}
+                  {districtFilter === "ALL" && village.districtName ? ` - ${village.districtName}` : ""}
                 </option>
               ))}
             </NativeSelect>

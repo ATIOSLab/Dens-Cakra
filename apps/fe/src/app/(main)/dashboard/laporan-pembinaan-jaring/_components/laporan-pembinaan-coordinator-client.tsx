@@ -839,7 +839,7 @@ export function LaporanPembinaanCoordinatorClient() {
                 aria-label="Filter Provinsi"
                 value={provinceFilter}
                 options={[
-                  { value: "ALL", label: "Pilih Provinsi/Binda terlebih dahulu", disabled: provinceOptions.length > 0 },
+                  { value: "ALL", label: "Semua Provinsi" },
                   ...provinceOptions.map((province) => ({ value: province.id, label: province.name })),
                 ]}
                 onValueChange={(nextProvince) => {
@@ -851,7 +851,7 @@ export function LaporanPembinaanCoordinatorClient() {
                   setJaringFilter("ALL");
                   setPage(1);
                 }}
-                placeholder="Pilih Provinsi/Binda terlebih dahulu"
+                placeholder="Semua Provinsi"
                 searchPlaceholder="Cari provinsi..."
                 emptyText="Provinsi tidak ditemukan."
                 className={cn(DC_CONTROLS.selectTrigger, "w-full text-xs")}
@@ -864,14 +864,7 @@ export function LaporanPembinaanCoordinatorClient() {
                 aria-label="Filter Kota/Kabupaten"
                 value={regencyFilter}
                 options={[
-                  {
-                    value: "ALL",
-                    label:
-                      provinceOptions.length > 0 && provinceFilter === "ALL"
-                        ? "Pilih Provinsi/Binda dahulu"
-                        : "Semua Kota/Kabupaten",
-                    disabled: provinceOptions.length > 0 && provinceFilter === "ALL",
-                  },
+                  { value: "ALL", label: "Semua Kota/Kabupaten" },
                   ...regencyOptions.map((regency) => ({ value: regency.id, label: regency.name })),
                 ]}
                 onValueChange={(nextRegency) => {
@@ -882,12 +875,7 @@ export function LaporanPembinaanCoordinatorClient() {
                   setJaringFilter("ALL");
                   setPage(1);
                 }}
-                disabled={provinceOptions.length > 0 && provinceFilter === "ALL"}
-                placeholder={
-                  provinceOptions.length > 0 && provinceFilter === "ALL"
-                    ? "Pilih Provinsi/Binda dahulu"
-                    : "Semua Kota/Kabupaten"
-                }
+                placeholder="Semua Kota/Kabupaten"
                 searchPlaceholder="Cari kota/kabupaten..."
                 emptyText="Kota/Kabupaten tidak ditemukan."
                 className={cn(DC_CONTROLS.selectTrigger, "w-full text-xs")}
@@ -899,11 +887,7 @@ export function LaporanPembinaanCoordinatorClient() {
               aria-label="Filter Kecamatan"
               value={districtFilter}
               options={[
-                {
-                  value: "ALL",
-                  label: regencyFilter === "ALL" ? "Pilih Kota/Kabupaten dahulu" : "Semua Kecamatan",
-                  disabled: regencyFilter === "ALL" || districtOptions.length === 0,
-                },
+                { value: "ALL", label: "Semua Kecamatan" },
                 ...districtOptions.map((district) => ({ value: district.id, label: district.name })),
               ]}
               onValueChange={(value) => {
@@ -913,8 +897,7 @@ export function LaporanPembinaanCoordinatorClient() {
                 setJaringFilter("ALL");
                 setPage(1);
               }}
-              disabled={regencyFilter === "ALL" || districtOptions.length === 0}
-              placeholder={regencyFilter === "ALL" ? "Pilih Kota/Kabupaten dahulu" : "Semua Kecamatan"}
+              placeholder="Semua Kecamatan"
               searchPlaceholder="Cari kecamatan..."
               emptyText="Kecamatan tidak ditemukan."
               className={cn(DC_CONTROLS.selectTrigger, "w-full text-xs")}
@@ -925,11 +908,7 @@ export function LaporanPembinaanCoordinatorClient() {
               aria-label="Filter Kelurahan atau Desa"
               value={villageFilter}
               options={[
-                {
-                  value: "ALL",
-                  label: districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan",
-                  disabled: districtFilter === "ALL" || villageOptions.length === 0,
-                },
+                { value: "ALL", label: "Semua Kelurahan" },
                 ...villageOptions.map((village) => ({ value: village.id, label: village.name })),
               ]}
               onValueChange={(value) => {
@@ -938,8 +917,7 @@ export function LaporanPembinaanCoordinatorClient() {
                 setJaringFilter("ALL");
                 setPage(1);
               }}
-              disabled={districtFilter === "ALL" || villageOptions.length === 0}
-              placeholder={districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan"}
+              placeholder="Semua Kelurahan"
               searchPlaceholder="Cari kelurahan/desa..."
               emptyText="Kelurahan/Desa tidak ditemukan."
               className={cn(DC_CONTROLS.selectTrigger, "w-full text-xs")}
