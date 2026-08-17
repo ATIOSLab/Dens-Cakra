@@ -12,6 +12,8 @@ import { cn } from "@/lib/utils";
 import { getSidebarItemsForRole } from "@/navigation/sidebar/sidebar-items";
 import { SYSTEM_ROLE_LABELS, SYSTEM_ROLES, type SystemRole } from "@/navigation/sidebar/system-roles";
 
+import { PermissionMatrix } from "./permission-matrix";
+
 type RoleAccessProfile = {
   id: SystemRole;
   functionLabel: string;
@@ -184,6 +186,8 @@ export function RoleHakAksesPageContent() {
           </div>
         </CardContent>
       </Card>
+
+      <PermissionMatrix />
 
       <Card>
         <CardHeader className="border-b">
