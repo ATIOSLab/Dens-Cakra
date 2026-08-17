@@ -140,6 +140,15 @@ export function getBaketVersionLabel(item: BaketRecord) {
   return `Versi ${item.currentVersionNumber}`;
 }
 
+export function getBaketSourceReferenceLabel(item: BaketRecord) {
+  const version = currentBaketVersion(item);
+  for (const source of version?.sourceMessages ?? []) {
+    const reference = source.message?.referenceNumber?.trim();
+    if (reference) return reference;
+  }
+  return null;
+}
+
 export function getBaketCategoryId(item: BaketRecord) {
   return item.reportCategory?.id ?? null;
 }

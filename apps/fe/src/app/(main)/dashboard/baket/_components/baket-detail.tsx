@@ -24,13 +24,10 @@ import {
   type BaketRecord,
   currentBaketVersion,
   formatBaketAreaName,
-  getBaketContent,
   getBaketDate,
   getBaketDisplayTitle,
   getBaketJaringIdentitySource,
-  getBaketReferenceLabel,
-  getBaketStatusLabel,
-  getBaketVersionLabel,
+  getBaketSourceReferenceLabel,
 } from "./baket-data";
 
 type BaketDetailProps = {
@@ -60,9 +57,8 @@ export function BaketDetail({ baket }: BaketDetailProps) {
   const attachments = version?.attachments ?? [];
   const urgencyLabel = getUrgencyLabel(version?.urgency);
   const urgencyBadgeClass = getUrgencyBadgeClass(version?.urgency);
-  const statusLabel = getBaketStatusLabel(baket.status);
   const categoryName = baket.reportCategory?.name ?? "Belum tersedia";
-  const content = getBaketContent(baket);
+  const sourceReference = getBaketSourceReferenceLabel(baket);
   const senderAlias = baket.primaryJaring?.aliasName ?? baket.primaryJaring?.fullName ?? "Pengirim Jaring";
 
   const rawLat = version?.latitude;
@@ -86,13 +82,6 @@ export function BaketDetail({ baket }: BaketDetailProps) {
       },
     ];
   });
-
-  const verification = version?.verification;
-  const hasVerification = [
-    verification?.sourceReliability,
-    verification?.informationCredibility,
-    verification?.summary,
-  ].some((value) => Boolean(value && String(value).trim()));
 
   return (
     <main className="mx-auto w-full max-w-5xl space-y-5 sm:space-y-6">
@@ -123,20 +112,16 @@ export function BaketDetail({ baket }: BaketDetailProps) {
             />
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="font-bold font-mono text-sm text-violet-600 dark:text-violet-400">
-                  {getBaketReferenceLabel(baket)}
-                </span>
-                <Badge variant="outline" className="font-semibold">
-                  {statusLabel}
-                </Badge>
+                {sourceReference ? (
+                  <span className="font-bold font-mono text-sm text-violet-600 dark:text-violet-400">
+                    {sourceReference}
+                  </span>
+                ) : null}
                 <Badge variant="outline" className={cn("font-semibold", urgencyBadgeClass)}>
                   Urgensi: {urgencyLabel}
                 </Badge>
                 <Badge variant="outline" className="font-semibold">
                   Kategori: {categoryName}
-                </Badge>
-                <Badge variant="outline" className="font-mono">
-                  {getBaketVersionLabel(baket)}
                 </Badge>
               </div>
               <h1 className="mt-0.5 font-bold text-2xl text-foreground">{getBaketDisplayTitle(baket)}</h1>
@@ -275,16 +260,10 @@ export function BaketDetail({ baket }: BaketDetailProps) {
               <div>
                 <CardTitle className="font-bold text-sm uppercase tracking-wide">Bahan Keterangan (Baket)</CardTitle>
                 <CardDescription className="text-xs">
-                  Kategori, urgensi, dan narasi Baket yang disusun dari Laporan Jaring.
+                  Kategori dan urgensi yang ditambahkan pada Laporan Jaring.
                 </CardDescription>
               </div>
             </div>
-            <Badge
-              variant="outline"
-              className="border-violet-500/40 bg-violet-500/10 font-mono text-[10px] text-violet-700 dark:text-violet-400"
-            >
-              {getBaketVersionLabel(baket)}
-            </Badge>
           </div>
         </CardHeader>
         <CardContent className="space-y-4 p-4 text-xs md:p-6">
@@ -309,41 +288,6 @@ export function BaketDetail({ baket }: BaketDetailProps) {
               </Badge>
             </div>
           </div>
-
-          <div className="space-y-1">
-            <span className="font-medium text-muted-foreground">Formulasi Isi Baket:</span>
-            <div className="whitespace-pre-wrap rounded-lg border border-slate-200/80 bg-slate-50 p-3.5 font-mono text-xs leading-relaxed dark:border-white/10 dark:bg-slate-950/40">
-              {content || "-"}
-            </div>
-          </div>
-
-          {version?.fieldOfficerNote ? (
-            <div className="space-y-1">
-              <span className="font-medium text-muted-foreground">Catatan Tambahan Petugas Wilayah (Gaswil):</span>
-              <div className="rounded-lg border border-slate-200/80 bg-slate-50 p-3 text-xs dark:border-white/10 dark:bg-slate-950/40">
-                {version.fieldOfficerNote}
-              </div>
-            </div>
-          ) : null}
-
-          {hasVerification ? (
-            <div className="space-y-2 rounded-lg border border-slate-200/80 bg-slate-50/40 p-3 dark:border-white/10 dark:bg-slate-900/30">
-              <span className="font-medium text-muted-foreground">Penilaian Baket:</span>
-              {verification?.sourceReliability ? (
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Keandalan Sumber</span>
-                  <span className="font-semibold text-foreground">{verification.sourceReliability}</span>
-                </div>
-              ) : null}
-              {verification?.informationCredibility ? (
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Kredibilitas Informasi</span>
-                  <span className="font-semibold text-foreground">{verification.informationCredibility}</span>
-                </div>
-              ) : null}
-              {verification?.summary ? <p className="text-foreground">{verification.summary}</p> : null}
-            </div>
-          ) : null}
         </CardContent>
       </Card>
     </main>
