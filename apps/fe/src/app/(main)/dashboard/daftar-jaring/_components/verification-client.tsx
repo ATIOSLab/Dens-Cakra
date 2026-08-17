@@ -1669,7 +1669,9 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
   const [_reportsViewMode, _setReportsViewMode] = useState<"card" | "table">("card");
   const [reportsPage, setReportsPage] = useState(1);
   const [reportsLimit, setReportsLimit] = useState(10);
-  const [periodPreset, setPeriodPreset] = useState<"ALL" | "TODAY" | "LAST_7_DAYS" | "LAST_30_DAYS" | "CUSTOM">("ALL");
+  const [periodPreset, setPeriodPreset] = useState<"ALL" | "TODAY" | "LAST_7_DAYS" | "LAST_30_DAYS" | "CUSTOM">(
+    "TODAY",
+  );
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
 
@@ -1998,12 +2000,12 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
                 )}
 
                 {/* Reset Filter Button */}
-                {(periodPreset !== "ALL" || startDate || endDate) && (
+                {(periodPreset !== "TODAY" || startDate || endDate) && (
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => {
-                      setPeriodPreset("ALL");
+                      setPeriodPreset("TODAY");
                       setStartDate("");
                       setEndDate("");
                       setReportsPage(1);
@@ -2061,7 +2063,7 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    setPeriodPreset("ALL");
+                    setPeriodPreset("TODAY");
                     setStartDate("");
                     setEndDate("");
                     setReportsPage(1);
