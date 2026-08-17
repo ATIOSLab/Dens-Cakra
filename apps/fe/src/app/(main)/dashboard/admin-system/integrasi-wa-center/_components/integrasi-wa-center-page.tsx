@@ -295,57 +295,26 @@ export function AdminWaCenterPage() {
   };
 
   const groupedChannels = useMemo<ChannelGroup[]>(() => {
-    const groups = new Map<string, ChannelGroup>();
-
-    for (const channel of channels) {
-      const branch = channel.scopeBranch ?? "UNMAPPED";
-      const branchText = branchLabel(channel.scopeBranch);
-      const scopeAreas = channelScopeAreas(channel);
-      const displayAreas = scopeAreas.length > 0 ? scopeAreas : [null];
-      const hierarchyText = compactAreaHierarchy(channel);
-
-      for (const scopeArea of displayAreas) {
-        const groupKey = `${branch}:${scopeArea?.id ?? channel.scopeAreaId ?? hierarchyText}`;
-        const title = scopeArea?.parentName
-          ? `${scopeArea.parentName} / ${scopeArea.name}`
-          : (scopeArea?.name ?? channel.scopeAreaName ?? channel.coordinatorRegion ?? "Belum terpetakan");
-        const subtitleParts = [
-          branchText,
-          scopeAreas.length > 1
-            ? `${scopeAreas.length} wilayah cakupan koneksi`
-            : hierarchyText !== title
-              ? hierarchyText
-              : null,
-        ].filter(Boolean);
+    return channels
+      .map((channel) => {
+        const branchText = branchLabel(channel.scopeBranch);
+        const hierarchyText = compactAreaHierarchy(channel);
+        const title = channel.name || channel.coordinatorName || hierarchyText || "Belum terpetakan";
+        const subtitleParts = [branchText, hierarchyText !== title ? hierarchyText : null].filter(Boolean);
         const sortKey = [
           branchSortOrder(channel.scopeBranch).toString().padStart(2, "0"),
-          areaLevelSortOrder(scopeArea?.level ?? channel.scopeAreaLevel)
-            .toString()
-            .padStart(2, "0"),
+          areaLevelSortOrder(channel.scopeAreaLevel).toString().padStart(2, "0"),
           title,
         ].join(":");
-        const current =
-          groups.get(groupKey) ??
-          ({
-            key: groupKey,
-            title,
-            subtitle: subtitleParts.join(" / "),
-            sortKey,
-            channels: [],
-          } satisfies ChannelGroup);
 
-        current.channels.push(channel);
-        groups.set(groupKey, current);
-      }
-    }
-
-    return Array.from(groups.values())
-      .map((group) => ({
-        ...group,
-        channels: group.channels.sort((left, right) =>
-          (left.coordinatorName ?? left.name).localeCompare(right.coordinatorName ?? right.name),
-        ),
-      }))
+        return {
+          key: channel.id,
+          title,
+          subtitle: subtitleParts.join(" / "),
+          sortKey,
+          channels: [channel],
+        } satisfies ChannelGroup;
+      })
       .sort((left, right) => left.sortKey.localeCompare(right.sortKey));
   }, [channels]);
 
@@ -577,6 +546,10 @@ export function AdminWaCenterPage() {
                                     Pindai QR Code di bawah menggunakan aplikasi WhatsApp di perangkat seluler.
                                   </DialogDescription>
                                 </DialogHeader>
+                                <div className="flex items-center justify-center gap-2 rounded-md border border-border/70 bg-muted/20 px-3 py-2 text-sm">
+                                  <span className="text-muted-foreground">Nomor WhatsApp:</span>
+                                  <span className="font-mono font-semibold text-foreground">{phoneNumber}</span>
+                                </div>
                                 <div className="flex min-h-64 flex-col items-center justify-center p-6">
                                   {channel.qrCodeDataUrl ? (
                                     <div className="rounded-md border border-border bg-white p-4">
