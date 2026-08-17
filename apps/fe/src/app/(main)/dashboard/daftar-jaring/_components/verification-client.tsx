@@ -3,7 +3,7 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import {
   ArrowLeft,
@@ -275,6 +275,7 @@ function statusBadgeVariant(status: RegistrationJaring["registrationStatus"]) {
 
 export function JaringVerificationListClient({ initialItems }: { initialItems: RegistrationJaring[] }) {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const { activeRole } = useRoleWorkspace();
   const canPerformAction = activeRole === SYSTEM_ROLES.FIELD_COORDINATOR;
@@ -282,7 +283,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
   const isFieldCoordinator = activeRole === SYSTEM_ROLES.FIELD_COORDINATOR;
   const isNationalRole = activeRole === SYSTEM_ROLES.EXECUTIVE || activeRole === SYSTEM_ROLES.NATIONAL_LEADER;
   const [items, setItems] = useState<RegistrationJaring[]>(initialItems);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
   const [statusFilter, setStatusFilter] = useState<string>(() => {
     const value = searchParams.get("registrationStatus");
     return value === "PENDING" || value === "APPROVED" || value === "REJECTED" ? value : "ALL";
@@ -291,11 +292,11 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
     const value = searchParams.get("activityStatus");
     return value === "ACTIVE" || value === "INACTIVE" ? value : "ALL";
   });
-  const [provinceFilter, setProvinceFilter] = useState<string>("ALL");
-  const [cityFilter, setCityFilter] = useState<string>("ALL");
-  const [districtFilter, setDistrictFilter] = useState<string>("ALL");
-  const [villageFilter, setVillageFilter] = useState<string>("ALL");
-  const [officerFilter, setOfficerFilter] = useState<string>("ALL");
+  const [provinceFilter, setProvinceFilter] = useState<string>(() => searchParams.get("provinceId") ?? "ALL");
+  const [cityFilter, setCityFilter] = useState<string>(() => searchParams.get("cityId") ?? "ALL");
+  const [districtFilter, setDistrictFilter] = useState<string>(() => searchParams.get("districtId") ?? "ALL");
+  const [villageFilter, setVillageFilter] = useState<string>(() => searchParams.get("villageId") ?? "ALL");
+  const [officerFilter, setOfficerFilter] = useState<string>(() => searchParams.get("officer") ?? "ALL");
   const [sortBy, setSortBy] = useState<"newest" | "oldest" | "name_asc" | "name_desc">(() => {
     const value = searchParams.get("sortBy");
     return value === "oldest" || value === "name_asc" || value === "name_desc" ? value : "newest";
@@ -355,6 +356,42 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
     setPage(1);
     didApplyDefaultProvinceFilter.current = true;
   }, [defaultProvinceFilter, provinceFilter]);
+
+  // Sync active filters to the URL (debounced) so the view is shareable and
+  // the server can pick up the same filters on reload.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const params = new URLSearchParams();
+      if (search.trim()) params.set("search", search.trim());
+      if (statusFilter !== "ALL") params.set("registrationStatus", statusFilter);
+      if (activeStatusFilter !== "ALL") params.set("activityStatus", activeStatusFilter);
+      if (provinceFilter !== "ALL" && provinceFilter !== (defaultProvinceFilter || "ALL")) {
+        params.set("provinceId", provinceFilter);
+      }
+      if (cityFilter !== "ALL") params.set("cityId", cityFilter);
+      if (districtFilter !== "ALL") params.set("districtId", districtFilter);
+      if (villageFilter !== "ALL") params.set("villageId", villageFilter);
+      if (officerFilter !== "ALL") params.set("officer", officerFilter);
+      if (sortBy !== "newest") params.set("sortBy", sortBy);
+
+      const queryString = params.toString();
+      router.replace(queryString ? `${pathname}?${queryString}` : pathname, { scroll: false });
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [
+    pathname,
+    router,
+    search,
+    statusFilter,
+    activeStatusFilter,
+    provinceFilter,
+    cityFilter,
+    districtFilter,
+    villageFilter,
+    officerFilter,
+    sortBy,
+    defaultProvinceFilter,
+  ]);
 
   const uniqueCities = useMemo(() => {
     const options = new Map<string, AreaFilterOption>();
