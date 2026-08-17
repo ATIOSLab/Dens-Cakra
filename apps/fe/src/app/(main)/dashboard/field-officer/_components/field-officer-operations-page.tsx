@@ -49,6 +49,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { NativeSelect } from "@/components/ui/native-select";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/table-pagination";
@@ -1212,18 +1213,18 @@ export function FieldOfficerOperationsPage({
                   >
                     Klasifikasi
                   </label>
-                  <select
+                  <NativeSelect
                     id="task-classification-filter"
                     value={taskClassificationFilter}
                     onChange={(e) => setTaskClassificationFilter(e.target.value)}
-                    className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-slate-900 text-sm dark:border-white/10 dark:bg-[#131A26] dark:text-white"
+                    className="h-9 w-full"
                   >
                     <option value="">Semua Klasifikasi</option>
                     <option value="BIASA">BIASA</option>
                     <option value="TERBATAS">TERBATAS</option>
                     <option value="RAHASIA">RAHASIA</option>
                     <option value="SANGAT_RAHASIA">SANGAT RAHASIA</option>
-                  </select>
+                  </NativeSelect>
                 </div>
 
                 <div className="space-y-1.5">
@@ -1233,18 +1234,18 @@ export function FieldOfficerOperationsPage({
                   >
                     Prioritas
                   </label>
-                  <select
+                  <NativeSelect
                     id="task-priority-filter"
                     value={taskPriorityFilter}
                     onChange={(e) => setTaskPriorityFilter(e.target.value)}
-                    className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-slate-900 text-sm dark:border-white/10 dark:bg-[#131A26] dark:text-white"
+                    className="h-9 w-full"
                   >
                     <option value="">Semua Prioritas</option>
                     <option value="LOW">Rendah</option>
                     <option value="NORMAL">Normal</option>
                     <option value="HIGH">Tinggi</option>
                     <option value="URGENT">Mendesak</option>
-                  </select>
+                  </NativeSelect>
                 </div>
 
                 <div className="space-y-1.5">
@@ -2005,7 +2006,7 @@ export function FieldOfficerOperationsPage({
                 </TabsList>
 
                 <div className="grid gap-3 rounded-[6px] border border-[var(--tactical-border)] bg-black/5 p-3 md:grid-cols-2 xl:grid-cols-[1fr_180px_180px_auto_auto] dark:bg-white/[0.01]">
-                  <select
+                  <NativeSelect
                     value={baketFilterDraft.categoryId}
                     onChange={(event) =>
                       setBaketFilterDraft((current) => ({
@@ -2013,7 +2014,7 @@ export function FieldOfficerOperationsPage({
                         categoryId: event.target.value,
                       }))
                     }
-                    className="tactical-input h-10 w-full px-3 text-sm"
+                    className="h-10 w-full"
                     aria-label="Filter kategori baket"
                   >
                     <option value="">Semua Kategori</option>
@@ -2024,7 +2025,7 @@ export function FieldOfficerOperationsPage({
                         </option>
                       ),
                     )}
-                  </select>
+                  </NativeSelect>
 
                   <Input
                     type="date"
