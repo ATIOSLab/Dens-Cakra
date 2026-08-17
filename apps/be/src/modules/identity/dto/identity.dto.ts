@@ -5,6 +5,7 @@ import {
   IsIP,
   IsOptional,
   IsString,
+  Matches,
   MaxLength,
 } from 'class-validator';
 import { AdministrativeLevel } from '../../../generated/prisma/client.js';
@@ -32,4 +33,13 @@ export class UpdateSessionNetworkDto {
   @IsIP()
   @MaxLength(64)
   ipAddress!: string;
+}
+
+export class UpdateMyProfileDto {
+  @IsString()
+  @MaxLength(30)
+  @Matches(/^[+\d\s().-]+$/, {
+    message: 'Nomor WhatsApp harus berupa angka (boleh diawali + atau 0).',
+  })
+  phone!: string;
 }

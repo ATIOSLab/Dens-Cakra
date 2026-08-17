@@ -1,11 +1,13 @@
-import { CalendarClock, MonitorSmartphone, ShieldCheck, UserRound } from "lucide-react";
+import { CalendarClock, MonitorSmartphone, Phone, ShieldCheck, UserRound } from "lucide-react";
 import type { Metadata } from "next";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AccountPasswordForm } from "@/features/account/account-password-form";
+import { AccountPhoneForm } from "@/features/account/account-phone-form";
 import { AccountProfileForm } from "@/features/account/account-profile-form";
+import { apiServerGet } from "@/lib/api/server-client";
 import { requireSession } from "@/lib/auth/server-session";
 import { getInitials } from "@/lib/utils";
 import { getSystemRoleLabel } from "@/navigation/sidebar/system-roles";
@@ -60,6 +62,9 @@ export default async function AccountPage() {
   const locationLabel = principal.session.locationLabel ?? "Lokasi tidak tersedia";
   const ipAddress = principal.session.ipAddress ?? "IP tidak tersedia";
 
+  const me = await apiServerGet<{ profile?: { phone?: string | null } | null }>("/me").catch(() => null);
+  const phone = me?.profile?.phone ?? null;
+
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-5">
       <section className="flex flex-col gap-4 rounded-md border border-[var(--dc-border-subtle)] bg-card/70 p-4 shadow-[var(--dc-shadow-card)] sm:flex-row sm:items-center sm:justify-between">
@@ -96,6 +101,19 @@ export default async function AccountPage() {
                 initialName={principal.user.name}
                 email={principal.user.email}
               />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Phone className="size-4 text-cyan-600 dark:text-cyan-400" />
+                Nomor WhatsApp
+              </CardTitle>
+              <CardDescription>Lengkapi profil dengan nomor WhatsApp aktif Anda.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <AccountPhoneForm initialPhone={phone} />
             </CardContent>
           </Card>
 

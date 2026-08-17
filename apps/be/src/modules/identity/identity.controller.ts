@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Patch,
   Post,
   Query,
   Req,
@@ -20,6 +21,7 @@ import { apiResult } from '../../common/api/api-response.js';
 import {
   AreaScopeQueryDto,
   RevokeOtherSessionsDto,
+  UpdateMyProfileDto,
   UpdateSessionNetworkDto,
 } from './dto/identity.dto.js';
 import { IdentityService } from './identity.service.js';
@@ -50,6 +52,21 @@ export class IdentityController {
     @CurrentAccessContext() context: AuthorizationContext,
   ) {
     return apiResult(context);
+  }
+
+  @Patch('profile')
+  @ApiContract({
+    operationId: 'apiCtx008',
+    contractId: 'API-CTX-008',
+    summary: 'Perbarui nomor WhatsApp pada profil pengguna aktif',
+  })
+  async updateMyProfile(
+    @CurrentAccessContext() context: AuthorizationContext,
+    @Body() body: UpdateMyProfileDto,
+  ) {
+    return apiResult(
+      await this.identity.updateMyProfile(context, { phone: body.phone }),
+    );
   }
 
   @Get('area-scopes')

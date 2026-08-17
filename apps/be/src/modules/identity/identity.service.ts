@@ -64,6 +64,38 @@ export class IdentityService {
     };
   }
 
+  async updateMyProfile(
+    context: AuthorizationContext,
+    input: { phone: string },
+  ) {
+    const profile = await this.prisma.userProfile.findUnique({
+      where: { authUserId: context.authUserId },
+      select: { id: true, phone: true },
+    });
+
+    if (!profile) {
+      throw new NotFoundException('User profile was not found.');
+    }
+
+    const normalizedPhone = input.phone.trim();
+
+    await this.prisma.userProfile.update({
+      where: { id: profile.id },
+      data: { phone: normalizedPhone },
+    });
+
+    await this.writeAudit({
+      context,
+      action: 'PROFILE.PHONE_UPDATED',
+      metadata: {
+        previous: profile.phone ?? null,
+        current: normalizedPhone,
+      },
+    });
+
+    return { phone: normalizedPhone };
+  }
+
   async updateSessionNetwork(input: {
     sessionId: string;
     authUserId: string;
