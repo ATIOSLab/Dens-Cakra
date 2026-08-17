@@ -1,14 +1,21 @@
 export const SYSTEM_ROLES = {
+  ADMIN_SYSTEM: 'admin_system',
+  NATIONAL_LEADER: 'national_leader',
   EXECUTIVE: 'executive',
   REGIONAL_COMMANDER: 'regional_commander',
   FIELD_COORDINATOR: 'field_coordinator',
   FIELD_OFFICER: 'field_officer',
-  ADMIN_SYSTEM: 'admin_system',
 } as const;
 
 export type SystemRole = (typeof SYSTEM_ROLES)[keyof typeof SYSTEM_ROLES];
 
 export const SYSTEM_ROLE_CATALOG = [
+  {
+    key: SYSTEM_ROLES.NATIONAL_LEADER,
+    label: 'Kepala BIN (KaBIN)',
+    summary:
+      'Pimpinan tertinggi BIN yang melihat dan mengendalikan seluruh cakupan nasional pada garis komando kewilayahan.',
+  },
   {
     key: SYSTEM_ROLES.EXECUTIVE,
     label: 'Deputi II',

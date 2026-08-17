@@ -423,6 +423,7 @@ async function buildCityDistribution(
 
 export default async function SebaranJaringPage() {
   const session = await requireRole(
+    SYSTEM_ROLES.NATIONAL_LEADER,
     SYSTEM_ROLES.EXECUTIVE,
     SYSTEM_ROLES.REGIONAL_COMMANDER,
     SYSTEM_ROLES.FIELD_COORDINATOR,

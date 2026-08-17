@@ -236,6 +236,7 @@ function distributionFromEntries(entries: JaringDistributionEntry[]): JaringDist
 
 export default async function SebaranGaswilPage() {
   const session = await requireRole(
+    SYSTEM_ROLES.NATIONAL_LEADER,
     SYSTEM_ROLES.EXECUTIVE,
     SYSTEM_ROLES.REGIONAL_COMMANDER,
     SYSTEM_ROLES.FIELD_COORDINATOR,

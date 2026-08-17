@@ -120,6 +120,7 @@ async function fetchExecutiveAreaFilters(queryState: PersonnelListQueryState): P
 
 export async function PetugasWilayahPage({ searchParams }: { searchParams?: Promise<RouteSearchParams> }) {
   const session = await requireRole(
+    SYSTEM_ROLES.NATIONAL_LEADER,
     SYSTEM_ROLES.EXECUTIVE,
     SYSTEM_ROLES.FIELD_COORDINATOR,
     SYSTEM_ROLES.REGIONAL_COMMANDER,
@@ -191,6 +192,7 @@ export async function PetugasWilayahPage({ searchParams }: { searchParams?: Prom
 
 export async function PetugasWilayahDetailPage({ assignmentId }: { assignmentId: string }) {
   const session = await requireRole(
+    SYSTEM_ROLES.NATIONAL_LEADER,
     SYSTEM_ROLES.EXECUTIVE,
     SYSTEM_ROLES.FIELD_COORDINATOR,
     SYSTEM_ROLES.REGIONAL_COMMANDER,

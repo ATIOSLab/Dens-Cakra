@@ -134,7 +134,7 @@ function buildCoordinatorTaskViews(tasks: TaskSummary[], primaryAssignmentId: st
 }
 
 export async function OimTaskListPage({ sortBy, sortOrder }: { sortBy?: string; sortOrder?: string }) {
-  await requireRole(SYSTEM_ROLES.EXECUTIVE, SYSTEM_ROLES.REGIONAL_COMMANDER);
+  await requireRole(SYSTEM_ROLES.NATIONAL_LEADER, SYSTEM_ROLES.EXECUTIVE, SYSTEM_ROLES.REGIONAL_COMMANDER);
   const access = await apiServerGet<AccessMe>("/access/me");
   const [tasks, sources] = await Promise.all([
     apiServerGet<TaskSummary[]>("/tasks", {
@@ -152,7 +152,7 @@ export async function OimTaskListPage({ sortBy, sortOrder }: { sortBy?: string; 
 }
 
 export async function OimTaskCreatePage({ uukStrId }: { uukStrId?: string }) {
-  await requireRole(SYSTEM_ROLES.EXECUTIVE, SYSTEM_ROLES.REGIONAL_COMMANDER);
+  await requireRole(SYSTEM_ROLES.NATIONAL_LEADER, SYSTEM_ROLES.EXECUTIVE, SYSTEM_ROLES.REGIONAL_COMMANDER);
   if (!uukStrId) {
     redirect("/dashboard/anev/direktif-tugas");
   }
@@ -168,7 +168,7 @@ export async function OimTaskCreatePage({ uukStrId }: { uukStrId?: string }) {
 }
 
 export async function OimTaskDetailPage({ taskId }: { taskId: string }) {
-  await requireRole(SYSTEM_ROLES.EXECUTIVE, SYSTEM_ROLES.REGIONAL_COMMANDER);
+  await requireRole(SYSTEM_ROLES.NATIONAL_LEADER, SYSTEM_ROLES.EXECUTIVE, SYSTEM_ROLES.REGIONAL_COMMANDER);
   const task = await apiServerGet<TaskDetail>(`/tasks/${taskId}`);
 
   return (
@@ -182,13 +182,13 @@ export async function OimTaskDetailPage({ taskId }: { taskId: string }) {
 }
 
 export async function OimTaskEditPage({ taskId }: { taskId: string }) {
-  await requireRole(SYSTEM_ROLES.EXECUTIVE, SYSTEM_ROLES.REGIONAL_COMMANDER);
+  await requireRole(SYSTEM_ROLES.NATIONAL_LEADER, SYSTEM_ROLES.EXECUTIVE, SYSTEM_ROLES.REGIONAL_COMMANDER);
   redirect(`/dashboard/anev/direktif-tugas/${taskId}`);
   return null;
 }
 
 export async function OimTaskAssignmentPage({ taskId }: { taskId: string }) {
-  await requireRole(SYSTEM_ROLES.EXECUTIVE, SYSTEM_ROLES.REGIONAL_COMMANDER);
+  await requireRole(SYSTEM_ROLES.NATIONAL_LEADER, SYSTEM_ROLES.EXECUTIVE, SYSTEM_ROLES.REGIONAL_COMMANDER);
   const [access, task] = await Promise.all([
     apiServerGet<AccessMe>("/access/me"),
     apiServerGet<TaskDetail>(`/tasks/${taskId}`),

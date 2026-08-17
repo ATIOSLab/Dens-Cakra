@@ -1,16 +1,18 @@
 import { DOMAIN_TERMS } from "@/lib/domain/terminology";
 
 export const SYSTEM_ROLES = {
+  ADMIN_SYSTEM: "admin_system",
+  NATIONAL_LEADER: "national_leader",
   EXECUTIVE: "executive",
   REGIONAL_COMMANDER: "regional_commander",
   FIELD_COORDINATOR: "field_coordinator",
   FIELD_OFFICER: "field_officer",
-  ADMIN_SYSTEM: "admin_system",
 } as const;
 
 export type SystemRole = (typeof SYSTEM_ROLES)[keyof typeof SYSTEM_ROLES];
 
 export const SYSTEM_ROLE_LABELS: Record<SystemRole, string> = {
+  [SYSTEM_ROLES.NATIONAL_LEADER]: DOMAIN_TERMS.nationalLeader,
   [SYSTEM_ROLES.EXECUTIVE]: DOMAIN_TERMS.executiveRole,
   [SYSTEM_ROLES.REGIONAL_COMMANDER]: DOMAIN_TERMS.regionalCommanderRole,
   [SYSTEM_ROLES.FIELD_COORDINATOR]: DOMAIN_TERMS.fieldCoordinatorRole,
@@ -19,6 +21,7 @@ export const SYSTEM_ROLE_LABELS: Record<SystemRole, string> = {
 };
 
 export const SYSTEM_ROLE_HOME_ROUTES: Record<SystemRole, string> = {
+  [SYSTEM_ROLES.NATIONAL_LEADER]: "/dashboard/deputi",
   [SYSTEM_ROLES.EXECUTIVE]: "/dashboard/deputi",
   [SYSTEM_ROLES.REGIONAL_COMMANDER]: "/dashboard/kabinda",
   [SYSTEM_ROLES.FIELD_COORDINATOR]: "/dashboard/koordinator-wilayah",

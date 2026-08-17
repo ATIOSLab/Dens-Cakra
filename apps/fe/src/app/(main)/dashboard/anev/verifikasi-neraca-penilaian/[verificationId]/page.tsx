@@ -11,7 +11,7 @@ type PageProps = {
 };
 
 export default async function Page({ params }: PageProps) {
-  await requireRole(SYSTEM_ROLES.EXECUTIVE, SYSTEM_ROLES.REGIONAL_COMMANDER);
+  await requireRole(SYSTEM_ROLES.NATIONAL_LEADER, SYSTEM_ROLES.EXECUTIVE, SYSTEM_ROLES.REGIONAL_COMMANDER);
   const { verificationId } = await params;
   const verification = await apiServerGet<{
     baketVersion?: { baket?: { id?: string } };

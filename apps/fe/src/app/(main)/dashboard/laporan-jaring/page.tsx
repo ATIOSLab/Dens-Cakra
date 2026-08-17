@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic";
 
 export default async function LaporanJaringMainPage() {
   const principal = await requireRole(
+    SYSTEM_ROLES.NATIONAL_LEADER,
     SYSTEM_ROLES.EXECUTIVE,
     SYSTEM_ROLES.FIELD_OFFICER,
     SYSTEM_ROLES.FIELD_COORDINATOR,

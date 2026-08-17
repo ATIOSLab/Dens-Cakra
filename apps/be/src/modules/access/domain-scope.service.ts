@@ -114,7 +114,10 @@ export class DomainScopeService {
   async productWhere(
     context: AuthorizationContext,
   ): Promise<Prisma.IntelligenceProductWhereInput> {
-    if (context.authRole === SYSTEM_ROLES.EXECUTIVE) {
+    if (
+      context.authRole === SYSTEM_ROLES.EXECUTIVE ||
+      context.authRole === SYSTEM_ROLES.NATIONAL_LEADER
+    ) {
       const scope = await this.resolve(context);
       return {
         createdByAssignmentId: { in: scope.assignmentIds },

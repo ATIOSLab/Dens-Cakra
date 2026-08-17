@@ -52,7 +52,7 @@ export async function RegionalProductDetailPage({
 }
 
 export async function ExecutiveProductListPage({ sortBy, sortOrder }: { sortBy?: string; sortOrder?: string }) {
-  await requireRole(SYSTEM_ROLES.EXECUTIVE);
+  await requireRole(SYSTEM_ROLES.NATIONAL_LEADER, SYSTEM_ROLES.EXECUTIVE);
   const products = await apiServerGet("/products", { page: 1, limit: 100, sortBy, sortOrder });
   return (
     <IntelligenceProductList
@@ -65,7 +65,7 @@ export async function ExecutiveProductListPage({ sortBy, sortOrder }: { sortBy?:
 }
 
 export async function ExecutiveProductDetailPage({ productId }: { productId: string }) {
-  await requireRole(SYSTEM_ROLES.EXECUTIVE);
+  await requireRole(SYSTEM_ROLES.NATIONAL_LEADER, SYSTEM_ROLES.EXECUTIVE);
   const product = await apiServerGet(`/products/${productId}`, { include: "versions,workflow" });
   return <IntelligenceProductDetail product={product} executive />;
 }

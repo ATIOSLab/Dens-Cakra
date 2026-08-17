@@ -7,37 +7,53 @@ const projectRoot = process.cwd();
 const sourceRoot = path.join(projectRoot, "src");
 const appRoot = path.join(sourceRoot, "app");
 
-const roleNames = ["ADMIN_SYSTEM", "EXECUTIVE", "FIELD_COORDINATOR", "FIELD_OFFICER", "REGIONAL_COMMANDER"];
+const roleNames = [
+  "ADMIN_SYSTEM",
+  "NATIONAL_LEADER",
+  "EXECUTIVE",
+  "FIELD_COORDINATOR",
+  "FIELD_OFFICER",
+  "REGIONAL_COMMANDER",
+];
 
 const expectedRouteRoles = [
   { prefix: "/dashboard/admin-system", roles: ["ADMIN_SYSTEM"] },
-  { prefix: "/dashboard/deputi", roles: ["EXECUTIVE"] },
-  { prefix: "/dashboard/anev", roles: ["EXECUTIVE", "REGIONAL_COMMANDER"] },
+  { prefix: "/dashboard/deputi", roles: ["NATIONAL_LEADER", "EXECUTIVE"] },
+  { prefix: "/dashboard/anev", roles: ["NATIONAL_LEADER", "EXECUTIVE", "REGIONAL_COMMANDER"] },
   { prefix: "/dashboard/kabinda", roles: ["REGIONAL_COMMANDER"] },
   { prefix: "/dashboard/petugas-wilayah", roles: ["FIELD_OFFICER"] },
   { prefix: "/dashboard/koordinator-wilayah", roles: ["FIELD_COORDINATOR"] },
-  { prefix: "/dashboard/peta-jejaring-intelijen", roles: ["EXECUTIVE", "REGIONAL_COMMANDER"] },
-  { prefix: "/dashboard/sebaran-jaring", roles: ["EXECUTIVE", "FIELD_COORDINATOR", "REGIONAL_COMMANDER"] },
-  { prefix: "/dashboard/sebaran-gaswil", roles: ["EXECUTIVE", "FIELD_COORDINATOR", "REGIONAL_COMMANDER"] },
-  { prefix: "/dashboard/daftar-petugas-wilayah", roles: ["EXECUTIVE", "FIELD_COORDINATOR", "REGIONAL_COMMANDER"] },
+  { prefix: "/dashboard/peta-jejaring-intelijen", roles: ["NATIONAL_LEADER", "EXECUTIVE", "REGIONAL_COMMANDER"] },
+  {
+    prefix: "/dashboard/sebaran-jaring",
+    roles: ["NATIONAL_LEADER", "EXECUTIVE", "FIELD_COORDINATOR", "REGIONAL_COMMANDER"],
+  },
+  {
+    prefix: "/dashboard/sebaran-gaswil",
+    roles: ["NATIONAL_LEADER", "EXECUTIVE", "FIELD_COORDINATOR", "REGIONAL_COMMANDER"],
+  },
+  {
+    prefix: "/dashboard/daftar-petugas-wilayah",
+    roles: ["NATIONAL_LEADER", "EXECUTIVE", "FIELD_COORDINATOR", "REGIONAL_COMMANDER"],
+  },
   { prefix: "/dashboard/daftar-jaring/baru", roles: ["FIELD_OFFICER"] },
   { prefix: "/dashboard/daftar-jaring/[jaringId]/edit", roles: ["FIELD_OFFICER"] },
   { prefix: "/dashboard/laporan-pembinaan-jaring/baru", roles: ["FIELD_OFFICER"] },
   {
     prefix: "/dashboard/baket",
-    roles: ["EXECUTIVE", "FIELD_OFFICER", "FIELD_COORDINATOR", "REGIONAL_COMMANDER"],
+    roles: ["NATIONAL_LEADER", "EXECUTIVE", "FIELD_OFFICER", "FIELD_COORDINATOR", "REGIONAL_COMMANDER"],
   },
   {
     prefix: "/dashboard/daftar-jaring",
-    roles: ["EXECUTIVE", "FIELD_OFFICER", "FIELD_COORDINATOR", "REGIONAL_COMMANDER"],
+    roles: ["NATIONAL_LEADER", "EXECUTIVE", "FIELD_OFFICER", "FIELD_COORDINATOR", "REGIONAL_COMMANDER"],
   },
   {
     prefix: "/dashboard/laporan-jaring",
-    roles: ["EXECUTIVE", "FIELD_OFFICER", "FIELD_COORDINATOR", "REGIONAL_COMMANDER"],
+    roles: ["NATIONAL_LEADER", "EXECUTIVE", "FIELD_OFFICER", "FIELD_COORDINATOR", "REGIONAL_COMMANDER"],
   },
   {
     prefix: "/dashboard/laporan-pembinaan-jaring",
-    roles: ["EXECUTIVE", "FIELD_OFFICER", "FIELD_COORDINATOR", "REGIONAL_COMMANDER"],
+    roles: ["NATIONAL_LEADER", "EXECUTIVE", "FIELD_OFFICER", "FIELD_COORDINATOR", "REGIONAL_COMMANDER"],
   },
 ];
 

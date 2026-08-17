@@ -58,6 +58,7 @@ export type DashboardBriefingData = {
 export type DashboardSection = "summaryCards" | "kpis" | "taskPipeline" | "alerts" | "emergencies" | "products";
 
 export const ROLE_SECTIONS: Record<SystemRole, DashboardSection[]> = {
+  national_leader: ["summaryCards", "kpis", "taskPipeline", "alerts", "emergencies", "products"],
   executive: ["summaryCards", "kpis", "taskPipeline", "alerts", "emergencies", "products"],
   regional_commander: ["summaryCards", "kpis", "taskPipeline", "alerts", "emergencies", "products"],
   field_coordinator: ["summaryCards", "kpis", "taskPipeline", "alerts", "emergencies"],

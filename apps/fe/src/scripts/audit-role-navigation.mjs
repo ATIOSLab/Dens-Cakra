@@ -10,6 +10,7 @@ const sidebarFile = path.join(sourceRoot, "navigation", "sidebar", "sidebar-item
 
 const roleValues = {
   ADMIN_SYSTEM: "admin_system",
+  NATIONAL_LEADER: "national_leader",
   EXECUTIVE: "executive",
   FIELD_COORDINATOR: "field_coordinator",
   FIELD_OFFICER: "field_officer",
@@ -18,6 +19,7 @@ const roleValues = {
 
 const roleLabels = {
   [roleValues.ADMIN_SYSTEM]: "Admin Sistem",
+  [roleValues.NATIONAL_LEADER]: "Kepala BIN (KaBIN)",
   [roleValues.EXECUTIVE]: "Deputi II",
   [roleValues.FIELD_COORDINATOR]: "Koordinator Wilayah (Korwil)",
   [roleValues.FIELD_OFFICER]: "Petugas Wilayah (Gaswil)",
@@ -26,6 +28,7 @@ const roleLabels = {
 
 const homeRoutes = {
   [roleValues.ADMIN_SYSTEM]: "/dashboard/admin-system",
+  [roleValues.NATIONAL_LEADER]: "/dashboard/deputi",
   [roleValues.EXECUTIVE]: "/dashboard/deputi",
   [roleValues.FIELD_COORDINATOR]: "/dashboard/koordinator-wilayah",
   [roleValues.FIELD_OFFICER]: "/dashboard/petugas-wilayah",

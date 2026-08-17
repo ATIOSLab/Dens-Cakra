@@ -9,7 +9,11 @@ export default async function Page({
 }: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const principal = await requireRole(SYSTEM_ROLES.EXECUTIVE, SYSTEM_ROLES.REGIONAL_COMMANDER);
+  const principal = await requireRole(
+    SYSTEM_ROLES.NATIONAL_LEADER,
+    SYSTEM_ROLES.EXECUTIVE,
+    SYSTEM_ROLES.REGIONAL_COMMANDER,
+  );
 
   return <DashboardStatsPage role={principal.role} searchParams={await searchParams} />;
 }

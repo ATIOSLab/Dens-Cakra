@@ -3109,7 +3109,10 @@ export class IntelligenceProductsService {
   private async fieldIntelligenceJaringScopeWhere(
     context: AuthorizationContext,
   ): Promise<Prisma.JaringWhereInput> {
-    if (context.authRole === SYSTEM_ROLES.EXECUTIVE) {
+    if (
+      context.authRole === SYSTEM_ROLES.EXECUTIVE ||
+      context.authRole === SYSTEM_ROLES.NATIONAL_LEADER
+    ) {
       return { deletedAt: null };
     }
 
@@ -3730,7 +3733,9 @@ export class IntelligenceProductsService {
           name: context.organizationUnitName,
         },
         areas: context.areaScopes,
-        nationalAccess: context.authRole === SYSTEM_ROLES.EXECUTIVE,
+        nationalAccess:
+          context.authRole === SYSTEM_ROLES.EXECUTIVE ||
+          context.authRole === SYSTEM_ROLES.NATIONAL_LEADER,
         includesUnverifiedJaring: true,
       },
       summary: {

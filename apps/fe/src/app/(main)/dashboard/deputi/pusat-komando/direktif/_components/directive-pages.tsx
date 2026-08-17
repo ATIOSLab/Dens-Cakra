@@ -124,7 +124,7 @@ async function loadDirectiveBuilderOptions() {
 }
 
 export async function DirectiveListPage({ sortBy, sortOrder }: { sortBy?: string; sortOrder?: string }) {
-  await requireRole(SYSTEM_ROLES.EXECUTIVE);
+  await requireRole(SYSTEM_ROLES.NATIONAL_LEADER, SYSTEM_ROLES.EXECUTIVE);
   const access = await apiServerGet<AccessContextResource>("/access/me");
   const directives = await apiServerGet<DirectiveSummary[]>("/directives", {
     ownerUnitId: access.authorizationContext.organizationUnitId,
@@ -137,7 +137,7 @@ export async function DirectiveListPage({ sortBy, sortOrder }: { sortBy?: string
 }
 
 export async function DirectiveCreatePage() {
-  await requireRole(SYSTEM_ROLES.EXECUTIVE);
+  await requireRole(SYSTEM_ROLES.NATIONAL_LEADER, SYSTEM_ROLES.EXECUTIVE);
   const options = await loadDirectiveBuilderOptions();
 
   return (
@@ -153,7 +153,7 @@ export async function DirectiveCreatePage() {
 }
 
 export async function DirectiveDetailPage({ directiveId }: { directiveId: string }) {
-  await requireRole(SYSTEM_ROLES.EXECUTIVE);
+  await requireRole(SYSTEM_ROLES.NATIONAL_LEADER, SYSTEM_ROLES.EXECUTIVE);
   const [directive, tracking] = await Promise.all([
     apiServerGet<DirectiveDetail>(`/directives/${directiveId}`),
     apiServerGet<DirectiveTracking>(`/directives/${directiveId}/tracking`, { includeTasks: true }),
@@ -163,7 +163,7 @@ export async function DirectiveDetailPage({ directiveId }: { directiveId: string
 }
 
 export async function DirectiveEditPage({ directiveId }: { directiveId: string }) {
-  await requireRole(SYSTEM_ROLES.EXECUTIVE);
+  await requireRole(SYSTEM_ROLES.NATIONAL_LEADER, SYSTEM_ROLES.EXECUTIVE);
   const [options, directive] = await Promise.all([
     loadDirectiveBuilderOptions(),
     apiServerGet<DirectiveDetail>(`/directives/${directiveId}`),
@@ -183,7 +183,7 @@ export async function DirectiveEditPage({ directiveId }: { directiveId: string }
 }
 
 export async function DirectiveVersionPage({ directiveId, versionId }: { directiveId: string; versionId: string }) {
-  await requireRole(SYSTEM_ROLES.EXECUTIVE);
+  await requireRole(SYSTEM_ROLES.NATIONAL_LEADER, SYSTEM_ROLES.EXECUTIVE);
   const [directive, version] = await Promise.all([
     apiServerGet<DirectiveDetail>(`/directives/${directiveId}`),
     apiServerGet(`/directive-versions/${versionId}`),
@@ -202,7 +202,7 @@ export async function DirectiveVersionPage({ directiveId, versionId }: { directi
 }
 
 export async function DirectiveTrackingPage({ directiveId }: { directiveId: string }) {
-  await requireRole(SYSTEM_ROLES.EXECUTIVE);
+  await requireRole(SYSTEM_ROLES.NATIONAL_LEADER, SYSTEM_ROLES.EXECUTIVE);
   const [directive, tracking] = await Promise.all([
     apiServerGet<DirectiveDetail>(`/directives/${directiveId}`),
     apiServerGet<DirectiveTracking>(`/directives/${directiveId}/tracking`, { includeTasks: true }),

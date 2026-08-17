@@ -69,6 +69,7 @@ function relativeTime(value?: string | null) {
 
 const ROLE_LABELS: Record<SystemRole, string> = {
   [SYSTEM_ROLES.ADMIN_SYSTEM]: DOMAIN_TERMS.adminSystemRole,
+  [SYSTEM_ROLES.NATIONAL_LEADER]: DOMAIN_TERMS.nationalLeader,
   [SYSTEM_ROLES.EXECUTIVE]: DOMAIN_TERMS.executiveRole,
   [SYSTEM_ROLES.FIELD_COORDINATOR]: DOMAIN_TERMS.fieldCoordinatorRole,
   [SYSTEM_ROLES.FIELD_OFFICER]: DOMAIN_TERMS.fieldOfficer,
