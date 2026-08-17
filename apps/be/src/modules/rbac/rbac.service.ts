@@ -3,7 +3,12 @@ import type { AuthorizationContext } from '../../common/types/authorization-cont
 import { PrismaService } from '../prisma/prisma.service.js';
 import type {
   AreaPolicyQueryDto,
+  OrganizationUnitUpsertDto,
+  PermissionUpsertDto,
+  PositionUpsertDto,
   RoleListQueryDto,
+  SetRolePermissionsDto,
+  SupervisionAssignmentUpsertDto,
   UpdateAreaPolicyDto,
 } from './dto/rbac.dto.js';
 import { ApiException } from '../../common/api/api-exception.js';
@@ -25,6 +30,7 @@ export class RbacService {
       where: { id },
       include: {
         _count: { select: { operationalAssignments: true } },
+        rolePermissions: { include: { permission: true } },
       },
     });
   }
@@ -74,5 +80,209 @@ export class RbacService {
       },
     });
     return updated;
+  }
+
+  // ---- PERMISSION ----
+  permissions() {
+    return this.prisma.permission.findMany({
+      where: { isActive: true },
+      orderBy: { code: 'asc' },
+      include: { _count: { select: { rolePermissions: true } } },
+    });
+  }
+
+  async createPermission(input: PermissionUpsertDto, actor: AuthorizationContext) {
+    const permission = await this.prisma.permission.create({
+      data: {
+        code: input.code,
+        name: input.name,
+        description: input.description,
+        isSystem: input.isSystem ?? false,
+      },
+    });
+    await this.writeAudit(actor, 'PERMISSION.CREATE', 'Permission', permission.id, null, permission);
+    return permission;
+  }
+
+  async updatePermission(id: string, input: PermissionUpsertDto, actor: AuthorizationContext) {
+    const before = await this.prisma.permission.findUniqueOrThrow({ where: { id } });
+    const updated = await this.prisma.permission.update({
+      where: { id },
+      data: {
+        code: input.code,
+        name: input.name,
+        description: input.description,
+        ...(input.isSystem !== undefined ? { isSystem: input.isSystem } : {}),
+      },
+    });
+    await this.writeAudit(actor, 'PERMISSION.UPDATE', 'Permission', id, before, updated);
+    return updated;
+  }
+
+  // ---- POSITION (JABATAN) ----
+  positions() {
+    return this.prisma.position.findMany({
+      where: { isActive: true },
+      orderBy: { name: 'asc' },
+      include: { role: true },
+    });
+  }
+
+  async createPosition(input: PositionUpsertDto, actor: AuthorizationContext) {
+    const position = await this.prisma.position.create({
+      data: {
+        code: input.code,
+        name: input.name,
+        description: input.description,
+        roleId: input.roleId,
+        organizationLevel: input.organizationLevel,
+        isSystem: input.isSystem ?? false,
+      },
+    });
+    await this.writeAudit(actor, 'POSITION.CREATE', 'Position', position.id, null, position);
+    return position;
+  }
+
+  async updatePosition(id: string, input: PositionUpsertDto, actor: AuthorizationContext) {
+    const before = await this.prisma.position.findUniqueOrThrow({ where: { id } });
+    const updated = await this.prisma.position.update({
+      where: { id },
+      data: {
+        code: input.code,
+        name: input.name,
+        description: input.description,
+        roleId: input.roleId,
+        organizationLevel: input.organizationLevel,
+        ...(input.isSystem !== undefined ? { isSystem: input.isSystem } : {}),
+      },
+    });
+    await this.writeAudit(actor, 'POSITION.UPDATE', 'Position', id, before, updated);
+    return updated;
+  }
+
+  // ---- SUPERVISION ASSIGNMENT ----
+  supervisionAssignments() {
+    return this.prisma.supervisionAssignment.findMany({
+      where: { isActive: true },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        directorateAssignment: { include: { userProfile: true, role: true } },
+        targetRegion: true,
+      },
+    });
+  }
+
+  async createSupervisionAssignment(input: SupervisionAssignmentUpsertDto, actor: AuthorizationContext) {
+    const assignment = await this.prisma.supervisionAssignment.upsert({
+      where: {
+        directorateAssignmentId_targetRegionId: {
+          directorateAssignmentId: input.directorateAssignmentId,
+          targetRegionId: input.targetRegionId,
+        },
+      },
+      update: { supervisionType: input.supervisionType, isActive: input.isActive ?? true },
+      create: {
+        directorateAssignmentId: input.directorateAssignmentId,
+        targetRegionId: input.targetRegionId,
+        supervisionType: input.supervisionType,
+        isActive: input.isActive ?? true,
+      },
+    });
+    await this.writeAudit(actor, 'SUPERVISION.ASSIGN', 'SupervisionAssignment', assignment.id, null, assignment);
+    return assignment;
+  }
+
+  async updateSupervisionAssignment(id: string, input: SupervisionAssignmentUpsertDto, actor: AuthorizationContext) {
+    const before = await this.prisma.supervisionAssignment.findUniqueOrThrow({ where: { id } });
+    const updated = await this.prisma.supervisionAssignment.update({
+      where: { id },
+      data: {
+        supervisionType: input.supervisionType,
+        ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),
+      },
+    });
+    await this.writeAudit(actor, 'SUPERVISION.UPDATE', 'SupervisionAssignment', id, before, updated);
+    return updated;
+  }
+
+  async deleteSupervisionAssignment(id: string, actor: AuthorizationContext) {
+    const before = await this.prisma.supervisionAssignment.findUniqueOrThrow({ where: { id } });
+    const deleted = await this.prisma.supervisionAssignment.update({
+      where: { id },
+      data: { isActive: false },
+    });
+    await this.writeAudit(actor, 'SUPERVISION.DELETE', 'SupervisionAssignment', id, before, deleted);
+    return deleted;
+  }
+
+  // ---- ORGANIZATION UNIT ----
+  organizationUnits() {
+    return this.prisma.organizationUnit.findMany({
+      where: { isActive: true },
+      orderBy: [{ type: 'asc' }, { name: 'asc' }],
+      include: { parent: true, _count: { select: { children: true } } },
+    });
+  }
+
+  async createOrganizationUnit(input: OrganizationUnitUpsertDto, actor: AuthorizationContext) {
+    const unit = await this.prisma.organizationUnit.create({
+      data: {
+        code: input.code,
+        name: input.name,
+        type: input.type,
+        level: input.level,
+        parentId: input.parentId,
+      },
+    });
+    await this.writeAudit(actor, 'ORGANIZATION_UNIT.CREATE', 'OrganizationUnit', unit.id, null, unit);
+    return unit;
+  }
+
+  async updateOrganizationUnit(id: string, input: OrganizationUnitUpsertDto, actor: AuthorizationContext) {
+    const before = await this.prisma.organizationUnit.findUniqueOrThrow({ where: { id } });
+    const updated = await this.prisma.organizationUnit.update({
+      where: { id },
+      data: {
+        code: input.code,
+        name: input.name,
+        type: input.type,
+        level: input.level,
+        parentId: input.parentId,
+        ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),
+      },
+    });
+    await this.writeAudit(actor, 'ORGANIZATION_UNIT.UPDATE', 'OrganizationUnit', id, before, updated);
+    return updated;
+  }
+
+  // ---- ROLE PERMISSION ----
+  async setRolePermissions(roleId: string, input: SetRolePermissionsDto, actor: AuthorizationContext) {
+    await this.prisma.rolePermission.deleteMany({ where: { roleId } });
+    await this.prisma.rolePermission.createMany({
+      data: input.permissionIds.map((permissionId) => ({ roleId, permissionId })),
+    });
+    await this.writeAudit(actor, 'ROLE.PERMISSION.SET', 'Role', roleId, null, { permissionIds: input.permissionIds });
+    return this.role(roleId);
+  }
+
+  private writeAudit(
+    actor: AuthorizationContext,
+    action: string,
+    entityType: string,
+    entityId: string,
+    before: unknown,
+    after: unknown,
+  ) {
+    return this.prisma.auditLog.create({
+      data: {
+        actorUserProfileId: actor.userProfileId,
+        actorAssignmentId: actor.primaryAssignmentId,
+        action,
+        entityType,
+        entityId,
+        beforeData: before as object,
+        afterData: after as object,
+      },
+    });
   }
 }
