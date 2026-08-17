@@ -702,7 +702,9 @@ function Filters({
     ? rows(selectedProvince.children).filter((area) => ["REGENCY", "CITY"].includes(area.level))
     : directRegencies;
   const selectedRegency = regencies.find((area) => area.id === regencyId);
-  const districts = selectedRegency ? rows(selectedRegency.children).filter((area) => area.level === "DISTRICT") : [];
+  const districts = selectedRegency
+    ? rows(selectedRegency.children).filter((area) => area.level === "DISTRICT")
+    : regencies.flatMap((regency) => rows(regency.children).filter((area) => area.level === "DISTRICT"));
   const areaId = districtId || regencyId || provinceId;
   const selectedDistrict = districts.find((area) => area.id === districtId);
   const areaSubtitle = selectedDistrict
@@ -827,16 +829,11 @@ function Filters({
           aria-label="Filter kecamatan"
           value={districtId || "ALL"}
           options={[
-            {
-              value: "ALL",
-              label: regencyId ? "Semua Kecamatan" : "Pilih Kota/Kabupaten dahulu",
-              disabled: !regencyId,
-            },
+            { value: "ALL", label: "Semua Kecamatan" },
             ...districts.map((area) => ({ value: area.id, label: area.name })),
           ]}
           onValueChange={(val) => setDistrictId(val === "ALL" ? "" : val)}
-          disabled={!regencyId}
-          placeholder={regencyId ? "Semua Kecamatan" : "Pilih Kota/Kabupaten dahulu"}
+          placeholder="Semua Kecamatan"
           searchPlaceholder="Cari Kecamatan..."
           emptyText="Kecamatan tidak ditemukan."
           className="h-9 border-border bg-background text-sm text-foreground"
