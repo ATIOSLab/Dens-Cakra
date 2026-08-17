@@ -3,10 +3,7 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import {
-  RoleCode,
-  UserProfileStatus,
-} from '../../generated/prisma/client.js';
+import { UserProfileStatus } from '../../generated/prisma/client.js';
 import { AUTH_ROLE_TO_DOMAIN_ROLE } from '../../common/constants/auth-role.js';
 import {
   SYSTEM_ROLES,

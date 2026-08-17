@@ -215,7 +215,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
     ],
   })
   async listProducts(
@@ -269,7 +270,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
     ],
   })
   async getProduct(
@@ -290,7 +292,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
     ],
   })
   async productVersions(
@@ -330,7 +333,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
     ],
   })
   async getProductVersion(
@@ -454,7 +458,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
     ],
   })
   async traceability(
@@ -474,7 +479,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
     ],
   })
   async timeline(
@@ -543,7 +549,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
     ],
   })
   async getWorkflow(
@@ -563,7 +570,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
     ],
   })
   async getStep(@Param('stepId', ParseUUIDPipe) stepId: string) {
@@ -662,7 +670,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
     ],
   })
   async workflowTimeline(
@@ -679,7 +688,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
     ],
   })
   async listDistributions(@Query() query: DistributionQuery) {
@@ -697,7 +707,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
     ],
     successStatus: 201,
     idempotent: true,
@@ -720,7 +731,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
     ],
   })
   async getDistribution(
@@ -755,7 +767,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
     ],
     idempotent: true,
   })
@@ -812,7 +825,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
     ],
   })
   async distributionSummary(
@@ -829,7 +843,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -874,7 +889,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
     ],
   })
@@ -907,7 +923,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
     ],
   })
@@ -926,7 +943,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
     ],
   })
@@ -945,7 +963,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
     ],
   })
@@ -966,7 +985,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
     ],
   })
@@ -987,7 +1007,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
     ],
   })
@@ -1008,7 +1029,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
     ],
   })
@@ -1027,7 +1049,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -1056,7 +1079,8 @@ export class IntelligenceProductsController {
       'field_coordinator',
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
     ],
   })
   async fieldOfficerDashboard(
@@ -1075,7 +1099,8 @@ export class IntelligenceProductsController {
       'field_coordinator',
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
     ],
   })
   async fieldOfficerWorkspaceSummary(
@@ -1092,7 +1117,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -1112,7 +1138,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
     ],
   })
@@ -1131,7 +1158,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -1151,7 +1179,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -1171,7 +1200,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -1191,7 +1221,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -1214,7 +1245,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -1237,7 +1269,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -1268,7 +1301,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -1288,7 +1322,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -1310,7 +1345,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -1332,7 +1368,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -1355,7 +1392,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
     ],
     idempotent: true,
@@ -1382,7 +1420,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
     ],
     idempotent: true,
@@ -1405,7 +1444,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
     ],
     idempotent: true,
@@ -1428,7 +1468,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
     ],
     idempotent: true,
@@ -1451,7 +1492,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
     ],
     idempotent: true,
@@ -1474,7 +1516,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
     ],
     idempotent: true,
@@ -1497,7 +1540,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -1517,7 +1561,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
     ],
     successStatus: 201,
@@ -1538,7 +1583,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -1555,7 +1601,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
     ],
   })
@@ -1575,7 +1622,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -1599,7 +1647,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
     ],
     idempotent: true,
@@ -1620,7 +1669,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -1641,7 +1691,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -1663,7 +1714,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -1685,7 +1737,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -1734,7 +1787,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
     ],
   })
@@ -1770,7 +1824,8 @@ export class IntelligenceProductsController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
       'field_officer',
     ],

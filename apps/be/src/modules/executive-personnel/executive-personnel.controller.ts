@@ -73,7 +73,8 @@ export class FieldCoordinatorPersonnelController {
   @ApiContract({
     operationId: 'apiFieldCoordinatorPersonnel001',
     contractId: 'API-FIELD-COORDINATOR-PERSONNEL-001',
-    summary: 'Daftar petugas wilayah dalam hierarki Koordinator Wilayah (Korwil)',
+    summary:
+      'Daftar petugas wilayah dalam hierarki Koordinator Wilayah (Korwil)',
     roles: ['field_coordinator', 'regional_commander'],
   })
   async list(
@@ -109,7 +110,8 @@ export class FieldCoordinatorPersonnelController {
   @ApiContract({
     operationId: 'apiFieldCoordinatorPersonnel003',
     contractId: 'API-FIELD-COORDINATOR-PERSONNEL-003',
-    summary: 'Filter wilayah bertingkat sesuai cakupan Koordinator Wilayah (Korwil)',
+    summary:
+      'Filter wilayah bertingkat sesuai cakupan Koordinator Wilayah (Korwil)',
     roles: ['field_coordinator', 'regional_commander'],
   })
   async areaFilters(
@@ -125,7 +127,8 @@ export class FieldCoordinatorPersonnelController {
   @ApiContract({
     operationId: 'apiFieldCoordinatorPersonnel004',
     contractId: 'API-FIELD-COORDINATOR-PERSONNEL-004',
-    summary: 'Detail petugas wilayah dalam hierarki Koordinator Wilayah (Korwil)',
+    summary:
+      'Detail petugas wilayah dalam hierarki Koordinator Wilayah (Korwil)',
     roles: ['field_coordinator', 'regional_commander'],
   })
   async detail(
@@ -148,7 +151,8 @@ export class RegionalCommanderPersonnelController {
   @ApiContract({
     operationId: 'apiRegionalCommanderPersonnel001',
     contractId: 'API-REGIONAL-COMMANDER-PERSONNEL-001',
-    summary: 'Daftar petugas wilayah dalam hierarki Kepala BIN Daerah (Kabinda)',
+    summary:
+      'Daftar petugas wilayah dalam hierarki Kepala BIN Daerah (Kabinda)',
     roles: ['regional_commander'],
   })
   async list(
@@ -184,7 +188,8 @@ export class RegionalCommanderPersonnelController {
   @ApiContract({
     operationId: 'apiRegionalCommanderPersonnel003',
     contractId: 'API-REGIONAL-COMMANDER-PERSONNEL-003',
-    summary: 'Filter wilayah bertingkat sesuai cakupan Kepala BIN Daerah (Kabinda)',
+    summary:
+      'Filter wilayah bertingkat sesuai cakupan Kepala BIN Daerah (Kabinda)',
     roles: ['regional_commander'],
   })
   async areaFilters(
@@ -200,7 +205,8 @@ export class RegionalCommanderPersonnelController {
   @ApiContract({
     operationId: 'apiRegionalCommanderPersonnel004',
     contractId: 'API-REGIONAL-COMMANDER-PERSONNEL-004',
-    summary: 'Detail petugas wilayah dalam hierarki Kepala BIN Daerah (Kabinda)',
+    summary:
+      'Detail petugas wilayah dalam hierarki Kepala BIN Daerah (Kabinda)',
     roles: ['regional_commander'],
   })
   async detail(

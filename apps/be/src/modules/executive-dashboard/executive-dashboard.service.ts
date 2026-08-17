@@ -3,7 +3,7 @@
  * `any`. Keep unsafe-access rules disabled only in this adapter-heavy service;
  * the public dashboard contract and every mapped response remain explicitly typed.
  */
-/* eslint-disable @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
+
 import { Injectable } from '@nestjs/common';
 import { ApiException } from '../../common/api/api-exception.js';
 import { SYSTEM_ROLES } from '../../common/constants/system-role.js';
@@ -111,7 +111,9 @@ const dashboardReportSelect = {
           fieldOfficerAssignment: {
             select: {
               id: true,
-              userProfile: { select: { id: true, fullName: true, username: true } },
+              userProfile: {
+                select: { id: true, fullName: true, username: true },
+              },
             },
           },
         },
@@ -541,18 +543,14 @@ export class ExecutiveDashboardService {
       deletedAt: null,
       createdAt: { gte: range.from, lte: range.to },
       ...(query.productTypeId ? { productTypeId: query.productTypeId } : {}),
-      ...(query.areaId
-        ? { AND: [this.productAreaFilter(query.areaId)] }
-        : {}),
+      ...(query.areaId ? { AND: [this.productAreaFilter(query.areaId)] } : {}),
     };
     const productPreviousWhere: Prisma.IntelligenceProductWhereInput = {
       ...productWhere,
       deletedAt: null,
       createdAt: { gte: range.previousFrom, lte: range.previousTo },
       ...(query.productTypeId ? { productTypeId: query.productTypeId } : {}),
-      ...(query.areaId
-        ? { AND: [this.productAreaFilter(query.areaId)] }
-        : {}),
+      ...(query.areaId ? { AND: [this.productAreaFilter(query.areaId)] } : {}),
     };
     const scopedJaringWhere: Prisma.JaringWhereInput = {
       ...jaringScope,
@@ -589,7 +587,9 @@ export class ExecutiveDashboardService {
     const taskWhere: Prisma.TaskWhereInput = {
       deletedAt: null,
       createdAt: { gte: range.from, lte: range.to },
-      ...(query.areaId ? { targetAreas: { some: this.targetAreaFilter(query.areaId) } } : {}),
+      ...(query.areaId
+        ? { targetAreas: { some: this.targetAreaFilter(query.areaId) } }
+        : {}),
       OR: [
         { ownerAssignmentId: { in: resolvedScope.assignmentIds } },
         {
@@ -945,7 +945,9 @@ export class ExecutiveDashboardService {
     };
   }
 
-  private areaWithinFilter(areaId: string): Prisma.AdministrativeAreaWhereInput {
+  private areaWithinFilter(
+    areaId: string,
+  ): Prisma.AdministrativeAreaWhereInput {
     return {
       OR: [
         { id: areaId },
@@ -958,7 +960,9 @@ export class ExecutiveDashboardService {
     return { area: { is: this.areaWithinFilter(areaId) } };
   }
 
-  private productAreaFilter(areaId: string): Prisma.IntelligenceProductWhereInput {
+  private productAreaFilter(
+    areaId: string,
+  ): Prisma.IntelligenceProductWhereInput {
     return {
       versions: {
         some: {
@@ -1054,10 +1058,7 @@ export class ExecutiveDashboardService {
   }
 
   private category(report: DashboardReport) {
-    return (
-      report.submittedMessage?.convertedBaket?.reportCategory ??
-      null
-    );
+    return report.submittedMessage?.convertedBaket?.reportCategory ?? null;
   }
 
   private reportStage(report: DashboardReport) {
@@ -1237,7 +1238,8 @@ export class ExecutiveDashboardService {
 
   private latestJaringReportAt(jaring: DashboardJaring) {
     const latestMessageAt = jaring.messages[0]?.receivedAt?.getTime() ?? null;
-    const latestSessionAt = jaring.reportSessions[0]?.submittedAt?.getTime() ?? null;
+    const latestSessionAt =
+      jaring.reportSessions[0]?.submittedAt?.getTime() ?? null;
     if (latestMessageAt === null && latestSessionAt === null) return null;
     return new Date(Math.max(latestMessageAt ?? 0, latestSessionAt ?? 0));
   }
@@ -1295,7 +1297,9 @@ export class ExecutiveDashboardService {
   private countKorwilAreas(jaring: DashboardJaring[]) {
     const korwilAreaIds = new Set<string>();
     for (const item of jaring) {
-      const area = this.findRegencyCityArea(item.areaCoverages[0]?.area ?? null);
+      const area = this.findRegencyCityArea(
+        item.areaCoverages[0]?.area ?? null,
+      );
       if (area) korwilAreaIds.add(area.id);
     }
     return korwilAreaIds.size;

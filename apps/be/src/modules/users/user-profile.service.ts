@@ -55,9 +55,7 @@ export class UserProfileService {
           validUntil: null,
           role: {
             code: {
-              in: [
-                RoleCode.REGIONAL_COMMANDER,
-              ],
+              in: [RoleCode.REGIONAL_COMMANDER],
             },
           },
           userProfile: { deletedAt: null },
@@ -418,8 +416,7 @@ export class UserProfileService {
               : {}),
             ...(input.profile.competencies
               ? {
-                  competencies: input.profile
-                    .competencies as Prisma.InputJsonValue,
+                  competencies: input.profile.competencies,
                 }
               : {}),
             status: UserProfileStatus.PENDING,
@@ -1003,7 +1000,9 @@ export class UserProfileService {
     return [
       ...new Set([
         areaId,
-        ...descendants.map((entry: { descendantId: string }) => entry.descendantId),
+        ...descendants.map(
+          (entry: { descendantId: string }) => entry.descendantId,
+        ),
       ]),
     ];
   }

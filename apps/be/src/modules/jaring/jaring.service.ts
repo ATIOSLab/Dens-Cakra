@@ -12,7 +12,6 @@ import {
   Prisma,
   RoleCode,
   WhatsAppMessageStatus,
-  WhatsAppValidationSummary,
 } from '../../generated/prisma/client.js';
 import { ApiException } from '../../common/api/api-exception.js';
 import { sortReportCategories } from '../../common/report-category-order.js';
@@ -514,11 +513,11 @@ export class JaringService {
     });
     const maxSequence = existingAliases.reduce(
       (max: number, item: { aliasName: string | null }) => {
-      const sequence = item.aliasName?.slice(aliasPrefix.length);
-      if (!sequence || !/^\d{3}$/.test(sequence)) {
-        return max;
-      }
-      return Math.max(max, Number(sequence));
+        const sequence = item.aliasName?.slice(aliasPrefix.length);
+        if (!sequence || !/^\d{3}$/.test(sequence)) {
+          return max;
+        }
+        return Math.max(max, Number(sequence));
       },
       0,
     );
@@ -715,8 +714,9 @@ export class JaringService {
       lastReportAt !== null &&
       lastReportAt.getTime() >= threeMonthsAgo.getTime();
 
-    const computedStatus =
-      hasReportInLast3Months ? JaringStatus.ACTIVE : JaringStatus.INACTIVE;
+    const computedStatus = hasReportInLast3Months
+      ? JaringStatus.ACTIVE
+      : JaringStatus.INACTIVE;
 
     return {
       lastReportAt: lastReportAt ? lastReportAt.toISOString() : null,
@@ -894,7 +894,8 @@ export class JaringService {
       jaringAlias:
         session.jaring?.aliasName ?? session.jaring?.fullName ?? null,
       jaringFullName: session.jaring?.fullName ?? null,
-      jaringCode: session.jaring?.aliasName ?? session.jaring?.id ?? session.jaringId,
+      jaringCode:
+        session.jaring?.aliasName ?? session.jaring?.id ?? session.jaringId,
       jaringWhatsAppNumber: session.jaring?.whatsappNumber ?? null,
       jaringProfilePhotoFileId: session.jaring?.profilePhotoFileId ?? null,
       gaswilName,
@@ -933,7 +934,9 @@ export class JaringService {
       displayStatus: processStatus,
       // Deprecated compatibility alias. New UI/API consumers should use processStatus.
       verificationStatus: processStatus,
-      canFillMetadata: processStatus === 'READY_FOR_BAKET' || processStatus === 'BAKET_CREATED',
+      canFillMetadata:
+        processStatus === 'READY_FOR_BAKET' ||
+        processStatus === 'BAKET_CREATED',
       displayTitle: this.deriveDisplayTitle(content),
       content,
       normalizedContent: latestVersion?.normalizedContent ?? null,
@@ -1286,8 +1289,18 @@ export class JaringService {
                         fieldOfficerAssignment: {
                           userProfile: {
                             OR: [
-                              { fullName: { contains: search, mode: 'insensitive' } },
-                              { username: { contains: search, mode: 'insensitive' } },
+                              {
+                                fullName: {
+                                  contains: search,
+                                  mode: 'insensitive',
+                                },
+                              },
+                              {
+                                username: {
+                                  contains: search,
+                                  mode: 'insensitive',
+                                },
+                              },
                             ],
                           },
                         },
@@ -1304,7 +1317,12 @@ export class JaringService {
                             {
                               descendantLinks: {
                                 some: {
-                                  ancestor: { name: { contains: search, mode: 'insensitive' } },
+                                  ancestor: {
+                                    name: {
+                                      contains: search,
+                                      mode: 'insensitive',
+                                    },
+                                  },
                                 },
                               },
                             },
@@ -1828,7 +1846,7 @@ export class JaringService {
     if (body.profilePhotoFileId) {
       await this.ensureProfilePhoto(body.profilePhotoFileId, context);
     }
-    const existing = await this.prisma.jaring.findUniqueOrThrow({
+    await this.prisma.jaring.findUniqueOrThrow({
       where: { id },
       select: { registrationStatus: true },
     });
@@ -2176,7 +2194,7 @@ export class JaringService {
     return category;
   }
 
-  async activate(id: string, body: ReasonDto, context: AuthorizationContext) {
+  activate(_id: string, _body: ReasonDto, _context: AuthorizationContext) {
     throw new ApiException(
       'JARING_STATUS_AUTOMATIC',
       'Status aktif/tidak aktif Jaring diatur secara otomatis berdasarkan aktivitas pelaporan 90 hari terakhir.',
@@ -2184,7 +2202,7 @@ export class JaringService {
     );
   }
 
-  async deactivate(id: string, body: ReasonDto, context: AuthorizationContext) {
+  deactivate(_id: string, _body: ReasonDto, _context: AuthorizationContext) {
     throw new ApiException(
       'JARING_STATUS_AUTOMATIC',
       'Status aktif/tidak aktif Jaring diatur secara otomatis berdasarkan aktivitas pelaporan 90 hari terakhir.',
@@ -2391,7 +2409,9 @@ export class JaringService {
     const fromDate = query.from ? new Date(query.from) : undefined;
     const toDate = query.to ? new Date(query.to) : undefined;
     const search = query.search?.trim();
-    const phoneSearchVariants = search ? getIndonesianPhoneSearchVariants(search) : [];
+    const phoneSearchVariants = search
+      ? getIndonesianPhoneSearchVariants(search)
+      : [];
     const sortOrder = query.sortOrder ?? 'desc';
     const sortBy = query.sortBy ?? 'reportedAt';
     const scopedJaringWhere = await this.domainScope.jaringWhere(context);
@@ -2431,18 +2451,27 @@ export class JaringService {
                   OR: [
                     { aliasName: { contains: search, mode: 'insensitive' } },
                     { fullName: { contains: search, mode: 'insensitive' } },
-                    ...phoneSearchVariants.map((phone) => ({ whatsappNumber: { contains: phone } })),
+                    ...phoneSearchVariants.map((phone) => ({
+                      whatsappNumber: { contains: phone },
+                    })),
                     {
                       areaCoverages: {
                         some: {
                           validUntil: null,
                           area: {
                             OR: [
-                              { name: { contains: search, mode: 'insensitive' } },
+                              {
+                                name: { contains: search, mode: 'insensitive' },
+                              },
                               {
                                 descendantLinks: {
                                   some: {
-                                    ancestor: { name: { contains: search, mode: 'insensitive' } },
+                                    ancestor: {
+                                      name: {
+                                        contains: search,
+                                        mode: 'insensitive',
+                                      },
+                                    },
                                   },
                                 },
                               },
@@ -2480,81 +2509,83 @@ export class JaringService {
     const currentMonth = this.currentWibMonthRange();
     const [reports, total, groupedJaring, thisMonthCount, filterJaring] =
       await Promise.all([
-      this.prisma.jaringCoachingReport.findMany({
-        where,
-        skip: (page - 1) * limit,
-        take: limit,
-        orderBy: [
-          { [sortBy]: sortOrder },
-          ...(sortBy === 'reportedAt' ? [] : [{ reportedAt: 'desc' as const }]),
-          { createdAt: 'desc' },
-          { id: 'desc' },
-        ],
-        select: jaringCoachingReportSelect,
-      }),
-      this.prisma.jaringCoachingReport.count({ where }),
-      this.prisma.jaringCoachingReport.groupBy({
-        by: ['jaringId'],
-        where,
-      }),
-      this.prisma.jaringCoachingReport.count({
-        where: {
-          AND: [
-            where,
-            {
-              reportedAt: {
-                gte: currentMonth.from,
-                lt: currentMonth.to,
-              },
-            },
+        this.prisma.jaringCoachingReport.findMany({
+          where,
+          skip: (page - 1) * limit,
+          take: limit,
+          orderBy: [
+            { [sortBy]: sortOrder },
+            ...(sortBy === 'reportedAt'
+              ? []
+              : [{ reportedAt: 'desc' as const }]),
+            { createdAt: 'desc' },
+            { id: 'desc' },
           ],
-        },
-      }),
-      this.prisma.jaring.findMany({
-        where: scopedJaringWhere,
-        orderBy: [{ aliasName: 'asc' }, { fullName: 'asc' }, { id: 'asc' }],
-        select: {
-          id: true,
-          aliasName: true,
-          fullName: true,
-          registrationStatus: true,
-          caretakerAssignments: {
-            where: {
-              isActive: true,
-              OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
-            },
-            take: 1,
-            select: {
-              id: true,
-              fieldOfficerAssignmentId: true,
-              isActive: true,
-              validFrom: true,
-              validUntil: true,
-              fieldOfficerAssignment: {
-                select: {
-                  id: true,
-                  userProfile: {
-                    select: { id: true, fullName: true },
+          select: jaringCoachingReportSelect,
+        }),
+        this.prisma.jaringCoachingReport.count({ where }),
+        this.prisma.jaringCoachingReport.groupBy({
+          by: ['jaringId'],
+          where,
+        }),
+        this.prisma.jaringCoachingReport.count({
+          where: {
+            AND: [
+              where,
+              {
+                reportedAt: {
+                  gte: currentMonth.from,
+                  lt: currentMonth.to,
+                },
+              },
+            ],
+          },
+        }),
+        this.prisma.jaring.findMany({
+          where: scopedJaringWhere,
+          orderBy: [{ aliasName: 'asc' }, { fullName: 'asc' }, { id: 'asc' }],
+          select: {
+            id: true,
+            aliasName: true,
+            fullName: true,
+            registrationStatus: true,
+            caretakerAssignments: {
+              where: {
+                isActive: true,
+                OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
+              },
+              take: 1,
+              select: {
+                id: true,
+                fieldOfficerAssignmentId: true,
+                isActive: true,
+                validFrom: true,
+                validUntil: true,
+                fieldOfficerAssignment: {
+                  select: {
+                    id: true,
+                    userProfile: {
+                      select: { id: true, fullName: true },
+                    },
                   },
                 },
               },
             },
-          },
-          areaCoverages: {
-            where: { validUntil: null },
-            orderBy: [{ isPrimary: 'desc' }, { validFrom: 'desc' }],
-            select: {
-              id: true,
-              areaId: true,
-              isPrimary: true,
-              validFrom: true,
-              validUntil: true,
-              area: { select: areaSelectWithParents },
+            areaCoverages: {
+              where: { validUntil: null },
+              orderBy: [{ isPrimary: 'desc' }, { validFrom: 'desc' }],
+              select: {
+                id: true,
+                areaId: true,
+                isPrimary: true,
+                validFrom: true,
+                validUntil: true,
+                area: { select: areaSelectWithParents },
+              },
             },
           },
-        },
-      }),
-    ]);
+        }),
+      ]);
 
     return {
       items: reports.map((report) =>
@@ -2777,8 +2808,18 @@ export class JaringService {
                       fieldOfficerAssignment: {
                         userProfile: {
                           OR: [
-                            { fullName: { contains: search, mode: 'insensitive' } },
-                            { username: { contains: search, mode: 'insensitive' } },
+                            {
+                              fullName: {
+                                contains: search,
+                                mode: 'insensitive',
+                              },
+                            },
+                            {
+                              username: {
+                                contains: search,
+                                mode: 'insensitive',
+                              },
+                            },
                           ],
                         },
                       },
@@ -2795,7 +2836,12 @@ export class JaringService {
                           {
                             descendantLinks: {
                               some: {
-                                ancestor: { name: { contains: search, mode: 'insensitive' } },
+                                ancestor: {
+                                  name: {
+                                    contains: search,
+                                    mode: 'insensitive',
+                                  },
+                                },
                               },
                             },
                           },
@@ -3204,8 +3250,7 @@ export class JaringService {
 
     const baket = message.convertedBaket;
     const latestVersion = baket?.versions[0] ?? null;
-    const categoryId =
-      body.categoryId ?? baket?.reportCategoryId ?? null;
+    const categoryId = body.categoryId ?? baket?.reportCategoryId ?? null;
     const urgency = body.urgency ?? latestVersion?.urgency ?? null;
 
     if (!categoryId || !urgency) {
@@ -3462,8 +3507,7 @@ export class JaringService {
     return {
       reportSessionId: id,
       events: [
-        ...reportHistory.map(
-          (item: (typeof reportHistory)[number]) => ({
+        ...reportHistory.map((item: (typeof reportHistory)[number]) => ({
           id: item.id,
           source: 'report_history',
           action: item.action,
@@ -3472,8 +3516,7 @@ export class JaringService {
           externalMessageId: item.externalMessageId,
           metadata: item.metadata,
           createdAt: item.createdAt,
-          }),
-        ),
+        })),
         ...auditHistory.map((item: (typeof auditHistory)[number]) => ({
           id: item.id,
           source: 'audit_log',

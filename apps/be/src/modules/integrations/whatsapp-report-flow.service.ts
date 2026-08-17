@@ -298,7 +298,9 @@ export class WhatsAppReportFlowService
     channel: WhatsAppReportChannel,
     message: WAMessage,
     payload: WhatsAppReportInboundPayload,
-    jaring: Awaited<ReturnType<WhatsAppReportFlowService['findEligibleJaring']>>,
+    jaring: Awaited<
+      ReturnType<WhatsAppReportFlowService['findEligibleJaring']>
+    >,
     reply: ReplySender,
   ) {
     if (!jaring) return;
@@ -929,7 +931,9 @@ export class WhatsAppReportFlowService
 
   private hasLocationMessage(message: WAMessage) {
     const unwrapped = this.unwrapMessage(message.message);
-    return Boolean(unwrapped?.locationMessage || unwrapped?.liveLocationMessage);
+    return Boolean(
+      unwrapped?.locationMessage || unwrapped?.liveLocationMessage,
+    );
   }
 
   private mediaMessage(message: WAMessage) {
@@ -993,7 +997,9 @@ export class WhatsAppReportFlowService
   }
 
   private async discardStoredFile(id: string, storageKey: string) {
-    await this.prisma.fileAsset.deleteMany({ where: { id } }).catch(() => undefined);
+    await this.prisma.fileAsset
+      .deleteMany({ where: { id } })
+      .catch(() => undefined);
     await this.storage.remove(storageKey).catch(() => undefined);
   }
 
@@ -1008,7 +1014,9 @@ export class WhatsAppReportFlowService
   }
 
   private appendContent(current: string | null, next: string) {
-    return current?.trim() ? `${current.trim()}\n\n${next.trim()}` : next.trim();
+    return current?.trim()
+      ? `${current.trim()}\n\n${next.trim()}`
+      : next.trim();
   }
 
   private startOfWibDay(value: Date) {

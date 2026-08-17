@@ -20,7 +20,10 @@ const actorInclude = {
       role: { select: { id: true, code: true, name: true } },
       areaScopes: {
         where: { validUntil: null },
-        orderBy: [{ isPrimary: 'desc' as const }, { createdAt: 'asc' as const }],
+        orderBy: [
+          { isPrimary: 'desc' as const },
+          { createdAt: 'asc' as const },
+        ],
         select: {
           isPrimary: true,
           area: { select: { id: true, code: true, name: true, level: true } },
@@ -69,7 +72,9 @@ export class AuditService {
         take: query.limit,
         orderBy: [
           { [query.sortBy]: query.sortOrder },
-          ...(query.sortBy === 'createdAt' ? [] : [{ createdAt: 'desc' as const }]),
+          ...(query.sortBy === 'createdAt'
+            ? []
+            : [{ createdAt: 'desc' as const }]),
           { id: 'desc' },
         ],
         include: actorInclude,
@@ -157,9 +162,11 @@ export class AuditService {
         incidents: incidentCount,
         anomalies: anomalyCount,
         denied:
-          outcomes.find((entry) => entry.outcome === 'DENIED')?._count._all ?? 0,
+          outcomes.find((entry) => entry.outcome === 'DENIED')?._count._all ??
+          0,
         failures:
-          outcomes.find((entry) => entry.outcome === 'FAILURE')?._count._all ?? 0,
+          outcomes.find((entry) => entry.outcome === 'FAILURE')?._count._all ??
+          0,
         averageRiskScore: Math.round(riskAggregate._avg.riskScore ?? 0),
       },
       facets: {
@@ -241,7 +248,9 @@ export class AuditService {
         : {}),
       ...(query.source ? { source: query.source } : {}),
       ...(query.isAnomaly !== undefined ? { isAnomaly: query.isAnomaly } : {}),
-      ...(query.isIncident !== undefined ? { isIncident: query.isIncident } : {}),
+      ...(query.isIncident !== undefined
+        ? { isIncident: query.isIncident }
+        : {}),
       ...(query.from || query.to
         ? {
             createdAt: {
@@ -265,8 +274,12 @@ export class AuditService {
                     actorUser: {
                       is: {
                         OR: [
-                          { fullName: { contains: search, mode: 'insensitive' } },
-                          { username: { contains: search, mode: 'insensitive' } },
+                          {
+                            fullName: { contains: search, mode: 'insensitive' },
+                          },
+                          {
+                            username: { contains: search, mode: 'insensitive' },
+                          },
                         ],
                       },
                     },

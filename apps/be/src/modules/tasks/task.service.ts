@@ -374,7 +374,10 @@ export class TaskService {
     }
 
     const assigneeAreaIds = assignee.areaScopes.map((scope) => scope.areaId);
-    const isSubordinate = await this.isAreaWithinScope(assigneeAreaIds, context);
+    const isSubordinate = await this.isAreaWithinScope(
+      assigneeAreaIds,
+      context,
+    );
 
     if (!isSubordinate || assignee.id === context.primaryAssignmentId) {
       throw new ApiException(
@@ -543,43 +546,24 @@ export class TaskService {
     };
 
     const where = this.taskAccessWhere(context, {
-      AND: ([
+      AND: [
         ...(search
           ? [
               {
                 OR: [
-              { title: { contains: search, mode: 'insensitive' } },
-              { description: { contains: search, mode: 'insensitive' } },
-              {
-                directiveVersion: {
-                  is: {
-                    OR: [
-                      {
-                        commandDescription: {
-                          contains: search,
-                          mode: 'insensitive',
-                        },
-                      },
-                      {
-                        directive: {
-                          commandNumber: {
-                            contains: search,
-                            mode: 'insensitive',
+                  { title: { contains: search, mode: 'insensitive' } },
+                  { description: { contains: search, mode: 'insensitive' } },
+                  {
+                    directiveVersion: {
+                      is: {
+                        OR: [
+                          {
+                            commandDescription: {
+                              contains: search,
+                              mode: 'insensitive',
+                            },
                           },
-                        },
-                      },
-                    ],
-                  },
-                },
-              },
-              {
-                uukStrVersion: {
-                  is: {
-                    OR: [
-                      { title: { contains: search, mode: 'insensitive' } },
-                      {
-                        uukStr: {
-                          directiveVersion: {
+                          {
                             directive: {
                               commandNumber: {
                                 contains: search,
@@ -587,36 +571,55 @@ export class TaskService {
                               },
                             },
                           },
-                        },
+                        ],
                       },
-                    ],
+                    },
                   },
-                },
-              },
-              {
-                assignments: {
-                  some: {
-                    OR: [
-                      {
-                        assignmentNote: {
-                          contains: search,
-                          mode: 'insensitive',
-                        },
+                  {
+                    uukStrVersion: {
+                      is: {
+                        OR: [
+                          { title: { contains: search, mode: 'insensitive' } },
+                          {
+                            uukStr: {
+                              directiveVersion: {
+                                directive: {
+                                  commandNumber: {
+                                    contains: search,
+                                    mode: 'insensitive',
+                                  },
+                                },
+                              },
+                            },
+                          },
+                        ],
                       },
-                      {
-                        assignee: {
-                          userProfile: {
-                            fullName: {
+                    },
+                  },
+                  {
+                    assignments: {
+                      some: {
+                        OR: [
+                          {
+                            assignmentNote: {
                               contains: search,
                               mode: 'insensitive',
                             },
                           },
-                        },
+                          {
+                            assignee: {
+                              userProfile: {
+                                fullName: {
+                                  contains: search,
+                                  mode: 'insensitive',
+                                },
+                              },
+                            },
+                          },
+                        ],
                       },
-                    ],
+                    },
                   },
-                },
-              },
                 ],
               },
             ]
@@ -691,10 +694,12 @@ export class TaskService {
               },
             ]
           : []),
-      ] as Prisma.TaskWhereInput[]),
+      ] as Prisma.TaskWhereInput[],
       ...(query.status ? { status: query.status } : {}),
       ...(query.priority ? { priority: query.priority } : {}),
-      ...(query.ownerAssignmentId ? { ownerAssignmentId: query.ownerAssignmentId } : {}),
+      ...(query.ownerAssignmentId
+        ? { ownerAssignmentId: query.ownerAssignmentId }
+        : {}),
       ...(query.parentTaskId ? { parentTaskId: query.parentTaskId } : {}),
       ...(query.directiveId
         ? {
@@ -838,11 +843,13 @@ export class TaskService {
       const items = tasks.slice(start, start + query.limit);
       if (!query.paginated) return items;
 
-      const completed = tasks.filter((task) => task.status === TaskStatus.COMPLETED).length;
+      const completed = tasks.filter(
+        (task) => task.status === TaskStatus.COMPLETED,
+      ).length;
       const inProgress = tasks.filter((task) =>
-        ([TaskStatus.ASSIGNED, TaskStatus.IN_PROGRESS] as TaskStatus[]).includes(
-          task.status,
-        ),
+        (
+          [TaskStatus.ASSIGNED, TaskStatus.IN_PROGRESS] as TaskStatus[]
+        ).includes(task.status),
       ).length;
       return {
         items,
@@ -890,7 +897,11 @@ export class TaskService {
         include,
       }),
       this.prisma.task.count({ where }),
-      this.prisma.task.groupBy({ by: ['status'], where, _count: { _all: true } }),
+      this.prisma.task.groupBy({
+        by: ['status'],
+        where,
+        _count: { _all: true },
+      }),
     ]);
     const statusCount = new Map<TaskStatus, number>(
       statuses.map((item) => [item.status, Number(item._count._all)]),

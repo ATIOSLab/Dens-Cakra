@@ -46,9 +46,7 @@ export class HealthService {
       await access(path.resolve(env.storage.root));
       checks.storage = { ok: true };
     } catch (error) {
-      this.logger.warn(
-        `Readiness check storage gagal: ${this.message(error)}`,
-      );
+      this.logger.warn(`Readiness check storage gagal: ${this.message(error)}`);
       checks.storage = { ok: false, detail: 'unavailable' };
     }
 

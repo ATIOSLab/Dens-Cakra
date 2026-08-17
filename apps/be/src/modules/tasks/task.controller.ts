@@ -45,7 +45,8 @@ export class TaskController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -64,7 +65,8 @@ export class TaskController {
     summary: 'Buat tugas',
     roles: [
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
     ],
     successStatus: 201,
@@ -84,7 +86,8 @@ export class TaskController {
     summary: 'Buat child task',
     roles: [
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
     ],
     successStatus: 201,
@@ -106,7 +109,8 @@ export class TaskController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -125,7 +129,8 @@ export class TaskController {
     summary: 'Ubah draft tugas',
     roles: [
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
     ],
   })
@@ -144,7 +149,8 @@ export class TaskController {
     summary: 'Ganti target area tugas',
     roles: [
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
     ],
     idempotent: true,
@@ -164,7 +170,8 @@ export class TaskController {
     summary: 'Assign tugas',
     roles: [
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
     ],
     successStatus: 201,
@@ -186,7 +193,8 @@ export class TaskController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -206,7 +214,8 @@ export class TaskController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -352,7 +361,8 @@ export class TaskController {
     summary: 'Batalkan tugas',
     roles: [
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
     ],
     idempotent: true,
@@ -373,7 +383,8 @@ export class TaskController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -393,7 +404,8 @@ export class TaskController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
       'field_officer',
     ],

@@ -351,7 +351,9 @@ export class WhatsappBotRuntimeService
         select: { connectionStatus: true },
       });
 
-      if (botState?.connectionStatus === WhatsAppBotConnectionStatus.CONNECTED) {
+      if (
+        botState?.connectionStatus === WhatsAppBotConnectionStatus.CONNECTED
+      ) {
         throw new ApiException(
           'WHATSAPP_ALREADY_CONNECTED',
           'WhatsApp sudah terhubung. Putuskan koneksi terlebih dahulu sebelum membuat QR baru.',

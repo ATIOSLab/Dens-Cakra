@@ -8,15 +8,7 @@ import { DomainScopeService } from './domain-scope.service.js';
 @Module({
   imports: [AuthModule],
   controllers: [AccessController],
-  providers: [
-    AuthorizationService,
-    DomainScopeService,
-    DomainAccessGuard,
-  ],
-  exports: [
-    AuthorizationService,
-    DomainScopeService,
-    DomainAccessGuard,
-  ],
+  providers: [AuthorizationService, DomainScopeService, DomainAccessGuard],
+  exports: [AuthorizationService, DomainScopeService, DomainAccessGuard],
 })
 export class AccessModule {}

@@ -1,11 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type { Prisma } from '../../generated/prisma/client.js';
-import {
-  CommandRouteType,
-  RoleCode,
-} from '../../generated/prisma/client.js';
+import { CommandRouteType, RoleCode } from '../../generated/prisma/client.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
-import { commandParentRole, isTerritorialCommandBranch } from '../../common/command/command-chain.js';
+import {
+  commandParentRole,
+  isTerritorialCommandBranch,
+} from '../../common/command/command-chain.js';
 import { SYSTEM_ROLES } from '../../common/constants/system-role.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
@@ -392,10 +392,7 @@ export class DomainScopeService {
         },
       });
 
-      const parentByAreaId = new Map<
-        string,
-        (typeof parents)[number]
-      >();
+      const parentByAreaId = new Map<string, (typeof parents)[number]>();
       for (const parent of parents) {
         for (const scope of parent.areaScopes) {
           parentByAreaId.set(scope.areaId, parent);

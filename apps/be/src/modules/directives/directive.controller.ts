@@ -62,7 +62,8 @@ export class DirectiveController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
     ],
   })
@@ -97,7 +98,8 @@ export class DirectiveController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
     ],
   })
@@ -116,7 +118,8 @@ export class DirectiveController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
     ],
   })
@@ -156,7 +159,8 @@ export class DirectiveController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
     ],
   })
@@ -265,7 +269,8 @@ export class DirectiveController {
     summary: 'Tandai directive dibaca penerima',
     roles: [
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
     ],
     idempotent: true,
@@ -285,7 +290,8 @@ export class DirectiveController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
     ],
     idempotent: true,

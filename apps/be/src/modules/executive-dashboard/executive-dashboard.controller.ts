@@ -15,7 +15,8 @@ import { ExecutiveDashboardService } from './executive-dashboard.service.js';
 const DASHBOARD_ROLES = [
   'executive',
   'regional_commander',
-  'executive', 'regional_commander',
+  'executive',
+  'regional_commander',
   'field_coordinator',
 ] as const;
 

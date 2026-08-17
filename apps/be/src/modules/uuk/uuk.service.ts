@@ -457,65 +457,67 @@ export class UukService {
         : [{ updatedAt: sortOrder }, { id: 'asc' }];
 
     const where = this.uukAccessWhere(context, {
-        ...(query.status ? { status: query.status } : {}),
-        ...(query.ownerAssignmentId ? { ownerAssignmentId: query.ownerAssignmentId } : {}),
-        ...(query.directiveId
-          ? {
-              directiveVersion: {
-                directiveId: query.directiveId,
+      ...(query.status ? { status: query.status } : {}),
+      ...(query.ownerAssignmentId
+        ? { ownerAssignmentId: query.ownerAssignmentId }
+        : {}),
+      ...(query.directiveId
+        ? {
+            directiveVersion: {
+              directiveId: query.directiveId,
+            },
+          }
+        : {}),
+      ...(query.directiveVersionIds?.length
+        ? { directiveVersionId: { in: query.directiveVersionIds } }
+        : {}),
+      ...(query.search
+        ? {
+            OR: [
+              {
+                versions: {
+                  some: {
+                    title: { contains: query.search, mode: 'insensitive' },
+                  },
+                },
               },
-            }
-          : {}),
-        ...(query.directiveVersionIds?.length
-          ? { directiveVersionId: { in: query.directiveVersionIds } }
-          : {}),
-        ...(query.search
-          ? {
-              OR: [
-                {
-                  versions: {
-                    some: {
-                      title: { contains: query.search, mode: 'insensitive' },
+              {
+                directiveVersion: {
+                  directive: {
+                    commandNumber: {
+                      contains: query.search,
+                      mode: 'insensitive',
                     },
                   },
                 },
-                {
-                  directiveVersion: {
-                    directive: {
-                      commandNumber: {
-                        contains: query.search,
-                        mode: 'insensitive',
-                      },
-                    },
-                  },
-                },
-              ],
-            }
-          : {}),
-      });
+              },
+            ],
+          }
+        : {}),
+    });
     const include = {
-        ownerAssignment: true,
-        directiveVersion: {
-          include: {
-            directive: true,
-            recipients: {
-              include: {
-                targetAssignment: true,
-              },
+      ownerAssignment: true,
+      directiveVersion: {
+        include: {
+          directive: true,
+          recipients: {
+            include: {
+              targetAssignment: true,
             },
           },
         },
-        versions: {
-          orderBy: { versionNumber: 'desc' },
-          take: 1,
-          include: {
-            sections: {
-              orderBy: { orderNumber: 'asc' },
-              include: { items: true },
-            },
+      },
+      versions: {
+        orderBy: { versionNumber: 'desc' },
+        take: 1,
+        include: {
+          sections: {
+            orderBy: { orderNumber: 'asc' },
+            include: { items: true },
           },
         },
-      } satisfies Prisma.UukStrInclude;
+      },
+    } satisfies Prisma.UukStrInclude;
     const items = await this.prisma.uukStr.findMany({
       where,
       skip: (query.page - 1) * query.limit,
@@ -593,7 +595,8 @@ export class UukService {
     }
 
     const hasRecipient =
-      directiveVersion.directive.ownerAssignmentId === context.primaryAssignmentId ||
+      directiveVersion.directive.ownerAssignmentId ===
+        context.primaryAssignmentId ||
       directiveVersion.recipients.some(
         (recipient) =>
           recipient.targetAssignmentId === context.primaryAssignmentId ||

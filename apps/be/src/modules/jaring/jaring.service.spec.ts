@@ -73,7 +73,7 @@ describe('JaringService registration security', () => {
   it('memfilter Jaring berdasarkan kelurahan turunan dari cakupan wilayah', async () => {
     const findMany = jest.fn(() => Promise.resolve([]));
     const service = createService(
-      { jaring: { findMany } } as never,
+      { jaring: { findMany } },
       {
         resolve: jest.fn(() =>
           Promise.resolve({
@@ -84,7 +84,7 @@ describe('JaringService registration security', () => {
             areaRootIds: ['district-id'],
           }),
         ),
-      } as never,
+      },
     );
 
     await service.list({ page: 1, limit: 100 }, {
@@ -122,7 +122,7 @@ describe('JaringService registration security', () => {
   it('mengambil halaman Jaring berikutnya dengan offset yang sesuai', async () => {
     const findMany = jest.fn(() => Promise.resolve([]));
     const service = createService(
-      { jaring: { findMany } } as never,
+      { jaring: { findMany } },
       {
         resolve: jest.fn(() =>
           Promise.resolve({
@@ -133,7 +133,7 @@ describe('JaringService registration security', () => {
             areaRootIds: ['district-id'],
           }),
         ),
-      } as never,
+      },
     );
 
     await service.list({ page: 3, limit: 100 }, {
@@ -164,7 +164,7 @@ describe('JaringService registration security', () => {
             ]),
           ),
         },
-      } as never,
+      },
       {
         resolve: jest.fn(() =>
           Promise.resolve({
@@ -175,7 +175,7 @@ describe('JaringService registration security', () => {
             areaRootIds: ['district-id'],
           }),
         ),
-      } as never,
+      },
     );
 
     await expect(
@@ -202,8 +202,8 @@ describe('JaringService registration security', () => {
         jaringOccupation: {
           findUnique: jest.fn(() => Promise.resolve({ isActive: true })),
         },
-      } as never,
-      {} as never,
+      },
+      {},
     );
 
     await expect(
@@ -224,17 +224,17 @@ describe('JaringService registration security', () => {
     const assertJaring = jest.fn(() => Promise.reject(accessError));
     const findUniqueOrThrow = jest.fn();
     const service = createService(
-      { jaring: { findUniqueOrThrow } } as never,
-      { assertJaring } as never,
+      { jaring: { findUniqueOrThrow } },
+      { assertJaring },
     );
     const context = {
       authRole: 'field_officer',
       primaryAssignmentId: 'assignment-id',
     } as never;
 
-    await expect(
-      service.update('jaring-id', {} as UpdateJaringDto, context),
-    ).rejects.toBe(accessError);
+    await expect(service.update('jaring-id', {}, context)).rejects.toBe(
+      accessError,
+    );
 
     expect(assertJaring).toHaveBeenCalledWith(context, 'jaring-id');
     expect(findUniqueOrThrow).not.toHaveBeenCalled();
@@ -257,20 +257,16 @@ describe('JaringService registration security', () => {
           update,
         },
         auditLog: { create: jest.fn(() => Promise.resolve({})) },
-      } as never,
+      },
       {
         assertJaring: jest.fn(() => Promise.resolve()),
-      } as never,
+      },
     );
 
-    await service.update(
-      'jaring-id',
-      { nationalIdNumber: '' } as UpdateJaringDto,
-      {
-        authRole: 'field_officer',
-        primaryAssignmentId: 'assignment-id',
-      } as never,
-    );
+    await service.update('jaring-id', { nationalIdNumber: '' }, {
+      authRole: 'field_officer',
+      primaryAssignmentId: 'assignment-id',
+    } as never);
 
     expect(update).toHaveBeenCalledWith({
       where: { id: 'jaring-id' },
@@ -301,12 +297,9 @@ describe('JaringService registration security', () => {
       userOperationalAssignment: { findUniqueOrThrow: jest.fn() },
       administrativeArea: { count: jest.fn(() => Promise.resolve(1)) },
     };
-    const service = createService(
-      prisma as never,
-      {
-        assertArea: jest.fn(() => Promise.resolve()),
-      } as never,
-    );
+    const service = createService(prisma, {
+      assertArea: jest.fn(() => Promise.resolve()),
+    });
     const create = service.create(newJaring, {
       primaryAssignmentId: newJaring.fieldOfficerAssignmentId,
     } as never);
@@ -359,12 +352,9 @@ describe('JaringService registration security', () => {
       userOperationalAssignment: { findUniqueOrThrow: jest.fn() },
       administrativeArea: { count: jest.fn(() => Promise.resolve(1)) },
     };
-    const service = createService(
-      prisma as never,
-      {
-        assertArea: jest.fn(() => Promise.resolve()),
-      } as never,
-    );
+    const service = createService(prisma, {
+      assertArea: jest.fn(() => Promise.resolve()),
+    });
 
     await expect(
       service.create(newJaring, {
@@ -399,8 +389,8 @@ describe('JaringService registration security', () => {
       {
         jaring: { findUniqueOrThrow, findFirst, update },
         auditLog: { create: auditCreate },
-      } as never,
-      { assertJaring } as never,
+      },
+      { assertJaring },
     );
 
     await expect(
@@ -438,7 +428,13 @@ describe('JaringService registration security', () => {
     const prisma = {
       jaring: {
         findFirst: jest
-          .fn<() => Promise<{ id: string; aliasName: string; fullName: string } | null>>()
+          .fn<
+            () => Promise<{
+              id: string;
+              aliasName: string;
+              fullName: string;
+            } | null>
+          >()
           .mockResolvedValueOnce(null)
           .mockResolvedValueOnce({
             id: 'existing-jaring-id',
@@ -453,12 +449,9 @@ describe('JaringService registration security', () => {
       userOperationalAssignment: { findUniqueOrThrow: jest.fn() },
       administrativeArea: { count: jest.fn(() => Promise.resolve(1)) },
     };
-    const service = createService(
-      prisma as never,
-      {
-        assertArea: jest.fn(() => Promise.resolve()),
-      } as never,
-    );
+    const service = createService(prisma, {
+      assertArea: jest.fn(() => Promise.resolve()),
+    });
 
     await expect(
       service.create(newJaring, {
@@ -494,7 +487,13 @@ describe('JaringService registration security', () => {
       }),
     );
     const findFirst = jest
-      .fn<() => Promise<{ id: string; aliasName: string; fullName: string } | null>>()
+      .fn<
+        () => Promise<{
+          id: string;
+          aliasName: string;
+          fullName: string;
+        } | null>
+      >()
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce({
         id: 'existing-jaring-id',
@@ -507,8 +506,8 @@ describe('JaringService registration security', () => {
       {
         jaring: { findUniqueOrThrow, findFirst, update },
         auditLog: { create: auditCreate },
-      } as never,
-      { assertJaring } as never,
+      },
+      { assertJaring },
     );
 
     await expect(
@@ -595,12 +594,9 @@ describe('JaringService registration security', () => {
       },
       auditLog: { create: jest.fn(() => Promise.resolve({})) },
     };
-    const service = createService(
-      prisma as never,
-      {
-        assertArea: jest.fn(() => Promise.resolve()),
-      } as never,
-    );
+    const service = createService(prisma, {
+      assertArea: jest.fn(() => Promise.resolve()),
+    });
 
     await service.create(newJaring, {
       primaryAssignmentId: newJaring.fieldOfficerAssignmentId,
@@ -641,8 +637,8 @@ describe('JaringService registration security', () => {
           findFirst: jest.fn(() => Promise.resolve(null)),
         },
         auditLog: { create: auditCreate },
-      } as never,
-      { assertJaring } as never,
+      },
+      { assertJaring },
     );
 
     await service.update('jaring-id', { fullName: 'Nama Jaring Diubah' }, {
@@ -687,8 +683,8 @@ describe('JaringService registration security', () => {
       {
         jaring: { update, findUniqueOrThrow, findFirstOrThrow },
         auditLog: { create: auditCreate },
-      } as never,
-      {} as never,
+      },
+      {},
     );
 
     await service.softDelete('jaring-id', { reason: 'Tidak lagi dibina' }, {
@@ -810,8 +806,8 @@ describe('JaringService registration security', () => {
     const service = createService(
       {
         whatsAppReportSession: { findMany, count, groupBy },
-      } as never,
-      { assertJaring } as never,
+      },
+      { assertJaring },
     );
     const context = {
       authRole: 'field_officer',
@@ -880,9 +876,9 @@ describe('JaringService registration security', () => {
     const service = createService(
       {
         whatsAppReportSession: { findMany, count, groupBy },
-      } as never,
-      { assertArea, jaringWhere } as never,
-      {} as never,
+      },
+      { assertArea, jaringWhere },
+      {},
     );
 
     const result = await service.allReports(
@@ -955,9 +951,9 @@ describe('JaringService registration security', () => {
     const service = createService(
       {
         whatsAppReportSession: { findMany, count, groupBy },
-      } as never,
-      { assertArea, jaringWhere } as never,
-      {} as never,
+      },
+      { assertArea, jaringWhere },
+      {},
     );
 
     await service.allReports(
@@ -1028,9 +1024,9 @@ describe('JaringService registration security', () => {
       {
         jaringCoachingReport: { findMany, count, groupBy },
         jaring: { findMany: jaringFindMany },
-      } as never,
-      { jaringWhere } as never,
-      {} as never,
+      },
+      { jaringWhere },
+      {},
     );
 
     const result = await service.allCoachingReports(
@@ -1122,21 +1118,20 @@ describe('JaringService registration security', () => {
       },
       _count: { contentParts: 1, media: 1, amendments: 0 },
     };
-    const findUnique = jest.fn<() => Promise<unknown>>().mockResolvedValue(reportSession);
+    const findUnique = jest
+      .fn<() => Promise<unknown>>()
+      .mockResolvedValue(reportSession);
     const service = createService(
       {
         whatsAppReportSession: { findUnique },
-      } as never,
-      { assertJaring } as never,
+      },
+      { assertJaring },
     );
 
-    const result = await service.report(
-      'report-session-id',
-      {
-        userProfileId: 'profile-id',
-        primaryAssignmentId: 'assignment-id',
-      } as never,
-    );
+    const result = await service.report('report-session-id', {
+      userProfileId: 'profile-id',
+      primaryAssignmentId: 'assignment-id',
+    } as never);
 
     expect(assertJaring).toHaveBeenCalledWith(expect.anything(), 'jaring-id');
     expect(result.processStatus).toBe('READY_FOR_BAKET');
@@ -1186,8 +1181,8 @@ describe('JaringService registration security', () => {
             ]),
           ),
         },
-      } as never,
-      { assertJaring } as never,
+      },
+      { assertJaring },
     );
 
     const result = await service.reportHistory('report-session-id', {

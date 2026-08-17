@@ -170,7 +170,10 @@ export class DirectiveAiService {
     input: GenerateDirectiveAiDto,
     strategicIssue: string,
   ): DirectiveAiResult {
-    const targetAreas = this.getContextStringArray(input.context, 'targetAreas');
+    const targetAreas = this.getContextStringArray(
+      input.context,
+      'targetAreas',
+    );
     const areaLabel = targetAreas.length
       ? targetAreas.join(', ')
       : 'wilayah sasaran yang dipilih';

@@ -20,10 +20,7 @@ async function syncUserUsernames() {
     await prisma.user.updateMany({
       where: {
         id: profile.authUserId,
-        OR: [
-          { username: null },
-          { username: { not: profile.username } },
-        ],
+        OR: [{ username: null }, { username: { not: profile.username } }],
       },
       data: {
         username: profile.username,
@@ -34,7 +31,9 @@ async function syncUserUsernames() {
     updatedCount++;
   }
 
-  console.log(`Successfully synced ${updatedCount} user accounts with their respective usernames.`);
+  console.log(
+    `Successfully synced ${updatedCount} user accounts with their respective usernames.`,
+  );
 }
 
 void syncUserUsernames()

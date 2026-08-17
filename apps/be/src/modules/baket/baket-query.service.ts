@@ -62,7 +62,11 @@ export class BaketQueryService {
     createdAt: Date;
   }) {
     const content = version.normalizedContent || version.originalContent;
-    const words = content.replace(/\s+/g, ' ').trim().split(' ').filter(Boolean);
+    const words = content
+      .replace(/\s+/g, ' ')
+      .trim()
+      .split(' ')
+      .filter(Boolean);
     const headline = words.slice(0, 6).join(' ');
     return {
       displayTitle:
@@ -251,7 +255,8 @@ export class BaketQueryService {
         ? { status: query.status }
         : requestedStatuses?.length
           ? { status: { in: requestedStatuses } }
-          : context.roleCode === 'EXECUTIVE' || context.roleCode === 'REGIONAL_COMMANDER'
+          : context.roleCode === 'EXECUTIVE' ||
+              context.roleCode === 'REGIONAL_COMMANDER'
             ? { status: { in: intakeStatuses } }
             : {}),
       ...(query.urgency

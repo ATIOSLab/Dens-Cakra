@@ -193,7 +193,9 @@ describe('WhatsAppReportFlowService simplified collector', () => {
 
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
     expect(input.reply).toHaveBeenCalledWith([
-      expect.stringContaining('*KANAL INFORMASI*\n\nSilakan sampaikan informasi dengan urutan berikut:'),
+      expect.stringContaining(
+        '*KANAL INFORMASI*\n\nSilakan sampaikan informasi dengan urutan berikut:',
+      ),
     ]);
     expect(input.reply.mock.calls[0][0][0]).toContain('ketik *BATAL*.');
   });
@@ -221,8 +223,12 @@ describe('WhatsAppReportFlowService simplified collector', () => {
     const session = activeSession();
     prisma.whatsAppReportSession.findUnique.mockResolvedValue(session);
     const target = service as any;
-    const captureLive = jest.spyOn(target, 'captureLiveLocation').mockResolvedValue(undefined);
-    const captureText = jest.spyOn(target, 'captureText').mockResolvedValue(undefined);
+    const captureLive = jest
+      .spyOn(target, 'captureLiveLocation')
+      .mockResolvedValue(undefined);
+    const captureText = jest
+      .spyOn(target, 'captureText')
+      .mockResolvedValue(undefined);
 
     await service.handle(
       inbound('', {
@@ -395,9 +401,15 @@ describe('WhatsAppReportFlowService simplified collector', () => {
     const { service, prisma } = createFixture();
     prisma.whatsAppReportSession.findUnique.mockResolvedValue(activeSession());
     const target = service as any;
-    const captureMedia = jest.spyOn(target, 'captureMedia').mockResolvedValue(undefined);
-    const purge = jest.spyOn(target, 'purgeDraftSession').mockResolvedValue(true);
-    const finish = jest.spyOn(target, 'finishSession').mockResolvedValue(undefined);
+    const captureMedia = jest
+      .spyOn(target, 'captureMedia')
+      .mockResolvedValue(undefined);
+    const purge = jest
+      .spyOn(target, 'purgeDraftSession')
+      .mockResolvedValue(true);
+    const finish = jest
+      .spyOn(target, 'finishSession')
+      .mockResolvedValue(undefined);
 
     await service.handle(
       inbound('BATAL', {
@@ -449,7 +461,9 @@ describe('WhatsAppReportFlowService simplified collector', () => {
     ]);
     expect(input.reply.mock.calls[0][0][0]).toContain('Live Location');
     expect(input.reply.mock.calls[0][0][0]).toContain('Foto atau video');
-    expect(input.reply.mock.calls[0][0][0]).toContain('ketik *SELESAI* kembali');
+    expect(input.reply.mock.calls[0][0][0]).toContain(
+      'ketik *SELESAI* kembali',
+    );
   });
 
   it('submits a ready draft once, clears its active sender key, and returns a reference', async () => {
@@ -553,7 +567,9 @@ describe('WhatsAppReportFlowService simplified collector', () => {
       referenceNumber: 'JKT-SEL-20260805-000001',
     });
     const target = service as any;
-    const purge = jest.spyOn(target, 'purgeDraftSession').mockResolvedValue(true);
+    const purge = jest
+      .spyOn(target, 'purgeDraftSession')
+      .mockResolvedValue(true);
     const input = inbound('selesai');
 
     await service.handle(input);
@@ -578,7 +594,9 @@ describe('WhatsAppReportFlowService simplified collector', () => {
     const { service, prisma } = createFixture();
     prisma.whatsAppReportSession.findUnique.mockResolvedValue(activeSession());
     const target = service as any;
-    const purge = jest.spyOn(target, 'purgeDraftSession').mockResolvedValue(true);
+    const purge = jest
+      .spyOn(target, 'purgeDraftSession')
+      .mockResolvedValue(true);
     const input = inbound('bAtAl');
 
     await service.handle(input);
@@ -616,7 +634,9 @@ describe('WhatsAppReportFlowService simplified collector', () => {
       { id: 'old-2' },
     ]);
     const target = service as any;
-    const purge = jest.spyOn(target, 'purgeDraftSession').mockResolvedValue(true);
+    const purge = jest
+      .spyOn(target, 'purgeDraftSession')
+      .mockResolvedValue(true);
 
     await expect(service.cleanupPreviousDayDrafts()).resolves.toBe(2);
 

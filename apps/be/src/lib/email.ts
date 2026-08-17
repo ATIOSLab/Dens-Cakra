@@ -125,12 +125,10 @@ export async function resolveSmtpMailConfig(): Promise<SmtpMailConfig | null> {
   }
 }
 
-export async function sendMail({
-  html,
-  subject,
-  text,
-  to,
-}: SendMailOptions, config?: SmtpMailConfig): Promise<void> {
+export async function sendMail(
+  { html, subject, text, to }: SendMailOptions,
+  config?: SmtpMailConfig,
+): Promise<void> {
   const resolvedConfig = config ?? (await resolveSmtpMailConfig());
 
   if (!resolvedConfig) {

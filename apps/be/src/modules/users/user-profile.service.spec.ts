@@ -33,7 +33,10 @@ const jawaBaratProvince = {
   level: AdministrativeLevel.PROVINCE,
 };
 
-function buildService(area: unknown, roleCode: RoleCode = RoleCode.REGIONAL_COMMANDER) {
+function buildService(
+  area: unknown,
+  roleCode: RoleCode = RoleCode.REGIONAL_COMMANDER,
+) {
   const areas = Array.isArray(area) ? area : [area];
   const createdAssignment = { id: 'new-assignment' };
   const tx = {
@@ -95,7 +98,10 @@ function buildService(area: unknown, roleCode: RoleCode = RoleCode.REGIONAL_COMM
   };
 }
 
-function input(areaId: string, roleCode: RoleCode = RoleCode.REGIONAL_COMMANDER) {
+function input(
+  areaId: string,
+  roleCode: RoleCode = RoleCode.REGIONAL_COMMANDER,
+) {
   return {
     reason: 'Perubahan cakupan supervisi DKI',
     roleCode,

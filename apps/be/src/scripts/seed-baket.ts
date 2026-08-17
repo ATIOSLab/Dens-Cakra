@@ -332,10 +332,9 @@ async function loadSeedChains(): Promise<SeedChain[]> {
       );
       const primaryReports = scopedCoordinators
         .map((fieldCoordinator) => {
-          const fieldOfficer = (
-            fieldOfficersByParentAreaId.get(fieldCoordinator.area?.id ?? '') ??
-            []
-          )[0];
+          const fieldOfficer = (fieldOfficersByParentAreaId.get(
+            fieldCoordinator.area?.id ?? '',
+          ) ?? [])[0];
           return fieldOfficer ? { fieldCoordinator, fieldOfficer } : null;
         })
         .filter((entry): entry is NonNullable<typeof entry> => entry !== null);
@@ -345,8 +344,9 @@ async function loadSeedChains(): Promise<SeedChain[]> {
       }
 
       const fallbackReports = scopedCoordinators.flatMap((fieldCoordinator) =>
-        (fieldOfficersByParentAreaId.get(fieldCoordinator.area?.id ?? '') ?? [])
-          .map((fieldOfficer) => ({ fieldCoordinator, fieldOfficer })),
+        (
+          fieldOfficersByParentAreaId.get(fieldCoordinator.area?.id ?? '') ?? []
+        ).map((fieldOfficer) => ({ fieldCoordinator, fieldOfficer })),
       );
 
       return {

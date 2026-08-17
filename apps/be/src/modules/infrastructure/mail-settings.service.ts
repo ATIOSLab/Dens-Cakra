@@ -1,5 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { IsBoolean, IsEmail, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
+import {
+  IsBoolean,
+  IsEmail,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+} from 'class-validator';
 import { Prisma } from '../../generated/prisma/client.js';
 import { ApiException } from '../../common/api/api-exception.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
@@ -148,14 +157,12 @@ export class MailSettingsService {
       create: {
         key: SMTP_SETTING_KEY,
         value: encrypted,
-        description:
-          'Konfigurasi SMTP custom untuk notifikasi email sistem.',
+        description: 'Konfigurasi SMTP custom untuk notifikasi email sistem.',
         isSecret: true,
       },
       update: {
         value: encrypted,
-        description:
-          'Konfigurasi SMTP custom untuk notifikasi email sistem.',
+        description: 'Konfigurasi SMTP custom untuk notifikasi email sistem.',
         isSecret: true,
       },
     });

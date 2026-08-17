@@ -4416,7 +4416,9 @@ export class IntelligenceProductsService {
       );
       const reportsById = new Map(
         [
-          ...scopedAssignmentIds.flatMap((id) => baketsByAssignment.get(id) ?? []),
+          ...scopedAssignmentIds.flatMap(
+            (id) => baketsByAssignment.get(id) ?? [],
+          ),
           ...scopedJaringIds.flatMap((id) => baketsByJaring.get(id) ?? []),
         ].map((baket) => [baket.id, baket]),
       );
@@ -4578,10 +4580,7 @@ export class IntelligenceProductsService {
         },
         {
           code: 'IDX.4',
-          score: average([
-            ...contributionScores,
-            ...reportContributionScores,
-          ]),
+          score: average([...contributionScores, ...reportContributionScores]),
           sample: contributionScores.length + reportContributionScores.length,
         },
         {
@@ -4632,14 +4631,19 @@ export class IntelligenceProductsService {
         hierarchyLevel: 'BINDA' | 'KORWIL' | 'GASWIL' | 'JARING';
         levelLabel: string;
         parentId: string | null;
-        scopeArea: { id: string; code: string; name: string; level: string } | null;
+        scopeArea: {
+          id: string;
+          code: string;
+          name: string;
+          level: string;
+        } | null;
         assignmentIds: Set<string>;
         jaringIds: Set<string>;
       }
     >();
     const getNode = (
       input: Omit<
-        (typeof hierarchyNodes extends Map<string, infer T> ? T : never),
+        typeof hierarchyNodes extends Map<string, infer T> ? T : never,
         'assignmentIds' | 'jaringIds'
       >,
     ) => {
@@ -4726,9 +4730,7 @@ export class IntelligenceProductsService {
         ? (hierarchyNodes.get(gaswilId!) ??
           getNode({
             id: gaswilId!,
-            code:
-              nodes.gaswilArea?.code ??
-              caretaker.fieldOfficerAssignmentId,
+            code: nodes.gaswilArea?.code ?? caretaker.fieldOfficerAssignmentId,
             name:
               gaswilAssignment.userProfile.fullName ??
               gaswilAssignment.userProfile.username ??
@@ -4822,7 +4824,10 @@ export class IntelligenceProductsService {
                 : 'PERSONEL',
         unit: {
           id: assignment.areaScopes[0]?.area.id ?? assignment.id,
-          code: assignment.areaScopes[0]?.area.officialCode ?? assignment.areaScopes[0]?.area.code ?? assignment.id,
+          code:
+            assignment.areaScopes[0]?.area.officialCode ??
+            assignment.areaScopes[0]?.area.code ??
+            assignment.id,
           name: areaLabel(assignment.areaScopes[0]?.area ?? null),
           type: assignment.branch,
         },

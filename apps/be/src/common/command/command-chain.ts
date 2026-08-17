@@ -1,7 +1,4 @@
-import {
-  CommandRouteType,
-  RoleCode,
-} from '../../generated/prisma/client.js';
+import { CommandRouteType, RoleCode } from '../../generated/prisma/client.js';
 
 /**
  * Perintah kewilayahan (role -> atasan langsung di garis komando).

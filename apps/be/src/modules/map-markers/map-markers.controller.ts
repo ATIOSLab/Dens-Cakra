@@ -21,10 +21,7 @@ export class MapMarkersController {
     contractId: 'API-MAP-MARKERS-001',
     summary:
       'Marker GeoJSON Laporan Jaring, BAKET, dan lokasi personel sesuai scope',
-    roles: [
-      'executive',
-      'regional_commander',
-    ],
+    roles: ['executive', 'regional_commander'],
   })
   async list(
     @Query() query: MapMarkersQuery,

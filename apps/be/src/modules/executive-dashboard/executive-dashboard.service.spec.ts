@@ -138,12 +138,14 @@ function jaring(overrides: Record<string, unknown> = {}) {
 }
 
 function scopeSummary(scopeContext: any) {
-  const areas = (scopeContext.areaScopes as Array<{
-    areaId: string;
-    code: string;
-    name: string;
-    level: string;
-  }>).map((area) => {
+  const areas = (
+    scopeContext.areaScopes as Array<{
+      areaId: string;
+      code: string;
+      name: string;
+      level: string;
+    }>
+  ).map((area) => {
     const isDkiJakarta =
       area.code === '31' ||
       area.code.startsWith('31.') ||

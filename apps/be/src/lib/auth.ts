@@ -68,7 +68,8 @@ export const auth = betterAuth({
           await ensureUserProfileForAuthUser({
             authUserId: user.id,
             fullName: user.name,
-            username: (user as any).username ?? (user as any).displayUsername ?? null,
+            username:
+              (user as any).username ?? (user as any).displayUsername ?? null,
           });
         },
       },
@@ -77,7 +78,8 @@ export const auth = betterAuth({
           await ensureUserProfileForAuthUser({
             authUserId: user.id,
             fullName: user.name,
-            username: (user as any).username ?? (user as any).displayUsername ?? null,
+            username:
+              (user as any).username ?? (user as any).displayUsername ?? null,
           });
         },
       },

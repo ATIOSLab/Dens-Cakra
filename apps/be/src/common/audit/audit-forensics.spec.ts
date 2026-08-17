@@ -28,7 +28,10 @@ describe('audit forensics', () => {
 
   it('redacts credentials recursively', () => {
     expect(
-      sanitizeAuditValue({ password: 'secret', nested: { accessToken: 'abc' } }),
+      sanitizeAuditValue({
+        password: 'secret',
+        nested: { accessToken: 'abc' },
+      }),
     ).toEqual({
       password: '[REDACTED]',
       nested: { accessToken: '[REDACTED]' },
@@ -40,7 +43,9 @@ describe('audit forensics', () => {
   });
 
   it('derives a normalized device descriptor', () => {
-    expect(describeDevice('Mozilla/5.0 (Linux; Android 15) Chrome/126.0')).toEqual({
+    expect(
+      describeDevice('Mozilla/5.0 (Linux; Android 15) Chrome/126.0'),
+    ).toEqual({
       deviceType: 'MOBILE',
       browser: 'Google Chrome',
       operatingSystem: 'Android',
@@ -48,7 +53,9 @@ describe('audit forensics', () => {
   });
 
   it('suppresses noisy polling but keeps operational requests', () => {
-    expect(shouldCaptureRequest('POST', '/api/v1/session-heartbeat')).toBe(false);
+    expect(shouldCaptureRequest('POST', '/api/v1/session-heartbeat')).toBe(
+      false,
+    );
     expect(shouldCaptureRequest('GET', '/api/v1/audit-logs')).toBe(false);
     expect(shouldCaptureRequest('PATCH', '/api/v1/jaring/123')).toBe(true);
   });

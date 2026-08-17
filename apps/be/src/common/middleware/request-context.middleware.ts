@@ -48,7 +48,9 @@ export class RequestContextMiddleware implements NestMiddleware {
     if (!shouldCaptureRequest(request.method, path)) return;
 
     const ipAddress = normalizeIpAddress(
-      request.ip || request.header('x-real-ip') || request.header('x-forwarded-for'),
+      request.ip ||
+        request.header('x-real-ip') ||
+        request.header('x-forwarded-for'),
     );
     const userAgent = request.header('user-agent')?.slice(0, 4_000) ?? null;
     const durationMs = Math.max(0, Date.now() - startedAt);
@@ -83,9 +85,8 @@ export class RequestContextMiddleware implements NestMiddleware {
       Boolean(value && /id$/i.test(key)),
     );
     const entityIdValue = entityEntry?.[1];
-    const entityId = (Array.isArray(entityIdValue)
-      ? entityIdValue[0]
-      : entityIdValue
+    const entityId = (
+      Array.isArray(entityIdValue) ? entityIdValue[0] : entityIdValue
     )?.slice(0, 100);
     const session = request.authSession as
       | (typeof request.authSession & { locationLabel?: string | null })

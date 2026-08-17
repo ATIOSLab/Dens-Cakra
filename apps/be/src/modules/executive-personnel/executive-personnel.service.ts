@@ -151,8 +151,8 @@ export class ExecutivePersonnelService {
           ? (pingByAssignment.get(assignment.id) ?? null)
           : null;
         const jaringPreview = assignment
-          ? assignment.jaringCaretakerAssignments.map(
-              (caretaker: any) => this.withJaringActivity(caretaker.jaring),
+          ? assignment.jaringCaretakerAssignments.map((caretaker: any) =>
+              this.withJaringActivity(caretaker.jaring),
             )
           : [];
         return {
@@ -241,7 +241,10 @@ export class ExecutivePersonnelService {
     const [provinces, regencies, districts] = await Promise.all([
       this.prisma.administrativeArea.findMany({
         where: {
-          ...this.scopedAreaWhere(scope.areaRootIds, AdministrativeLevel.PROVINCE),
+          ...this.scopedAreaWhere(
+            scope.areaRootIds,
+            AdministrativeLevel.PROVINCE,
+          ),
         },
         select: areaSelect,
         orderBy: { name: 'asc' },
@@ -1133,14 +1136,24 @@ export class ExecutivePersonnelService {
 
     const threeMonthsAgo = new Date();
     threeMonthsAgo.setDate(threeMonthsAgo.getDate() - 90);
-    const isApproved = item.registrationStatus === JaringRegistrationStatus.APPROVED;
-    const hasRecentActivity = lastReportAt !== null && lastReportAt.getTime() >= threeMonthsAgo.getTime();
-    const { messages: _messages, reportSessions: _reportSessions, ...payload } = item;
+    const isApproved =
+      item.registrationStatus === JaringRegistrationStatus.APPROVED;
+    const hasRecentActivity =
+      lastReportAt !== null &&
+      lastReportAt.getTime() >= threeMonthsAgo.getTime();
+    const {
+      messages: _messages,
+      reportSessions: _reportSessions,
+      ...payload
+    } = item;
 
     return {
       ...payload,
       lastReportAt: lastReportAt ? lastReportAt.toISOString() : null,
-      status: isApproved && hasRecentActivity ? JaringStatus.ACTIVE : JaringStatus.INACTIVE,
+      status:
+        isApproved && hasRecentActivity
+          ? JaringStatus.ACTIVE
+          : JaringStatus.INACTIVE,
     };
   }
 

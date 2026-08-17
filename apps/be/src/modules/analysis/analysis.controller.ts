@@ -47,7 +47,8 @@ export class AnalysisController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
     ],
   })
   async list(
@@ -81,7 +82,8 @@ export class AnalysisController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
     ],
   })
   async get(
@@ -168,7 +170,8 @@ export class AnalysisController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
     ],
   })
   async versions(
@@ -205,7 +208,8 @@ export class AnalysisController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
     ],
   })
   async getVersion(
@@ -294,7 +298,8 @@ export class AnalysisController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
     ],
   })
   async graph(
@@ -312,7 +317,8 @@ export class AnalysisController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
     ],
   })
   async traceability(

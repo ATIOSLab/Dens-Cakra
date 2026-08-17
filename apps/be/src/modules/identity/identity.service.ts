@@ -188,10 +188,7 @@ export class IdentityService {
     return { lastSeenAt };
   }
 
-  async markSessionInactive(input: {
-    sessionId: string;
-    authUserId: string;
-  }) {
+  async markSessionInactive(input: { sessionId: string; authUserId: string }) {
     await this.prisma.session.updateMany({
       where: {
         id: input.sessionId,

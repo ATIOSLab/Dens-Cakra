@@ -415,7 +415,9 @@ describe('WhatsappBotRuntimeService report intake', () => {
         'channel-id',
         expect.objectContaining({
           connectionStatus: 'ERROR',
-          lastError: expect.stringContaining('Pemulihan otomatis WhatsApp dihentikan'),
+          lastError: expect.stringContaining(
+            'Pemulihan otomatis WhatsApp dihentikan',
+          ),
         }),
         'ERROR',
       );

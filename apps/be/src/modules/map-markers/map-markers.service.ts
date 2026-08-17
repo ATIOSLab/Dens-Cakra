@@ -1036,9 +1036,9 @@ export class MapMarkersService {
     );
     const matchedByVersion = await this.spatial.matchCoordinates(
       located.map(({ version }) => ({
-        id: version!.id,
-        latitude: Number(version!.latitude),
-        longitude: Number(version!.longitude),
+        id: version.id,
+        latitude: Number(version.latitude),
+        longitude: Number(version.longitude),
       })),
     );
 

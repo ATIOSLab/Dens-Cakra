@@ -84,11 +84,7 @@ export class JaringController {
     operationId: 'apiJarOccupation001',
     contractId: 'API-JAR-OCCUPATION-001',
     summary: 'Daftar pekerjaan Jaring',
-    roles: [
-      'admin_system',
-      'field_officer',
-      'executive', 'regional_commander',
-    ],
+    roles: ['admin_system', 'field_officer', 'executive', 'regional_commander'],
   })
   async listOccupations(@Query() query: JaringOccupationQuery) {
     return apiResult(await this.jaringService.listOccupations(query));
@@ -135,7 +131,8 @@ export class JaringController {
     roles: [
       'admin_system',
       'field_officer',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
       'regional_commander',
       'executive',
@@ -188,7 +185,8 @@ export class JaringController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -489,7 +487,8 @@ export class JaringController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -510,7 +509,8 @@ export class JaringController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -562,7 +562,8 @@ export class JaringController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
       'field_officer',
     ],
@@ -582,7 +583,8 @@ export class JaringController {
     roles: [
       'executive',
       'regional_commander',
-      'executive', 'regional_commander',
+      'executive',
+      'regional_commander',
       'field_coordinator',
       'field_officer',
     ],

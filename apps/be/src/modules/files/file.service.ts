@@ -105,7 +105,10 @@ export class FileService implements OnModuleInit {
         'Uploaded file size or checksum does not match reservation.',
         422,
       );
-    await this.assertDeclaredImageContent(reservation.storageKey, reservation.mimeType);
+    await this.assertDeclaredImageContent(
+      reservation.storageKey,
+      reservation.mimeType,
+    );
     const file = await this.prisma.$transaction(async (tx) => {
       const created = await tx.fileAsset.create({
         data: {

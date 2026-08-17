@@ -47,22 +47,24 @@ export function isDkiJakartaProvince(area: AreaWithDkiAncestry) {
   const name = area.name?.toLocaleLowerCase('id-ID') ?? '';
   return (
     code === DKI_JAKARTA_PROVINCE_CODE ||
-    DKI_JAKARTA_PROVINCE_NAME_MATCHERS.some((matcher) =>
-      name.includes(matcher),
-    )
+    DKI_JAKARTA_PROVINCE_NAME_MATCHERS.some((matcher) => name.includes(matcher))
   );
 }
 
 export function belongsToDkiJakartaProvince(area: AreaWithDkiAncestry) {
   if (isDkiJakartaProvince(area)) return true;
   if (area.parent && belongsToDkiJakartaProvince(area.parent)) return true;
-  return area.ancestorLinks?.some((link) => isDkiJakartaProvince(link.ancestor)) ?? false;
+  return (
+    area.ancestorLinks?.some((link) => isDkiJakartaProvince(link.ancestor)) ??
+    false
+  );
 }
 
 export function isDkiJakartaRegencyCity(area: AreaWithDkiAncestry) {
   return (
-    DKI_REGENCY_CITY_LEVELS.includes(area.level as (typeof DKI_REGENCY_CITY_LEVELS)[number]) &&
-    belongsToDkiJakartaProvince(area)
+    DKI_REGENCY_CITY_LEVELS.includes(
+      area.level as (typeof DKI_REGENCY_CITY_LEVELS)[number],
+    ) && belongsToDkiJakartaProvince(area)
   );
 }
 

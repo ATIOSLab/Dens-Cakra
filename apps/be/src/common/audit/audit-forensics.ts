@@ -25,21 +25,27 @@ export type AuditCategory = (typeof AUDIT_CATEGORIES)[number];
 export type AuditSeverity = (typeof AUDIT_SEVERITIES)[number];
 export type AuditOutcome = (typeof AUDIT_OUTCOMES)[number];
 
-const REDACTED_KEYS = /authorization|cookie|password|passcode|pin|secret|token|credential|private.?key|api.?key/i;
+const REDACTED_KEYS =
+  /authorization|cookie|password|passcode|pin|secret|token|credential|private.?key|api.?key/i;
 
 export function sanitizeAuditValue(
   value: unknown,
 ): Prisma.InputJsonValue | typeof Prisma.JsonNull {
   if (value === null || value === undefined) return Prisma.JsonNull;
 
-  const sanitizeNested = (item: unknown, depth: number): Prisma.InputJsonValue => {
+  const sanitizeNested = (
+    item: unknown,
+    depth: number,
+  ): Prisma.InputJsonValue => {
     if (item === null || item === undefined) return '[null]';
     if (depth >= 6) return '[depth-limited]';
     if (typeof item === 'string') return item.slice(0, 4_000);
     if (typeof item === 'number' || typeof item === 'boolean') return item;
     if (item instanceof Date) return item.toISOString();
     if (Array.isArray(item)) {
-      return item.slice(0, 100).map((entry) => sanitizeNested(entry, depth + 1));
+      return item
+        .slice(0, 100)
+        .map((entry) => sanitizeNested(entry, depth + 1));
     }
     if (typeof item === 'object') {
       return Object.fromEntries(
@@ -66,7 +72,9 @@ export function redactAuditOutput(value: unknown, depth = 0): unknown {
   if (typeof value === 'number' || typeof value === 'boolean') return value;
   if (value instanceof Date) return value.toISOString();
   if (Array.isArray(value)) {
-    return value.slice(0, 100).map((item) => redactAuditOutput(item, depth + 1));
+    return value
+      .slice(0, 100)
+      .map((item) => redactAuditOutput(item, depth + 1));
   }
   if (typeof value === 'object') {
     return Object.fromEntries(
@@ -123,7 +131,11 @@ export function describeDevice(userAgent?: string | null) {
 
 function categoryFromPath(path: string): AuditCategory {
   const lower = path.toLowerCase();
-  if (/auth|session|password|security|audit|rbac|role-hak-akses|settings/.test(lower)) {
+  if (
+    /auth|session|password|security|audit|rbac|role-hak-akses|settings/.test(
+      lower,
+    )
+  ) {
     return 'SECURITY';
   }
   if (/system|pengguna|users|positions|areas|organization/.test(lower)) {
@@ -131,7 +143,11 @@ function categoryFromPath(path: string): AuditCategory {
   }
   if (/files|storage|export|download/.test(lower)) return 'DATA_ACCESS';
   if (/integration|whatsapp|webhook|wa-/.test(lower)) return 'INTEGRATION';
-  if (/jaring|baket|task|directive|uuk|analysis|intelligence|map-marker/.test(lower)) {
+  if (
+    /jaring|baket|task|directive|uuk|analysis|intelligence|map-marker/.test(
+      lower,
+    )
+  ) {
     return 'INTELLIGENCE_OPERATION';
   }
   return 'ACTIVITY';
@@ -171,7 +187,11 @@ export function classifyRequestAudit(input: {
     riskScore += 15;
     indicators.push('DESTRUCTIVE_METHOD');
   }
-  if (/password|secret|settings|rbac|role|audit-exports/.test(input.path.toLowerCase())) {
+  if (
+    /password|secret|settings|rbac|role|audit-exports/.test(
+      input.path.toLowerCase(),
+    )
+  ) {
     riskScore += 15;
     indicators.push('SENSITIVE_RESOURCE');
   }

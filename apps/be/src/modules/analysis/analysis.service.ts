@@ -171,7 +171,9 @@ export class AnalysisService {
     const where: Prisma.AnalysisCaseWhereInput = {
       ...this.scope.analysisWhere(context),
       ...(query.status ? { status: query.status } : {}),
-      ...(query.ownerAssignmentId ? { ownerAssignmentId: query.ownerAssignmentId } : {}),
+      ...(query.ownerAssignmentId
+        ? { ownerAssignmentId: query.ownerAssignmentId }
+        : {}),
       ...(query.search
         ? {
             OR: [

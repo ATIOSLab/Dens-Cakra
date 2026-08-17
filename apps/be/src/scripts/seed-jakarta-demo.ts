@@ -1,8 +1,5 @@
-import {
-  createHash } from 'node:crypto';
-import { readFile,
-  readdir,
-  stat } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { readFile, readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import {
   AnalysisStatus,
@@ -376,24 +373,25 @@ async function loadContext() {
     );
     const fieldOfficerAreaCodes =
       districtCodes.length > 0 ? districtCodes : [officialCode];
-    const fieldOfficer = await prisma.userOperationalAssignment.findFirstOrThrow({
-      where: {
-        isPrimary: true,
-        isActive: true,
-        validUntil: null,
-        userProfile: { isActive: true, deletedAt: null },
-        branch: CommandRouteType.BINDA,
-        role: { code: RoleCode.FIELD_OFFICER },
-        areaScopes: {
-          some: {
-            validUntil: null,
-            area: { officialCode: { in: fieldOfficerAreaCodes } },
+    const fieldOfficer =
+      await prisma.userOperationalAssignment.findFirstOrThrow({
+        where: {
+          isPrimary: true,
+          isActive: true,
+          validUntil: null,
+          userProfile: { isActive: true, deletedAt: null },
+          branch: CommandRouteType.BINDA,
+          role: { code: RoleCode.FIELD_OFFICER },
+          areaScopes: {
+            some: {
+              validUntil: null,
+              area: { officialCode: { in: fieldOfficerAreaCodes } },
+            },
           },
         },
-      },
-      orderBy: { validFrom: 'asc' },
-      select: assignmentSelect,
-    });
+        orderBy: { validFrom: 'asc' },
+        select: assignmentSelect,
+      });
     const fallback = fallbackCoordinates(officialCode);
     areas.push({
       id: rawArea.id,
@@ -433,10 +431,7 @@ async function loadContext() {
       },
     }),
   ]);
-  if (
-    categories.length === 0 ||
-    productTypes.length === 0
-  ) {
+  if (categories.length === 0 || productTypes.length === 0) {
     throw new Error(
       'Master data is incomplete. Run npm run seed:all before this demo seed.',
     );

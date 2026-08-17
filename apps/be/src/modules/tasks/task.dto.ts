@@ -41,7 +41,9 @@ export class TaskQuery {
   @IsOptional() @IsUUID() ownerAssignmentId?: string;
   @IsOptional() @IsUUID() assigneeAssignmentId?: string;
   @IsOptional() @IsUUID() relatedAssignmentId?: string;
-  @IsOptional() @IsEnum(TaskAssignmentStatus) assignmentStatus?: TaskAssignmentStatus;
+  @IsOptional()
+  @IsEnum(TaskAssignmentStatus)
+  assignmentStatus?: TaskAssignmentStatus;
   @IsOptional() @IsUUID() areaId?: string;
   @IsOptional() @IsDateString() dueBefore?: string;
   @IsOptional() @IsDateString() dueAfter?: string;
