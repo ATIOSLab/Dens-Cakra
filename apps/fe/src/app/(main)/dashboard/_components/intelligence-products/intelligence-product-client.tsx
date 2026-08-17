@@ -887,7 +887,7 @@ function ApprovalActions({ step }: { step: DataRecord }) {
             ? "Persetujuan produk intelijen berhasil diproses"
             : "Produk intelijen berhasil dikembalikan untuk revisi",
         );
-        router.push("/dashboard/regional-commander/laporan-produk-intelijen");
+        router.push("/dashboard/kabinda/laporan-produk-intelijen");
         router.refresh();
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Keputusan gagal disimpan");

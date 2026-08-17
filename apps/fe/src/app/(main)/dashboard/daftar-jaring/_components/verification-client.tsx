@@ -38,7 +38,7 @@ import {
   jaringDistrict,
   jaringVillage,
   type RegistrationJaring,
-} from "@/app/(main)/dashboard/field-coordinator/_components/jaring-types";
+} from "@/app/(main)/dashboard/koordinator-wilayah/_components/jaring-types";
 import { GaswilEntityLink } from "@/components/domain/gaswil-entity-link";
 import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";
 import {
@@ -77,7 +77,7 @@ import { matchesPhoneSearch } from "@/lib/search/phone-search";
 import { cn } from "@/lib/utils";
 import { SYSTEM_ROLES } from "@/navigation/sidebar/system-roles";
 
-export type { RegistrationJaring } from "@/app/(main)/dashboard/field-coordinator/_components/jaring-types";
+export type { RegistrationJaring } from "@/app/(main)/dashboard/koordinator-wilayah/_components/jaring-types";
 
 const COLUMN_OPTIONS = [
   { id: "registeredAt", label: "Waktu Terdaftar" },

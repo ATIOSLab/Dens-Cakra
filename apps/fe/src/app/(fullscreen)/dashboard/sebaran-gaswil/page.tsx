@@ -3,7 +3,7 @@ import type {
   PersonnelListItem,
   PersonnelMapFeature,
   PersonnelMapPayload,
-} from "@/app/(main)/dashboard/executive/personil/_components/executive-personnel-types";
+} from "@/app/(main)/dashboard/deputi/personil/_components/executive-personnel-types";
 import { apiServerFetchEnvelope, apiServerGet } from "@/lib/api/server-client";
 import type { PaginationMeta, QueryParams } from "@/lib/api/types";
 import { requireRole } from "@/lib/auth/server-session";
@@ -117,8 +117,8 @@ function isGaswilActive(feature?: PersonnelMapFeature) {
 }
 
 function detailHref(item: PersonnelListItem, role: string) {
-  if (role === SYSTEM_ROLES.EXECUTIVE) return `/dashboard/petugas-wilayah/${item.id}`;
-  return item.assignment?.id ? `/dashboard/petugas-wilayah/${item.assignment.id}` : "/dashboard/petugas-wilayah";
+  if (role === SYSTEM_ROLES.EXECUTIVE) return `/dashboard/daftar-petugas-wilayah/${item.id}`;
+  return item.assignment?.id ? `/dashboard/daftar-petugas-wilayah/${item.assignment.id}` : "/dashboard/daftar-petugas-wilayah";
 }
 
 function gaswilEntry(

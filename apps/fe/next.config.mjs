@@ -68,7 +68,32 @@ const nextConfig = {
     return [
       {
         source: "/dashboard/personel-lapangan/:path*",
+        destination: "/dashboard/daftar-petugas-wilayah/:path*",
+        permanent: true,
+      },
+      {
+        source: "/dashboard/field-officer/:path*",
         destination: "/dashboard/petugas-wilayah/:path*",
+        permanent: true,
+      },
+      {
+        source: "/dashboard/executive/:path*",
+        destination: "/dashboard/deputi/:path*",
+        permanent: true,
+      },
+      {
+        source: "/dashboard/regional-commander/:path*",
+        destination: "/dashboard/kabinda/:path*",
+        permanent: true,
+      },
+      {
+        source: "/dashboard/field-coordinator/:path*",
+        destination: "/dashboard/koordinator-wilayah/:path*",
+        permanent: true,
+      },
+      {
+        source: "/dashboard/oim/:path*",
+        destination: "/dashboard/anev/:path*",
         permanent: true,
       },
     ];

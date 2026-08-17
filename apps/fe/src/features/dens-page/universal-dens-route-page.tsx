@@ -1,6 +1,6 @@
 import { ComingSoonPage } from "@/app/(main)/dashboard/coming-soon/page";
-import type { OimView } from "@/app/(main)/dashboard/oim/_components/oim-types";
-import { OimWorkspacePage } from "@/app/(main)/dashboard/oim/_components/oim-workspace-page";
+import type { OimView } from "@/app/(main)/dashboard/anev/_components/oim-types";
+import { OimWorkspacePage } from "@/app/(main)/dashboard/anev/_components/oim-workspace-page";
 import { DOMAIN_TERMS } from "@/lib/domain/terminology";
 
 type UniversalDensRoutePageProps = {
@@ -14,8 +14,8 @@ function buildDescription() {
 }
 
 function resolveOimView(route: string): OimView | null {
-  if (!route.startsWith("/dashboard/oim") || route.includes("/direktif-tugas")) return null;
-  if (route === "/dashboard/oim") return "dashboard";
+  if (!route.startsWith("/dashboard/anev") || route.includes("/direktif-tugas")) return null;
+  if (route === "/dashboard/anev") return "dashboard";
   if (route.includes("/laporan-masuk/[baketId]/versions/")) return "report-version";
   if (route.includes("/laporan-masuk/[baketId]")) return "report-detail";
   if (route.endsWith("/laporan-masuk")) return "reports";
@@ -69,9 +69,9 @@ export function UniversalDensRoutePage({ routePattern, params = {}, searchParams
                 listTitle: `Daftar ${DOMAIN_TERMS.informationReport}`,
                 createTitle: `Buat ${DOMAIN_TERMS.informationReport}`,
                 detailTitle: `Detail ${DOMAIN_TERMS.informationReport}`,
-                listPath: "/dashboard/oim/laporan-informasi",
-                createPath: "/dashboard/oim/laporan-informasi/buat",
-                detailBasePath: "/dashboard/oim/laporan-informasi",
+                listPath: "/dashboard/anev/laporan-informasi",
+                createPath: "/dashboard/anev/laporan-informasi/buat",
+                detailBasePath: "/dashboard/anev/laporan-informasi",
               }
             : undefined
         }

@@ -626,7 +626,7 @@ export function SebaranJaringMapView({
                 <a
                   href={
                     selectedJaring.detailHref ??
-                    (mode === "gaswil" ? "/dashboard/petugas-wilayah" : `/dashboard/daftar-jaring/${selectedJaring.id}`)
+                    (mode === "gaswil" ? "/dashboard/daftar-petugas-wilayah" : `/dashboard/daftar-jaring/${selectedJaring.id}`)
                   }
                   target="_blank"
                   rel="noopener noreferrer"

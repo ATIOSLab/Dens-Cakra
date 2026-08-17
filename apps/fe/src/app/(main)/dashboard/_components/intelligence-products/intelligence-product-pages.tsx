@@ -23,7 +23,7 @@ export async function RegionalProductListPage({ sortBy, sortOrder }: { sortBy?: 
       approvalData={approvalInbox}
       title="Laporan & Produk Intelijen"
       description="Baca produk dari rantai komando Anda dan selesaikan keputusan regional dalam satu ruang kerja."
-      basePath="/dashboard/regional-commander/laporan-produk-intelijen"
+      basePath="/dashboard/kabinda/laporan-produk-intelijen"
     />
   );
 }
@@ -59,7 +59,7 @@ export async function ExecutiveProductListPage({ sortBy, sortOrder }: { sortBy?:
       data={products}
       title="Produk Intelijen"
       description="Produk yang telah disetujui Kepala BIN Daerah (Kabinda) dan tersedia untuk Deputi II."
-      basePath="/dashboard/executive/produk-intelijen"
+      basePath="/dashboard/deputi/produk-intelijen"
     />
   );
 }

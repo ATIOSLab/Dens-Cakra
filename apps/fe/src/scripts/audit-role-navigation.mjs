@@ -26,10 +26,10 @@ const roleLabels = {
 
 const homeRoutes = {
   [roleValues.ADMIN_SYSTEM]: "/dashboard/admin-system",
-  [roleValues.EXECUTIVE]: "/dashboard/executive",
-  [roleValues.FIELD_COORDINATOR]: "/dashboard/field-coordinator",
-  [roleValues.FIELD_OFFICER]: "/dashboard/field-officer",
-  [roleValues.REGIONAL_COMMANDER]: "/dashboard/regional-commander",
+  [roleValues.EXECUTIVE]: "/dashboard/deputi",
+  [roleValues.FIELD_COORDINATOR]: "/dashboard/koordinator-wilayah",
+  [roleValues.FIELD_OFFICER]: "/dashboard/petugas-wilayah",
+  [roleValues.REGIONAL_COMMANDER]: "/dashboard/kabinda",
 };
 
 const roleNames = new Set(Object.keys(roleValues));

@@ -154,7 +154,7 @@ export async function OimTaskListPage({ sortBy, sortOrder }: { sortBy?: string; 
 export async function OimTaskCreatePage({ uukStrId }: { uukStrId?: string }) {
   await requireRole(SYSTEM_ROLES.EXECUTIVE, SYSTEM_ROLES.REGIONAL_COMMANDER);
   if (!uukStrId) {
-    redirect("/dashboard/oim/direktif-tugas");
+    redirect("/dashboard/anev/direktif-tugas");
   }
   const [options, source] = await Promise.all([
     loadOimForwardingOptions(),
@@ -174,7 +174,7 @@ export async function OimTaskDetailPage({ taskId }: { taskId: string }) {
   return (
     <TaskDetailClient
       task={task}
-      assignmentHref={`/dashboard/oim/direktif-tugas/${task.id}/penugasan`}
+      assignmentHref={`/dashboard/anev/direktif-tugas/${task.id}/penugasan`}
       hideTargetAreas
       assignmentTitle="Daftar Koordinator Wilayah (Korwil)"
     />
@@ -183,7 +183,7 @@ export async function OimTaskDetailPage({ taskId }: { taskId: string }) {
 
 export async function OimTaskEditPage({ taskId }: { taskId: string }) {
   await requireRole(SYSTEM_ROLES.EXECUTIVE, SYSTEM_ROLES.REGIONAL_COMMANDER);
-  redirect(`/dashboard/oim/direktif-tugas/${taskId}`);
+  redirect(`/dashboard/anev/direktif-tugas/${taskId}`);
   return null;
 }
 
@@ -220,7 +220,7 @@ export async function FieldCoordinatorTaskListPage() {
     <TaskListClient
       title="Tugas Operasional"
       tasks={tasks}
-      detailBasePath="/dashboard/field-coordinator/tugas-operasional"
+      detailBasePath="/dashboard/koordinator-wilayah/tugas-operasional"
     />
   );
 }
@@ -241,7 +241,7 @@ export async function FieldCoordinatorTaskDetailPage({ taskId }: { taskId: strin
       task={task}
       assignmentHref={
         coordinatorAssignmentId
-          ? `/dashboard/field-coordinator/tugas-operasional/${task.id}/assignments/${coordinatorAssignmentId}`
+          ? `/dashboard/koordinator-wilayah/tugas-operasional/${task.id}/assignments/${coordinatorAssignmentId}`
           : undefined
       }
       hideTargetAreas
@@ -336,7 +336,7 @@ export async function FieldCoordinatorFieldOfficerAssignmentDetailPage({ taskId 
       (assignment) => assignment.assigneeAssignmentId === access.authorizationContext.primaryAssignmentId,
     )?.id ?? null;
   const manageHref = coordinatorAssignmentId
-    ? `/dashboard/field-coordinator/tugas-operasional/${task.id}/assignments/${coordinatorAssignmentId}`
+    ? `/dashboard/koordinator-wilayah/tugas-operasional/${task.id}/assignments/${coordinatorAssignmentId}`
     : undefined;
   const candidates = coordinatorAssignmentId ? await loadSubordinateCandidates(access, "FIELD_OFFICER") : [];
 
@@ -393,7 +393,7 @@ export async function FieldCoordinatorMonitoringDetailPage({ taskId }: { taskId:
       (assignment) => assignment.assigneeAssignmentId === access.authorizationContext.primaryAssignmentId,
     )?.id ?? null;
   const manageHref = coordinatorAssignmentId
-    ? `/dashboard/field-coordinator/tugas-operasional/${task.id}/assignments/${coordinatorAssignmentId}`
+    ? `/dashboard/koordinator-wilayah/tugas-operasional/${task.id}/assignments/${coordinatorAssignmentId}`
     : undefined;
 
   return (

@@ -1,11 +1,8 @@
-import { PetugasWilayahPage } from "./_components/petugas-wilayah-page";
+import { DashboardStatsPage } from "@/app/(main)/dashboard/_components/dashboard-stats/dashboard-stats-page";
+import { SYSTEM_ROLES } from "@/navigation/sidebar/system-roles";
 
 export const dynamic = "force-dynamic";
 
-type PageProps = {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
-};
-
-export default async function Page({ searchParams }: PageProps) {
-  return <PetugasWilayahPage searchParams={searchParams} />;
+export default function Page() {
+  return <DashboardStatsPage role={SYSTEM_ROLES.FIELD_OFFICER} />;
 }

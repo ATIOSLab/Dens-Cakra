@@ -95,7 +95,7 @@ const placeholderRoutes = new Set(
       return text.includes("UniversalDensRoutePage") || text.includes("/dashboard/coming-soon/page");
     })
     .map(toRoute)
-    .filter((route) => !route.startsWith("/dashboard/oim")),
+    .filter((route) => !route.startsWith("/dashboard/anev")),
 );
 const sourceFiles = walk(sourceRoot, (file) => /\.[cm]?[jt]sx?$/.test(file));
 const brokenTargets = [];

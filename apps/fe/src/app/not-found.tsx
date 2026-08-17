@@ -10,7 +10,7 @@ export default function NotFound() {
       <h1 className="font-semibold text-2xl">Halaman Tidak Ditemukan</h1>
       <p className="text-muted-foreground">Periksa kembali alamat halaman yang Anda buka.</p>
       <Button asChild variant="outline">
-        <Link prefetch={false} replace href="/dashboard/executive">
+        <Link prefetch={false} replace href="/dashboard/deputi">
           Kembali ke Beranda
         </Link>
       </Button>

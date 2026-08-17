@@ -19,10 +19,10 @@ export const SYSTEM_ROLE_LABELS: Record<SystemRole, string> = {
 };
 
 export const SYSTEM_ROLE_HOME_ROUTES: Record<SystemRole, string> = {
-  [SYSTEM_ROLES.EXECUTIVE]: "/dashboard/executive",
-  [SYSTEM_ROLES.REGIONAL_COMMANDER]: "/dashboard/regional-commander",
-  [SYSTEM_ROLES.FIELD_COORDINATOR]: "/dashboard/field-coordinator",
-  [SYSTEM_ROLES.FIELD_OFFICER]: "/dashboard/field-officer",
+  [SYSTEM_ROLES.EXECUTIVE]: "/dashboard/deputi",
+  [SYSTEM_ROLES.REGIONAL_COMMANDER]: "/dashboard/kabinda",
+  [SYSTEM_ROLES.FIELD_COORDINATOR]: "/dashboard/koordinator-wilayah",
+  [SYSTEM_ROLES.FIELD_OFFICER]: "/dashboard/petugas-wilayah",
   [SYSTEM_ROLES.ADMIN_SYSTEM]: "/dashboard/admin-system",
 };
 

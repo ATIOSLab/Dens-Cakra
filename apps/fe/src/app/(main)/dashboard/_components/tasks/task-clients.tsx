@@ -95,7 +95,7 @@ import { jakartaBoundaryIso } from "@/lib/domain/date-time";
 import { getUrgencyLabel } from "@/lib/domain/operational-presentation";
 import { DOMAIN_TERMS } from "@/lib/domain/terminology";
 
-const OIM_TASKS_ROUTE = "/dashboard/oim/direktif-tugas";
+const OIM_TASKS_ROUTE = "/dashboard/anev/direktif-tugas";
 
 function formatDate(value?: string | null) {
   if (!value) {
@@ -1385,7 +1385,7 @@ export function FieldCoordinatorAssignmentsClient({
                             size="sm"
                             className="h-7 rounded-[4px] border border-[var(--dc-primary)] bg-[var(--dc-primary)] font-mono text-[10px] text-[var(--dc-text-inverse)] hover:bg-[var(--dc-primary-hover)]"
                           >
-                            <Link href={`/dashboard/field-coordinator/penugasan-field-officer/${task.id}`}>
+                            <Link href={`/dashboard/koordinator-wilayah/penugasan-petugas-wilayah/${task.id}`}>
                               {hasOfficerAssignments ? "Lihat Detail" : "Buat Instruksi"}
                             </Link>
                           </Button>
@@ -1435,7 +1435,7 @@ export function FieldCoordinatorAssignmentsClient({
                         size="sm"
                         className="h-7 rounded-[4px] border border-[var(--dc-primary)] bg-[var(--dc-primary)] font-mono text-[10px] text-[var(--dc-text-inverse)] hover:bg-[var(--dc-primary-hover)]"
                       >
-                        <Link href={`/dashboard/field-coordinator/penugasan-field-officer/${task.id}`}>
+                        <Link href={`/dashboard/koordinator-wilayah/penugasan-petugas-wilayah/${task.id}`}>
                           {hasOfficerAssignments ? "Lihat Detail" : "Buat Instruksi"}
                         </Link>
                       </Button>
@@ -2217,7 +2217,7 @@ export function FieldCoordinatorMonitoringClient({
                               size="sm"
                               className="h-7 rounded-[4px] bg-[var(--dc-primary)] font-mono text-[10px] text-[var(--dc-text-inverse)] hover:bg-[var(--dc-primary-hover)]"
                             >
-                              <Link href={`/dashboard/field-coordinator/monitoring-tugas/${task.id}`}>
+                              <Link href={`/dashboard/koordinator-wilayah/monitoring-tugas/${task.id}`}>
                                 Buka Monitoring
                               </Link>
                             </Button>
@@ -2264,7 +2264,7 @@ export function FieldCoordinatorMonitoringClient({
                           size="sm"
                           className="h-7 rounded-[4px] bg-[var(--dc-primary)] font-mono text-[10px] text-[var(--dc-text-inverse)] hover:bg-[var(--dc-primary-hover)]"
                         >
-                          <Link href={`/dashboard/field-coordinator/monitoring-tugas/${task.id}`}>Buka Monitoring</Link>
+                          <Link href={`/dashboard/koordinator-wilayah/monitoring-tugas/${task.id}`}>Buka Monitoring</Link>
                         </Button>
                       </div>
                     </div>
@@ -2336,7 +2336,7 @@ export function FieldCoordinatorMonitoringClient({
                       {task.subordinateAssignments.length > 3 && (
                         <div className="bg-white/[0.01] p-2 text-center">
                           <Link
-                            href={`/dashboard/field-coordinator/monitoring-tugas/${task.id}`}
+                            href={`/dashboard/koordinator-wilayah/monitoring-tugas/${task.id}`}
                             className="font-mono text-[9px] text-[var(--dc-primary)] hover:underline"
                           >
                             + LIHAT {task.subordinateAssignments.length - 3} PENUGASAN LAINNYA
@@ -3065,11 +3065,11 @@ export function OimIncomingForwardingListClient({ sources, tasks }: OimIncomingF
                         <div className="flex justify-end gap-2">
                           {linkedTask ? (
                             <Button asChild size="sm" variant="outline">
-                              <Link href={`/dashboard/oim/direktif-tugas/${linkedTask.id}`}>Lihat Detail</Link>
+                              <Link href={`/dashboard/anev/direktif-tugas/${linkedTask.id}`}>Lihat Detail</Link>
                             </Button>
                           ) : (
                             <Button asChild size="sm" variant="success">
-                              <Link href={`/dashboard/oim/direktif-tugas/baru?uukStrId=${source.id}`}>
+                              <Link href={`/dashboard/anev/direktif-tugas/baru?uukStrId=${source.id}`}>
                                 Baca & Teruskan
                               </Link>
                             </Button>
@@ -3139,11 +3139,11 @@ export function OimIncomingForwardingListClient({ sources, tasks }: OimIncomingF
                     <div className="flex justify-end">
                       {linkedTask ? (
                         <Button asChild size="sm" variant="outline">
-                          <Link href={`/dashboard/oim/direktif-tugas/${linkedTask.id}`}>Lihat Detail</Link>
+                          <Link href={`/dashboard/anev/direktif-tugas/${linkedTask.id}`}>Lihat Detail</Link>
                         </Button>
                       ) : (
                         <Button asChild size="sm" variant="success">
-                          <Link href={`/dashboard/oim/direktif-tugas/baru?uukStrId=${source.id}`}>Baca & Teruskan</Link>
+                          <Link href={`/dashboard/anev/direktif-tugas/baru?uukStrId=${source.id}`}>Baca & Teruskan</Link>
                         </Button>
                       )}
                     </div>
@@ -3382,7 +3382,7 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
 
         await apiBrowserMutation("POST", `/tasks/${created.id}/assignments`, parsedAssignments);
         toast.success("STR berhasil diteruskan OIM ke Koordinator Wilayah (Korwil).");
-        router.push(`/dashboard/oim/direktif-tugas/${created.id}`);
+        router.push(`/dashboard/anev/direktif-tugas/${created.id}`);
         router.refresh();
       } catch (assignmentError) {
         const assignmentMessage =
@@ -3390,7 +3390,7 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
             ? assignmentError.message
             : "Distribusi ke Koordinator Wilayah (Korwil) gagal diproses.";
         toast.error(`${assignmentMessage} Task sumber sudah dibuat dan bisa dilanjutkan dari halaman detail.`);
-        router.push(`/dashboard/oim/direktif-tugas/${created.id}`);
+        router.push(`/dashboard/anev/direktif-tugas/${created.id}`);
         router.refresh();
       }
     } catch (error) {
@@ -4018,7 +4018,7 @@ export function TaskBuilderClient({ mode, options, task }: TaskBuilderClientProp
       if (mode === "create") {
         const created = await apiBrowserMutation<TaskDetail>("POST", "/tasks", parsed);
         toast.success("Task operasional berhasil dibuat.");
-        router.push(`/dashboard/oim/direktif-tugas/${created.id}`);
+        router.push(`/dashboard/anev/direktif-tugas/${created.id}`);
         router.refresh();
         return;
       }
@@ -4040,7 +4040,7 @@ export function TaskBuilderClient({ mode, options, task }: TaskBuilderClientProp
       });
 
       toast.success("Task draft diperbarui.");
-      router.push(`/dashboard/oim/direktif-tugas/${task.id}`);
+      router.push(`/dashboard/anev/direktif-tugas/${task.id}`);
       router.refresh();
     } catch (error) {
       const message = error instanceof Error ? error.message : "Gagal menyimpan task.";
@@ -4956,7 +4956,7 @@ export function FieldOfficerAssignmentsClient({
               <CardDescription>{assignment.assignee?.role?.name ?? "Petugas Wilayah (Gaswil)"}</CardDescription>
               <CardAction>
                 <Button asChild size="sm" variant="outline">
-                  <Link href={`/dashboard/field-officer/tugas-saya/${assignment.id}`}>Buka</Link>
+                  <Link href={`/dashboard/petugas-wilayah/tugas-saya/${assignment.id}`}>Buka</Link>
                 </Button>
               </CardAction>
             </CardHeader>
@@ -5047,7 +5047,7 @@ export function FieldOfficerAssignmentDetailClient({ assignment }: FieldOfficerA
   return (
     <div className="space-y-4">
       <div>
-        <BackButton href="/dashboard/field-officer/tugas-saya" />
+        <BackButton href="/dashboard/petugas-wilayah/tugas-saya" />
       </div>
       <div>
         <div className="flex items-center gap-2">

@@ -114,8 +114,8 @@ async function readApi<T>(response: Response) {
 }
 
 function productListRoute(role: SystemRole) {
-  if (role === "executive") return "/dashboard/executive/produk-intelijen";
-  if (role === "regional_commander") return "/dashboard/regional-commander/laporan-produk-intelijen";
+  if (role === "executive") return "/dashboard/deputi/produk-intelijen";
+  if (role === "regional_commander") return "/dashboard/kabinda/laporan-produk-intelijen";
   return "/dashboard/baket";
 }
 
@@ -125,22 +125,22 @@ function productDetailRoute(role: SystemRole, productId: string | undefined) {
 }
 
 function taskDetailRoute(role: SystemRole, taskId: string | undefined) {
-  if (role === "regional_commander") return `/dashboard/regional-commander/monitoring-tugas/${taskId}`;
-  if (role === "field_coordinator") return `/dashboard/field-coordinator/tugas-operasional/${taskId}`;
-  return "/dashboard/executive/pusat-komando/direktif";
+  if (role === "regional_commander") return `/dashboard/kabinda/monitoring-tugas/${taskId}`;
+  if (role === "field_coordinator") return `/dashboard/koordinator-wilayah/tugas-operasional/${taskId}`;
+  return "/dashboard/deputi/pusat-komando/direktif";
 }
 
 function directiveDetailRoute(role: SystemRole, directiveId: string | undefined) {
-  if (role === "executive") return `/dashboard/executive/pusat-komando/direktif/${directiveId}`;
-  if (role === "regional_commander") return "/dashboard/regional-commander/direktif-penjabaran-uuk-str";
-  return "/dashboard/field-coordinator/tugas-operasional";
+  if (role === "executive") return `/dashboard/deputi/pusat-komando/direktif/${directiveId}`;
+  if (role === "regional_commander") return "/dashboard/kabinda/direktif-penjabaran-uuk-str";
+  return "/dashboard/koordinator-wilayah/tugas-operasional";
 }
 
 function fieldOfficerDetailRoute(role: SystemRole, assignmentId: string | undefined, userProfileId: string | null) {
   if (role === "executive") {
-    return userProfileId ? `/dashboard/petugas-wilayah/${userProfileId}` : "/dashboard/petugas-wilayah";
+    return userProfileId ? `/dashboard/daftar-petugas-wilayah/${userProfileId}` : "/dashboard/daftar-petugas-wilayah";
   }
-  return assignmentId ? `/dashboard/petugas-wilayah/${assignmentId}` : "/dashboard/petugas-wilayah";
+  return assignmentId ? `/dashboard/daftar-petugas-wilayah/${assignmentId}` : "/dashboard/daftar-petugas-wilayah";
 }
 
 export function ExecutiveDashboardClient({
@@ -192,7 +192,7 @@ export function ExecutiveDashboardClient({
       setError(null);
       try {
         const params = queryParams(query);
-        const nextData = await fetch(`/api/v1/dashboard/executive?${params}`, {
+        const nextData = await fetch(`/api/v1/dashboard/deputi?${params}`, {
           cache: "no-store",
           credentials: "include",
           signal,
@@ -214,7 +214,7 @@ export function ExecutiveDashboardClient({
       try {
         const params = new URLSearchParams();
         if (query.areaId) params.set("areaId", query.areaId);
-        const nextFilters = await fetch(`/api/v1/dashboard/executive/filters${params.size ? `?${params}` : ""}`, {
+        const nextFilters = await fetch(`/api/v1/dashboard/deputi/filters${params.size ? `?${params}` : ""}`, {
           cache: "no-store",
           credentials: "include",
           signal,
@@ -292,7 +292,7 @@ export function ExecutiveDashboardClient({
         const directiveId = url.pathname.split("/").at(-1);
         url.pathname = directiveDetailRoute(role, directiveId);
       }
-      if (url.pathname.startsWith("/dashboard/field-officers/")) {
+      if (url.pathname.startsWith("/dashboard/petugas-wilayahs/")) {
         const assignmentId = url.pathname.split("/").at(-1);
         url.pathname = fieldOfficerDetailRoute(role, assignmentId, url.searchParams.get("userProfileId"));
         url.searchParams.delete("userProfileId");

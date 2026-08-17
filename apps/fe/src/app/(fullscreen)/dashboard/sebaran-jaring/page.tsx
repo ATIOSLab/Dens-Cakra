@@ -4,7 +4,7 @@ import {
   jaringDistrict,
   jaringVillage,
   type RegistrationJaring,
-} from "@/app/(main)/dashboard/field-coordinator/_components/jaring-types";
+} from "@/app/(main)/dashboard/koordinator-wilayah/_components/jaring-types";
 import type { AccessContextResource } from "@/features/directives/types";
 import { apiServerGet } from "@/lib/api/server-client";
 import { requireRole } from "@/lib/auth/server-session";
