@@ -38,6 +38,7 @@
     "seed:wilayah-boundaries": "npm run build && node dist/src/scripts/seed-wilayah-boundaries.js",
     "seed:str-hierarchy": "npm run build:scripts && node dist/src/scripts/seed-str-hierarchy.js",
     "seed:baket": "npm run build:scripts && node dist/src/scripts/seed-baket.js",
+      "backfill:baket-references": "npm run build:scripts && node dist/src/scripts/backfill-baket-references.js",
     "seed:demo:jakarta": "npm run build:scripts && node dist/src/scripts/seed-jakarta-demo.js",
     "seed:jaring:jakarta-selatan": "npm run build:scripts && node dist/src/scripts/seed-jakarta-jaring.js",
     "seed:jaring:jakarta-selatan:check": "npm run build:scripts && node dist/src/scripts/seed-jakarta-jaring.js --dry-run",

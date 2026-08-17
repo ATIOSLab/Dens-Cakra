@@ -132,7 +132,7 @@ export function getBaketDate(item: BaketRecord) {
 }
 
 export function getBaketReferenceLabel(item: BaketRecord) {
-  return getBaketSourceReferenceLabel(item) ?? item.id.slice(0, 8);
+  return getBaketSourceReferenceLabel(item) ?? generateBaketReference(item);
 }
 
 export function getBaketSourceReferenceLabel(item: BaketRecord) {
@@ -142,6 +142,43 @@ export function getBaketSourceReferenceLabel(item: BaketRecord) {
     if (reference) return reference;
   }
   return null;
+}
+
+const REFERENCE_CITY_CODES: Record<string, string> = {
+  JAKARTA_PUSAT: "PST",
+  JAKARTA_UTARA: "UTR",
+  JAKARTA_BARAT: "BRT",
+  JAKARTA_SELATAN: "SEL",
+  JAKARTA_TIMUR: "TMR",
+  KEPULAUAN_SERIBU: "KSR",
+};
+
+function referenceCityCode(areaName?: string | null) {
+  if (!areaName) return "WLY";
+  const normalized = areaName
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .replace(/[^A-Z]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+  return REFERENCE_CITY_CODES[normalized] ?? normalized.slice(0, 3).padEnd(3, "X");
+}
+
+function referenceDateKey(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "00000000";
+  const wib = new Date(date.getTime() + 7 * 60 * 60 * 1000);
+  const yyyy = wib.getUTCFullYear();
+  const mm = String(wib.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(wib.getUTCDate()).padStart(2, "0");
+  return `${yyyy}${mm}${dd}`;
+}
+
+function generateBaketReference(item: BaketRecord) {
+  const version = currentBaketVersion(item);
+  const dateKey = referenceDateKey(getBaketDate(item));
+  const counter = (item.id.replace(/[^0-9a-f]/gi, "").slice(0, 6) || "000000").padEnd(6, "0").toUpperCase();
+  return `JKT-${referenceCityCode(version?.eventArea?.name)}-${dateKey}-${counter}`;
 }
 
 export function getBaketVersionLabel(item: BaketRecord) {
