@@ -640,12 +640,15 @@ model Role {
   updatedAt   DateTime @updatedAt
 
   operationalAssignments UserOperationalAssignment[]
+  rolePermissions        RolePermission[]
+  positions              Position[]
 }
 
 model UserOperationalAssignment {
   id            String           @id @default(uuid()) @db.Uuid
   userProfileId String           @db.Uuid
   roleId        String           @db.Uuid
+  positionId    String?          @db.Uuid
   branch        CommandRouteType
   isPrimary     Boolean          @default(true)
   isActive      Boolean          @default(true)
@@ -656,9 +659,11 @@ model UserOperationalAssignment {
 
   userProfile UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Restrict)
   role        Role        @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  position    Position?   @relation(fields: [positionId], references: [id], onDelete: SetNull)
 
   areaScopes                  UserAreaScope[]
   filesCreated                FileAsset[]
+  supervisionAssignments      SupervisionAssignment[]      @relation("SupervisionDirectorate")
   directivesOwned             Directive[]                 @relation("DirectiveOwnerAssignment")
   directiveRecipientsTargeted DirectiveRecipient[]        @relation("DirectiveRecipientAssignment")
   uukStrsOwned                UukStr[]                    @relation("UukOwnerAssignment")
@@ -774,6 +779,7 @@ model AdministrativeArea {
   alerts                   Alert[]
   personnelLocationPings   PersonnelLocationPing[]
   whatsappDeviceLogs       WhatsAppDeviceActivityLog[]  @relation("WhatsAppDeviceActivityArea")
+  supervisionAssignments   SupervisionAssignment[]
 
   @@unique([parentId, level, code])
   @@index([parentId, level])
@@ -2412,4 +2418,102 @@ model ProductApprovalEvent {
   @@index([workflowId, createdAt])
   @@index([stepId, createdAt])
   @@index([actorAssignmentId, createdAt])
+}
+
+// =========================================================
+// DYNAMIC PERMISSION SYSTEM
+// =======================================================
+
+model Permission {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @unique @db.VarChar(80)
+  name        String   @db.VarChar(100)
+  description String?  @db.Text
+  isSystem    Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  rolePermissions RolePermission[]
+}
+
+model RolePermission {
+  roleId       String @db.Uuid
+  permissionId String @db.Uuid
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@index([permissionId])
+}
+
+// =========================================================
+// POSITION (JABATAN) - terpisah dari Role
+// =======================================================
+
+model Position {
+  id                 String      @id @default(uuid()) @db.Uuid
+  code               String      @unique @db.VarChar(80)
+  name               String      @db.VarChar(120)
+  description        String?     @db.Text
+  roleId             String      @db.Uuid
+  organizationLevel  String?     @db.VarChar(60)
+  isSystem           Boolean     @default(false)
+  isActive           Boolean     @default(true)
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  role Role @relation(fields: [roleId], references: [id], onDelete: Restrict)
+
+  assignments UserOperationalAssignment[]
+
+  @@index([roleId, isActive])
+}
+
+// =========================================================
+// SUPERVISION ASSIGNMENT (Direktorat -> wilayah)
+// =======================================================
+
+enum SupervisionType {
+  BINDA_SUPERVISION
+  DIRECT_SUPERVISION
+}
+
+model SupervisionAssignment {
+  id             String          @id @default(uuid()) @db.Uuid
+  directorateAssignmentId String @db.Uuid
+  targetRegionId String          @db.Uuid
+  supervisionType SupervisionType @default(BINDA_SUPERVISION)
+  isActive       Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  directorateAssignment UserOperationalAssignment @relation("SupervisionDirectorate", fields: [directorateAssignmentId], references: [id], onDelete: Restrict)
+  targetRegion          AdministrativeArea         @relation(fields: [targetRegionId], references: [id], onDelete: Restrict)
+
+  @@unique([directorateAssignmentId, targetRegionId])
+  @@index([targetRegionId, supervisionType])
+}
+
+// =========================================================
+// ORGANIZATION UNIT
+// =======================================================
+
+model OrganizationUnit {
+  id        String   @id @default(uuid()) @db.Uuid
+  code      String   @unique @db.VarChar(80)
+  name      String   @db.VarChar(160)
+  type      String   @db.VarChar(60)
+  level     String?  @db.VarChar(60)
+  parentId  String?  @db.Uuid
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  parent   OrganizationUnit?  @relation("OrganizationUnitParent", fields: [parentId], references: [id], onDelete: SetNull)
+  children OrganizationUnit[] @relation("OrganizationUnitParent")
+
+  @@index([parentId, type])
+  @@index([type, isActive])
 }
