@@ -88,6 +88,7 @@ export class RequestContextMiddleware implements NestMiddleware {
     const entityId = (
       Array.isArray(entityIdValue) ? entityIdValue[0] : entityIdValue
     )?.slice(0, 100);
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- menambah field locationLabel pada tipe sesi
     const session = request.authSession as
       | (typeof request.authSession & { locationLabel?: string | null })
       | null

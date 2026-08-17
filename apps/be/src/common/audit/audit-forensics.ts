@@ -47,7 +47,7 @@ export function sanitizeAuditValue(
         .slice(0, 100)
         .map((entry) => sanitizeNested(entry, depth + 1));
     }
-    if (typeof item === 'object') {
+    if (typeof item === "object" && item !== null) {
       return Object.fromEntries(
         Object.entries(item as Record<string, unknown>)
           .slice(0, 100)
@@ -59,6 +59,7 @@ export function sanitizeAuditValue(
           ]),
       );
     }
+    // eslint-disable-next-line @typescript-eslint/no-base-to-string -- fallback hanya untuk primitif non-objek
     return String(item).slice(0, 4_000);
   };
 
@@ -88,6 +89,7 @@ export function redactAuditOutput(value: unknown, depth = 0): unknown {
         ]),
     );
   }
+  // eslint-disable-next-line @typescript-eslint/no-base-to-string -- fallback hanya untuk primitif non-objek
   return String(value).slice(0, 4_000);
 }
 

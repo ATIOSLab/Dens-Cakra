@@ -150,7 +150,7 @@ export class UserProfileService {
     input: UpdateDkiSupervisionScopeDto,
     actor: AuthorizationContext,
   ) {
-    const profile = await this.ensureExists(id);
+    await this.ensureExists(id);
     const current = await this.prisma.userOperationalAssignment.findFirst({
       where: {
         userProfileId: id,

@@ -405,6 +405,7 @@ export class IntelligenceProductsService {
       addTypeError('object');
     }
     if (['date', 'datetime'].includes(kind)) {
+      // eslint-disable-next-line @typescript-eslint/no-base-to-string -- value berupa string tanggal
       const parsed = new Date(String(value));
       if (Number.isNaN(parsed.getTime())) {
         issues.push({

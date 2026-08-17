@@ -41,7 +41,7 @@ export class ApiExceptionFilter implements ExceptionFilter {
       exception instanceof HttpException ? exception.getResponse() : null;
     const message = this.resolveMessage(exception, rawResponse, status);
 
-    if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
+    if (status >= 500) {
       const method = request.method ?? 'UNKNOWN';
       const url = (request.originalUrl ?? request.url ?? 'unknown').split(
         '?',

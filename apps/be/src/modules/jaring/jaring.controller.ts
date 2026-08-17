@@ -299,7 +299,7 @@ export class JaringController {
     @Body() body: ReasonDto,
     @CurrentAccessContext() context: AuthorizationContext,
   ) {
-    return apiResult(await this.jaringService.activate(id, body, context));
+    return apiResult(this.jaringService.activate(id, body, context));
   }
 
   @Post(':jaringId/deactivate')
@@ -315,7 +315,7 @@ export class JaringController {
     @Body() body: ReasonDto,
     @CurrentAccessContext() context: AuthorizationContext,
   ) {
-    return apiResult(await this.jaringService.deactivate(id, body, context));
+    return apiResult(this.jaringService.deactivate(id, body, context));
   }
 
   @Post(':jaringId/delete')

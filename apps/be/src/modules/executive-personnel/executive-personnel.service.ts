@@ -1114,8 +1114,8 @@ export class ExecutivePersonnelService {
     T extends {
       messages?: Array<{ receivedAt: Date }>;
       reportSessions?: Array<{ submittedAt: Date | null }>;
-      registrationStatus?: JaringRegistrationStatus | string | null;
-      status?: JaringStatus | string | null;
+      registrationStatus?: string | null;
+      status?: string | null;
     },
   >(item: T) {
     const latestMessageDate = item.messages?.[0]?.receivedAt
@@ -1249,7 +1249,7 @@ export class ExecutivePersonnelService {
 
   private assignmentDetail(
     assignment: ActiveAssignment,
-    ping: LatestPing | null,
+    ping: LatestPing,
   ) {
     return {
       ...this.assignmentSummary(assignment),
@@ -1294,7 +1294,7 @@ export class ExecutivePersonnelService {
   }
 
   private markerStatus(
-    ping: LatestPing | null,
+    ping: LatestPing,
     now: Date,
     activeWithinMinutes: number,
     recentWithinHours: number,
