@@ -673,7 +673,9 @@ export class DirectiveService {
       if (rightTime === null) return -1;
 
       const compared =
-        sortOrder === 'asc' ? leftTime - rightTime : rightTime - leftTime;
+        String(sortOrder) === 'asc'
+          ? leftTime - rightTime
+          : rightTime - leftTime;
       return compared || left.id.localeCompare(right.id);
     });
 

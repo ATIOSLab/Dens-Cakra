@@ -1063,10 +1063,12 @@ export class WhatsAppReportFlowService
   }
 
   private cleanText(value: string) {
-    return value
-      // eslint-disable-next-line no-control-regex -- menghapus karakter kontrol selain tab/newline
-      .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '')
-      .trim();
+    return (
+      value
+        // eslint-disable-next-line no-control-regex -- menghapus karakter kontrol selain tab/newline
+        .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '')
+        .trim()
+    );
   }
 
   private extensionForMime(mimeType: string) {

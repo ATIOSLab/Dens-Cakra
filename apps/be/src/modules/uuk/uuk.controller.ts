@@ -119,14 +119,12 @@ export class UukController {
     successStatus: 201,
     idempotent: true,
   })
-  async createVersion(
+  createVersion(
     @Param('uukStrId', ParseUUIDPipe) uukStrId: string,
     @Body() body: CreateUukRevisionDto,
     @CurrentAccessContext() context: AuthorizationContext,
   ) {
-    return apiResult(
-      await this.uukService.createVersion(uukStrId, body, context),
-    );
+    return apiResult(this.uukService.createVersion(uukStrId, body, context));
   }
 
   @Get('uuk-str-versions/:versionId')
@@ -156,14 +154,12 @@ export class UukController {
     summary: 'Edit judul versi draft',
     roles: ['regional_commander'],
   })
-  async updateVersion(
+  updateVersion(
     @Param('versionId', ParseUUIDPipe) versionId: string,
     @Body() body: UpdateUukVersionDto,
     @CurrentAccessContext() context: AuthorizationContext,
   ) {
-    return apiResult(
-      await this.uukService.updateVersion(versionId, body, context),
-    );
+    return apiResult(this.uukService.updateVersion(versionId, body, context));
   }
 
   @Put('uuk-str-versions/:versionId/sections')
@@ -174,14 +170,12 @@ export class UukController {
     roles: ['regional_commander'],
     idempotent: true,
   })
-  async replaceSections(
+  replaceSections(
     @Param('versionId', ParseUUIDPipe) versionId: string,
     @Body() body: ReplaceSectionsDto,
     @CurrentAccessContext() context: AuthorizationContext,
   ) {
-    return apiResult(
-      await this.uukService.replaceSections(versionId, body, context),
-    );
+    return apiResult(this.uukService.replaceSections(versionId, body, context));
   }
 
   @Post('uuk-str-versions/:versionId/publish')

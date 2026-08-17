@@ -130,10 +130,7 @@ export class MailSettingsService {
     const before = await this.prisma.systemSetting.findUnique({
       where: { key: SMTP_SETTING_KEY },
     });
-    const previous = this.resolveSettingsValue(
-      before?.value,
-      before?.isSecret,
-    );
+    const previous = this.resolveSettingsValue(before?.value, before?.isSecret);
     const next: SmtpSettingsValue = {
       enabled: body.enabled,
       from: body.from.trim(),

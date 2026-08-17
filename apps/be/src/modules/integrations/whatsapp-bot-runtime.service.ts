@@ -504,8 +504,8 @@ export class WhatsappBotRuntimeService
             );
           }));
       });
-      socket.ev.on('connection.update', async (update) => {
-        await this.handleConnectionUpdate(
+      socket.ev.on('connection.update', (update) => {
+        void this.handleConnectionUpdate(
           channel,
           socket,
           update,
@@ -1550,14 +1550,14 @@ export class WhatsappBotRuntimeService
         await runtime.socket?.logout();
       }
     } catch {
-          // Abaikan error ini secara sengaja.
-        }
+      // Abaikan error ini secara sengaja.
+    }
 
     try {
       runtime.socket?.ws?.close();
     } catch {
-          // Abaikan error ini secara sengaja.
-        }
+      // Abaikan error ini secara sengaja.
+    }
 
     this.runtimes.delete(channelId);
   }
@@ -2091,16 +2091,16 @@ export class WhatsappBotRuntimeService
       try {
         await socket.sendPresenceUpdate('composing', remoteJid);
       } catch {
-          // Abaikan error ini secara sengaja.
-        }
+        // Abaikan error ini secara sengaja.
+      }
 
       await sleep(typingMs);
 
       try {
         await socket.sendPresenceUpdate('paused', remoteJid);
       } catch {
-          // Abaikan error ini secara sengaja.
-        }
+        // Abaikan error ini secara sengaja.
+      }
 
       if (typeof reply === 'string') {
         await socket.sendMessage(remoteJid, { text });
@@ -2241,8 +2241,8 @@ export class WhatsappBotRuntimeService
     try {
       qrcodeTerminal.generate(qr, { small: true });
     } catch {
-          // Abaikan error ini secara sengaja.
-        }
+      // Abaikan error ini secara sengaja.
+    }
   }
 
   private messageOf(error: unknown) {

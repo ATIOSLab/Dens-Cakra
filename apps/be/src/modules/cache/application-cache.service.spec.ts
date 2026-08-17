@@ -43,7 +43,9 @@ describe('ApplicationCacheService', () => {
   it('isolates cache entries by authorization scope identity', async () => {
     const { cache } = createMemoryCache();
     const service = new ApplicationCacheService(cache);
-    const loader = jest.fn(() => Promise.resolve({ total: loader.mock.calls.length }));
+    const loader = jest.fn(() =>
+      Promise.resolve({ total: loader.mock.calls.length }),
+    );
 
     await service.getOrSet(
       {

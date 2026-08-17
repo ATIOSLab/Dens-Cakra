@@ -212,7 +212,10 @@ function demoCityCode(areaName: string) {
     .toUpperCase()
     .replace(/[^A-Z]+/g, '_')
     .replace(/^_+|_+$/g, '');
-  return DEMO_CITY_CODE_OVERRIDES[normalized] ?? normalized.slice(0, 3).padEnd(3, 'X');
+  return (
+    DEMO_CITY_CODE_OVERRIDES[normalized] ??
+    normalized.slice(0, 3).padEnd(3, 'X')
+  );
 }
 
 function demoDateKey(date: Date) {
@@ -661,7 +664,8 @@ async function seedAreaBakets(params: {
       where: { id: jaringId },
       select: { whatsappNumber: true },
     });
-    if (jaring?.whatsappNumber) jaringPhones.set(jaringId, jaring.whatsappNumber);
+    if (jaring?.whatsappNumber)
+      jaringPhones.set(jaringId, jaring.whatsappNumber);
   }
   let referenceCounter = 0;
   for (

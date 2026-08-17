@@ -221,7 +221,9 @@ export class RbacController {
     @Body() body: SupervisionAssignmentUpsertDto,
     @CurrentAccessContext() actor: AuthorizationContext,
   ) {
-    return apiResult(await this.rbac.updateSupervisionAssignment(id, body, actor));
+    return apiResult(
+      await this.rbac.updateSupervisionAssignment(id, body, actor),
+    );
   }
 
   @Delete('supervision-assignments/:assignmentId')

@@ -1,5 +1,3 @@
-import { randomUUID } from 'node:crypto';
-
 import { WhatsAppMessageStatus } from '../generated/prisma/client.js';
 import { prisma } from '../modules/prisma/prisma.service.js';
 
@@ -38,7 +36,9 @@ async function main() {
   });
 
   if (!channel) {
-    console.error('IntegrationChannel WA_CENTER_MAIN tidak ditemukan. Jalankan seed master dahulu.');
+    console.error(
+      'IntegrationChannel WA_CENTER_MAIN tidak ditemukan. Jalankan seed master dahulu.',
+    );
     process.exit(1);
   }
 

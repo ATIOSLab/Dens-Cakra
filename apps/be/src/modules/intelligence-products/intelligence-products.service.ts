@@ -1538,7 +1538,7 @@ export class IntelligenceProductsService {
         skip: (query.page - 1) * query.limit,
         take: query.limit,
         orderBy:
-          query.sortBy === 'periodStart'
+          String(query.sortBy) === 'periodStart'
             ? [
                 {
                   periodStart: {

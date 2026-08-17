@@ -94,7 +94,10 @@ export class RbacService {
     });
   }
 
-  async createPermission(input: PermissionUpsertDto, actor: AuthorizationContext) {
+  async createPermission(
+    input: PermissionUpsertDto,
+    actor: AuthorizationContext,
+  ) {
     const permission = await this.prisma.permission.create({
       data: {
         code: input.code,
@@ -103,12 +106,25 @@ export class RbacService {
         isSystem: input.isSystem ?? false,
       },
     });
-    await this.writeAudit(actor, 'PERMISSION.CREATE', 'Permission', permission.id, null, permission);
+    await this.writeAudit(
+      actor,
+      'PERMISSION.CREATE',
+      'Permission',
+      permission.id,
+      null,
+      permission,
+    );
     return permission;
   }
 
-  async updatePermission(id: string, input: PermissionUpsertDto, actor: AuthorizationContext) {
-    const before = await this.prisma.permission.findUniqueOrThrow({ where: { id } });
+  async updatePermission(
+    id: string,
+    input: PermissionUpsertDto,
+    actor: AuthorizationContext,
+  ) {
+    const before = await this.prisma.permission.findUniqueOrThrow({
+      where: { id },
+    });
     const updated = await this.prisma.permission.update({
       where: { id },
       data: {
@@ -118,7 +134,14 @@ export class RbacService {
         ...(input.isSystem !== undefined ? { isSystem: input.isSystem } : {}),
       },
     });
-    await this.writeAudit(actor, 'PERMISSION.UPDATE', 'Permission', id, before, updated);
+    await this.writeAudit(
+      actor,
+      'PERMISSION.UPDATE',
+      'Permission',
+      id,
+      before,
+      updated,
+    );
     return updated;
   }
 
@@ -142,12 +165,25 @@ export class RbacService {
         isSystem: input.isSystem ?? false,
       },
     });
-    await this.writeAudit(actor, 'POSITION.CREATE', 'Position', position.id, null, position);
+    await this.writeAudit(
+      actor,
+      'POSITION.CREATE',
+      'Position',
+      position.id,
+      null,
+      position,
+    );
     return position;
   }
 
-  async updatePosition(id: string, input: PositionUpsertDto, actor: AuthorizationContext) {
-    const before = await this.prisma.position.findUniqueOrThrow({ where: { id } });
+  async updatePosition(
+    id: string,
+    input: PositionUpsertDto,
+    actor: AuthorizationContext,
+  ) {
+    const before = await this.prisma.position.findUniqueOrThrow({
+      where: { id },
+    });
     const updated = await this.prisma.position.update({
       where: { id },
       data: {
@@ -159,7 +195,14 @@ export class RbacService {
         ...(input.isSystem !== undefined ? { isSystem: input.isSystem } : {}),
       },
     });
-    await this.writeAudit(actor, 'POSITION.UPDATE', 'Position', id, before, updated);
+    await this.writeAudit(
+      actor,
+      'POSITION.UPDATE',
+      'Position',
+      id,
+      before,
+      updated,
+    );
     return updated;
   }
 
@@ -175,7 +218,10 @@ export class RbacService {
     });
   }
 
-  async createSupervisionAssignment(input: SupervisionAssignmentUpsertDto, actor: AuthorizationContext) {
+  async createSupervisionAssignment(
+    input: SupervisionAssignmentUpsertDto,
+    actor: AuthorizationContext,
+  ) {
     const assignment = await this.prisma.supervisionAssignment.upsert({
       where: {
         directorateAssignmentId_targetRegionId: {
@@ -183,7 +229,10 @@ export class RbacService {
           targetRegionId: input.targetRegionId,
         },
       },
-      update: { supervisionType: input.supervisionType, isActive: input.isActive ?? true },
+      update: {
+        supervisionType: input.supervisionType,
+        isActive: input.isActive ?? true,
+      },
       create: {
         directorateAssignmentId: input.directorateAssignmentId,
         targetRegionId: input.targetRegionId,
@@ -191,12 +240,25 @@ export class RbacService {
         isActive: input.isActive ?? true,
       },
     });
-    await this.writeAudit(actor, 'SUPERVISION.ASSIGN', 'SupervisionAssignment', assignment.id, null, assignment);
+    await this.writeAudit(
+      actor,
+      'SUPERVISION.ASSIGN',
+      'SupervisionAssignment',
+      assignment.id,
+      null,
+      assignment,
+    );
     return assignment;
   }
 
-  async updateSupervisionAssignment(id: string, input: SupervisionAssignmentUpsertDto, actor: AuthorizationContext) {
-    const before = await this.prisma.supervisionAssignment.findUniqueOrThrow({ where: { id } });
+  async updateSupervisionAssignment(
+    id: string,
+    input: SupervisionAssignmentUpsertDto,
+    actor: AuthorizationContext,
+  ) {
+    const before = await this.prisma.supervisionAssignment.findUniqueOrThrow({
+      where: { id },
+    });
     const updated = await this.prisma.supervisionAssignment.update({
       where: { id },
       data: {
@@ -204,17 +266,33 @@ export class RbacService {
         ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),
       },
     });
-    await this.writeAudit(actor, 'SUPERVISION.UPDATE', 'SupervisionAssignment', id, before, updated);
+    await this.writeAudit(
+      actor,
+      'SUPERVISION.UPDATE',
+      'SupervisionAssignment',
+      id,
+      before,
+      updated,
+    );
     return updated;
   }
 
   async deleteSupervisionAssignment(id: string, actor: AuthorizationContext) {
-    const before = await this.prisma.supervisionAssignment.findUniqueOrThrow({ where: { id } });
+    const before = await this.prisma.supervisionAssignment.findUniqueOrThrow({
+      where: { id },
+    });
     const deleted = await this.prisma.supervisionAssignment.update({
       where: { id },
       data: { isActive: false },
     });
-    await this.writeAudit(actor, 'SUPERVISION.DELETE', 'SupervisionAssignment', id, before, deleted);
+    await this.writeAudit(
+      actor,
+      'SUPERVISION.DELETE',
+      'SupervisionAssignment',
+      id,
+      before,
+      deleted,
+    );
     return deleted;
   }
 
@@ -227,7 +305,10 @@ export class RbacService {
     });
   }
 
-  async createOrganizationUnit(input: OrganizationUnitUpsertDto, actor: AuthorizationContext) {
+  async createOrganizationUnit(
+    input: OrganizationUnitUpsertDto,
+    actor: AuthorizationContext,
+  ) {
     const unit = await this.prisma.organizationUnit.create({
       data: {
         code: input.code,
@@ -237,12 +318,25 @@ export class RbacService {
         parentId: input.parentId,
       },
     });
-    await this.writeAudit(actor, 'ORGANIZATION_UNIT.CREATE', 'OrganizationUnit', unit.id, null, unit);
+    await this.writeAudit(
+      actor,
+      'ORGANIZATION_UNIT.CREATE',
+      'OrganizationUnit',
+      unit.id,
+      null,
+      unit,
+    );
     return unit;
   }
 
-  async updateOrganizationUnit(id: string, input: OrganizationUnitUpsertDto, actor: AuthorizationContext) {
-    const before = await this.prisma.organizationUnit.findUniqueOrThrow({ where: { id } });
+  async updateOrganizationUnit(
+    id: string,
+    input: OrganizationUnitUpsertDto,
+    actor: AuthorizationContext,
+  ) {
+    const before = await this.prisma.organizationUnit.findUniqueOrThrow({
+      where: { id },
+    });
     const updated = await this.prisma.organizationUnit.update({
       where: { id },
       data: {
@@ -254,17 +348,33 @@ export class RbacService {
         ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),
       },
     });
-    await this.writeAudit(actor, 'ORGANIZATION_UNIT.UPDATE', 'OrganizationUnit', id, before, updated);
+    await this.writeAudit(
+      actor,
+      'ORGANIZATION_UNIT.UPDATE',
+      'OrganizationUnit',
+      id,
+      before,
+      updated,
+    );
     return updated;
   }
 
   // ---- ROLE PERMISSION ----
-  async setRolePermissions(roleId: string, input: SetRolePermissionsDto, actor: AuthorizationContext) {
+  async setRolePermissions(
+    roleId: string,
+    input: SetRolePermissionsDto,
+    actor: AuthorizationContext,
+  ) {
     await this.prisma.rolePermission.deleteMany({ where: { roleId } });
     await this.prisma.rolePermission.createMany({
-      data: input.permissionIds.map((permissionId) => ({ roleId, permissionId })),
+      data: input.permissionIds.map((permissionId) => ({
+        roleId,
+        permissionId,
+      })),
     });
-    await this.writeAudit(actor, 'ROLE.PERMISSION.SET', 'Role', roleId, null, { permissionIds: input.permissionIds });
+    await this.writeAudit(actor, 'ROLE.PERMISSION.SET', 'Role', roleId, null, {
+      permissionIds: input.permissionIds,
+    });
     return this.role(roleId);
   }
 

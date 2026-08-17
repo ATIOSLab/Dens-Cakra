@@ -29,14 +29,39 @@ const PERMISSION_SEEDS: Array<[string, string, string]> = [
 const POSITION_SEEDS: Array<[string, string, RoleCode, string]> = [
   ['KABIN', 'Kepala BIN (KaBIN)', RoleCode.NATIONAL_LEADER, 'BIN_LEVEL'],
   ['DEPUTI_II', 'Deputi II', RoleCode.EXECUTIVE, 'DEPUTY_LEVEL'],
-  ['DIREKTUR_WILAYAH', 'Direktur Wilayah', RoleCode.REGIONAL_COMMANDER, 'DIRECTORATE_LEVEL'],
-  ['KABINDA', 'Kepala BIN Daerah (Kabinda)', RoleCode.REGIONAL_COMMANDER, 'BINDA_LEVEL'],
+  [
+    'DIREKTUR_WILAYAH',
+    'Direktur Wilayah',
+    RoleCode.REGIONAL_COMMANDER,
+    'DIRECTORATE_LEVEL',
+  ],
+  [
+    'KABINDA',
+    'Kepala BIN Daerah (Kabinda)',
+    RoleCode.REGIONAL_COMMANDER,
+    'BINDA_LEVEL',
+  ],
   ['KABAOPS', 'Kabaops', RoleCode.REGIONAL_COMMANDER, 'BINDA_LEVEL'],
   ['KASUBDIT', 'Kasubdit', RoleCode.REGIONAL_COMMANDER, 'DIRECTORATE_LEVEL'],
   ['ANEV', 'Anev', RoleCode.EXECUTIVE, 'DEPUTY_LEVEL'],
-  ['STAF_SUBDIT', 'Staf Subdit', RoleCode.REGIONAL_COMMANDER, 'DIRECTORATE_LEVEL'],
-  ['KORWIL', 'Koordinator Wilayah (Korwil)', RoleCode.FIELD_COORDINATOR, 'KORWIL_LEVEL'],
-  ['PETUGAS_ORGANIK', 'Petugas Wilayah (Gaswil)', RoleCode.FIELD_OFFICER, 'GASWIL_LEVEL'],
+  [
+    'STAF_SUBDIT',
+    'Staf Subdit',
+    RoleCode.REGIONAL_COMMANDER,
+    'DIRECTORATE_LEVEL',
+  ],
+  [
+    'KORWIL',
+    'Koordinator Wilayah (Korwil)',
+    RoleCode.FIELD_COORDINATOR,
+    'KORWIL_LEVEL',
+  ],
+  [
+    'PETUGAS_ORGANIK',
+    'Petugas Wilayah (Gaswil)',
+    RoleCode.FIELD_OFFICER,
+    'GASWIL_LEVEL',
+  ],
 ];
 
 async function main() {
@@ -50,11 +75,20 @@ async function main() {
   console.log(`Seeded ${PERMISSION_SEEDS.length} permissions.`);
 
   for (const [code, name, roleCode, organizationLevel] of POSITION_SEEDS) {
-    const role = await prisma.role.findUniqueOrThrow({ where: { code: roleCode } });
+    const role = await prisma.role.findUniqueOrThrow({
+      where: { code: roleCode },
+    });
     await prisma.position.upsert({
       where: { code },
       update: { name, roleId: role.id, organizationLevel, isActive: true },
-      create: { code, name, roleId: role.id, organizationLevel, isSystem: true, isActive: true },
+      create: {
+        code,
+        name,
+        roleId: role.id,
+        organizationLevel,
+        isSystem: true,
+        isActive: true,
+      },
     });
   }
   console.log(`Seeded ${POSITION_SEEDS.length} positions.`);
