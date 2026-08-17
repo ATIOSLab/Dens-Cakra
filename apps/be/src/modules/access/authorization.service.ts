@@ -61,6 +61,11 @@ export class AuthorizationService {
                     code: true,
                     name: true,
                     isActive: true,
+                    rolePermissions: {
+                      select: {
+                        permission: { select: { code: true } },
+                      },
+                    },
                   },
                 },
                 areaScopes: {
@@ -211,6 +216,9 @@ export class AuthorizationService {
       organizationUnitName: unitName,
       organizationUnitType: primaryAssignment.branch,
       commandRouteType: primaryAssignment.branch,
+      permissions: primaryAssignment.role.rolePermissions.map(
+        (rp: { permission: { code: string } }) => rp.permission.code,
+      ),
       areaScopes: primaryAssignment.areaScopes.map((scope: any) => ({
         areaId: scope.area.id,
         code: scope.area.code,

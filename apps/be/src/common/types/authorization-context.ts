@@ -29,5 +29,6 @@ export type AuthorizationContext = {
   organizationUnitName: string;
   organizationUnitType: CommandRouteType;
   commandRouteType: CommandRouteType;
+  permissions: string[];
   areaScopes: AuthorizationAreaScope[];
 };
