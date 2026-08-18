@@ -112,6 +112,10 @@ export const env = {
       getString('BETTER_AUTH_SECRET'),
     ),
     maxFileSizeBytes: getNumber('MAX_FILE_SIZE_BYTES', 25 * 1024 * 1024),
+    scanRequired: getBoolean(
+      'FILE_SCAN_REQUIRED',
+      process.env.NODE_ENV === 'production',
+    ),
   },
   whatsapp: {
     authRoot: whatsappAuthRoot,

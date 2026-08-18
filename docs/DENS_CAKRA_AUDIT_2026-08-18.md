@@ -68,3 +68,27 @@ Keputusan: **tidak dipaksa-upgrade** (risiko upgrade Prisma > risiko aktual advi
 
 - Backend: `nest build` hijau; `eslint` 0 error.
 - Frontend: `next build` sukses; `tsc --noEmit` 0 error; `biome check` 0 error (294 warning pre-existing).
+
+---
+
+## 5. Tindakan Diterapkan (2026-08-18, sesi lanjutan)
+
+Item tersisa yang aman & berdampak dieksekusi:
+
+| # | Tindakan | File |
+| --- | --- | --- |
+| 1 | **clamav di Docker image** (production) + `FILE_SCAN_REQUIRED=true` | `apps/be/Dockerfile` |
+| 2 | **File scan fail-closed**: fallback `clamscan_unavailable` kini `QUARANTINED` (bukan `CLEAN`) bila `scanRequired`; dev tetap `optional` | `apps/be/src/modules/files/file.service.ts`, `apps/be/src/lib/env.ts` |
+| 3 | **CI diperkuat**: tambah `eslint` (non-fix) + `npm audit --omit=dev --audit-level=critical` di job backend & frontend | `.github/workflows/ci.yml` |
+
+### Verifikasi ulang item lama (ternyata sudah beres)
+
+- **C2 (`any` di komponen peta/tabel)**: 0 usages `any` di seluruh FE (`components/map` bersih) — sudah selesai di sesi sebelumnya.
+- **FE automated test**: vitest sudah terpasang (3 file test) — temuan lama "tidak ada test FE" sudah kadaluarsa.
+
+### Masih tersisa (butuh keputusan produk / refactor besar, tidak dieksekusi otomatis)
+
+- **B1** hue `sky` vs `cyan` (butuh keputusan produk final).
+- **B2/B3** normalisasi radius/tinggi & tipografi (refactor visual luas, perlu review).
+- **B5** ekstraksi `FilterWilayah`/`EmptyState` (desain per-role, nilai kecil — lihat catatan investigasi audit lama).
+- **C1** konsolidasi ~24 `fetch()` manual (banyak yang multipart/upload & auth-specific; wrapper `apiBrowserFetch` saat ini JSON-only — perlu dukungan FormData dulu).

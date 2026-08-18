@@ -316,20 +316,29 @@ export class FileService implements OnModuleInit {
       const message = error instanceof Error ? error.message : String(error);
 
       if (isScannerUnavailable(error)) {
+        const lifecycleStatus = env.storage.scanRequired
+          ? FileLifecycleStatus.QUARANTINED
+          : FileLifecycleStatus.CLEAN;
+
         await this.prisma.fileAsset.update({
           where: { id: fileId },
           data: {
-            lifecycleStatus: FileLifecycleStatus.CLEAN,
+            lifecycleStatus,
             scannedAt: new Date(),
+            ...(env.storage.scanRequired
+              ? { quarantineReason: 'clamscan_unavailable' }
+              : {}),
             scanResult: {
               scanner: 'clamav',
-              clean: true,
+              clean: !env.storage.scanRequired,
               skipped: true,
               reason: 'clamscan_unavailable',
             },
           },
         });
-        return { clean: true, skipped: true };
+        return env.storage.scanRequired
+          ? { clean: false, quarantined: true, skipped: true }
+          : { clean: true, skipped: true };
       }
 
       await this.prisma.fileAsset.update({
