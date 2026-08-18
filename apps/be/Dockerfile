@@ -20,11 +20,10 @@ FROM node:22-bookworm-slim AS runner
 WORKDIR /app
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends openssl clamav \
+  && apt-get install -y --no-install-recommends openssl \
   && rm -rf /var/lib/apt/lists/*
 
 ENV NODE_ENV=production
-ENV FILE_SCAN_REQUIRED=true
 ENV PORT=3001
 ENV LOCAL_STORAGE_ROOT=/app/storage
 ENV WHATSAPP_AUTH_ROOT=/app/wa_auth
