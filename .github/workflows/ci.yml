@@ -8,6 +8,13 @@ on:
 jobs:
   backend:
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://build:build@localhost:5432/build
+      BETTER_AUTH_SECRET: ci-only-secret-at-least-32-characters
+      EMAIL_FROM: ci@example.invalid
+      SMTP_HOST: smtp.example.invalid
+      SMTP_USER: ci
+      SMTP_PASS: ci
     defaults:
       run:
         working-directory: apps/be
@@ -20,8 +27,6 @@ jobs:
           cache-dependency-path: apps/be/package-lock.json
       - run: npm ci
       - run: npx prisma generate
-        env:
-          DATABASE_URL: postgresql://build:build@localhost:5432/build
       - run: npx eslint "{src,apps,libs,test}/**/*.ts"
       - run: npm audit --omit=dev --audit-level=critical
       - run: npm run build
