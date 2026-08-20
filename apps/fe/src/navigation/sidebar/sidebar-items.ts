@@ -362,6 +362,13 @@ export const sidebarItems: NavGroup[] = [
         roles: FIELD_OFFICER_ROLE,
       },
       {
+        id: "field-officer-kpi",
+        title: "KPI & Evaluasi",
+        url: "/dashboard/petugas-wilayah/kpi-evaluasi",
+        icon: DOMAIN_VISUALS.performance.Icon,
+        roles: FIELD_OFFICER_ROLE,
+      },
+      {
         id: "korwil-workspace",
         title: "Ruang Kerja Korwil",
         icon: DOMAIN_VISUALS.command.Icon,
@@ -386,6 +393,13 @@ export const sidebarItems: NavGroup[] = [
             title: "Penugasan Petugas Wilayah",
             url: "/dashboard/koordinator-wilayah/penugasan-petugas-wilayah",
             icon: UserPlus,
+            roles: FIELD_COORDINATOR_ROLE,
+          },
+          {
+            id: "korwil-kpi",
+            title: "KPI & Evaluasi",
+            url: "/dashboard/koordinator-wilayah/kpi-evaluasi",
+            icon: DOMAIN_VISUALS.performance.Icon,
             roles: FIELD_COORDINATOR_ROLE,
           },
         ],

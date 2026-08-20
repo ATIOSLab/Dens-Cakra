@@ -403,6 +403,28 @@ Setiap arahan harus memiliki:
 - Jangan menyimpulkan status lokasi dari kemiripan nama wilayah.
 - Jangan mengganti role teknis karena label bisnis terlihat mirip.
 
+## Istilah KPI dan Evaluasi Jaring
+
+Menu KPI menjadi pusat evaluasi kinerja Jaring nasional. Istilah berikut mengikuti glosarium ini dan dipetakan ke kode teknis pada lapisan presentasi (`apps/be/src/modules/kpi/kpi-metrics.ts`) tanpa mengubah makna data.
+
+| Konsep | Label UI kanonis | Kode teknis / pemetaan | Catatan |
+| --- | --- | --- | --- |
+| Jaring Aktif Terverifikasi | Jaring Aktif Terverifikasi | `Jaring.registrationStatus=APPROVED` AND `Jaring.status=ACTIVE` | Basis utama produktivitas. |
+| Terverifikasi tetapi Nonaktif | Terverifikasi tetapi Nonaktif | `registrationStatus=APPROVED` AND `status∈{INACTIVE,TRANSFERRED,ARCHIVED}` | Tidak masuk basis produktivitas. |
+| Menunggu Persetujuan | Menunggu Persetujuan | `registrationStatus=PENDING` | Tidak masuk basis produktivitas. |
+| Ditolak | Ditolak | `registrationStatus=REJECTED` | Tidak masuk basis produktivitas. |
+| Belum Terverifikasi | Belum Terverifikasi | alias `registrationStatus=PENDING` | Pada model data saat ini setara dengan Menunggu Persetujuan. |
+| Status Lainnya | Status Lainnya | kombinasi `(status, registrationStatus)` yang belum terpetakan | Indikator kualitas data; tidak masuk basis produktivitas. |
+| Jaring Produktif | Jaring Produktif | Jaring Aktif Terverifikasi dengan ≥1 Laporan Jaring valid pada periode | Dihitung dari ID Jaring unik. |
+| Jaring Belum Mengirim Laporan | Jaring Belum Mengirim Laporan | Aktif Terverifikasi − Produktif | — |
+| Persentase Produktivitas | Persentase Produktivitas | (Produktif ÷ Aktif Terverifikasi) × 100% | Pembagi nol menampilkan 0%/Tidak tersedia. |
+| Wilayah Belum Terpetakan | Wilayah Belum Terpetakan | Jaring tanpa relasi `areaCoverages` | Indikator kualitas data. |
+| Kendala Terverifikasi | Kendala Terverifikasi | kejadian gangguan dari `WhatsAppDeviceActivityLog`/`IntegrationWebhookEvent` | Ditampilkan berdasarkan bukti, bukan asumsi. |
+| Anomali Pelaporan | Anomali Pelaporan | deteksi pola pada tab Anomali KPI | Tidak masuk perhitungan produktivitas utama. |
+| WhatsApp Center | WhatsApp Center | `IntegrationChannel` + `WhatsAppBotChannelState` | Nomor selalu disamarkan pada tampilan pimpinan. |
+
+Status korelasi gangguan WhatsApp Center: `Terbukti terkait`, `Kemungkinan terkait`, `Tidak terkait`, `Tidak dapat diverifikasi` — ditentukan dari kesesuaian rentang waktu gangguan dan log teknis.
+
 ## Checklist Audit Copy
 
 Untuk setiap revisi, minimal cek file yang disentuh dan permukaan yang terkait:

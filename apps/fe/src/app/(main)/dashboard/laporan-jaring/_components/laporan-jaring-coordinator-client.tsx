@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import {
   Calendar,
@@ -233,11 +233,15 @@ function getJaringGaswilAssignment(jaring: RawJaringItem) {
   };
 }
 
-function resolveInitialReportFilters(_searchParams: { get(name: string): string | null }): {
+function resolveInitialReportFilters(searchParams: { get(name: string): string | null }): {
   status: string;
   stage: ReportStage;
 } {
-  return { status: "ALL", stage: "JARING_REPORT" };
+  const verificationStatus = searchParams.get("verificationStatus");
+  return {
+    status: verificationStatus && verificationStatus !== "ALL" ? verificationStatus : "ALL",
+    stage: "JARING_REPORT",
+  };
 }
 
 function jakartaDateInput(value: string | null) {
@@ -283,6 +287,8 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
       }
     : { label: "Monitoring", href: "/dashboard" };
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const initialReportFilters = resolveInitialReportFilters(searchParams);
   const [reports, setReports] = useState<JaringReportSessionDetail[]>([]);
   const [reportTotal, setReportTotal] = useState(0);
@@ -330,15 +336,15 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
   }
 
   // Filters
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [urgencyFilter, setUrgencyFilter] = useState<string>(() => searchParams.get("urgency") || "ALL");
   const [statusFilter, setStatusFilter] = useState<string>(() => initialReportFilters.status);
   const [jaringFilter, setJaringFilter] = useState<string>(() => searchParams.get("jaringId") || "ALL");
-  const [provinceFilter, setProvinceFilter] = useState<string>("ALL");
-  const [regencyFilter, setRegencyFilter] = useState<string>("ALL");
-  const [districtFilter, setDistrictFilter] = useState<string>("ALL");
-  const [villageFilter, setVillageFilter] = useState<string>("ALL");
+  const [provinceFilter, setProvinceFilter] = useState<string>(() => searchParams.get("provinceId") || "ALL");
+  const [regencyFilter, setRegencyFilter] = useState<string>(() => searchParams.get("regencyId") || "ALL");
+  const [districtFilter, setDistrictFilter] = useState<string>(() => searchParams.get("districtId") || "ALL");
+  const [villageFilter, setVillageFilter] = useState<string>(() => searchParams.get("villageId") || "ALL");
   const [categoryFilter, setCategoryFilter] = useState(() => searchParams.get("categoryId") || "");
   const [areaFilter, setAreaFilter] = useState(() => searchParams.get("areaId") || "");
   const [fieldOfficerFilter, setFieldOfficerFilter] = useState(
@@ -356,7 +362,10 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
   const [endDate, setEndDate] = useState<string>(() => jakartaDateInput(searchParams.get("to")));
 
   // Pagination
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(() => {
+    const parsed = Number.parseInt(searchParams.get("page") ?? "1", 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
+  });
   const [limit, setLimit] = useState(12);
   const reportRequestId = useRef(0);
   const didHydrateAreaHierarchy = useRef(false);
@@ -448,6 +457,56 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
     const timeout = window.setTimeout(() => setDebouncedSearch(search.trim()), 300);
     return () => window.clearTimeout(timeout);
   }, [search]);
+
+  // Sinkronkan filter aktif ke URL agar dapat dibagikan/di-bookmark dan selaras dengan drill-down KPI.
+  useEffect(() => {
+    const params = new URLSearchParams();
+    const setParam = (key: string, value: string) => {
+      if (value && value !== "ALL") params.set(key, value);
+    };
+    setParam("search", debouncedSearch);
+    setParam("urgency", urgencyFilter);
+    setParam("jaringId", jaringFilter);
+    setParam("categoryId", categoryFilter);
+    setParam("areaId", areaFilter);
+    setParam("provinceId", provinceFilter);
+    setParam("regencyId", regencyFilter);
+    setParam("districtId", districtFilter);
+    setParam("villageId", villageFilter);
+    setParam("fieldOfficerAssignmentId", fieldOfficerFilter);
+    setParam("hasAttachment", attachmentFilter);
+    setParam("coordinateSource", coordinateSourceFilter);
+    setParam("locationSuitability", locationFilter);
+    setParam("verificationStatus", statusFilter);
+    if (periodPreset === "CUSTOM") {
+      if (startDate) params.set("from", startDate);
+      if (endDate) params.set("to", endDate);
+    }
+    if (page > 1) params.set("page", String(page));
+    const queryString = params.toString();
+    router.replace(queryString ? `${pathname}?${queryString}` : pathname, { scroll: false });
+  }, [
+    debouncedSearch,
+    urgencyFilter,
+    jaringFilter,
+    categoryFilter,
+    areaFilter,
+    provinceFilter,
+    regencyFilter,
+    districtFilter,
+    villageFilter,
+    fieldOfficerFilter,
+    attachmentFilter,
+    coordinateSourceFilter,
+    locationFilter,
+    statusFilter,
+    periodPreset,
+    startDate,
+    endDate,
+    page,
+    pathname,
+    router,
+  ]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: opsi scope dimuat sekali dan fungsi tidak bergantung state
   useEffect(() => {

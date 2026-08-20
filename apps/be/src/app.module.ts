@@ -39,6 +39,7 @@ import { ExecutivePersonnelModule } from './modules/executive-personnel/executiv
 import { ApplicationCacheModule } from './modules/cache/application-cache.module.js';
 import { CacheInvalidationInterceptor } from './modules/cache/cache-invalidation.interceptor.js';
 import { ExecutiveDashboardModule } from './modules/executive-dashboard/executive-dashboard.module.js';
+import { KpiModule } from './modules/kpi/kpi.module.js';
 
 @Module({
   imports: [
@@ -75,6 +76,7 @@ import { ExecutiveDashboardModule } from './modules/executive-dashboard/executiv
     MapMarkersModule,
     ExecutivePersonnelModule,
     ExecutiveDashboardModule,
+    KpiModule,
     TaskModule,
     JaringModule,
     WhatsAppModule,
