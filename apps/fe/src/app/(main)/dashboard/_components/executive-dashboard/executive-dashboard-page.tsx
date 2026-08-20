@@ -50,7 +50,7 @@ export async function ExecutiveDashboardPage({ role, searchParams }: ExecutiveDa
   await requireRole(role);
   const query = dashboardQuery(searchParams);
 
-  const dashboard = await apiServerGet<ExecutiveDashboardData>(`/dashboard/deputi?${query}`).then(
+  const dashboard = await apiServerGet<ExecutiveDashboardData>(`/dashboard/executive?${query}`).then(
     (value) => ({ status: "fulfilled" as const, value }),
     () => ({ status: "rejected" as const }),
   );

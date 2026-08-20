@@ -191,7 +191,7 @@ export function ExecutiveDashboardClient({
       setError(null);
       try {
         const params = queryParams(query);
-        const nextData = await fetch(`/api/v1/dashboard/deputi?${params}`, {
+        const nextData = await fetch(`/api/v1/dashboard/executive?${params}`, {
           cache: "no-store",
           credentials: "include",
           signal,
@@ -213,7 +213,7 @@ export function ExecutiveDashboardClient({
       try {
         const params = new URLSearchParams();
         if (query.areaId) params.set("areaId", query.areaId);
-        const nextFilters = await fetch(`/api/v1/dashboard/deputi/filters${params.size ? `?${params}` : ""}`, {
+        const nextFilters = await fetch(`/api/v1/dashboard/executive/filters${params.size ? `?${params}` : ""}`, {
           cache: "no-store",
           credentials: "include",
           signal,
