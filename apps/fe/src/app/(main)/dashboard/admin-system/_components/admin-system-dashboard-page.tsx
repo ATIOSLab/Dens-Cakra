@@ -95,7 +95,7 @@ const adminModuleGroups: AdminModuleGroup[] = [
       },
       {
         title: DOMAIN_TERMS.whatsappIncomingMessages,
-        label: "Nomor pengirim, nama tampilan, dan status pemrosesan pesan masuk.",
+        label: "Kesesuaian nomor pengirim dengan Jaring: terverifikasi, belum diverifikasi/ditolak, atau tidak terdaftar.",
         href: "/dashboard/admin-system/riwayat-pesan-whatsapp",
         Icon: DOMAIN_VISUALS.briefing.Icon,
         iconClass: DOMAIN_VISUALS.briefing.iconClass,

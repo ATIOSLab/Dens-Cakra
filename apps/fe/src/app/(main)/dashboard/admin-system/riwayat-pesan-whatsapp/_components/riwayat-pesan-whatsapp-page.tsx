@@ -2,7 +2,7 @@
 
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 
-import { ArrowDownUp, CheckCircle2, CircleAlert, Inbox, RefreshCw, Search, UserX } from "lucide-react";
+import { ArrowDownUp, BadgeCheck, Hourglass, Inbox, RefreshCw, Search, UserX } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { apiBrowserFetch } from "@/lib/api/browser-client";
 import { DC_CONTROLS, DC_TYPOGRAPHY } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
+
+type Classification = "VERIFIED" | "PENDING" | "REJECTED" | "UNREGISTERED" | "UNKNOWN";
 
 type MessageEventItem = {
   id: string;
@@ -26,18 +28,28 @@ type MessageEventItem = {
   processedAt: string | null;
   success: boolean | null;
   errorMessage: string | null;
+  classification: Classification;
+  jaringName: string | null;
+  jaringAlias: string | null;
 };
 
 type MessageEventResponse = {
   items: MessageEventItem[];
   meta: { page: number; limit: number; total: number; totalPages: number };
-  summary: { total: number; success: number; failed: number; withoutPhone: number };
+  summary: {
+    total: number;
+    verified: number;
+    pending: number;
+    rejected: number;
+    unregistered: number;
+    unknown: number;
+  };
   filters: {
     channels: Array<{ id: string; code: string; name: string }>;
   };
 };
 
-type SortKey = "receivedAt" | "senderPhone" | "channelName" | "success";
+type SortKey = "receivedAt" | "senderPhone" | "channelName";
 
 const ALL = "__all";
 
@@ -56,37 +68,25 @@ function formatDateTime(value: string) {
   }).format(new Date(value));
 }
 
-function messageTypeLabel(value: string | null) {
-  if (value === "TEXT") return "Teks";
-  if (value === "IMAGE") return "Gambar";
-  if (value === "VIDEO") return "Video";
-  if (value === "LOCATION") return "Lokasi";
-  if (value === "DOCUMENT") return "Dokumen";
-  if (value === "UNKNOWN") return "Lainnya";
-  return value ?? "-";
+function classificationLabel(value: Classification) {
+  if (value === "VERIFIED") return "Terverifikasi";
+  if (value === "PENDING") return "Menunggu Persetujuan";
+  if (value === "REJECTED") return "Ditolak";
+  if (value === "UNREGISTERED") return "Tidak Terdaftar";
+  return "Nomor Tidak Tersedia";
 }
 
-function statusTone(success: boolean | null) {
-  if (success === true) return "border-emerald-400/30 bg-emerald-500/10 text-emerald-200";
-  if (success === false) return "border-rose-400/30 bg-rose-500/10 text-rose-200";
-  return "border-cyan-400/30 bg-cyan-500/10 text-cyan-100";
-}
-
-function statusLabel(success: boolean | null) {
-  if (success === true) return "Diproses";
-  if (success === false) return "Gagal";
-  return "Menunggu";
+function classificationTone(value: Classification) {
+  if (value === "VERIFIED") return "border-emerald-400/30 bg-emerald-500/10 text-emerald-200";
+  if (value === "PENDING") return "border-amber-400/30 bg-amber-500/10 text-amber-100";
+  if (value === "REJECTED") return "border-rose-400/30 bg-rose-500/10 text-rose-200";
+  return "border-slate-400/30 bg-slate-500/10 text-slate-200";
 }
 
 function sortValue(item: MessageEventItem, key: SortKey) {
   if (key === "receivedAt") return new Date(item.receivedAt).getTime();
   if (key === "senderPhone") return item.senderPhone ?? "";
   if (key === "channelName") return item.channelName;
-  if (key === "success") {
-    if (item.success === true) return 2;
-    if (item.success === false) return 0;
-    return 1;
-  }
   return "";
 }
 
@@ -100,7 +100,7 @@ export function RiwayatPesanWhatsappPage() {
   const [filters, setFilters] = useState({
     q: "",
     channelId: ALL,
-    success: ALL,
+    classification: ALL,
     from: "",
     to: "",
   });
@@ -115,7 +115,7 @@ export function RiwayatPesanWhatsappPage() {
           limit: 50,
           ...(filters.q ? { q: filters.q } : {}),
           ...(filters.channelId !== ALL ? { channelId: filters.channelId } : {}),
-          ...(filters.success !== ALL ? { success: filters.success === "success" } : {}),
+          ...(filters.classification !== ALL ? { classification: filters.classification } : {}),
           ...(filters.from ? { from: filters.from } : {}),
           ...(filters.to ? { to: filters.to } : {}),
         },
@@ -159,7 +159,16 @@ export function RiwayatPesanWhatsappPage() {
     setSortDir("asc");
   }
 
-  const summary = data?.summary ?? { total: 0, success: 0, failed: 0, withoutPhone: 0 };
+  const summary = data?.summary ?? {
+    total: 0,
+    verified: 0,
+    pending: 0,
+    rejected: 0,
+    unregistered: 0,
+    unknown: 0,
+  };
+  const unverified = summary.pending + summary.rejected;
+  const unregistered = summary.unregistered + summary.unknown;
 
   return (
     <main className="space-y-6 p-6">
@@ -169,7 +178,8 @@ export function RiwayatPesanWhatsappPage() {
             <p className="text-sm text-muted-foreground">Admin Sistem</p>
             <h1 className={DC_TYPOGRAPHY.pageTitle}>Riwayat Pesan Masuk WhatsApp</h1>
             <p className={DC_TYPOGRAPHY.body}>
-              Lihat nomor pengirim, nama tampilan, dan status pemrosesan setiap pesan yang masuk ke bot WhatsApp.
+              Lihat kesesuaian nomor pengirim dengan data Jaring: terverifikasi, belum diverifikasi/ditolak, atau tidak
+              terdaftar.
             </p>
           </div>
           <Button onClick={() => void loadEvents()} disabled={loading} variant="outline">
@@ -191,28 +201,28 @@ export function RiwayatPesanWhatsappPage() {
         </Card>
         <Card className={DC_CONTROLS.card}>
           <CardContent className="flex items-center gap-4 p-4">
-            <CheckCircle2 className="size-9 text-emerald-300" />
+            <BadgeCheck className="size-9 text-emerald-300" />
             <div>
-              <p className={DC_TYPOGRAPHY.metadata}>DIPROSES</p>
-              <p className="text-2xl font-semibold">{summary.success}</p>
+              <p className={DC_TYPOGRAPHY.metadata}>JARING TERVERIFIKASI</p>
+              <p className="text-2xl font-semibold">{summary.verified}</p>
             </div>
           </CardContent>
         </Card>
         <Card className={DC_CONTROLS.card}>
           <CardContent className="flex items-center gap-4 p-4">
-            <CircleAlert className="size-9 text-rose-300" />
+            <Hourglass className="size-9 text-amber-300" />
             <div>
-              <p className={DC_TYPOGRAPHY.metadata}>GAGAL</p>
-              <p className="text-2xl font-semibold">{summary.failed}</p>
+              <p className={DC_TYPOGRAPHY.metadata}>BELUM DIVERIFIKASI / DITOLAK</p>
+              <p className="text-2xl font-semibold">{unverified}</p>
             </div>
           </CardContent>
         </Card>
         <Card className={DC_CONTROLS.card}>
           <CardContent className="flex items-center gap-4 p-4">
-            <UserX className="size-9 text-amber-300" />
+            <UserX className="size-9 text-slate-300" />
             <div>
-              <p className={DC_TYPOGRAPHY.metadata}>TANPA NOMOR</p>
-              <p className="text-2xl font-semibold">{summary.withoutPhone}</p>
+              <p className={DC_TYPOGRAPHY.metadata}>TIDAK TERDAFTAR</p>
+              <p className="text-2xl font-semibold">{unregistered}</p>
             </div>
           </CardContent>
         </Card>
@@ -251,12 +261,13 @@ export function RiwayatPesanWhatsappPage() {
             ))}
           </FilterSelect>
           <FilterSelect
-            value={filters.success}
-            onChange={(value) => updateFilter("success", value)}
-            placeholder="Semua status"
+            value={filters.classification}
+            onChange={(value) => updateFilter("classification", value)}
+            placeholder="Semua klasifikasi"
           >
-            <SelectItem value="success">Diproses</SelectItem>
-            <SelectItem value="failed">Gagal</SelectItem>
+            <SelectItem value="VERIFIED">Terverifikasi</SelectItem>
+            <SelectItem value="UNVERIFIED">Belum Diverifikasi / Ditolak</SelectItem>
+            <SelectItem value="UNREGISTERED">Tidak Terdaftar</SelectItem>
           </FilterSelect>
         </div>
       </section>
@@ -277,14 +288,14 @@ export function RiwayatPesanWhatsappPage() {
                   active={sortKey === "senderPhone"}
                   onClick={() => toggleSort("senderPhone")}
                 />
+                <th className={cn(DC_TYPOGRAPHY.tableHeader, "px-4 py-3 text-left")}>Klasifikasi</th>
+                <th className={cn(DC_TYPOGRAPHY.tableHeader, "px-4 py-3 text-left")}>Jaring</th>
                 <th className={cn(DC_TYPOGRAPHY.tableHeader, "px-4 py-3 text-left")}>Nama Tampilan</th>
                 <SortableHeader
                   label="Kanal"
                   active={sortKey === "channelName"}
                   onClick={() => toggleSort("channelName")}
                 />
-                <th className={cn(DC_TYPOGRAPHY.tableHeader, "px-4 py-3 text-left")}>Jenis</th>
-                <SortableHeader label="Status" active={sortKey === "success"} onClick={() => toggleSort("success")} />
                 <th className={cn(DC_TYPOGRAPHY.tableHeader, "px-4 py-3 text-left")}>Keterangan</th>
               </tr>
             </thead>
@@ -292,7 +303,6 @@ export function RiwayatPesanWhatsappPage() {
               {sortedItems.map((item) => {
                 const phone = item.senderPhone ?? payloadString(item.payload, "senderPhone");
                 const pushName = payloadString(item.payload, "pushName");
-                const messageType = payloadString(item.payload, "messageType");
                 const senderJid = payloadString(item.payload, "senderJid");
                 const source = payloadString(item.payload, "senderPhoneSource");
                 return (
@@ -302,17 +312,30 @@ export function RiwayatPesanWhatsappPage() {
                       {phone ? (
                         <span className="font-mono text-sm">{phone}</span>
                       ) : (
-                        <Badge className="border-amber-400/30 bg-amber-500/10 text-amber-100">Tidak tersedia</Badge>
+                        <Badge className="border-slate-400/30 bg-slate-500/10 text-slate-200">Tidak tersedia</Badge>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge className={classificationTone(item.classification)}>
+                        {classificationLabel(item.classification)}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3 text-sm">
+                      {item.jaringName ? (
+                        <div>
+                          <div className="font-medium">{item.jaringName}</div>
+                          {item.jaringAlias ? (
+                            <div className="text-xs text-muted-foreground">{item.jaringAlias}</div>
+                          ) : null}
+                        </div>
+                      ) : (
+                        "-"
                       )}
                     </td>
                     <td className="px-4 py-3 text-sm">{pushName ?? "-"}</td>
                     <td className="px-4 py-3 text-sm">
                       <div className="font-medium">{item.channelName}</div>
                       <div className="text-xs text-muted-foreground">{item.channelCode}</div>
-                    </td>
-                    <td className="px-4 py-3 text-sm">{messageTypeLabel(messageType)}</td>
-                    <td className="px-4 py-3">
-                      <Badge className={statusTone(item.success)}>{statusLabel(item.success)}</Badge>
                     </td>
                     <td className="max-w-[280px] px-4 py-3 text-xs text-muted-foreground">
                       {senderJid ? (

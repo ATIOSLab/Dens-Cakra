@@ -100,6 +100,9 @@ export class WhatsappMessageEventQuery {
   @IsOptional() @IsString() @MaxLength(120) q?: string;
   @IsOptional() @IsUUID() channelId?: string;
   @IsOptional() @Type(() => Boolean) @IsBoolean() success?: boolean;
+  @IsOptional()
+  @IsIn(['VERIFIED', 'UNVERIFIED', 'UNREGISTERED'])
+  classification?: string;
   @IsOptional() @IsString() @MaxLength(40) from?: string;
   @IsOptional() @IsString() @MaxLength(40) to?: string;
 }

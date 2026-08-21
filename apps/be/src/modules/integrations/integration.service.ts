@@ -62,6 +62,18 @@ type ScopeHierarchyLinkRecord = {
     level: string;
   };
 };
+type SenderJaringRecord = {
+  whatsappNumber: string;
+  registrationStatus: string;
+  aliasName: string | null;
+  fullName: string | null;
+};
+type SenderIndex = {
+  byPhone: Map<string, SenderJaringRecord>;
+  approvedPhones: string[];
+  unverifiedPhones: string[];
+  allPhones: string[];
+};
 
 @Injectable()
 export class IntegrationService {
@@ -736,6 +748,8 @@ export class IntegrationService {
     const to = this.parseActivityDate(query.to, 'waktu akhir');
     const keyword = query.q?.trim();
 
+    const index = await this.buildSenderIndex();
+
     const where: Prisma.IntegrationWebhookEventWhereInput = {
       ...(query.channelId ? { channelId: query.channelId } : {}),
       ...(query.success === undefined ? {} : { success: query.success }),
@@ -767,16 +781,10 @@ export class IntegrationService {
             ],
           }
         : {}),
+      ...this.senderClassificationWhere(query.classification, index),
     };
 
-    const [
-      items,
-      total,
-      successCount,
-      failedCount,
-      withoutPhoneCount,
-      channels,
-    ] = await Promise.all([
+    const [items, total, senderGroups, channels] = await Promise.all([
       this.prisma.integrationWebhookEvent.findMany({
         where,
         skip,
@@ -787,14 +795,10 @@ export class IntegrationService {
         },
       }),
       this.prisma.integrationWebhookEvent.count({ where }),
-      this.prisma.integrationWebhookEvent.count({
-        where: { ...where, success: true },
-      }),
-      this.prisma.integrationWebhookEvent.count({
-        where: { ...where, success: false },
-      }),
-      this.prisma.integrationWebhookEvent.count({
-        where: { ...where, senderPhone: null },
+      this.prisma.integrationWebhookEvent.groupBy({
+        by: ['senderPhone'],
+        where,
+        _count: { _all: true },
       }),
       this.prisma.integrationChannel.findMany({
         where: { deletedAt: null, webhookEvents: { some: {} } },
@@ -802,39 +806,172 @@ export class IntegrationService {
       }),
     ]);
 
+    const summary = {
+      total,
+      verified: 0,
+      pending: 0,
+      rejected: 0,
+      unregistered: 0,
+      unknown: 0,
+    };
+    for (const group of senderGroups) {
+      const kind = this.classifySender(group.senderPhone, index).kind;
+      const count = group._count._all;
+      if (kind === 'VERIFIED') summary.verified += count;
+      else if (kind === 'PENDING') summary.pending += count;
+      else if (kind === 'REJECTED') summary.rejected += count;
+      else if (kind === 'UNREGISTERED') summary.unregistered += count;
+      else summary.unknown += count;
+    }
+
     return {
-      items: items.map((item) => ({
-        id: item.id,
-        channelId: item.channelId,
-        channelCode: item.channel.code,
-        channelName: item.channel.name,
-        externalEventId: item.externalEventId,
-        eventType: item.eventType,
-        senderPhone: item.senderPhone,
-        payload: item.payload,
-        receivedAt: item.receivedAt,
-        processedAt: item.processedAt,
-        success: item.success,
-        errorMessage: item.errorMessage,
-      })),
+      items: items.map((item) => {
+        const sender = this.classifySender(item.senderPhone, index);
+        return {
+          id: item.id,
+          channelId: item.channelId,
+          channelCode: item.channel.code,
+          channelName: item.channel.name,
+          externalEventId: item.externalEventId,
+          eventType: item.eventType,
+          senderPhone: item.senderPhone,
+          payload: item.payload,
+          receivedAt: item.receivedAt,
+          processedAt: item.processedAt,
+          success: item.success,
+          errorMessage: item.errorMessage,
+          classification: sender.kind,
+          jaringName: sender.jaring?.fullName ?? null,
+          jaringAlias: sender.jaring?.aliasName ?? null,
+        };
+      }),
       meta: {
         page,
         limit,
         total,
         totalPages: Math.max(1, Math.ceil(total / limit)),
       },
-      summary: {
-        total,
-        success: successCount,
-        failed: failedCount,
-        withoutPhone: withoutPhoneCount,
-      },
+      summary,
       filters: {
         channels: channels.sort((left, right) =>
           left.name.localeCompare(right.name, 'id-ID'),
         ),
       },
     };
+  }
+
+  private senderClassificationWhere(
+    classification: string | undefined,
+    index: SenderIndex,
+  ): Prisma.IntegrationWebhookEventWhereInput {
+    if (classification === 'VERIFIED' && index.approvedPhones.length > 0) {
+      return {
+        senderPhone: { in: index.approvedPhones },
+      };
+    }
+    if (classification === 'UNVERIFIED' && index.unverifiedPhones.length > 0) {
+      return {
+        senderPhone: { in: index.unverifiedPhones },
+      };
+    }
+    if (classification === 'UNREGISTERED' && index.allPhones.length > 0) {
+      return {
+        OR: [
+          { senderPhone: { notIn: index.allPhones } },
+          { senderPhone: null },
+        ],
+      };
+    }
+    return {};
+  }
+
+  private classifySender(
+    phone: string | null,
+    index: SenderIndex,
+  ): {
+    kind: 'VERIFIED' | 'PENDING' | 'REJECTED' | 'UNREGISTERED' | 'UNKNOWN';
+    jaring?: SenderJaringRecord;
+  } {
+    if (!phone) {
+      return { kind: 'UNKNOWN' };
+    }
+    const key = this.normalizeSenderKey(phone);
+    if (!key) {
+      return { kind: 'UNKNOWN' };
+    }
+    const jaring = index.byPhone.get(key);
+    if (!jaring) {
+      return { kind: 'UNREGISTERED' };
+    }
+    if (jaring.registrationStatus === 'APPROVED') {
+      return { kind: 'VERIFIED', jaring };
+    }
+    if (jaring.registrationStatus === 'PENDING') {
+      return { kind: 'PENDING', jaring };
+    }
+    return { kind: 'REJECTED', jaring };
+  }
+
+  private async buildSenderIndex(): Promise<SenderIndex> {
+    const rows = await this.prisma.jaring.findMany({
+      where: { deletedAt: null },
+      select: {
+        whatsappNumber: true,
+        registrationStatus: true,
+        aliasName: true,
+        fullName: true,
+      },
+    });
+
+    const rank: Record<string, number> = {
+      APPROVED: 0,
+      PENDING: 1,
+      REJECTED: 2,
+    };
+    const byPhone = new Map<string, SenderJaringRecord>();
+    for (const row of rows) {
+      const key = this.normalizeSenderKey(row.whatsappNumber);
+      if (!key) {
+        continue;
+      }
+      const existing = byPhone.get(key);
+      if (
+        !existing ||
+        (rank[row.registrationStatus] ?? 99) <
+          (rank[existing.registrationStatus] ?? 99)
+      ) {
+        byPhone.set(key, row);
+      }
+    }
+
+    const approvedPhones: string[] = [];
+    const unverifiedPhones: string[] = [];
+    for (const [key, jaring] of byPhone) {
+      if (jaring.registrationStatus === 'APPROVED') {
+        approvedPhones.push(key);
+      } else {
+        unverifiedPhones.push(key);
+      }
+    }
+
+    return {
+      byPhone,
+      approvedPhones,
+      unverifiedPhones,
+      allPhones: [...byPhone.keys()],
+    };
+  }
+
+  private normalizeSenderKey(raw: string): string | null {
+    if (!raw) {
+      return null;
+    }
+    try {
+      return normalizeIndonesianPhoneNumber(raw);
+    } catch {
+      const digits = raw.replace(/\D+/g, '');
+      return digits || null;
+    }
   }
 
   async whatsappNotificationRecipients() {
