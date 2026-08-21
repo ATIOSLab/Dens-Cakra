@@ -2288,6 +2288,7 @@ model IntegrationWebhookEvent {
   id              String    @id @default(uuid()) @db.Uuid
   channelId       String    @db.Uuid
   externalEventId String?   @db.VarChar(255)
+  senderPhone     String?   @db.VarChar(30)
   eventType       String    @db.VarChar(120)
   payload         Json
   receivedAt      DateTime  @default(now())

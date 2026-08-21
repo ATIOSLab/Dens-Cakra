@@ -858,6 +858,9 @@ export class WhatsAppReportFlowService
     senderPhone: string,
     channel: WhatsAppReportChannel,
   ) {
+    if (!senderPhone?.trim()) {
+      return null;
+    }
     const raw = senderPhone.replace(/\D+/g, '');
     const candidates = Array.from(
       new Set([

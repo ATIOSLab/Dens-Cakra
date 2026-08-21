@@ -97,6 +97,11 @@ type InboundMessagePayload = {
   rawPayload?: Record<string, unknown>;
 };
 
+type ResolvedSender = {
+  phone: string | null;
+  source: 'JID' | 'LID_REVERSE' | null;
+};
+
 type ReportSessionStep =
   | 'AWAITING_LIVE_LOCATION'
   | 'AWAITING_TITLE'
@@ -783,10 +788,10 @@ export class WhatsappBotRuntimeService
       return;
     }
 
-    const senderPhone = await this.resolveSenderPhone(socket, remoteJid);
-    if (!senderPhone) {
-      return;
-    }
+    const sender = await this.resolveSenderPhone(socket, remoteJid);
+    // Catatan: jangan `return` saat `sender.phone` null. Pesan dari nomor tak
+    // dikenal tetap direkam (dengan LID + pushName) untuk keperluan forensik,
+    // hanya saja tidak diproses sebagai laporan Jaring.
 
     const externalMessageId =
       message.key.id ??
@@ -805,11 +810,7 @@ export class WhatsappBotRuntimeService
       return;
     }
 
-    const payload = this.toInboundPayload(
-      message,
-      senderPhone,
-      externalMessageId,
-    );
+    const payload = this.toInboundPayload(message, sender, externalMessageId);
     const event =
       existing ??
       (await this.prisma.integrationWebhookEvent
@@ -818,6 +819,7 @@ export class WhatsappBotRuntimeService
             channelId: channel.id,
             externalEventId: externalMessageId,
             eventType: 'WHATSAPP_BAILEYS_MESSAGE',
+            senderPhone: sender.phone,
             payload: payload.rawPayload as Prisma.InputJsonValue,
           },
         })
@@ -831,6 +833,26 @@ export class WhatsappBotRuntimeService
           throw error;
         }));
     if (!event) {
+      return;
+    }
+
+    if (!sender.phone) {
+      // Pengirim tak dikenal (LID tanpa nomor HP): tidak ada Jaring yang bisa
+      // dicocokkan, tandai event selesai agar tidak diproses ulang.
+      await this.prisma.$transaction([
+        this.prisma.integrationWebhookEvent.update({
+          where: { id: event.id },
+          data: {
+            processedAt: new Date(),
+            success: true,
+            errorMessage: null,
+          },
+        }),
+        this.prisma.integrationChannel.update({
+          where: { id: channel.id },
+          data: { lastHealthAt: new Date() },
+        }),
+      ]);
       return;
     }
 
@@ -898,7 +920,7 @@ export class WhatsappBotRuntimeService
 
   private toInboundPayload(
     message: WAMessage,
-    senderPhone: string,
+    sender: ResolvedSender,
     externalMessageId: string,
   ): InboundMessagePayload {
     const unwrapped = this.unwrapMessage(message.message);
@@ -906,7 +928,7 @@ export class WhatsappBotRuntimeService
     const location = this.extractLocation(unwrapped);
     return {
       externalMessageId,
-      senderPhone,
+      senderPhone: sender.phone ?? '',
       receivedAt: new Date(
         Number(message.messageTimestamp ?? Date.now()) * 1000,
       ).toISOString(),
@@ -917,6 +939,8 @@ export class WhatsappBotRuntimeService
       gpsAccuracyMeters: location?.accuracy,
       rawPayload: {
         senderJid: message.key.remoteJid ?? null,
+        senderPhone: sender.phone ?? null,
+        senderPhoneSource: sender.source ?? null,
         participantJid: message.key.participant ?? null,
         pushName: message.pushName ?? null,
         messageType: this.detectMessageType(unwrapped),
@@ -1046,28 +1070,36 @@ export class WhatsappBotRuntimeService
     return 'UNKNOWN';
   }
 
-  private async resolveSenderPhone(socket: WASocket, jid: string) {
+  private async resolveSenderPhone(
+    socket: WASocket,
+    jid: string,
+  ): Promise<ResolvedSender> {
     const normalizedJid = jidNormalizedUser(jid);
     const decoded = jidDecode(normalizedJid);
 
     if (!decoded?.user) {
-      return null;
+      return { phone: null, source: null };
     }
 
     if (decoded.server === 'lid') {
+      // JID berupa LID: nomor HP hanya tersedia bila ada reverse mapping pada
+      // auth-state Baileys. Bila tidak ada, jangan mengarang nomor dari LID.
       const mappedPn = await this.resolvePhoneNumberForLid(
         socket,
         decoded.user,
       );
-      if (mappedPn) {
-        return mappedPn;
-      }
+      return mappedPn
+        ? { phone: mappedPn, source: 'LID_REVERSE' }
+        : { phone: null, source: null };
     }
 
     try {
-      return normalizeIndonesianPhoneNumber(decoded.user);
+      return {
+        phone: normalizeIndonesianPhoneNumber(decoded.user),
+        source: 'JID',
+      };
     } catch {
-      return null;
+      return { phone: null, source: null };
     }
   }
 
