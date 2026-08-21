@@ -2,7 +2,7 @@
 
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 
-import { ArrowDownUp, BadgeCheck, Hourglass, Inbox, RefreshCw, Search, UserX } from "lucide-react";
+import { ArrowDownUp, BadgeCheck, Hourglass, RefreshCw, Search, Users, UserX } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -178,8 +178,8 @@ export function RiwayatPesanWhatsappPage() {
             <p className="text-sm text-muted-foreground">Admin Sistem</p>
             <h1 className={DC_TYPOGRAPHY.pageTitle}>Riwayat Pesan Masuk WhatsApp</h1>
             <p className={DC_TYPOGRAPHY.body}>
-              Lihat kesesuaian nomor pengirim dengan data Jaring: terverifikasi, belum diverifikasi/ditolak, atau tidak
-              terdaftar.
+              Lihat kesesuaian nomor pengirim dengan data Jaring per nomor unik: terverifikasi, belum
+              diverifikasi/ditolak, atau tidak terdaftar.
             </p>
           </div>
           <Button onClick={() => void loadEvents()} disabled={loading} variant="outline">
@@ -192,9 +192,9 @@ export function RiwayatPesanWhatsappPage() {
       <section className="grid gap-3 md:grid-cols-4">
         <Card className={DC_CONTROLS.card}>
           <CardContent className="flex items-center gap-4 p-4">
-            <Inbox className="size-9 text-cyan-300" />
+            <Users className="size-9 text-cyan-300" />
             <div>
-              <p className={DC_TYPOGRAPHY.metadata}>TOTAL PESAN</p>
+              <p className={DC_TYPOGRAPHY.metadata}>TOTAL PENGIRIM</p>
               <p className="text-2xl font-semibold">{summary.total}</p>
             </div>
           </CardContent>

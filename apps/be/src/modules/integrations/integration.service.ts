@@ -784,45 +784,55 @@ export class IntegrationService {
       ...this.senderClassificationWhere(query.classification, index),
     };
 
-    const [items, total, senderGroups, channels] = await Promise.all([
-      this.prisma.integrationWebhookEvent.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: [{ receivedAt: 'desc' }, { id: 'desc' }],
-        include: {
-          channel: { select: { id: true, code: true, name: true } },
-        },
-      }),
-      this.prisma.integrationWebhookEvent.count({ where }),
-      this.prisma.integrationWebhookEvent.groupBy({
-        by: ['senderPhone'],
-        where,
-        _count: { _all: true },
-      }),
-      this.prisma.integrationChannel.findMany({
-        where: { deletedAt: null, webhookEvents: { some: {} } },
-        select: { id: true, code: true, name: true },
-      }),
-    ]);
+    const [items, total, senderGroups, unknownSenderCount, channels] =
+      await Promise.all([
+        this.prisma.integrationWebhookEvent.findMany({
+          where,
+          skip,
+          take: limit,
+          orderBy: [{ receivedAt: 'desc' }, { id: 'desc' }],
+          include: {
+            channel: { select: { id: true, code: true, name: true } },
+          },
+        }),
+        this.prisma.integrationWebhookEvent.count({ where }),
+        this.prisma.integrationWebhookEvent.groupBy({
+          by: ['senderPhone'],
+          where,
+          _count: { _all: true },
+        }),
+        this.countUnknownSenderLids(query, from, to),
+        this.prisma.integrationChannel.findMany({
+          where: { deletedAt: null, webhookEvents: { some: {} } },
+          select: { id: true, code: true, name: true },
+        }),
+      ]);
+
+    // Hitung jumlah PENGIRIM unik (per nomor), bukan jumlah pesan.
+    let verified = 0;
+    let pending = 0;
+    let rejected = 0;
+    let unregistered = 0;
+    for (const group of senderGroups) {
+      if (!group.senderPhone) {
+        continue;
+      }
+      const kind = this.classifySender(group.senderPhone, index).kind;
+      if (kind === 'VERIFIED') verified += 1;
+      else if (kind === 'PENDING') pending += 1;
+      else if (kind === 'REJECTED') rejected += 1;
+      else if (kind === 'UNREGISTERED') unregistered += 1;
+    }
+    const unknown = unknownSenderCount;
 
     const summary = {
-      total,
-      verified: 0,
-      pending: 0,
-      rejected: 0,
-      unregistered: 0,
-      unknown: 0,
+      total: verified + pending + rejected + unregistered + unknown,
+      verified,
+      pending,
+      rejected,
+      unregistered,
+      unknown,
     };
-    for (const group of senderGroups) {
-      const kind = this.classifySender(group.senderPhone, index).kind;
-      const count = group._count._all;
-      if (kind === 'VERIFIED') summary.verified += count;
-      else if (kind === 'PENDING') summary.pending += count;
-      else if (kind === 'REJECTED') summary.rejected += count;
-      else if (kind === 'UNREGISTERED') summary.unregistered += count;
-      else summary.unknown += count;
-    }
 
     return {
       items: items.map((item) => {
@@ -972,6 +982,45 @@ export class IntegrationService {
       const digits = raw.replace(/\D+/g, '');
       return digits || null;
     }
+  }
+
+  private async countUnknownSenderLids(
+    query: WhatsappMessageEventQuery,
+    from?: Date,
+    to?: Date,
+  ): Promise<number> {
+    if (
+      query.classification === 'VERIFIED' ||
+      query.classification === 'UNVERIFIED'
+    ) {
+      return 0;
+    }
+
+    const keyword = query.q?.trim();
+    const rows = await this.prisma.$queryRaw<Array<{ count: number }>>(
+      Prisma.sql`
+        SELECT COUNT(DISTINCT "payload"->>'senderJid')::int AS count
+        FROM "IntegrationWebhookEvent"
+        WHERE "senderPhone" IS NULL
+        ${query.channelId ? Prisma.sql`AND "channelId"::text = ${query.channelId}` : Prisma.empty}
+        ${query.success === undefined ? Prisma.empty : Prisma.sql`AND "success" = ${query.success}`}
+        ${from ? Prisma.sql`AND "receivedAt" >= ${from}` : Prisma.empty}
+        ${to ? Prisma.sql`AND "receivedAt" <= ${to}` : Prisma.empty}
+        ${
+          keyword
+            ? Prisma.sql`AND (
+              "externalEventId" ILIKE ${`%${keyword}%`}
+              OR EXISTS (
+                SELECT 1 FROM "IntegrationChannel" c
+                WHERE c."id" = "IntegrationWebhookEvent"."channelId"
+                  AND (c."name" ILIKE ${`%${keyword}%`} OR c."code" ILIKE ${`%${keyword}%`})
+              )
+            )`
+            : Prisma.empty
+        }
+      `,
+    );
+    return rows[0]?.count ?? 0;
   }
 
   async whatsappNotificationRecipients() {
