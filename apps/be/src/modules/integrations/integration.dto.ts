@@ -94,6 +94,16 @@ export class WhatsappDeviceActivityQuery {
   @IsOptional() @IsString() @MaxLength(40) to?: string;
 }
 
+export class WhatsappMessageEventQuery {
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) page = 1;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(200) limit = 50;
+  @IsOptional() @IsString() @MaxLength(120) q?: string;
+  @IsOptional() @IsUUID() channelId?: string;
+  @IsOptional() @Type(() => Boolean) @IsBoolean() success?: boolean;
+  @IsOptional() @IsString() @MaxLength(40) from?: string;
+  @IsOptional() @IsString() @MaxLength(40) to?: string;
+}
+
 export class CreateWhatsappNotificationRecipientDto {
   @IsArray()
   @IsEmail({}, { each: true })

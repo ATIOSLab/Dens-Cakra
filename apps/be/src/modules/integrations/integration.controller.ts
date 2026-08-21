@@ -28,6 +28,7 @@ import {
   UpdateIntegrationDto,
   UpdateWhatsappControlDto,
   WhatsappDeviceActivityQuery,
+  WhatsappMessageEventQuery,
   WebhookQuery,
 } from './integration.dto.js';
 import { IntegrationService } from './integration.service.js';
@@ -72,6 +73,19 @@ export class IntegrationController {
   ) {
     return apiResult(
       await this.integrationService.whatsappDeviceActivityLogs(query),
+    );
+  }
+
+  @Get('integration-channels/whatsapp-message-events')
+  @ApiContract({
+    operationId: 'apiInt020',
+    contractId: 'API-INT-020',
+    summary: 'Riwayat pesan masuk WhatsApp',
+    roles: ['admin_system'],
+  })
+  async whatsappMessageEvents(@Query() query: WhatsappMessageEventQuery) {
+    return apiResult(
+      await this.integrationService.whatsappMessageEvents(query),
     );
   }
 

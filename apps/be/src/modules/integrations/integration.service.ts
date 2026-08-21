@@ -23,6 +23,7 @@ import type {
   UpdateIntegrationDto,
   UpdateWhatsappNotificationRecipientDto,
   WhatsappDeviceActivityQuery,
+  WhatsappMessageEventQuery,
   UpdateWhatsappControlDto,
   WebhookQuery,
 } from './integration.dto.js';
@@ -727,6 +728,115 @@ export class IntegrationService {
     };
   }
 
+  async whatsappMessageEvents(query: WhatsappMessageEventQuery) {
+    const page = Math.max(1, query.page ?? 1);
+    const limit = Math.min(200, Math.max(1, query.limit ?? 50));
+    const skip = (page - 1) * limit;
+    const from = this.parseActivityDate(query.from, 'waktu mulai');
+    const to = this.parseActivityDate(query.to, 'waktu akhir');
+    const keyword = query.q?.trim();
+
+    const where: Prisma.IntegrationWebhookEventWhereInput = {
+      ...(query.channelId ? { channelId: query.channelId } : {}),
+      ...(query.success === undefined ? {} : { success: query.success }),
+      ...(from || to
+        ? {
+            receivedAt: {
+              ...(from ? { gte: from } : {}),
+              ...(to ? { lte: to } : {}),
+            },
+          }
+        : {}),
+      ...(keyword
+        ? {
+            OR: [
+              { senderPhone: { contains: keyword, mode: 'insensitive' } },
+              {
+                externalEventId: { contains: keyword, mode: 'insensitive' },
+              },
+              {
+                channel: {
+                  name: { contains: keyword, mode: 'insensitive' },
+                },
+              },
+              {
+                channel: {
+                  code: { contains: keyword, mode: 'insensitive' },
+                },
+              },
+            ],
+          }
+        : {}),
+    };
+
+    const [
+      items,
+      total,
+      successCount,
+      failedCount,
+      withoutPhoneCount,
+      channels,
+    ] = await Promise.all([
+      this.prisma.integrationWebhookEvent.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: [{ receivedAt: 'desc' }, { id: 'desc' }],
+        include: {
+          channel: { select: { id: true, code: true, name: true } },
+        },
+      }),
+      this.prisma.integrationWebhookEvent.count({ where }),
+      this.prisma.integrationWebhookEvent.count({
+        where: { ...where, success: true },
+      }),
+      this.prisma.integrationWebhookEvent.count({
+        where: { ...where, success: false },
+      }),
+      this.prisma.integrationWebhookEvent.count({
+        where: { ...where, senderPhone: null },
+      }),
+      this.prisma.integrationChannel.findMany({
+        where: { deletedAt: null, webhookEvents: { some: {} } },
+        select: { id: true, code: true, name: true },
+      }),
+    ]);
+
+    return {
+      items: items.map((item) => ({
+        id: item.id,
+        channelId: item.channelId,
+        channelCode: item.channel.code,
+        channelName: item.channel.name,
+        externalEventId: item.externalEventId,
+        eventType: item.eventType,
+        senderPhone: item.senderPhone,
+        payload: item.payload,
+        receivedAt: item.receivedAt,
+        processedAt: item.processedAt,
+        success: item.success,
+        errorMessage: item.errorMessage,
+      })),
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      },
+      summary: {
+        total,
+        success: successCount,
+        failed: failedCount,
+        withoutPhone: withoutPhoneCount,
+      },
+      filters: {
+        channels: channels.sort((left, right) =>
+          left.name.localeCompare(right.name, 'id-ID'),
+        ),
+      },
+    };
+  }
+
   async whatsappNotificationRecipients() {
     return this.prisma.whatsAppNotificationRecipient.findMany({
       orderBy: [{ isActive: 'desc' }, { email: 'asc' }],
@@ -1129,10 +1239,12 @@ export class IntegrationService {
         channelId: true,
         externalEventId: true,
         eventType: true,
+        senderPhone: true,
         receivedAt: true,
         processedAt: true,
         success: true,
         errorMessage: true,
+        payload: true,
       },
     });
   }
@@ -1145,11 +1257,12 @@ export class IntegrationService {
         channelId: true,
         externalEventId: true,
         eventType: true,
+        senderPhone: true,
         receivedAt: true,
         processedAt: true,
         success: true,
-
         errorMessage: true,
+        payload: true,
       },
     });
   }

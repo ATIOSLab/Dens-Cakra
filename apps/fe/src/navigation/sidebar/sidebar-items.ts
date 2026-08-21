@@ -334,6 +334,12 @@ export const sidebarItems: NavGroup[] = [
             roles: ADMIN_SYSTEM_ROLE,
           },
           {
+            id: "admin-system-wa-incoming-messages",
+            title: DOMAIN_TERMS.whatsappIncomingMessages,
+            url: "/dashboard/admin-system/riwayat-pesan-whatsapp",
+            roles: ADMIN_SYSTEM_ROLE,
+          },
+          {
             id: "admin-system-wa-notification-settings",
             title: DOMAIN_TERMS.whatsappNotificationSettings,
             url: "/dashboard/admin-system/notifikasi-whatsapp",
