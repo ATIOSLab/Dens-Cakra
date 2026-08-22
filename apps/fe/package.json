@@ -61,7 +61,7 @@
     "simple-icons": "^16.25.0",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.6.0",
-    "temporal-polyfill": "^1.0.1",
+    "temporal-polyfill": "^1.0.4",
     "topojson-client": "^3.1.0",
     "vaul": "^1.1.2",
     "zod": "^4.4.3",
