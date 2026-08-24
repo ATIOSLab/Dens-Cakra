@@ -68,10 +68,17 @@ describe('IntegrationService', () => {
         userProfile: {
           findMany: jest.fn(() => Promise.resolve([])),
         },
+        whatsAppDeviceActivityLog: {
+          findMany: jest.fn(() => Promise.resolve([])),
+        },
+        whatsAppMessage: {
+          findMany: jest.fn(() => Promise.resolve([])),
+        },
       };
       const service = new IntegrationService(
         prisma as never,
         { decrypt } as never,
+        {} as never,
         {} as never,
         {} as never,
       );
@@ -159,6 +166,7 @@ describe('IntegrationService', () => {
       const service = new IntegrationService(
         prisma as never,
         { decrypt, encrypt } as never,
+        {} as never,
         {} as never,
         {} as never,
       );
@@ -270,6 +278,7 @@ describe('IntegrationService', () => {
         { decrypt, encrypt } as never,
         {} as never,
         {} as never,
+        {} as never,
       );
 
       const result = await service.updateWhatsappControl(
@@ -356,6 +365,7 @@ describe('IntegrationService', () => {
         {} as never,
         {} as never,
         whatsappBotRuntime as never,
+        {} as never,
       );
 
       await service.remove(channel.id, {

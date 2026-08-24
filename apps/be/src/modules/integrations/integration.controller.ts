@@ -27,6 +27,7 @@ import {
   UpdateWhatsappNotificationRecipientDto,
   UpdateIntegrationDto,
   UpdateWhatsappControlDto,
+  WhatsappConnectivityQuery,
   WhatsappDeviceActivityQuery,
   WhatsappMessageEventQuery,
   WebhookQuery,
@@ -59,6 +60,22 @@ export class IntegrationController {
   })
   async whatsappControl() {
     return apiResult(await this.integrationService.whatsappControl());
+  }
+
+  @Get('integration-channels/whatsapp-connectivity')
+  @ApiContract({
+    operationId: 'apiInt021',
+    contractId: 'API-INT-021',
+    summary: 'Status konektivitas perangkat WhatsApp',
+    roles: ['executive', 'national_leader', 'admin_system', 'field_coordinator'],
+  })
+  async whatsappConnectivity(
+    @Query() query: WhatsappConnectivityQuery,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(
+      await this.integrationService.whatsappConnectivity(query, context),
+    );
   }
 
   @Get('integration-channels/whatsapp-activity-logs')

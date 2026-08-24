@@ -57,6 +57,7 @@ export const DOMAIN_TERMS = {
   intelligenceNetworkMap: "Peta Jejaring Intelijen",
   whatsappIntegration: "Integrasi WhatsApp",
   whatsappActivityLog: "Log Aktivitas WhatsApp",
+  whatsappConnectivity: "Konektivitas WhatsApp",
   whatsappIncomingMessages: "Riwayat Pesan Masuk WhatsApp",
   whatsappNotificationSettings: "Notifikasi WhatsApp",
   smtpSettings: "Pengaturan SMTP",

@@ -111,6 +111,13 @@ export const sidebarItems: NavGroup[] = [
         roles: EXECUTIVE_ROLE,
       },
       {
+        id: "executive-whatsapp-connectivity",
+        title: DOMAIN_TERMS.whatsappConnectivity,
+        url: "/dashboard/deputi/konektivitas-whatsapp",
+        icon: DOMAIN_VISUALS.notification.Icon,
+        roles: EXECUTIVE_ROLE,
+      },
+      {
         id: "regional-home",
         title: "Beranda",
         url: SYSTEM_ROLE_HOME_ROUTES[SYSTEM_ROLES.REGIONAL_COMMANDER],
@@ -522,6 +529,7 @@ export function getSidebarItemsForRole(role: SystemRole): NavGroup[] {
       "oim-situation-map",
       "executive-intelligence-network-map",
       "executive-performance",
+      "executive-whatsapp-connectivity",
     ].map((id, index) => [id, index]),
   );
 

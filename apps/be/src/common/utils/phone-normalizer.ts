@@ -20,6 +20,22 @@ export function normalizeIndonesianPhoneNumber(input: string): string {
   return digits;
 }
 
+export function formatIndonesianPhoneNumber(value?: string | null): string {
+  const raw = (value ?? '').trim();
+  if (!raw) return '-';
+  const digits = raw.replace(/\D/g, '');
+  if (!digits) return raw;
+  const national = digits.startsWith('62')
+    ? digits.slice(2)
+    : digits.startsWith('0')
+      ? digits.slice(1)
+      : digits;
+  if (national.length >= 10) {
+    return `+62 ${national.slice(0, 3)}-${national.slice(3, 7)}-${national.slice(7)}`;
+  }
+  return `+62 ${national}`;
+}
+
 export function getIndonesianPhoneSearchVariants(input: string): string[] {
   const value = input.trim();
 

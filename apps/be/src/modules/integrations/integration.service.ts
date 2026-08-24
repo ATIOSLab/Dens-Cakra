@@ -8,7 +8,11 @@ import {
 } from '../../generated/prisma/client.js';
 import { ApiException } from '../../common/api/api-exception.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
-import { normalizeIndonesianPhoneNumber } from '../../common/utils/phone-normalizer.js';
+import {
+  formatIndonesianPhoneNumber,
+  normalizeIndonesianPhoneNumber,
+} from '../../common/utils/phone-normalizer.js';
+import { DomainScopeService } from '../access/domain-scope.service.js';
 import { SecretVaultService } from '../infrastructure/secret-vault.service.js';
 import type { EncryptedValue } from '../infrastructure/secret-vault.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -22,6 +26,7 @@ import type {
   TestIntegrationDto,
   UpdateIntegrationDto,
   UpdateWhatsappNotificationRecipientDto,
+  WhatsappConnectivityQuery,
   WhatsappDeviceActivityQuery,
   WhatsappMessageEventQuery,
   UpdateWhatsappControlDto,
@@ -102,6 +107,7 @@ export class IntegrationService {
     private readonly vault: SecretVaultService,
     private readonly jobs: AsyncJobService,
     private readonly whatsappBotRuntime: WhatsappBotRuntimeService,
+    private readonly scope: DomainScopeService,
   ) {}
 
   private view<T extends { config: unknown }>(channel: T) {
@@ -344,7 +350,7 @@ export class IntegrationService {
     ).map((channel) => this.view(channel));
   }
 
-  async whatsappControl() {
+  private async loadWhatsappControlViews() {
     const channels = await this.prisma.integrationChannel.findMany({
       where: {
         deletedAt: null,
@@ -523,6 +529,308 @@ export class IntegrationService {
     }
 
     return views;
+  }
+
+  async whatsappControl() {
+    const views = await this.loadWhatsappControlViews();
+    await this.resolveScopeAreaFallbacks(views);
+    return views;
+  }
+
+  async whatsappConnectivity(
+    query: WhatsappConnectivityQuery,
+    context: AuthorizationContext,
+  ) {
+    const views = await this.loadWhatsappControlViews();
+    await this.resolveScopeAreaFallbacks(views);
+    const areaTree = await this.scope.areaTree(context);
+    const keyword = query.q?.trim();
+
+    const descendantAreaIds = query.areaId
+      ? new Set(
+          (
+            await this.prisma.administrativeAreaClosure.findMany({
+              where: { ancestorId: query.areaId },
+              select: { descendantId: true },
+            })
+          ).map((link) => link.descendantId),
+        )
+      : null;
+
+    const matchesArea = (view: (typeof views)[number]) => {
+      if (!query.areaId) return true;
+      const scopeAreaIds = view.scopeAreaIds.length > 0
+        ? view.scopeAreaIds
+        : view.scopeAreaId
+          ? [view.scopeAreaId]
+          : [];
+      if (scopeAreaIds.length === 0) return false;
+      return scopeAreaIds.some(
+        (areaId) => areaId === query.areaId || descendantAreaIds?.has(areaId),
+      );
+    };
+
+    const matchesKeyword = (view: (typeof views)[number]) => {
+      if (!keyword) return true;
+      const haystack = [
+        view.name,
+        view.code,
+        view.botPhoneNumber,
+        view.coordinatorName,
+        view.scopeAreaName,
+        view.coordinatorRegion,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLocaleLowerCase('id-ID');
+      return haystack.includes(keyword.toLocaleLowerCase('id-ID'));
+    };
+
+    const filtered = views.filter(
+      (view) =>
+        (!query.channelId || view.id === query.channelId) &&
+        (!query.connectionStatus ||
+          view.connectionStatus === query.connectionStatus) &&
+        matchesArea(view) &&
+        matchesKeyword(view),
+    );
+
+    const connected = filtered.filter(
+      (view) => view.connectionStatus === 'CONNECTED',
+    ).length;
+    const disconnected = filtered.filter(
+      (view) => view.connectionStatus === 'DISCONNECTED',
+    ).length;
+    const connecting = filtered.filter((view) =>
+      ['CONNECTING', 'QR_READY', 'PAIRING_CODE_READY'].includes(
+        view.connectionStatus,
+      ),
+    ).length;
+    const error = filtered.filter(
+      (view) => view.connectionStatus === 'ERROR',
+    ).length;
+
+    return {
+      items: filtered.map((view) => ({
+        id: view.id,
+        code: view.code,
+        name: view.name,
+        channelType: view.channelType,
+        status: view.status,
+        connectionStatus: view.connectionStatus,
+        botPhoneNumber: formatIndonesianPhoneNumber(view.botPhoneNumber),
+        senderNumbers: view.senderNumbers.map((number) =>
+          formatIndonesianPhoneNumber(number),
+        ),
+        lastConnectedAt: view.lastConnectedAt,
+        lastDisconnectedAt: view.lastDisconnectedAt,
+        lastError: view.lastError,
+        scopeAreas: view.scopeAreas,
+        coordinatorName: view.coordinatorName,
+      })),
+      summary: {
+        connected,
+        disconnected,
+        connecting,
+        error,
+        total: filtered.length,
+      },
+      filters: {
+        connectionStatuses: Object.values(WhatsAppBotConnectionStatus),
+        channels: views.map((view) => ({
+          id: view.id,
+          code: view.code,
+          name: view.name,
+        })),
+      },
+      areaTree,
+    };
+  }
+
+  /**
+   * Jika konfigurasi kanal WhatsApp tidak dapat dibaca (mis. kunci enkripsi
+   * berubah), wilayah pelaporan diambil dari data plaintext yang masih tersedia:
+   * 1) log aktivitas perangkat terakhir (`scopeAreaId`), lalu
+   * 2) lokasi pesan masuk terakhir (`resolvedAreaId`) yang dinaikkan ke level
+   *    kota/kabupaten atau provinsi.
+   */
+  private async resolveScopeAreaFallbacks(
+    views: ReturnType<IntegrationService['whatsappControlView']>[],
+  ) {
+    await this.resolveScopeFromActivityLogs(
+      views.filter((view) => view.scopeAreas.length === 0),
+    );
+    await this.resolveScopeFromIncomingMessages(
+      views.filter((view) => view.scopeAreas.length === 0),
+    );
+  }
+
+  private async resolveScopeFromActivityLogs(
+    views: ReturnType<IntegrationService['whatsappControlView']>[],
+  ) {
+    if (views.length === 0) return;
+
+    const channelIds = views.map((view) => view.id);
+    const recentLogs = await this.prisma.whatsAppDeviceActivityLog.findMany({
+      where: { channelId: { in: channelIds }, scopeAreaId: { not: null } },
+      orderBy: [{ occurredAt: 'desc' }, { id: 'desc' }],
+      select: { channelId: true, scopeAreaId: true },
+      take: 500,
+    });
+
+    const latestAreaByChannel = new Map<string, string>();
+    for (const log of recentLogs) {
+      if (!latestAreaByChannel.has(log.channelId) && log.scopeAreaId) {
+        latestAreaByChannel.set(log.channelId, log.scopeAreaId);
+      }
+    }
+
+    const areaIds = [...new Set(latestAreaByChannel.values())];
+    if (areaIds.length === 0) return;
+
+    const areas = await this.prisma.administrativeArea.findMany({
+      where: { id: { in: areaIds }, isActive: true, deletedAt: null },
+      select: {
+        id: true,
+        code: true,
+        officialCode: true,
+        name: true,
+        level: true,
+        parent: { select: { name: true } },
+      },
+    });
+    const areaMap = new Map(areas.map((area) => [area.id, area]));
+
+    for (const view of views) {
+      const areaId = latestAreaByChannel.get(view.id);
+      const area = areaId ? areaMap.get(areaId) : undefined;
+      if (!area) continue;
+
+      this.assignScopeAreaFallback(view, {
+        id: area.id,
+        code: area.code,
+        officialCode: area.officialCode,
+        name: area.name,
+        level: area.level,
+        parentName: area.parent?.name ?? null,
+      });
+    }
+  }
+
+  private async resolveScopeFromIncomingMessages(
+    views: ReturnType<IntegrationService['whatsappControlView']>[],
+  ) {
+    if (views.length === 0) return;
+
+    const channelIds = views.map((view) => view.id);
+    const recentMessages = await this.prisma.whatsAppMessage.findMany({
+      where: {
+        integrationChannelId: { in: channelIds },
+        resolvedAreaId: { not: null },
+      },
+      orderBy: [{ receivedAt: 'desc' }, { id: 'desc' }],
+      select: { integrationChannelId: true, resolvedAreaId: true },
+      take: 500,
+    });
+
+    const latestAreaByChannel = new Map<string, string>();
+    for (const message of recentMessages) {
+      if (
+        !latestAreaByChannel.has(message.integrationChannelId) &&
+        message.resolvedAreaId
+      ) {
+        latestAreaByChannel.set(message.integrationChannelId, message.resolvedAreaId);
+      }
+    }
+
+    const resolvedAreaIds = [...new Set(latestAreaByChannel.values())];
+    if (resolvedAreaIds.length === 0) return;
+
+    const links = await this.prisma.administrativeAreaClosure.findMany({
+      where: { descendantId: { in: resolvedAreaIds } },
+      select: {
+        descendantId: true,
+        ancestor: {
+          select: {
+            id: true,
+            code: true,
+            officialCode: true,
+            name: true,
+            level: true,
+          },
+        },
+      },
+    });
+
+    const ancestorsByDescendant = new Map<
+      string,
+      Array<{
+        id: string;
+        code: string;
+        officialCode: string | null;
+        name: string;
+        level: string;
+      }>
+    >();
+    for (const link of links) {
+      const list = ancestorsByDescendant.get(link.descendantId) ?? [];
+      list.push(link.ancestor);
+      ancestorsByDescendant.set(link.descendantId, list);
+    }
+
+    for (const view of views) {
+      const resolvedAreaId = latestAreaByChannel.get(view.id);
+      if (!resolvedAreaId) continue;
+      const ancestors = ancestorsByDescendant.get(resolvedAreaId) ?? [];
+      const province = ancestors.find((area) => area.level === 'PROVINCE');
+      const city = ancestors.find(
+        (area) => area.level === 'CITY' || area.level === 'REGENCY',
+      );
+      const target = city ?? province ?? ancestors[0];
+      if (!target) continue;
+
+      this.assignScopeAreaFallback(view, {
+        id: target.id,
+        code: target.code,
+        officialCode: target.officialCode,
+        name: target.name,
+        level: target.level,
+        parentName: city ? (province?.name ?? null) : null,
+      });
+    }
+  }
+
+  private assignScopeAreaFallback(
+    view: ReturnType<IntegrationService['whatsappControlView']>,
+    area: {
+      id: string;
+      code: string;
+      officialCode: string | null;
+      name: string;
+      level: string;
+      parentName: string | null;
+    },
+  ) {
+    view.scopeAreaIds = [area.id];
+    view.scopeAreaId = area.id;
+    view.scopeAreaCode = area.officialCode ?? area.code;
+    view.scopeAreaName = area.name;
+    view.scopeAreaLevel = area.level;
+    view.scopeAreaParentName = area.parentName;
+    view.coordinatorRegion = area.parentName
+      ? `${area.parentName} / ${area.name}`
+      : area.name;
+    view.scopeAreas = [
+      {
+        id: area.id,
+        code: area.code,
+        officialCode: area.officialCode,
+        name: area.name,
+        level: area.level,
+        parentName: area.parentName,
+        hierarchy: [],
+      },
+    ];
   }
 
   private parseActivityDate(value: string | undefined, field: string) {

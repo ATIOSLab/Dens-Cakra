@@ -94,6 +94,15 @@ export class WhatsappDeviceActivityQuery {
   @IsOptional() @IsString() @MaxLength(40) to?: string;
 }
 
+export class WhatsappConnectivityQuery {
+  @IsOptional() @IsString() @MaxLength(120) q?: string;
+  @IsOptional() @IsUUID() channelId?: string;
+  @IsOptional() @IsUUID() areaId?: string;
+  @IsOptional()
+  @IsEnum(WhatsAppBotConnectionStatus)
+  connectionStatus?: WhatsAppBotConnectionStatus;
+}
+
 export class WhatsappMessageEventQuery {
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) page = 1;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(200) limit = 50;
