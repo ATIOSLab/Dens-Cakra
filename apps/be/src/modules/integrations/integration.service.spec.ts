@@ -80,7 +80,6 @@ describe('IntegrationService', () => {
         { decrypt } as never,
         {} as never,
         {} as never,
-        {} as never,
       );
 
       const result = await service.whatsappControl();
@@ -166,7 +165,6 @@ describe('IntegrationService', () => {
       const service = new IntegrationService(
         prisma as never,
         { decrypt, encrypt } as never,
-        {} as never,
         {} as never,
         {} as never,
       );
@@ -278,7 +276,6 @@ describe('IntegrationService', () => {
         { decrypt, encrypt } as never,
         {} as never,
         {} as never,
-        {} as never,
       );
 
       const result = await service.updateWhatsappControl(
@@ -362,7 +359,6 @@ describe('IntegrationService', () => {
       };
       const service = new IntegrationService(
         prisma as never,
-        {} as never,
         {} as never,
         whatsappBotRuntime as never,
         {} as never,

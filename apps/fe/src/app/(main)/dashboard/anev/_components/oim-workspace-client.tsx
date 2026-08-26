@@ -336,9 +336,9 @@ function Header({ view, data }: { view: OimView; data?: OimPageData }) {
     ? {
         href:
           view === "report-detail"
-            ? "/dashboard/anev/laporan-masuk"
+            ? "/dashboard/baket"
             : ["analysis-detail", "analysis-new", "analysis-edit"].includes(view)
-              ? "/dashboard/anev/analisis-intelijen"
+              ? "/dashboard/baket"
               : ["product-new", "product-edit", "product-detail"].includes(view)
                 ? context.listPath
                 : undefined,
@@ -373,7 +373,7 @@ function Header({ view, data }: { view: OimView; data?: OimPageData }) {
               asChild
               className="border border-border bg-card hover:bg-accent text-muted-foreground hover:text-foreground transition-all duration-[150ms] ease-out rounded-lg h-10 px-4"
             >
-              <Link href="/dashboard/anev/peta-situasi" className="flex items-center gap-2">
+              <Link href="/dashboard/peta-jejaring-intelijen" className="flex items-center gap-2">
                 <MapPinned className="size-4 shrink-0" style={{ strokeWidth: "2px" }} />
                 <span>PETA</span>
               </Link>
@@ -1118,7 +1118,7 @@ function BaketList({ data }: { data: OimPageData }) {
                             variant="ghost"
                             className="border border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-[#06B6D4]/50 bg-white dark:bg-transparent hover:bg-slate-50 dark:hover:bg-white/5 text-slate-600 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white rounded-lg h-8 px-3 transition-all duration-[150ms] ease-out cursor-pointer"
                           >
-                            <Link href={`/dashboard/anev/laporan-masuk/${item.id}`}>Tinjau</Link>
+                            <Link href={`/dashboard/baket/${item.id}`}>Tinjau</Link>
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -1193,7 +1193,7 @@ function BaketList({ data }: { data: OimPageData }) {
                         variant="ghost"
                         className="border border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-[#06B6D4]/50 bg-white dark:bg-transparent hover:bg-slate-50 dark:hover:bg-white/5 text-slate-600 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white rounded-lg h-10 px-4 transition-all duration-[150ms] ease-out shrink-0 cursor-pointer"
                       >
-                        <Link href={`/dashboard/anev/laporan-masuk/${item.id}`} className="flex items-center gap-2">
+                        <Link href={`/dashboard/baket/${item.id}`} className="flex items-center gap-2">
                           <span>Tinjau</span>
                           <ArrowRight className="size-4" style={{ strokeWidth: "2px" }} />
                         </Link>
@@ -1247,7 +1247,7 @@ function _ReportStatusTabs({ activeStatus }: { activeStatus?: string }) {
       {tabs.map(([status, label]) => (
         <Button key={status} variant={activeStatus === status ? "default" : "outline"} asChild>
           <Link
-            href={`/dashboard/anev/laporan-masuk?${status.includes(",") ? `statuses=${status}` : `status=${status}`}`}
+            href={`/dashboard/baket?${status.includes(",") ? `statuses=${status}` : `status=${status}`}`}
           >
             {label}
           </Link>
@@ -1471,7 +1471,7 @@ function BaketDetail({ item, activeTab }: { item?: unknown; activeTab?: string }
               <Link
                 key={entry.id}
                 className="flex items-center justify-between py-3 hover:text-primary"
-                href={`/dashboard/anev/laporan-masuk/${baket.id}/versions/${entry.id}`}
+                href={`/dashboard/baket/${baket.id}`}
               >
                 <span>
                   Versi {entry.versionNumber} · {entry.title}
@@ -1517,7 +1517,7 @@ function StartVerification({ baket, version }: { baket: Row; version: Row }) {
                       summary: "Intake OIM dimulai",
                     });
                   }
-                  router.push(`/dashboard/anev/laporan-masuk/${baket.id}?tab=verification`);
+                  router.push(`/dashboard/baket/${baket.id}`);
                   router.refresh();
                 } catch (error) {
                   toast.error(error instanceof Error ? error.message : "Gagal memulai verifikasi");
@@ -1821,7 +1821,7 @@ function AnalysisList({ data }: { data: OimPageData }) {
                       </TableCell>
                       <TableCell className="pr-6 py-4 text-right">
                         <Button asChild variant="outline" size="sm" className="h-8 text-xs">
-                          <Link href={`/dashboard/anev/analisis-intelijen/${item.id}`}>Buka</Link>
+                          <Link href={`/dashboard/baket`}>Buka</Link>
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -1853,7 +1853,7 @@ function AnalysisList({ data }: { data: OimPageData }) {
                   </CardContent>
                   <CardFooter className="pt-2 border-t border-slate-200 dark:border-white/5 flex justify-end">
                     <Button asChild variant="outline" size="sm" className="h-8 text-xs">
-                      <Link href={`/dashboard/anev/analisis-intelijen/${item.id}`}>Buka</Link>
+                      <Link href={`/dashboard/baket`}>Buka</Link>
                     </Button>
                   </CardFooter>
                 </Card>
@@ -1953,7 +1953,7 @@ function AnalysisCreate({ data }: { data: OimPageData }) {
                         title,
                         verificationIds: selected,
                       });
-                      router.push(`/dashboard/anev/analisis-intelijen/${created.id}`);
+                      router.push(`/dashboard/baket`);
                       toast.success("Kasus analisis berhasil dibuat");
                     } catch (error) {
                       toast.error(error instanceof Error ? error.message : "Gagal membuat analisis");
@@ -3565,7 +3565,7 @@ export function OimWorkspaceClient({ view, data }: Props) {
           <>
             <div className="flex justify-end">
               <Button asChild>
-                <Link href="/dashboard/anev/analisis-intelijen/baru">
+                <Link href="/dashboard/baket">
                   <Plus />
                   Analisis baru
                 </Link>

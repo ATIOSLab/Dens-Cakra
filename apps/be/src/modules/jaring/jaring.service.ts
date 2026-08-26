@@ -27,7 +27,6 @@ import type {
   CreateJaringCoachingReportDto,
   CreateJaringOccupationDto,
   CreateReportCategoryDto,
-  CoverageDto,
   CreateJaringDto,
   JaringCoachingReportQuery,
   JaringOccupationQuery,
@@ -36,7 +35,6 @@ import type {
   ReportCategoryQuery,
   ReasonDto,
   RejectJaringDto,
-  TransferDto,
   UpdateJaringOccupationDto,
   UpdateJaringReportMetadataDto,
   UpdateReportCategoryDto,
@@ -2220,101 +2218,6 @@ export class JaringService {
     );
   }
 
-  async caretakers(id: string, context: AuthorizationContext) {
-    await this.domainScope.assertJaring(context, id);
-    return this.prisma.jaringCaretakerAssignment.findMany({
-      where: { jaringId: id },
-      orderBy: { validFrom: 'desc' },
-      include: {
-        fieldOfficerAssignment: {
-          include: { userProfile: true, role: true },
-        },
-      },
-    });
-  }
-
-  async transfer(id: string, body: TransferDto, context: AuthorizationContext) {
-    const now = new Date();
-    await this.prisma.$transaction(async (tx) => {
-      await tx.jaringCaretakerAssignment.updateMany({
-        where: { jaringId: id, isActive: true, validUntil: null },
-        data: { isActive: false, validUntil: now, transferReason: body.reason },
-      });
-      await tx.jaringCaretakerAssignment.create({
-        data: {
-          jaringId: id,
-          fieldOfficerAssignmentId: body.fieldOfficerAssignmentId,
-          validFrom: now,
-          transferReason: body.reason,
-        },
-      });
-    });
-    await this.audit(context, 'JARING.TRANSFER', id, { reason: body.reason });
-    return this.detail(id);
-  }
-
-  async coverages(id: string, context?: AuthorizationContext) {
-    if (context) await this.domainScope.assertJaring(context, id);
-    return this.prisma.jaringAreaCoverage.findMany({
-      where: { jaringId: id, validUntil: null },
-      include: { area: true },
-    });
-  }
-
-  async coverage(id: string, body: CoverageDto, context: AuthorizationContext) {
-    if (body.areas.filter((item) => item.isPrimary).length !== 1) {
-      throw new ApiException(
-        'PRIMARY_AREA_REQUIRED',
-        'Exactly one primary area is required.',
-        422,
-      );
-    }
-    const now = new Date();
-    await this.prisma.$transaction(async (tx) => {
-      await tx.jaringAreaCoverage.updateMany({
-        where: { jaringId: id, validUntil: null },
-        data: { validUntil: now },
-      });
-      await tx.jaringAreaCoverage.createMany({
-        data: body.areas.map((item) => ({
-          jaringId: id,
-          areaId: item.areaId,
-          isPrimary: item.isPrimary,
-          validFrom: now,
-        })),
-      });
-    });
-    await this.audit(context, 'JARING.COVERAGE.REPLACE', id, {
-      reason: body.reason,
-    });
-    return this.coverages(id);
-  }
-
-  async messages(id: string) {
-    return this.prisma.whatsAppMessage.findMany({
-      where: { jaringId: id },
-      orderBy: { receivedAt: 'desc' },
-      include: {
-        category: true,
-        resolvedArea: true,
-        validationIssues: true,
-        media: {
-          include: {
-            file: {
-              select: {
-                id: true,
-                originalName: true,
-                mimeType: true,
-                fileType: true,
-                lifecycleStatus: true,
-              },
-            },
-          },
-        },
-      },
-    });
-  }
-
   async coachingReports(
     id: string,
     query: JaringCoachingReportQuery,
@@ -3532,14 +3435,5 @@ export class JaringService {
         (left, right) => right.createdAt.getTime() - left.createdAt.getTime(),
       ),
     };
-  }
-
-  async bakets(id: string, context: AuthorizationContext) {
-    await this.domainScope.assertJaring(context, id);
-    return this.prisma.baket.findMany({
-      where: { primaryJaringId: id, deletedAt: null },
-      orderBy: { createdAt: 'desc' },
-      include: { versions: { orderBy: { versionNumber: 'desc' }, take: 1 } },
-    });
   }
 }

@@ -175,7 +175,3 @@ export class UpdateDkiSupervisionScopeDto extends ReasonDto {
   areaScopeIds!: string[];
   @IsOptional() @IsDateString() effectiveAt?: string;
 }
-
-export class AssignmentHistoryQueryDto {
-  @IsOptional() @Type(() => Boolean) @IsBoolean() activeOnly = false;
-}

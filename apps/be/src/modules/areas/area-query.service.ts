@@ -8,19 +8,8 @@ import type {
   AreaHierarchyQueryDto,
   AreaListQueryDto,
   AreaSearchQueryDto,
-  AreaTreeQueryDto,
   ViewportBoundaryQueryDto,
 } from './dto/area.dto.js';
-
-export type AreaTreeNode = {
-  id: string;
-  parentId: string | null;
-  code: string;
-  name: string;
-  level: AdministrativeLevel;
-  hasActiveBoundary: boolean;
-  children: AreaTreeNode[];
-};
 
 @Injectable()
 export class AreaQueryService {
@@ -76,18 +65,6 @@ export class AreaQueryService {
         totalPages: Math.ceil(total / query.limit),
       },
     };
-  }
-
-  detail(id: string) {
-    return this.prisma.administrativeArea.findFirstOrThrow({
-      where: { id, deletedAt: null },
-      include: {
-        parent: true,
-        children: { where: { deletedAt: null } },
-        boundaries: { orderBy: { versionNumber: 'desc' } },
-        _count: { select: { children: true } },
-      },
-    });
   }
 
   children(id: string, level?: AdministrativeLevel) {
@@ -153,92 +130,6 @@ export class AreaQueryService {
     });
   }
 
-  async tree(query: AreaTreeQueryDto) {
-    return this.cache.getOrSet(
-      {
-        namespace: 'administrative-area-tree',
-        identity: query,
-        ttlMs: 30 * 60_000,
-      },
-      () => this.loadTree(query),
-    );
-  }
-
-  private async loadTree(query: AreaTreeQueryDto) {
-    const root =
-      query.rootId ??
-      (
-        await this.prisma.administrativeArea.findFirstOrThrow({
-          where: { level: AdministrativeLevel.COUNTRY, parentId: null },
-        })
-      ).id;
-    const links = await this.prisma.administrativeAreaClosure.findMany({
-      where: { ancestorId: root, depth: { lte: query.maxDepth } },
-      orderBy: { depth: 'asc' },
-      include: {
-        descendant: {
-          include: {
-            _count: { select: { children: true } },
-            boundaries: {
-              where: { isActive: true, effectiveUntil: null },
-              select: { id: true },
-            },
-          },
-        },
-      },
-    });
-    const nodes = new Map<string, AreaTreeNode>(
-      links.map((link: (typeof links)[number]) => [
-        link.descendant.id,
-        {
-          ...link.descendant,
-          hasActiveBoundary: link.descendant.boundaries.length > 0,
-          children: [],
-        },
-      ]),
-    );
-    for (const node of nodes.values()) {
-      if (node.parentId && nodes.has(node.parentId)) {
-        (nodes.get(node.parentId)?.children as unknown[]).push(node);
-      }
-    }
-    return nodes.get(root);
-  }
-
-  async resolve(input: {
-    latitude: number;
-    longitude: number;
-    levels?: AdministrativeLevel[];
-  }) {
-    const matches = await this.spatial.findContainingAreas(
-      input.latitude,
-      input.longitude,
-      input.levels,
-    );
-    if (!matches.length) {
-      throw new ApiException(
-        'AREA_UNRESOLVED',
-        'No active boundary covers the coordinate.',
-        422,
-      );
-    }
-    const resolved = matches[0];
-    const ancestors = await this.prisma.administrativeAreaClosure.findMany({
-      where: { descendantId: resolved.areaId, depth: { gt: 0 } },
-      orderBy: { depth: 'desc' },
-      include: { ancestor: true },
-    });
-    return {
-      point: { type: 'Point', coordinates: [input.longitude, input.latitude] },
-      resolvedArea: resolved,
-      ancestors: ancestors.map((item) => item.ancestor),
-      method: 'POLYGON_MATCH',
-      confidence: 100,
-      boundaryId: resolved.boundaryId,
-      warnings: [],
-    };
-  }
-
   async viewport(query: ViewportBoundaryQueryDto) {
     const values = query.bbox.split(',').map(Number);
     if (values.length !== 4 || values.some(Number.isNaN)) {
@@ -278,11 +169,5 @@ export class AreaQueryService {
 
   boundary(id: string, simplifyMeters: number) {
     return this.spatial.getActiveBoundaryGeoJson(id, simplifyMeters / 111_320);
-  }
-
-  importJob(id: string) {
-    return this.prisma.asyncJob.findFirstOrThrow({
-      where: { id, type: 'ADMINISTRATIVE_AREA_IMPORT' },
-    });
   }
 }

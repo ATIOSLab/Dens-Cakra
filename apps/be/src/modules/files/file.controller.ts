@@ -1,9 +1,7 @@
 import {
   Body,
   Controller,
-  Delete,
   Get,
-  HttpCode,
   Param,
   ParseUUIDPipe,
   Post,
@@ -73,24 +71,6 @@ export class FileController {
   ) {
     return apiResult(await this.files.complete(b, a));
   }
-  @Get(':fileId')
-  @ApiContract({
-    operationId: 'apiFile003',
-    contractId: 'API-FILE-003',
-    summary: 'Metadata file',
-    roles: [
-      'admin_system',
-      'executive',
-      'regional_commander',
-      'executive',
-      'regional_commander',
-      'field_coordinator',
-      'field_officer',
-    ],
-  })
-  async metadata(@Param('fileId', ParseUUIDPipe) id: string) {
-    return apiResult(await this.files.metadata(id));
-  }
   @Get(':fileId/access-url')
   @ApiContract({
     operationId: 'apiFile004',
@@ -114,21 +94,5 @@ export class FileController {
     return apiResult(
       await this.files.accessUrl(id, q.ttlSeconds, q.disposition, a),
     );
-  }
-  @Delete(':fileId')
-  @HttpCode(204)
-  @ApiContract({
-    operationId: 'apiFile005',
-    contractId: 'API-FILE-005',
-    summary: 'Soft delete file tidak terpakai',
-    roles: ['admin_system'],
-    successStatus: 204,
-    idempotent: true,
-  })
-  async remove(
-    @Param('fileId', ParseUUIDPipe) id: string,
-    @CurrentAccessContext() a: AuthorizationContext,
-  ) {
-    await this.files.remove(id, a);
   }
 }

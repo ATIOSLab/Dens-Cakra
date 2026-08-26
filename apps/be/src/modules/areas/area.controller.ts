@@ -1,11 +1,8 @@
 import {
-  Body,
   Controller,
   Get,
   Param,
   ParseUUIDPipe,
-  Patch,
-  Post,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -21,15 +18,7 @@ import {
   AreaHierarchyQueryDto,
   AreaListQueryDto,
   AreaSearchQueryDto,
-  AreaTreeQueryDto,
-  BoundaryActionDto,
   BoundaryQueryDto,
-  CreateAreaDto,
-  CreateAreaImportDto,
-  CreateBoundaryDto,
-  MoveAreaDto,
-  ResolveCoordinateDto,
-  UpdateAreaDto,
   ViewportBoundaryQueryDto,
 } from './dto/area.dto.js';
 import { AreaService } from './area.service.js';
@@ -60,39 +49,6 @@ export class AreaController {
   async list(@Query() q: AreaListQueryDto) {
     const r = await this.areas.list(q);
     return apiResult(r.items, undefined, { pagination: r.pagination });
-  }
-  @Post('administrative-areas')
-  @ApiContract({
-    operationId: 'apiArea011',
-    contractId: 'API-AREA-011',
-    summary: 'Buat wilayah manual',
-    roles: ['admin_system'],
-    successStatus: 201,
-    idempotent: true,
-  })
-  async create(
-    @Body() b: CreateAreaDto,
-    @CurrentAccessContext() a: AuthorizationContext,
-  ) {
-    return apiResult(await this.areas.create(b, a));
-  }
-  @Get('administrative-areas/tree')
-  @ApiContract({
-    operationId: 'apiArea002',
-    contractId: 'API-AREA-002',
-    summary: 'Cascading tree wilayah',
-    roles: [
-      'admin_system',
-      'executive',
-      'regional_commander',
-      'executive',
-      'regional_commander',
-      'field_coordinator',
-      'field_officer',
-    ],
-  })
-  async tree(@Query() q: AreaTreeQueryDto) {
-    return apiResult(await this.areas.tree(q));
   }
   @Get('administrative-areas/scoped-tree')
   @ApiContract({
@@ -140,48 +96,6 @@ export class AreaController {
   async viewport(@Query() q: ViewportBoundaryQueryDto) {
     return apiResult(await this.areas.viewport(q));
   }
-  @Post('administrative-areas/resolve-coordinate')
-  @ApiContract({
-    operationId: 'apiArea010',
-    contractId: 'API-AREA-010',
-    summary: 'Resolve koordinat ke wilayah paling spesifik',
-    roles: ['admin_system'],
-  })
-  async resolve(@Body() b: ResolveCoordinateDto) {
-    return apiResult(await this.areas.resolve(b));
-  }
-  @Get('administrative-areas/:areaId')
-  @ApiContract({
-    operationId: 'apiArea003',
-    contractId: 'API-AREA-003',
-    summary: 'Detail wilayah',
-    roles: [
-      'admin_system',
-      'executive',
-      'regional_commander',
-      'executive',
-      'regional_commander',
-      'field_coordinator',
-      'field_officer',
-    ],
-  })
-  async detail(@Param('areaId', ParseUUIDPipe) id: string) {
-    return apiResult(await this.areas.detail(id));
-  }
-  @Patch('administrative-areas/:areaId')
-  @ApiContract({
-    operationId: 'apiArea012',
-    contractId: 'API-AREA-012',
-    summary: 'Ubah wilayah administratif',
-    roles: ['admin_system'],
-  })
-  async update(
-    @Param('areaId', ParseUUIDPipe) id: string,
-    @Body() b: UpdateAreaDto,
-    @CurrentAccessContext() a: AuthorizationContext,
-  ) {
-    return apiResult(await this.areas.update(id, b, a));
-  }
   @Get('administrative-areas/:areaId/children')
   @ApiContract({
     operationId: 'apiArea004',
@@ -224,27 +138,6 @@ export class AreaController {
   ) {
     return apiResult(await this.areas.hierarchy(id, 'ancestors', q));
   }
-  @Get('administrative-areas/:areaId/descendants')
-  @ApiContract({
-    operationId: 'apiArea006',
-    contractId: 'API-AREA-006',
-    summary: 'Turunan wilayah',
-    roles: [
-      'admin_system',
-      'executive',
-      'regional_commander',
-      'executive',
-      'regional_commander',
-      'field_coordinator',
-      'field_officer',
-    ],
-  })
-  async descendants(
-    @Param('areaId', ParseUUIDPipe) id: string,
-    @Query() q: AreaHierarchyQueryDto,
-  ) {
-    return apiResult(await this.areas.hierarchy(id, 'descendants', q));
-  }
   @Get('administrative-areas/:areaId/boundary')
   @ApiContract({
     operationId: 'apiArea008',
@@ -265,98 +158,5 @@ export class AreaController {
     @Query() q: BoundaryQueryDto,
   ) {
     return apiResult(await this.areas.boundary(id, q.simplifyMeters));
-  }
-  @Post('administrative-areas/:areaId/move')
-  @ApiContract({
-    operationId: 'apiArea013',
-    contractId: 'API-AREA-013',
-    summary: 'Pindahkan wilayah',
-    roles: ['admin_system'],
-    idempotent: true,
-  })
-  async move(
-    @Param('areaId', ParseUUIDPipe) id: string,
-    @Body() b: MoveAreaDto,
-    @CurrentAccessContext() a: AuthorizationContext,
-  ) {
-    return apiResult(await this.areas.move(id, b.newParentId, b.reason, a));
-  }
-  @Post('administrative-areas/:areaId/boundaries')
-  @ApiContract({
-    operationId: 'apiArea014',
-    contractId: 'API-AREA-014',
-    summary: 'Tambah boundary version',
-    roles: ['admin_system'],
-    successStatus: 201,
-    idempotent: true,
-  })
-  async createBoundary(
-    @Param('areaId', ParseUUIDPipe) id: string,
-    @Body() b: CreateBoundaryDto,
-    @CurrentAccessContext() a: AuthorizationContext,
-  ) {
-    return apiResult(await this.areas.createBoundary(id, b, a));
-  }
-  @Post('administrative-area-boundaries/:boundaryId/activate')
-  @ApiContract({
-    operationId: 'apiArea015',
-    contractId: 'API-AREA-015',
-    summary: 'Aktifkan boundary version',
-    roles: ['admin_system'],
-    idempotent: true,
-  })
-  async activate(
-    @Param('boundaryId', ParseUUIDPipe) id: string,
-    @Body() b: BoundaryActionDto,
-    @CurrentAccessContext() a: AuthorizationContext,
-  ) {
-    return apiResult(
-      await this.areas.activateBoundary(
-        id,
-        b.effectiveFrom ? new Date(b.effectiveFrom) : new Date(),
-        b.reason,
-        a,
-      ),
-    );
-  }
-  @Post('administrative-area-boundaries/:boundaryId/invalidate')
-  @ApiContract({
-    operationId: 'apiArea016',
-    contractId: 'API-AREA-016',
-    summary: 'Tandai boundary invalid',
-    roles: ['admin_system'],
-    idempotent: true,
-  })
-  async invalidate(
-    @Param('boundaryId', ParseUUIDPipe) id: string,
-    @Body() b: BoundaryActionDto,
-    @CurrentAccessContext() a: AuthorizationContext,
-  ) {
-    return apiResult(await this.areas.invalidateBoundary(id, b.reason, a));
-  }
-  @Post('administrative-area-imports')
-  @ApiContract({
-    operationId: 'apiArea017',
-    contractId: 'API-AREA-017',
-    summary: 'Import dataset wilayah/boundary',
-    roles: ['admin_system'],
-    successStatus: 202,
-    idempotent: true,
-  })
-  async createImport(
-    @Body() b: CreateAreaImportDto,
-    @CurrentAccessContext() a: AuthorizationContext,
-  ) {
-    return apiResult(await this.areas.createImport(b, a));
-  }
-  @Get('administrative-area-imports/:jobId')
-  @ApiContract({
-    operationId: 'apiArea018',
-    contractId: 'API-AREA-018',
-    summary: 'Status import',
-    roles: ['admin_system'],
-  })
-  async importJob(@Param('jobId', ParseUUIDPipe) id: string) {
-    return apiResult(await this.areas.importJob(id));
   }
 }

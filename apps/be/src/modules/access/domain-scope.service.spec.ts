@@ -158,10 +158,10 @@ describe('DomainScopeService', () => {
 
     const result = await service.resolve(context);
 
-    expect(result.positionIds).toEqual(
+    expect(result.assignmentIds).toEqual(
       expect.arrayContaining(['oim-a', 'fc-a', 'fo-a']),
     );
-    expect(result.positionIds).not.toContain('foreign');
+    expect(result.assignmentIds).not.toContain('foreign');
     expect(result.areaRootIds).toEqual(['province']);
   });
 

@@ -4,9 +4,7 @@ import {
   Get,
   Param,
   ParseUUIDPipe,
-  Patch,
   Post,
-  Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -19,15 +17,11 @@ import { SessionGuard } from '../../common/guards/session.guard.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
 import {
   AssignTaskDto,
-  CreateTaskDto,
   ForwardJaringInstructionDto,
   NoteDto,
   ProgressDto,
-  ReasonDto,
   ReassignDto,
-  TargetAreasDto,
   TaskQuery,
-  UpdateTaskDto,
 } from './task.dto.js';
 import { TaskService } from './task.service.js';
 
@@ -58,49 +52,6 @@ export class TaskController {
     return apiResult(await this.taskService.list(query, context));
   }
 
-  @Post('tasks')
-  @ApiContract({
-    operationId: 'apiTask002',
-    contractId: 'API-TASK-002',
-    summary: 'Buat tugas',
-    roles: [
-      'regional_commander',
-      'executive',
-      'regional_commander',
-      'field_coordinator',
-    ],
-    successStatus: 201,
-    idempotent: true,
-  })
-  async create(
-    @Body() body: CreateTaskDto,
-    @CurrentAccessContext() context: AuthorizationContext,
-  ) {
-    return apiResult(await this.taskService.create(body, context));
-  }
-
-  @Post('tasks/:taskId/child-tasks')
-  @ApiContract({
-    operationId: 'apiTask003',
-    contractId: 'API-TASK-003',
-    summary: 'Buat child task',
-    roles: [
-      'regional_commander',
-      'executive',
-      'regional_commander',
-      'field_coordinator',
-    ],
-    successStatus: 201,
-    idempotent: true,
-  })
-  async child(
-    @Param('taskId', ParseUUIDPipe) taskId: string,
-    @Body() body: CreateTaskDto,
-    @CurrentAccessContext() context: AuthorizationContext,
-  ) {
-    return apiResult(await this.taskService.child(taskId, body, context));
-  }
-
   @Get('tasks/:taskId')
   @ApiContract({
     operationId: 'apiTask004',
@@ -120,47 +71,6 @@ export class TaskController {
     @CurrentAccessContext() context: AuthorizationContext,
   ) {
     return apiResult(await this.taskService.get(taskId, context));
-  }
-
-  @Patch('tasks/:taskId')
-  @ApiContract({
-    operationId: 'apiTask005',
-    contractId: 'API-TASK-005',
-    summary: 'Ubah draft tugas',
-    roles: [
-      'regional_commander',
-      'executive',
-      'regional_commander',
-      'field_coordinator',
-    ],
-  })
-  async update(
-    @Param('taskId', ParseUUIDPipe) taskId: string,
-    @Body() body: UpdateTaskDto,
-    @CurrentAccessContext() context: AuthorizationContext,
-  ) {
-    return apiResult(await this.taskService.update(taskId, body, context));
-  }
-
-  @Put('tasks/:taskId/target-areas')
-  @ApiContract({
-    operationId: 'apiTask006',
-    contractId: 'API-TASK-006',
-    summary: 'Ganti target area tugas',
-    roles: [
-      'regional_commander',
-      'executive',
-      'regional_commander',
-      'field_coordinator',
-    ],
-    idempotent: true,
-  })
-  async targets(
-    @Param('taskId', ParseUUIDPipe) taskId: string,
-    @Body() body: TargetAreasDto,
-    @CurrentAccessContext() context: AuthorizationContext,
-  ) {
-    return apiResult(await this.taskService.targets(taskId, body, context));
   }
 
   @Post('tasks/:taskId/assignments')
@@ -183,27 +93,6 @@ export class TaskController {
     @CurrentAccessContext() context: AuthorizationContext,
   ) {
     return apiResult(await this.taskService.assign(taskId, body, context));
-  }
-
-  @Get('tasks/:taskId/assignments')
-  @ApiContract({
-    operationId: 'apiTask008',
-    contractId: 'API-TASK-008',
-    summary: 'Daftar assignment tugas',
-    roles: [
-      'executive',
-      'regional_commander',
-      'executive',
-      'regional_commander',
-      'field_coordinator',
-      'field_officer',
-    ],
-  })
-  async assignments(
-    @Param('taskId', ParseUUIDPipe) taskId: string,
-    @CurrentAccessContext() context: AuthorizationContext,
-  ) {
-    return apiResult(await this.taskService.assignments(taskId, context));
   }
 
   @Get('task-assignments/:assignmentId')
@@ -352,68 +241,5 @@ export class TaskController {
     return apiResult(
       await this.taskService.reassign(assignmentId, body, context),
     );
-  }
-
-  @Post('tasks/:taskId/cancel')
-  @ApiContract({
-    operationId: 'apiTask016',
-    contractId: 'API-TASK-016',
-    summary: 'Batalkan tugas',
-    roles: [
-      'regional_commander',
-      'executive',
-      'regional_commander',
-      'field_coordinator',
-    ],
-    idempotent: true,
-  })
-  async cancel(
-    @Param('taskId', ParseUUIDPipe) taskId: string,
-    @Body() body: ReasonDto,
-    @CurrentAccessContext() context: AuthorizationContext,
-  ) {
-    return apiResult(await this.taskService.cancel(taskId, body, context));
-  }
-
-  @Get('tasks/:taskId/cascade')
-  @ApiContract({
-    operationId: 'apiTask017',
-    contractId: 'API-TASK-017',
-    summary: 'Hierarki cascade tugas',
-    roles: [
-      'executive',
-      'regional_commander',
-      'executive',
-      'regional_commander',
-      'field_coordinator',
-      'field_officer',
-    ],
-  })
-  async cascade(
-    @Param('taskId', ParseUUIDPipe) taskId: string,
-    @CurrentAccessContext() context: AuthorizationContext,
-  ) {
-    return apiResult(await this.taskService.cascade(taskId, context));
-  }
-
-  @Get('tasks/:taskId/progress-summary')
-  @ApiContract({
-    operationId: 'apiTask018',
-    contractId: 'API-TASK-018',
-    summary: 'Ringkasan progres tugas',
-    roles: [
-      'executive',
-      'regional_commander',
-      'executive',
-      'regional_commander',
-      'field_coordinator',
-      'field_officer',
-    ],
-  })
-  async summary(
-    @Param('taskId', ParseUUIDPipe) taskId: string,
-    @CurrentAccessContext() context: AuthorizationContext,
-  ) {
-    return apiResult(await this.taskService.summary(taskId, context));
   }
 }

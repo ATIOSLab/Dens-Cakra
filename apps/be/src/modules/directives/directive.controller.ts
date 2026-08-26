@@ -19,11 +19,9 @@ import { SessionGuard } from '../../common/guards/session.guard.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
 import {
   CreateDirectiveDto,
-  CreateDirectiveRevisionDto,
   DirectiveQuery,
   DistributeDirectiveDto,
   GenerateDirectiveAiDto,
-  OptionalNoteDto,
   PublishDirectiveDto,
   ReplaceAreasDto,
   ReplaceRecipientsDto,
@@ -108,47 +106,6 @@ export class DirectiveController {
     @CurrentAccessContext() context: AuthorizationContext,
   ) {
     return apiResult(await this.directiveService.get(directiveId, context));
-  }
-
-  @Get('directives/:directiveId/versions')
-  @ApiContract({
-    operationId: 'apiDir004',
-    contractId: 'API-DIR-004',
-    summary: 'Riwayat versi directive',
-    roles: [
-      'executive',
-      'regional_commander',
-      'executive',
-      'regional_commander',
-      'field_coordinator',
-    ],
-  })
-  async versions(
-    @Param('directiveId', ParseUUIDPipe) directiveId: string,
-    @CurrentAccessContext() context: AuthorizationContext,
-  ) {
-    return apiResult(
-      await this.directiveService.versions(directiveId, context),
-    );
-  }
-
-  @Post('directives/:directiveId/versions')
-  @ApiContract({
-    operationId: 'apiDir005',
-    contractId: 'API-DIR-005',
-    summary: 'Buat versi revisi',
-    roles: ['executive'],
-    successStatus: 201,
-    idempotent: true,
-  })
-  async createVersion(
-    @Param('directiveId', ParseUUIDPipe) directiveId: string,
-    @Body() body: CreateDirectiveRevisionDto,
-    @CurrentAccessContext() context: AuthorizationContext,
-  ) {
-    return apiResult(
-      await this.directiveService.createVersion(directiveId, body, context),
-    );
   }
 
   @Get('directive-versions/:versionId')
@@ -280,30 +237,6 @@ export class DirectiveController {
     @CurrentAccessContext() context: AuthorizationContext,
   ) {
     return apiResult(await this.directiveService.markRead(versionId, context));
-  }
-
-  @Post('directive-recipients/:recipientId/acknowledge')
-  @ApiContract({
-    operationId: 'apiDir012',
-    contractId: 'API-DIR-012',
-    summary: 'Acknowledgement penerima',
-    roles: [
-      'executive',
-      'regional_commander',
-      'executive',
-      'regional_commander',
-      'field_coordinator',
-    ],
-    idempotent: true,
-  })
-  async acknowledge(
-    @Param('recipientId', ParseUUIDPipe) recipientId: string,
-    @Body() body: OptionalNoteDto,
-    @CurrentAccessContext() context: AuthorizationContext,
-  ) {
-    return apiResult(
-      await this.directiveService.acknowledge(recipientId, body, context),
-    );
   }
 
   @Get('directives/:directiveId/tracking')

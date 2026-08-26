@@ -18,7 +18,6 @@ import { SessionGuard } from '../../common/guards/session.guard.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
 import {
   ArchiveUserDto,
-  AssignmentHistoryQueryDto,
   ChangePrimaryAssignmentDto,
   LockUserDto,
   ProvisionUserDto,
@@ -243,27 +242,5 @@ export class UserProfileController {
     return apiResult(
       await this.users.updateDkiSupervisionScope(id, input, actor),
     );
-  }
-
-  @Get(':userProfileId/assignments')
-  @ApiContract({
-    operationId: 'apiUsr011',
-    contractId: 'API-USR-011',
-    summary: 'Riwayat assignment pengguna',
-    roles: [
-      'admin_system',
-      'executive',
-      'regional_commander',
-      'executive',
-      'regional_commander',
-      'field_coordinator',
-      'field_officer',
-    ],
-  })
-  async assignments(
-    @Param('userProfileId', ParseUUIDPipe) id: string,
-    @Query() query: AssignmentHistoryQueryDto,
-  ) {
-    return apiResult(await this.users.assignments(id, query.activeOnly));
   }
 }

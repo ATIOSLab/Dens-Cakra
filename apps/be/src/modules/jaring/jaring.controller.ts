@@ -6,7 +6,6 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
-  Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -21,7 +20,6 @@ import {
   CreateJaringOccupationDto,
   CreateJaringCoachingReportDto,
   CreateReportCategoryDto,
-  CoverageDto,
   CreateJaringDto,
   JaringCoachingReportQuery,
   JaringOccupationQuery,
@@ -30,7 +28,6 @@ import {
   ReportCategoryQuery,
   ReasonDto,
   RejectJaringDto,
-  TransferDto,
   UpdateJaringOccupationDto,
   UpdateJaringReportMetadataDto,
   UpdateReportCategoryDto,
@@ -334,88 +331,6 @@ export class JaringController {
     return apiResult(await this.jaringService.softDelete(id, body, context));
   }
 
-  @Get(':jaringId/caretakers')
-  @ApiContract({
-    operationId: 'apiJar008',
-    contractId: 'API-JAR-008',
-    summary: 'Riwayat caretaker',
-    roles: [
-      'executive',
-      'regional_commander',
-      'field_coordinator',
-      'field_officer',
-    ],
-  })
-  async caretakers(
-    @Param('jaringId', ParseUUIDPipe) id: string,
-    @CurrentAccessContext() context: AuthorizationContext,
-  ) {
-    return apiResult(await this.jaringService.caretakers(id, context));
-  }
-
-  @Post(':jaringId/caretaker-transfer')
-  @ApiContract({
-    operationId: 'apiJar009',
-    contractId: 'API-JAR-009',
-    summary: 'Transfer caretaker',
-    roles: ['field_officer'],
-    successStatus: 201,
-    idempotent: true,
-  })
-  async transfer(
-    @Param('jaringId', ParseUUIDPipe) id: string,
-    @Body() body: TransferDto,
-    @CurrentAccessContext() context: AuthorizationContext,
-  ) {
-    return apiResult(await this.jaringService.transfer(id, body, context));
-  }
-
-  @Get(':jaringId/area-coverages')
-  @ApiContract({
-    operationId: 'apiJar010',
-    contractId: 'API-JAR-010',
-    summary: 'Coverage wilayah Jaring',
-    roles: [
-      'executive',
-      'regional_commander',
-      'field_coordinator',
-      'field_officer',
-    ],
-  })
-  async coverages(
-    @Param('jaringId', ParseUUIDPipe) id: string,
-    @CurrentAccessContext() context: AuthorizationContext,
-  ) {
-    return apiResult(await this.jaringService.coverages(id, context));
-  }
-
-  @Put(':jaringId/area-coverages')
-  @ApiContract({
-    operationId: 'apiJar011',
-    contractId: 'API-JAR-011',
-    summary: 'Ganti coverage wilayah Jaring',
-    roles: ['field_officer'],
-    idempotent: true,
-  })
-  async coverage(
-    @Param('jaringId', ParseUUIDPipe) id: string,
-    @Body() body: CoverageDto,
-    @CurrentAccessContext() context: AuthorizationContext,
-  ) {
-    return apiResult(await this.jaringService.coverage(id, body, context));
-  }
-
-  @Get(':jaringId/messages')
-  @ApiContract({
-    operationId: 'apiJar012',
-    contractId: 'API-JAR-012',
-    summary: 'Pesan Jaring',
-    roles: ['field_officer'],
-  })
-  async messages(@Param('jaringId', ParseUUIDPipe) id: string) {
-    return apiResult(await this.jaringService.messages(id));
-  }
-
   @Get(':jaringId/coaching-reports')
   @ApiContract({
     operationId: 'apiJarCoachingReport001',
@@ -573,26 +488,5 @@ export class JaringController {
     @CurrentAccessContext() context: AuthorizationContext,
   ) {
     return apiResult(await this.jaringService.reportHistory(id, context));
-  }
-
-  @Get(':jaringId/bakets')
-  @ApiContract({
-    operationId: 'apiJar013',
-    contractId: 'API-JAR-013',
-    summary: 'Baket Jaring',
-    roles: [
-      'executive',
-      'regional_commander',
-      'executive',
-      'regional_commander',
-      'field_coordinator',
-      'field_officer',
-    ],
-  })
-  async bakets(
-    @Param('jaringId', ParseUUIDPipe) id: string,
-    @CurrentAccessContext() context: AuthorizationContext,
-  ) {
-    return apiResult(await this.jaringService.bakets(id, context));
   }
 }

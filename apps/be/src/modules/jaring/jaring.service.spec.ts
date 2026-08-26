@@ -40,7 +40,6 @@ describe('JaringService registration security', () => {
       Promise.resolve({
         organizationUnitId: 'unit-id',
         commandRouteType: 'BINDA',
-        positionIds: ['position-id'],
         assignmentIds: ['assignment-id'],
         areaRootIds: ['district-id'],
       }),
@@ -79,7 +78,6 @@ describe('JaringService registration security', () => {
           Promise.resolve({
             organizationUnitId: 'unit-id',
             commandRouteType: 'BINDA',
-            positionIds: ['position-id'],
             assignmentIds: ['assignment-id'],
             areaRootIds: ['district-id'],
           }),
@@ -128,7 +126,6 @@ describe('JaringService registration security', () => {
           Promise.resolve({
             organizationUnitId: 'unit-id',
             commandRouteType: 'BINDA',
-            positionIds: ['position-id'],
             assignmentIds: ['assignment-id'],
             areaRootIds: ['district-id'],
           }),
@@ -170,7 +167,6 @@ describe('JaringService registration security', () => {
           Promise.resolve({
             organizationUnitId: 'unit-id',
             commandRouteType: 'BINDA',
-            positionIds: ['position-id'],
             assignmentIds: ['assignment-id'],
             areaRootIds: ['district-id'],
           }),

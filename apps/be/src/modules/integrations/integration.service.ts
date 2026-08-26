@@ -16,21 +16,17 @@ import { DomainScopeService } from '../access/domain-scope.service.js';
 import { SecretVaultService } from '../infrastructure/secret-vault.service.js';
 import type { EncryptedValue } from '../infrastructure/secret-vault.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { AsyncJobService } from '../runtime/async-job.service.js';
 import type {
   CreateIntegrationDto,
   CreateWhatsappNotificationRecipientDto,
-  IntegrationQuery,
   ReasonDto,
   RequestWhatsappQrDto,
   TestIntegrationDto,
-  UpdateIntegrationDto,
   UpdateWhatsappNotificationRecipientDto,
   WhatsappConnectivityQuery,
   WhatsappDeviceActivityQuery,
   WhatsappMessageEventQuery,
   UpdateWhatsappControlDto,
-  WebhookQuery,
 } from './integration.dto.js';
 import { WhatsappBotRuntimeService } from './whatsapp-bot-runtime.service.js';
 
@@ -105,7 +101,6 @@ export class IntegrationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly vault: SecretVaultService,
-    private readonly jobs: AsyncJobService,
     private readonly whatsappBotRuntime: WhatsappBotRuntimeService,
     private readonly scope: DomainScopeService,
   ) {}
@@ -337,19 +332,6 @@ export class IntegrationService {
     });
   }
 
-  async list(query: IntegrationQuery) {
-    return (
-      await this.prisma.integrationChannel.findMany({
-        where: {
-          deletedAt: null,
-          ...(query.status ? { status: query.status } : {}),
-          ...(query.channelType ? { channelType: query.channelType } : {}),
-        },
-        orderBy: { code: 'asc' },
-      })
-    ).map((channel) => this.view(channel));
-  }
-
   private async loadWhatsappControlViews() {
     const channels = await this.prisma.integrationChannel.findMany({
       where: {
@@ -559,11 +541,12 @@ export class IntegrationService {
 
     const matchesArea = (view: (typeof views)[number]) => {
       if (!query.areaId) return true;
-      const scopeAreaIds = view.scopeAreaIds.length > 0
-        ? view.scopeAreaIds
-        : view.scopeAreaId
-          ? [view.scopeAreaId]
-          : [];
+      const scopeAreaIds =
+        view.scopeAreaIds.length > 0
+          ? view.scopeAreaIds
+          : view.scopeAreaId
+            ? [view.scopeAreaId]
+            : [];
       if (scopeAreaIds.length === 0) return false;
       return scopeAreaIds.some(
         (areaId) => areaId === query.areaId || descendantAreaIds?.has(areaId),
@@ -739,7 +722,10 @@ export class IntegrationService {
         !latestAreaByChannel.has(message.integrationChannelId) &&
         message.resolvedAreaId
       ) {
-        latestAreaByChannel.set(message.integrationChannelId, message.resolvedAreaId);
+        latestAreaByChannel.set(
+          message.integrationChannelId,
+          message.resolvedAreaId,
+        );
       }
     }
 
@@ -1621,28 +1607,6 @@ export class IntegrationService {
     );
   }
 
-  async update(
-    id: string,
-    body: UpdateIntegrationDto,
-    context: AuthorizationContext,
-  ) {
-    const existing = await this.prisma.integrationChannel.findFirstOrThrow({
-      where: { id, deletedAt: null },
-      select: { id: true },
-    });
-    const channel = await this.prisma.integrationChannel.update({
-      where: { id: existing.id },
-      data: {
-        ...(body.name ? { name: body.name } : {}),
-        ...(body.configPatch
-          ? { config: this.vault.encrypt(body.configPatch) }
-          : {}),
-      },
-    });
-    await this.audit(context, 'INTEGRATION.UPDATE', id);
-    return this.view(channel);
-  }
-
   async updateWhatsappControl(
     id: string,
     body: UpdateWhatsappControlDto,
@@ -1837,68 +1801,6 @@ export class IntegrationService {
     });
 
     return this.whatsappControlView(channel);
-  }
-
-  async events(id: string, query: WebhookQuery) {
-    return this.prisma.integrationWebhookEvent.findMany({
-      where: {
-        channelId: id,
-        channel: { deletedAt: null },
-        ...(query.eventType ? { eventType: query.eventType } : {}),
-        ...(query.success === undefined ? {} : { success: query.success }),
-      },
-      take: query.limit,
-      orderBy: { receivedAt: 'desc' },
-      select: {
-        id: true,
-        channelId: true,
-        externalEventId: true,
-        eventType: true,
-        senderPhone: true,
-        receivedAt: true,
-        processedAt: true,
-        success: true,
-        errorMessage: true,
-        payload: true,
-      },
-    });
-  }
-
-  async event(id: string) {
-    return this.prisma.integrationWebhookEvent.findUniqueOrThrow({
-      where: { id },
-      select: {
-        id: true,
-        channelId: true,
-        externalEventId: true,
-        eventType: true,
-        senderPhone: true,
-        receivedAt: true,
-        processedAt: true,
-        success: true,
-        errorMessage: true,
-        payload: true,
-      },
-    });
-  }
-
-  async retry(id: string, body: ReasonDto, context: AuthorizationContext) {
-    const event = await this.prisma.integrationWebhookEvent.findUniqueOrThrow({
-      where: { id },
-    });
-    if (event.success === true) {
-      throw new ApiException(
-        'WEBHOOK_ALREADY_PROCESSED',
-        'Successful webhook cannot be retried.',
-        409,
-      );
-    }
-    return this.jobs.enqueue({
-      type: 'WEBHOOK_RETRY',
-      payload: { eventId: id, reason: body.reason },
-      requestedById: context.primaryAssignmentId,
-      correlationId: id,
-    });
   }
 
   async remove(id: string, context: AuthorizationContext) {

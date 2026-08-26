@@ -152,25 +152,6 @@ export class FileService implements OnModuleInit {
     });
     return file;
   }
-  metadata(id: string) {
-    return this.prisma.fileAsset.findFirstOrThrow({
-      where: { id, deletedAt: null },
-      select: {
-        id: true,
-        originalName: true,
-        mimeType: true,
-        fileType: true,
-        sizeBytes: true,
-        checksumSha256: true,
-        lifecycleStatus: true,
-        scanResult: true,
-        scannedAt: true,
-        quarantineReason: true,
-        retentionUntil: true,
-        createdAt: true,
-      },
-    });
-  }
   async accessUrl(
     id: string,
     ttlSeconds: number,
@@ -227,44 +208,6 @@ export class FileService implements OnModuleInit {
       sizeBytes: file.sizeBytes.toString(),
       checksumSha256: file.checksumSha256,
     };
-  }
-  async remove(id: string, actor: AuthorizationContext) {
-    const file = await this.prisma.fileAsset.findFirstOrThrow({
-      where: { id, deletedAt: null },
-      include: {
-        _count: {
-          select: {
-            whatsAppMedia: true,
-            taskAttachments: true,
-            baketAttachments: true,
-            productAttachments: true,
-            emergencyAttachments: true,
-          },
-        },
-      },
-    });
-    if (Object.values(file._count).some((count) => count > 0))
-      throw new ApiException(
-        'FILE_IN_USE',
-        'File is referenced by operational data.',
-        409,
-      );
-    await this.prisma.fileAsset.update({
-      where: { id },
-      data: {
-        deletedAt: new Date(),
-        lifecycleStatus: FileLifecycleStatus.DELETED,
-      },
-    });
-    await this.prisma.auditLog.create({
-      data: {
-        actorUserProfileId: actor.userProfileId,
-        actorAssignmentId: actor.primaryAssignmentId,
-        action: 'FILE.DELETE',
-        entityType: 'FileAsset',
-        entityId: id,
-      },
-    });
   }
   private async assertDeclaredImageContent(
     storageKey: string,

@@ -4,9 +4,7 @@ import {
   Get,
   Param,
   ParseUUIDPipe,
-  Patch,
   Post,
-  Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -17,15 +15,7 @@ import { CurrentAccessContext } from '../../common/decorators/current-access-con
 import { DomainAccessGuard } from '../../common/guards/domain-access.guard.js';
 import { SessionGuard } from '../../common/guards/session.guard.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
-import {
-  CancelDto,
-  CreateUukDto,
-  CreateUukRevisionDto,
-  PublishDto,
-  ReplaceSectionsDto,
-  UukQuery,
-  UpdateUukVersionDto,
-} from './uuk.dto.js';
+import { CancelDto, CreateUukDto, PublishDto, UukQuery } from './uuk.dto.js';
 import { UukService } from './uuk.service.js';
 
 @ApiTags('09. UUK/STR')
@@ -90,43 +80,6 @@ export class UukController {
     return apiResult(await this.uukService.get(uukStrId, context));
   }
 
-  @Get('uuk-strs/:uukStrId/versions')
-  @ApiContract({
-    operationId: 'apiUuk004',
-    contractId: 'API-UUK-004',
-    summary: 'Riwayat versi UUK/STR',
-    roles: [
-      'executive',
-      'regional_commander',
-      'executive',
-      'regional_commander',
-      'field_coordinator',
-    ],
-  })
-  async versions(
-    @Param('uukStrId', ParseUUIDPipe) uukStrId: string,
-    @CurrentAccessContext() context: AuthorizationContext,
-  ) {
-    return apiResult(await this.uukService.versions(uukStrId, context));
-  }
-
-  @Post('uuk-strs/:uukStrId/versions')
-  @ApiContract({
-    operationId: 'apiUuk005',
-    contractId: 'API-UUK-005',
-    summary: 'Buat revisi UUK/STR',
-    roles: ['regional_commander'],
-    successStatus: 201,
-    idempotent: true,
-  })
-  createVersion(
-    @Param('uukStrId', ParseUUIDPipe) uukStrId: string,
-    @Body() body: CreateUukRevisionDto,
-    @CurrentAccessContext() context: AuthorizationContext,
-  ) {
-    return apiResult(this.uukService.createVersion(uukStrId, body, context));
-  }
-
   @Get('uuk-str-versions/:versionId')
   @ApiContract({
     operationId: 'apiUuk006',
@@ -145,37 +98,6 @@ export class UukController {
     @CurrentAccessContext() context: AuthorizationContext,
   ) {
     return apiResult(await this.uukService.getVersion(versionId, context));
-  }
-
-  @Patch('uuk-str-versions/:versionId')
-  @ApiContract({
-    operationId: 'apiUuk007',
-    contractId: 'API-UUK-007',
-    summary: 'Edit judul versi draft',
-    roles: ['regional_commander'],
-  })
-  updateVersion(
-    @Param('versionId', ParseUUIDPipe) versionId: string,
-    @Body() body: UpdateUukVersionDto,
-    @CurrentAccessContext() context: AuthorizationContext,
-  ) {
-    return apiResult(this.uukService.updateVersion(versionId, body, context));
-  }
-
-  @Put('uuk-str-versions/:versionId/sections')
-  @ApiContract({
-    operationId: 'apiUuk008',
-    contractId: 'API-UUK-008',
-    summary: 'Ganti seluruh section draft',
-    roles: ['regional_commander'],
-    idempotent: true,
-  })
-  replaceSections(
-    @Param('versionId', ParseUUIDPipe) versionId: string,
-    @Body() body: ReplaceSectionsDto,
-    @CurrentAccessContext() context: AuthorizationContext,
-  ) {
-    return apiResult(this.uukService.replaceSections(versionId, body, context));
   }
 
   @Post('uuk-str-versions/:versionId/publish')

@@ -113,9 +113,7 @@ async function readApi<T>(response: Response) {
   return body.data;
 }
 
-function productListRoute(role: SystemRole) {
-  if (role === "executive") return "/dashboard/deputi/produk-intelijen";
-  if (role === "regional_commander") return "/dashboard/kabinda/laporan-produk-intelijen";
+function productListRoute(_role: SystemRole) {
   return "/dashboard/baket";
 }
 

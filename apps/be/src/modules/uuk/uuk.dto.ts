@@ -72,30 +72,6 @@ export class CreateUukDto {
   sections!: SectionDto[];
 }
 
-export class CreateUukRevisionDto {
-  @IsOptional() @IsUUID() basedOnVersionId?: string;
-  @IsString() @MaxLength(300) title!: string;
-  @IsString() @MinLength(2) @MaxLength(2000) changeReason!: string;
-  @IsArray()
-  @ArrayMinSize(1)
-  @ValidateNested({ each: true })
-  @Type(() => SectionDto)
-  sections!: SectionDto[];
-}
-
-export class UpdateUukVersionDto {
-  @IsString() @MaxLength(300) title!: string;
-  @IsOptional() @IsString() @MaxLength(2000) changeReason?: string;
-}
-
-export class ReplaceSectionsDto {
-  @IsArray()
-  @ArrayMinSize(1)
-  @ValidateNested({ each: true })
-  @Type(() => SectionDto)
-  sections!: SectionDto[];
-}
-
 export class PublishDto {
   @IsString() confirmation!: string;
 }

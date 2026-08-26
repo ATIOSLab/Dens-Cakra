@@ -1,28 +1,22 @@
 import { Injectable } from '@nestjs/common';
 import {
   CommandRouteType,
-  DirectiveStatus,
   JaringStatus,
   Prisma,
   RoleCode,
   TaskAssignmentStatus,
   TaskStatus,
-  UukStrStatus,
 } from '../../generated/prisma/client.js';
 import { ApiException } from '../../common/api/api-exception.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type {
   AssignTaskDto,
-  CreateTaskDto,
   ForwardJaringInstructionDto,
   NoteDto,
   ProgressDto,
-  ReasonDto,
   ReassignDto,
-  TargetAreasDto,
   TaskQuery,
-  UpdateTaskDto,
 } from './task.dto.js';
 import { TaskSortField } from './task.dto.js';
 
@@ -338,24 +332,6 @@ export class TaskService {
     });
 
     return Boolean(allowed);
-  }
-
-  private assertRole(
-    context: AuthorizationContext,
-    allowedRoles: readonly RoleCode[],
-    message: string,
-  ) {
-    if (!allowedRoles.includes(context.roleCode)) {
-      throw new ApiException('TASK_ROLE_FORBIDDEN', message, 403);
-    }
-  }
-
-  private assertBindaCommander(context: AuthorizationContext, message: string) {
-    this.assertRole(context, [RoleCode.REGIONAL_COMMANDER], message);
-
-    if (context.commandRouteType !== CommandRouteType.BINDA) {
-      throw new ApiException('TASK_ROLE_FORBIDDEN', message, 403);
-    }
   }
 
   private async assertAssignableTarget(
@@ -928,273 +904,8 @@ export class TaskService {
     };
   }
 
-  async create(body: CreateTaskDto, context: AuthorizationContext) {
-    this.assertBindaCommander(
-      context,
-      'Hanya Kepala BIN Daerah (Kabinda) yang dapat membuat tugas operasional.',
-    );
-
-    if (body.ownerAssignmentId !== context.primaryAssignmentId) {
-      throw new ApiException(
-        'TASK_OWNER_UNIT_OUT_OF_SCOPE',
-        'Tugas hanya dapat dibuat untuk unit organisasi saat ini.',
-        403,
-      );
-    }
-
-    const contextAreaIds = this.areaIds(context);
-    const areaWhere = this.areaVisibilityWhere(contextAreaIds);
-
-    if (body.directiveVersionId) {
-      const directiveVersion = await this.prisma.directiveVersion.findFirst({
-        where: {
-          id: body.directiveVersionId,
-          OR: [
-            {
-              directive: {
-                deletedAt: null,
-                status: { not: DirectiveStatus.CANCELLED },
-                ownerAssignmentId: context.primaryAssignmentId,
-              },
-            },
-            {
-              directive: {
-                deletedAt: null,
-                status: { not: DirectiveStatus.CANCELLED },
-              },
-              recipients: {
-                some: this.directiveRecipientWhere(context),
-              },
-            },
-            ...(areaWhere
-              ? [
-                  {
-                    targetAreas: {
-                      some: {
-                        area: areaWhere,
-                      },
-                    },
-                  },
-                ]
-              : []),
-          ],
-        },
-      });
-
-      if (!directiveVersion) {
-        throw new ApiException(
-          'TASK_SOURCE_OUT_OF_SCOPE',
-          'Sumber arahan strategis tidak tersedia dalam cakupan wilayah Kepala BIN Daerah (Kabinda) saat ini.',
-          403,
-        );
-      }
-    }
-
-    if (body.uukStrVersionId) {
-      const uukStrVersion = await this.prisma.uukStrVersion.findFirst({
-        where: {
-          id: body.uukStrVersionId,
-          uukStr: {
-            deletedAt: null,
-            status: { not: UukStrStatus.CANCELLED },
-            OR: [
-              { ownerAssignmentId: context.primaryAssignmentId },
-              {
-                directiveVersion: {
-                  recipients: {
-                    some: this.directiveRecipientWhere(context),
-                  },
-                },
-              },
-              ...(areaWhere
-                ? [
-                    {
-                      directiveVersion: {
-                        targetAreas: {
-                          some: {
-                            area: areaWhere,
-                          },
-                        },
-                      },
-                    },
-                  ]
-                : []),
-            ],
-          },
-        },
-        include: {
-          uukStr: {
-            include: {
-              directiveVersion: true,
-            },
-          },
-        },
-      });
-
-      if (!uukStrVersion) {
-        throw new ApiException(
-          'TASK_SOURCE_OUT_OF_SCOPE',
-          'STR regional ini belum masuk ke cakupan wilayah Kepala BIN Daerah (Kabinda) saat ini.',
-          403,
-        );
-      }
-    }
-
-    const task = await this.prisma.task.create({
-      data: {
-        parentTaskId: body.parentTaskId,
-        directiveVersionId: body.directiveVersionId,
-        uukStrVersionId: body.uukStrVersionId,
-        ownerAssignmentId: body.ownerAssignmentId,
-        createdByAssignmentId: context.primaryAssignmentId,
-        title: body.title,
-        description: body.description,
-        priority: body.priority,
-        dueDate: body.dueDate ? new Date(body.dueDate) : null,
-        targetAreas: {
-          create: body.targetAreaIds.map((areaId, index) => ({
-            areaId,
-            isPrimary: index === 0,
-          })),
-        },
-      },
-    });
-
-    await this.audit(context, 'TASK.CREATE', task.id);
-    return this.taskDetail(task.id, context);
-  }
-
-  async child(
-    taskId: string,
-    body: CreateTaskDto,
-    context: AuthorizationContext,
-  ) {
-    this.assertBindaCommander(
-      context,
-      'Hanya Kepala BIN Daerah (Kabinda) yang dapat membuat tugas turunan.',
-    );
-
-    const parent = await this.taskDetail(taskId, context);
-
-    if (
-      parent.dueDate &&
-      body.dueDate &&
-      new Date(body.dueDate) > parent.dueDate
-    ) {
-      throw new ApiException(
-        'DUE_DATE_EXCEEDS_PARENT',
-        'Tenggat tugas turunan tidak boleh melewati tenggat tugas induk.',
-        422,
-      );
-    }
-
-    return this.create(
-      {
-        ...body,
-        parentTaskId: taskId,
-        directiveVersionId:
-          body.directiveVersionId ?? parent.directiveVersionId ?? undefined,
-        uukStrVersionId:
-          body.uukStrVersionId ?? parent.uukStrVersionId ?? undefined,
-        ownerAssignmentId: parent.ownerAssignmentId,
-      },
-      context,
-    );
-  }
-
   async get(taskId: string, context: AuthorizationContext) {
     return this.taskDetail(taskId, context);
-  }
-
-  async update(
-    taskId: string,
-    body: UpdateTaskDto,
-    context: AuthorizationContext,
-  ) {
-    this.assertBindaCommander(
-      context,
-      'Hanya Kepala BIN Daerah (Kabinda) yang dapat mengubah draf tugas.',
-    );
-
-    const task = await this.taskDetail(taskId, context);
-
-    if (
-      task.ownerAssignmentId !== context.primaryAssignmentId &&
-      task.createdByAssignmentId !== context.primaryAssignmentId
-    ) {
-      throw new ApiException(
-        'TASK_NOT_MUTABLE',
-        'Hanya Kepala BIN Daerah (Kabinda) pemilik yang dapat mengubah tugas ini.',
-        403,
-      );
-    }
-
-    if (task.status !== TaskStatus.DRAFT) {
-      throw new ApiException(
-        'INVALID_STATE_TRANSITION',
-        'Hanya tugas berstatus draf yang dapat diubah.',
-        409,
-      );
-    }
-
-    await this.prisma.task.update({
-      where: { id: taskId },
-      data: {
-        ...body,
-        dueDate: body.dueDate ? new Date(body.dueDate) : undefined,
-      },
-    });
-
-    await this.audit(context, 'TASK.UPDATE', taskId);
-    return this.taskDetail(taskId, context);
-  }
-
-  async targets(
-    taskId: string,
-    body: TargetAreasDto,
-    context: AuthorizationContext,
-  ) {
-    this.assertBindaCommander(
-      context,
-      'Hanya Kepala BIN Daerah (Kabinda) yang dapat mengubah wilayah sasaran tugas.',
-    );
-
-    const task = await this.taskDetail(taskId, context);
-
-    if (
-      task.ownerAssignmentId !== context.primaryAssignmentId &&
-      task.createdByAssignmentId !== context.primaryAssignmentId
-    ) {
-      throw new ApiException(
-        'TASK_NOT_MUTABLE',
-        'Hanya Kepala BIN Daerah (Kabinda) pemilik yang dapat mengubah tugas ini.',
-        403,
-      );
-    }
-
-    if (task.status !== TaskStatus.DRAFT) {
-      throw new ApiException(
-        'INVALID_STATE_TRANSITION',
-        'Wilayah sasaran hanya dapat diubah saat tugas masih draf.',
-        409,
-      );
-    }
-
-    await this.prisma.$transaction(async (tx) => {
-      await tx.taskTargetArea.deleteMany({ where: { taskId } });
-      await tx.taskTargetArea.createMany({
-        data: body.areaIds.map((areaId, index) => ({
-          taskId,
-          areaId,
-          isPrimary: body.primaryAreaId
-            ? areaId === body.primaryAreaId
-            : index === 0,
-        })),
-      });
-    });
-
-    await this.audit(context, 'TASK.TARGETS.REPLACE', taskId);
-    return (await this.taskDetail(taskId, context)).targetAreas;
   }
 
   async assign(
@@ -1310,34 +1021,6 @@ export class TaskService {
       assignments: rows.map((row) => row.id),
     });
     return rows;
-  }
-
-  async assignments(taskId: string, context: AuthorizationContext) {
-    await this.taskDetail(taskId, context);
-
-    return this.prisma.taskAssignment.findMany({
-      where: { taskId },
-      orderBy: { assignedAt: 'desc' },
-      include: {
-        assigner: {
-          include: {
-            role: true,
-            userProfile: true,
-          },
-        },
-        assignee: {
-          include: {
-            role: true,
-            userProfile: true,
-          },
-        },
-        progressLogs: {
-          orderBy: { createdAt: 'asc' },
-        },
-        reassignedFrom: true,
-        reassignedTo: true,
-      },
-    });
   }
 
   async assignment(assignmentId: string, context: AuthorizationContext) {
@@ -1659,79 +1342,5 @@ export class TaskService {
     });
 
     return created;
-  }
-
-  async cancel(taskId: string, body: ReasonDto, context: AuthorizationContext) {
-    this.assertBindaCommander(
-      context,
-      'Hanya Kepala BIN Daerah (Kabinda) yang dapat membatalkan tugas pada tahap ini.',
-    );
-
-    const task = await this.taskDetail(taskId, context);
-
-    if (
-      task.ownerAssignmentId !== context.primaryAssignmentId &&
-      task.createdByAssignmentId !== context.primaryAssignmentId
-    ) {
-      throw new ApiException(
-        'TASK_CANCEL_OUT_OF_SCOPE',
-        'Hanya Kepala BIN Daerah (Kabinda) pemilik yang dapat membatalkan tugas ini.',
-        403,
-      );
-    }
-
-    if (
-      task.status === TaskStatus.COMPLETED ||
-      task.status === TaskStatus.CANCELLED
-    ) {
-      throw new ApiException(
-        'INVALID_STATE_TRANSITION',
-        'Task cannot be cancelled.',
-        409,
-      );
-    }
-
-    await this.prisma.$transaction([
-      this.prisma.task.update({
-        where: { id: taskId },
-        data: { status: TaskStatus.CANCELLED },
-      }),
-      this.prisma.taskAssignment.updateMany({
-        where: {
-          taskId,
-          status: { in: [...OPEN_ASSIGNMENT_STATUSES] },
-        },
-        data: { status: TaskAssignmentStatus.CANCELLED },
-      }),
-    ]);
-
-    await this.audit(context, 'TASK.CANCEL', taskId, { reason: body.reason });
-    return this.taskDetail(taskId, context);
-  }
-
-  async cascade(taskId: string, context: AuthorizationContext) {
-    await this.taskDetail(taskId, context);
-
-    return this.prisma.$queryRaw(
-      Prisma.sql`WITH RECURSIVE tree AS(SELECT *,0 depth FROM "Task" WHERE "id"=${taskId} UNION ALL SELECT child.*,tree.depth+1 FROM "Task" child JOIN tree ON child."parentTaskId"=tree."id")SELECT * FROM tree ORDER BY depth,"createdAt"`,
-    );
-  }
-
-  async summary(taskId: string, context: AuthorizationContext) {
-    await this.taskDetail(taskId, context);
-
-    const grouped = await this.prisma.taskAssignment.groupBy({
-      by: ['status'],
-      where: { taskId },
-      _count: { _all: true },
-    });
-
-    return {
-      taskId,
-      statuses: Object.fromEntries(
-        grouped.map((group) => [group.status, group._count._all]),
-      ),
-      total: grouped.reduce((count, group) => count + group._count._all, 0),
-    };
   }
 }

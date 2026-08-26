@@ -160,7 +160,7 @@ export function OimSituationMap({ reports, boundaries }: { reports?: unknown; bo
                 </p>
                 <Link
                   className="mt-3 inline-block text-xs font-medium text-primary underline"
-                  href={`/dashboard/anev/peta-situasi/baket/${String(properties.baketId)}`}
+                  href={`/dashboard/baket/${String(properties.baketId)}`}
                 >
                   Buka detail
                 </Link>

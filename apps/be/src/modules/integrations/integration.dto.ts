@@ -22,22 +22,12 @@ import {
   WhatsAppDeviceEventType,
 } from '../../generated/prisma/client.js';
 
-export class IntegrationQuery {
-  @IsOptional() @IsEnum(IntegrationStatus) status?: IntegrationStatus;
-  @IsOptional() @IsString() @MaxLength(80) channelType?: string;
-}
-
 export class CreateIntegrationDto {
   @IsString() @MaxLength(80) code!: string;
   @IsString() @MaxLength(180) name!: string;
   @IsString() @MaxLength(80) channelType!: string;
   @IsObject() config!: Record<string, unknown>;
   @IsEnum(IntegrationStatus) status!: IntegrationStatus;
-}
-
-export class UpdateIntegrationDto {
-  @IsOptional() @IsString() @MaxLength(180) name?: string;
-  @IsOptional() @IsObject() configPatch?: Record<string, unknown>;
 }
 
 export class UpdateWhatsappControlDto {
@@ -69,12 +59,6 @@ export class ReasonDto {
 export class TestIntegrationDto {
   @IsIn(['HEALTH', 'SEND_TEST']) mode!: 'HEALTH' | 'SEND_TEST';
   @IsOptional() @IsString() @MaxLength(200) target?: string;
-}
-
-export class WebhookQuery {
-  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) limit = 50;
-  @IsOptional() @IsString() eventType?: string;
-  @IsOptional() @Type(() => Boolean) @IsBoolean() success?: boolean;
 }
 
 export class WhatsappDeviceActivityQuery {

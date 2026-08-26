@@ -10,7 +10,6 @@ import {
   Max,
   MaxLength,
   Min,
-  MinLength,
 } from 'class-validator';
 import {
   AUDIT_CATEGORIES,
@@ -52,14 +51,4 @@ export class AuditQueryDto {
   @IsIn(['createdAt', 'riskScore', 'durationMs'])
   sortBy: 'createdAt' | 'riskScore' | 'durationMs' = 'createdAt';
   @IsOptional() @IsIn(['asc', 'desc']) sortOrder: 'asc' | 'desc' = 'desc';
-}
-
-export class AuditTrailQueryDto {
-  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) limit = 50;
-}
-
-export class AuditExportDto {
-  @IsOptional() filters?: Record<string, unknown>;
-  @IsIn(['CSV', 'JSON']) format!: 'CSV' | 'JSON';
-  @IsString() @MinLength(2) @MaxLength(1000) reason!: string;
 }

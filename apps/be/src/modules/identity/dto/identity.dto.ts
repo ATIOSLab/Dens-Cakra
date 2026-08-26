@@ -21,13 +21,6 @@ export class AreaScopeQueryDto {
   level?: AdministrativeLevel;
 }
 
-export class RevokeOtherSessionsDto {
-  @IsOptional()
-  @IsString()
-  @MaxLength(500)
-  reason?: string;
-}
-
 export class UpdateSessionNetworkDto {
   @IsString()
   @IsIP()

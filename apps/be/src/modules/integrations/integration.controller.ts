@@ -20,17 +20,14 @@ import type { AuthorizationContext } from '../../common/types/authorization-cont
 import {
   CreateWhatsappNotificationRecipientDto,
   CreateIntegrationDto,
-  IntegrationQuery,
   ReasonDto,
   RequestWhatsappQrDto,
   TestIntegrationDto,
   UpdateWhatsappNotificationRecipientDto,
-  UpdateIntegrationDto,
   UpdateWhatsappControlDto,
   WhatsappConnectivityQuery,
   WhatsappDeviceActivityQuery,
   WhatsappMessageEventQuery,
-  WebhookQuery,
 } from './integration.dto.js';
 import { IntegrationService } from './integration.service.js';
 
@@ -39,17 +36,6 @@ import { IntegrationService } from './integration.service.js';
 @Controller()
 export class IntegrationController {
   constructor(private readonly integrationService: IntegrationService) {}
-
-  @Get('integration-channels')
-  @ApiContract({
-    operationId: 'apiInt001',
-    contractId: 'API-INT-001',
-    summary: 'Daftar channel integrasi',
-    roles: ['admin_system', 'field_coordinator'],
-  })
-  async list(@Query() query: IntegrationQuery) {
-    return apiResult(await this.integrationService.list(query));
-  }
 
   @Get('integration-channels/whatsapp-control')
   @ApiContract({
@@ -67,7 +53,12 @@ export class IntegrationController {
     operationId: 'apiInt021',
     contractId: 'API-INT-021',
     summary: 'Status konektivitas perangkat WhatsApp',
-    roles: ['executive', 'national_leader', 'admin_system', 'field_coordinator'],
+    roles: [
+      'executive',
+      'national_leader',
+      'admin_system',
+      'field_coordinator',
+    ],
   })
   async whatsappConnectivity(
     @Query() query: WhatsappConnectivityQuery,
@@ -196,32 +187,6 @@ export class IntegrationController {
     return apiResult(await this.integrationService.create(body, context));
   }
 
-  @Get('integration-channels/:channelId')
-  @ApiContract({
-    operationId: 'apiInt003',
-    contractId: 'API-INT-003',
-    summary: 'Detail channel',
-    roles: ['admin_system', 'field_coordinator'],
-  })
-  async detail(@Param('channelId', ParseUUIDPipe) id: string) {
-    return apiResult(await this.integrationService.detail(id));
-  }
-
-  @Patch('integration-channels/:channelId')
-  @ApiContract({
-    operationId: 'apiInt004',
-    contractId: 'API-INT-004',
-    summary: 'Ubah channel',
-    roles: ['admin_system', 'field_coordinator'],
-  })
-  async update(
-    @Param('channelId', ParseUUIDPipe) id: string,
-    @Body() body: UpdateIntegrationDto,
-    @CurrentAccessContext() context: AuthorizationContext,
-  ) {
-    return apiResult(await this.integrationService.update(id, body, context));
-  }
-
   @Patch('integration-channels/whatsapp-control/:channelId')
   @ApiContract({
     operationId: 'apiInt012',
@@ -305,48 +270,6 @@ export class IntegrationController {
     @CurrentAccessContext() context: AuthorizationContext,
   ) {
     return apiResult(await this.integrationService.test(id, body, context));
-  }
-
-  @Get('integration-channels/:channelId/webhook-events')
-  @ApiContract({
-    operationId: 'apiInt008',
-    contractId: 'API-INT-008',
-    summary: 'Daftar webhook event',
-    roles: ['admin_system', 'field_coordinator'],
-  })
-  async events(
-    @Param('channelId', ParseUUIDPipe) id: string,
-    @Query() query: WebhookQuery,
-  ) {
-    return apiResult(await this.integrationService.events(id, query));
-  }
-
-  @Get('webhook-events/:eventId')
-  @ApiContract({
-    operationId: 'apiInt009',
-    contractId: 'API-INT-009',
-    summary: 'Detail webhook event',
-    roles: ['admin_system', 'field_coordinator'],
-  })
-  async event(@Param('eventId', ParseUUIDPipe) id: string) {
-    return apiResult(await this.integrationService.event(id));
-  }
-
-  @Post('webhook-events/:eventId/retry')
-  @ApiContract({
-    operationId: 'apiInt010',
-    contractId: 'API-INT-010',
-    summary: 'Retry event gagal',
-    roles: ['admin_system'],
-    successStatus: 202,
-    idempotent: true,
-  })
-  async retry(
-    @Param('eventId', ParseUUIDPipe) id: string,
-    @Body() body: ReasonDto,
-    @CurrentAccessContext() context: AuthorizationContext,
-  ) {
-    return apiResult(await this.integrationService.retry(id, body, context));
   }
 
   @Delete('integration-channels/:channelId')

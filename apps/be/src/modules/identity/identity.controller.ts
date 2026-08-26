@@ -9,18 +9,15 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { auth } from '../../lib/auth.js';
 import { ApiContract } from '../../common/decorators/api-contract.decorator.js';
 import { CurrentAccessContext } from '../../common/decorators/current-access-context.decorator.js';
 import { DomainAccessGuard } from '../../common/guards/domain-access.guard.js';
 import { SessionGuard } from '../../common/guards/session.guard.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
 import type { AuthenticatedRequest } from '../../common/types/authenticated-request.js';
-import { toWebHeaders } from '../../common/utils/node-headers.js';
 import { apiResult } from '../../common/api/api-response.js';
 import {
   AreaScopeQueryDto,
-  RevokeOtherSessionsDto,
   UpdateMyProfileDto,
   UpdateSessionNetworkDto,
 } from './dto/identity.dto.js';
@@ -40,18 +37,6 @@ export class IdentityController {
   })
   async getMe(@CurrentAccessContext() context: AuthorizationContext) {
     return apiResult(await this.identity.getMe(context));
-  }
-
-  @Get('authorization-context')
-  @ApiContract({
-    operationId: 'apiCtx002',
-    contractId: 'API-CTX-002',
-    summary: 'Ambil konteks authorization efektif',
-  })
-  getAuthorizationContext(
-    @CurrentAccessContext() context: AuthorizationContext,
-  ) {
-    return apiResult(context);
   }
 
   @Patch('profile')
@@ -86,29 +71,6 @@ export class IdentityController {
         query.level,
       ),
     );
-  }
-
-  @Post('revoke-other-sessions')
-  @ApiContract({
-    operationId: 'apiCtx004',
-    contractId: 'API-CTX-004',
-    summary: 'Cabut semua session lain',
-    idempotent: true,
-  })
-  async revokeOtherSessions(
-    @Req() request: AuthenticatedRequest,
-    @CurrentAccessContext() context: AuthorizationContext,
-    @Body() body: RevokeOtherSessionsDto,
-  ) {
-    await auth.api.revokeOtherSessions({
-      headers: toWebHeaders(request.headers),
-    });
-    await this.identity.writeAudit({
-      context,
-      action: 'AUTH.REVOKE_OTHER_SESSIONS',
-      metadata: body.reason ? { reason: body.reason } : undefined,
-    });
-    return apiResult({ revoked: true }, 'Other sessions were revoked.');
   }
 
   @Post('session-network')

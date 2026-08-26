@@ -13,12 +13,9 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import type {
   CancelDto,
   CreateUukDto,
-  CreateUukRevisionDto,
   PublishDto,
-  ReplaceSectionsDto,
   SectionDto,
   UukQuery,
-  UpdateUukVersionDto,
 } from './uuk.dto.js';
 import { UukSortField } from './uuk.dto.js';
 
@@ -404,14 +401,6 @@ export class UukService {
     return version;
   }
 
-  private assertForwardingImmutable() {
-    throw new ApiException(
-      'UUK_FORWARDING_IMMUTABLE',
-      'Regional forwarding only passes the published STR downward. Its content cannot be revised or edited.',
-      409,
-    );
-  }
-
   private async replaceSectionsInternal(
     tx: Prisma.TransactionClient,
     versionId: string,
@@ -650,79 +639,8 @@ export class UukService {
     return this.detail(uukStrId, context);
   }
 
-  async versions(uukStrId: string, context: AuthorizationContext) {
-    await this.detail(uukStrId, context);
-
-    return this.prisma.uukStrVersion.findMany({
-      where: { uukStrId },
-      orderBy: { versionNumber: 'desc' },
-      include: {
-        createdByAssignment: {
-          include: { userProfile: true, role: true },
-        },
-        sections: {
-          orderBy: { orderNumber: 'asc' },
-          include: {
-            items: { orderBy: { orderNumber: 'asc' } },
-          },
-        },
-      },
-    });
-  }
-
-  createVersion(
-    uukStrId: string,
-    body: CreateUukRevisionDto,
-    context: AuthorizationContext,
-  ) {
-    this.assertRole(
-      context,
-      [RoleCode.REGIONAL_COMMANDER],
-      'Hanya Kepala BIN Daerah (Kabinda) yang dapat merevisi UUK/STR.',
-    );
-
-    void uukStrId;
-    void body;
-    void context;
-    this.assertForwardingImmutable();
-  }
-
   async getVersion(versionId: string, context: AuthorizationContext) {
     return this.versionDetail(versionId, context);
-  }
-
-  updateVersion(
-    versionId: string,
-    body: UpdateUukVersionDto,
-    context: AuthorizationContext,
-  ) {
-    this.assertRole(
-      context,
-      [RoleCode.REGIONAL_COMMANDER],
-      'Hanya Kepala BIN Daerah (Kabinda) yang dapat mengubah draf UUK/STR.',
-    );
-
-    void versionId;
-    void body;
-    void context;
-    this.assertForwardingImmutable();
-  }
-
-  replaceSections(
-    versionId: string,
-    body: ReplaceSectionsDto,
-    context: AuthorizationContext,
-  ) {
-    this.assertRole(
-      context,
-      [RoleCode.REGIONAL_COMMANDER],
-      'Hanya Kepala BIN Daerah (Kabinda) yang dapat mengubah bagian UUK/STR.',
-    );
-
-    void versionId;
-    void body;
-    void context;
-    this.assertForwardingImmutable();
   }
 
   async publish(

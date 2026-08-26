@@ -97,13 +97,6 @@ export const sidebarItems: NavGroup[] = [
         roles: EXECUTIVE_AND_REGIONAL_ROLES,
       },
       {
-        id: "executive-intelligence-products",
-        title: "Produk Intelijen",
-        url: "/dashboard/deputi/produk-intelijen",
-        icon: DOMAIN_VISUALS.intelligenceReport.Icon,
-        roles: EXECUTIVE_ROLE,
-      },
-      {
         id: "executive-performance",
         title: "Kinerja & Evaluasi",
         url: "/dashboard/deputi/kinerja-evaluasi",
@@ -124,66 +117,8 @@ export const sidebarItems: NavGroup[] = [
         icon: DOMAIN_VISUALS.home.Icon,
         roles: REGIONAL_COMMANDER_ROLE,
       },
-      {
-        id: "regional-intelligence-products",
-        title: "Produk Intelijen",
-        url: "/dashboard/kabinda/laporan-produk-intelijen",
-        icon: DOMAIN_VISUALS.intelligenceReport.Icon,
-        roles: REGIONAL_COMMANDER_ROLE,
-      },
-      {
-        id: "oim-directives",
-        title: "Direktif & Tugas",
-        url: "/dashboard/anev/direktif-tugas",
-        icon: DOMAIN_VISUALS.briefing.Icon,
-        roles: EXECUTIVE_AND_REGIONAL_ROLES,
-      },
-      {
-        id: "oim-incoming-reports",
-        title: "Laporan Masuk",
-        url: "/dashboard/anev/laporan-masuk",
-        icon: DOMAIN_VISUALS.jaringReport.Icon,
-        roles: EXECUTIVE_AND_REGIONAL_ROLES,
-      },
-      {
-        id: "oim-analysis",
-        title: "Analisis Intelijen",
-        url: "/dashboard/anev/analisis-intelijen",
-        icon: SUPPORT_VISUALS.analysis.Icon,
-        roles: EXECUTIVE_AND_REGIONAL_ROLES,
-      },
-      {
-        id: "oim-products",
-        title: DOMAIN_TERMS.intelligenceReport,
-        icon: DOMAIN_VISUALS.intelligenceReport.Icon,
-        roles: EXECUTIVE_AND_REGIONAL_ROLES,
-        subItems: [
-          {
-            id: "oim-information-reports-list",
-            title: `Daftar ${DOMAIN_TERMS.informationReport}`,
-            url: "/dashboard/anev/laporan-informasi",
-            roles: EXECUTIVE_AND_REGIONAL_ROLES,
-          },
-          {
-            id: "oim-information-reports-create",
-            title: `Buat ${DOMAIN_TERMS.informationReport}`,
-            url: "/dashboard/anev/laporan-informasi/buat",
-            roles: EXECUTIVE_AND_REGIONAL_ROLES,
-          },
-          {
-            id: "oim-products-list",
-            title: "Daftar Laporan Intelijen",
-            url: "/dashboard/anev/produk-intelijen/daftar-produk",
-            roles: EXECUTIVE_AND_REGIONAL_ROLES,
-          },
-          {
-            id: "oim-products-create",
-            title: "Buat Laporan Intelijen",
-            url: "/dashboard/anev/produk-intelijen/buat-produk",
-            roles: EXECUTIVE_AND_REGIONAL_ROLES,
-          },
-        ],
-      },
+
+
       {
         id: "shared-laporan-jaring",
         title: DOMAIN_TERMS.jaringReport,
@@ -198,20 +133,7 @@ export const sidebarItems: NavGroup[] = [
         icon: DOMAIN_VISUALS.baket.Icon,
         roles: INTELLIGENCE_DATA_READ_ROLES,
       },
-      {
-        id: "oim-field-monitoring",
-        title: "Monitoring Lapangan",
-        url: "/dashboard/anev/monitoring-lapangan",
-        icon: DOMAIN_VISUALS.monitoring.Icon,
-        roles: EXECUTIVE_AND_REGIONAL_ROLES,
-      },
-      {
-        id: "oim-situation-map",
-        title: "Peta Situasi",
-        url: "/dashboard/anev/peta-situasi",
-        icon: DOMAIN_VISUALS.intelligenceNetworkMap.Icon,
-        roles: EXECUTIVE_AND_REGIONAL_ROLES,
-      },
+
       {
         id: "field-coordinator-home",
         title: "Beranda",
@@ -505,17 +427,6 @@ export function getSidebarItemsForRole(role: SystemRole): NavGroup[] {
   ]);
   const dataIds = new Set(["shared-laporan-jaring", "shared-baket"]);
   const dataOrder = new Map(["shared-laporan-jaring", "shared-baket"].map((id, index) => [id, index]));
-  const analysisProductIds = new Set([
-    "oim-analysis",
-    "oim-products",
-    "regional-intelligence-products",
-    "executive-intelligence-products",
-  ]);
-  const analysisProductOrder = new Map(
-    ["oim-analysis", "oim-products", "regional-intelligence-products", "executive-intelligence-products"].map(
-      (id, index) => [id, index],
-    ),
-  );
   const personnelNetworkIds = new Set(["field-coordinator-gaswil", "field-coordinator-jaring"]);
   const personnelNetworkOrder = new Map(
     ["field-coordinator-gaswil", "field-coordinator-jaring"].map((id, index) => [id, index]),
@@ -523,10 +434,6 @@ export function getSidebarItemsForRole(role: SystemRole): NavGroup[] {
   const workspaceIds = new Set(["korwil-workspace", "regional-workspace"]);
   const commandMonitoringOrder = new Map(
     [
-      "oim-directives",
-      "oim-incoming-reports",
-      "oim-field-monitoring",
-      "oim-situation-map",
       "executive-intelligence-network-map",
       "executive-performance",
       "executive-whatsapp-connectivity",
@@ -542,30 +449,19 @@ export function getSidebarItemsForRole(role: SystemRole): NavGroup[] {
       matches: (item: NavMainItem) =>
         !homeIds.has(item.id) &&
         !workspaceIds.has(item.id) &&
-        !analysisProductIds.has(item.id) &&
         !personnelNetworkIds.has(item.id) &&
         !dataIds.has(item.id) &&
         !administrationIds.has(item.id),
     },
-    {
-      id: 4,
-      label: "Analisis & Produk Intelijen",
-      matches: (item: NavMainItem) => analysisProductIds.has(item.id),
-    },
-    { id: 5, label: "Personel & Jaring", matches: (item: NavMainItem) => personnelNetworkIds.has(item.id) },
-    { id: 6, label: "Data Intelijen", matches: (item: NavMainItem) => dataIds.has(item.id) },
-    { id: 7, label: "Administrasi Sistem", matches: (item: NavMainItem) => administrationIds.has(item.id) },
+    { id: 4, label: "Personel & Jaring", matches: (item: NavMainItem) => personnelNetworkIds.has(item.id) },
+    { id: 5, label: "Data Intelijen", matches: (item: NavMainItem) => dataIds.has(item.id) },
+    { id: 6, label: "Administrasi Sistem", matches: (item: NavMainItem) => administrationIds.has(item.id) },
   ];
 
   return sections
     .map((section) => {
       const items = accessibleItems.filter(section.matches);
 
-      if (section.label === "Analisis & Produk Intelijen") {
-        items.sort(
-          (left, right) => (analysisProductOrder.get(left.id) ?? 999) - (analysisProductOrder.get(right.id) ?? 999),
-        );
-      }
       if (section.label === "Komando & Monitoring") {
         items.sort(
           (left, right) => (commandMonitoringOrder.get(left.id) ?? 999) - (commandMonitoringOrder.get(right.id) ?? 999),

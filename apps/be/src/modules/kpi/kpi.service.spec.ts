@@ -14,7 +14,6 @@ function defaultScope() {
       Promise.resolve({
         organizationUnitId: 'unit-id',
         commandRouteType: 'PUSAT',
-        positionIds: ['position-id'],
         assignmentIds: ['assignment-id'],
         areaRootIds: [],
       }),

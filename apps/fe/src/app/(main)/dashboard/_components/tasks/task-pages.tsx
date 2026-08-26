@@ -1,14 +1,9 @@
-import { redirect } from "next/navigation";
-
-import type {
+import {
   AssignmentCandidate,
-  OimForwardingOptions,
-  OimIncomingForwardingSource,
   TaskAssignmentDetail,
   TaskDetail,
   TaskSummary,
 } from "@/features/tasks/types";
-import type { UukDetail, UukSummary } from "@/features/uuk-str/types";
 import { apiServerGet } from "@/lib/api/server-client";
 import { requireRole } from "@/lib/auth/server-session";
 import { SYSTEM_ROLES } from "@/navigation/sidebar/system-roles";
@@ -21,29 +16,17 @@ import {
   FieldCoordinatorMonitoringDetailClient,
   FieldOfficerAssignmentDetailClient,
   FieldOfficerAssignmentsClient,
-  OimForwardingClient,
-  OimIncomingForwardingListClient,
   TaskDetailClient,
   TaskListClient,
 } from "./task-clients";
-
-type AreaNode = {
-  id: string;
-  name: string;
-  level: string;
-  children?: AreaNode[];
-};
 
 type AccessMe = {
   authorizationContext: {
     primaryAssignmentId: string;
     positionId: string;
     organizationUnitId: string;
-    areaScopes: Array<{
-      areaId: string;
-      name: string;
-      level: string;
-    }>;
+    roles: string[];
+    isPrimary: boolean;
   };
 };
 
@@ -51,40 +34,6 @@ type CoordinatorTaskView = TaskSummary & {
   subordinateAssignments: TaskAssignmentDetail[];
   coordinatorAssignmentId?: string | null;
 };
-
-function flattenAreas(nodes: AreaNode[], depth = 0): OimForwardingOptions["areaOptions"] {
-  return nodes.flatMap((node) => [
-    {
-      id: node.id,
-      label: `${"".padStart(depth * 2, " ")}${node.name}`,
-      level: node.level,
-    },
-    ...flattenAreas(node.children ?? [], depth + 1),
-  ]);
-}
-
-function normalizeAreaTree(areaTree: AreaNode | AreaNode[] | null | undefined): AreaNode[] {
-  if (!areaTree) {
-    return [];
-  }
-
-  return Array.isArray(areaTree) ? areaTree : [areaTree];
-}
-
-async function loadOimForwardingOptions(): Promise<OimForwardingOptions> {
-  const [access, areaTree] = await Promise.all([
-    apiServerGet<AccessMe>("/access/me"),
-    apiServerGet<AreaNode | AreaNode[] | null>("/administrative-areas/tree"),
-  ]);
-  const candidates = await loadSubordinateCandidates(access, "FIELD_COORDINATOR");
-
-  return {
-    access: access as OimForwardingOptions["access"],
-    areaOptions: flattenAreas(normalizeAreaTree(areaTree)),
-    areaTree: normalizeAreaTree(areaTree),
-    candidates,
-  };
-}
 
 async function loadSubordinateCandidates(
   _access: AccessMe,
@@ -97,22 +46,6 @@ async function loadSubordinateCandidates(
   return apiServerGet<AssignmentCandidate[]>("/access/assignable-assignments", {
     roleCode,
   });
-}
-
-async function loadIncomingOimSources(sortBy?: string, sortOrder?: string): Promise<OimIncomingForwardingSource[]> {
-  const uuks = await apiServerGet<UukSummary[]>("/uuk-strs", {
-    status: "PUBLISHED",
-    limit: 50,
-    sortBy,
-    sortOrder,
-  });
-
-  return uuks
-    .filter((uuk) => uuk.versions.length > 0)
-    .map((uuk) => ({
-      ...uuk,
-      currentVersion: uuk.versions.find((item) => item.versionNumber === uuk.currentVersionNumber) ?? uuk.versions[0],
-    }));
 }
 
 function buildCoordinatorTaskViews(tasks: TaskSummary[], primaryAssignmentId: string): CoordinatorTaskView[] {
@@ -131,81 +64,6 @@ function buildCoordinatorTaskViews(tasks: TaskSummary[], primaryAssignmentId: st
       };
     })
     .filter((task) => Boolean(task.coordinatorAssignmentId) || task.subordinateAssignments.length > 0);
-}
-
-export async function OimTaskListPage({ sortBy, sortOrder }: { sortBy?: string; sortOrder?: string }) {
-  await requireRole(SYSTEM_ROLES.NATIONAL_LEADER, SYSTEM_ROLES.EXECUTIVE, SYSTEM_ROLES.REGIONAL_COMMANDER);
-  const access = await apiServerGet<AccessMe>("/access/me");
-  const [tasks, sources] = await Promise.all([
-    apiServerGet<TaskSummary[]>("/tasks", {
-      ownerUnitId: access.authorizationContext.organizationUnitId,
-      limit: 50,
-    }),
-    loadIncomingOimSources(sortBy, sortOrder),
-  ]);
-
-  return (
-    <div className="space-y-6">
-      <OimIncomingForwardingListClient sources={sources} tasks={tasks} />
-    </div>
-  );
-}
-
-export async function OimTaskCreatePage({ uukStrId }: { uukStrId?: string }) {
-  await requireRole(SYSTEM_ROLES.NATIONAL_LEADER, SYSTEM_ROLES.EXECUTIVE, SYSTEM_ROLES.REGIONAL_COMMANDER);
-  if (!uukStrId) {
-    redirect("/dashboard/anev/direktif-tugas");
-  }
-  const [options, source] = await Promise.all([
-    loadOimForwardingOptions(),
-    apiServerGet<UukDetail>(`/uuk-strs/${uukStrId}`),
-  ]);
-
-  const currentVersion =
-    source.versions.find((item) => item.versionNumber === source.currentVersionNumber) ?? source.versions[0];
-
-  return <OimForwardingClient source={{ ...source, currentVersion }} options={options} />;
-}
-
-export async function OimTaskDetailPage({ taskId }: { taskId: string }) {
-  await requireRole(SYSTEM_ROLES.NATIONAL_LEADER, SYSTEM_ROLES.EXECUTIVE, SYSTEM_ROLES.REGIONAL_COMMANDER);
-  const task = await apiServerGet<TaskDetail>(`/tasks/${taskId}`);
-
-  return (
-    <TaskDetailClient
-      task={task}
-      assignmentHref={`/dashboard/anev/direktif-tugas/${task.id}/penugasan`}
-      hideTargetAreas
-      assignmentTitle="Daftar Koordinator Wilayah (Korwil)"
-    />
-  );
-}
-
-export async function OimTaskEditPage({ taskId }: { taskId: string }) {
-  await requireRole(SYSTEM_ROLES.NATIONAL_LEADER, SYSTEM_ROLES.EXECUTIVE, SYSTEM_ROLES.REGIONAL_COMMANDER);
-  redirect(`/dashboard/anev/direktif-tugas/${taskId}`);
-  return null;
-}
-
-export async function OimTaskAssignmentPage({ taskId }: { taskId: string }) {
-  await requireRole(SYSTEM_ROLES.NATIONAL_LEADER, SYSTEM_ROLES.EXECUTIVE, SYSTEM_ROLES.REGIONAL_COMMANDER);
-  const [access, task] = await Promise.all([
-    apiServerGet<AccessMe>("/access/me"),
-    apiServerGet<TaskDetail>(`/tasks/${taskId}`),
-  ]);
-  const candidates = await loadSubordinateCandidates(access, "FIELD_COORDINATOR");
-
-  return (
-    <div className="space-y-6">
-      <TaskDetailClient task={task} hideTargetAreas assignmentTitle="Daftar Koordinator Wilayah (Korwil)" />
-      <AssignmentBoardClient
-        task={task}
-        candidates={candidates}
-        submitLabel="Distribusikan ke Koordinator Wilayah (Korwil)"
-        mode="assign"
-      />
-    </div>
-  );
 }
 
 export async function FieldCoordinatorTaskListPage() {

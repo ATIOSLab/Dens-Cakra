@@ -35,10 +35,6 @@ export class MessageQuery {
   @IsOptional() @IsUUID() jaringId?: string;
 }
 
-export class LinkDto {
-  @IsUUID() jaringId!: string;
-}
-
 export class AssignCategoryDto {
   @IsUUID() categoryId!: string;
 }
@@ -51,15 +47,6 @@ export class CreateBaketFromMessageDto {
   @IsOptional() @IsUUID() taskAssignmentId?: string;
 }
 
-export class ResolveDto {
-  @IsOptional() @IsUUID() areaId?: string;
-  @IsOptional() @IsString() reason?: string;
-}
-
 export class ReasonDto {
   @IsOptional() @IsString() @MaxLength(1000) reason?: string;
-}
-
-export class DuplicateDto extends ReasonDto {
-  @IsUUID() duplicateOfMessageId!: string;
 }

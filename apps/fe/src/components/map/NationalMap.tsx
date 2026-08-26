@@ -625,13 +625,12 @@ export function NationalMap() {
       });
 
       try {
-        const [assignment, latestPing] = await Promise.all([
-          apiBrowserFetch(`/position-assignments/${assignmentId}`),
-          apiBrowserFetch(`/personnel-location-pings/${assignmentId}/latest`).catch(() => null),
-        ]);
+        const latestPing = await apiBrowserFetch(
+          `/personnel-location-pings/${assignmentId}/latest`,
+        ).catch(() => null);
         if (requestId !== personnelRequestId.current) return;
 
-        const properties = mergePersonnelDetails(initialProperties, assignment, latestPing);
+        const properties = mergePersonnelDetails(initialProperties, null, latestPing);
         const ping = record(latestPing);
         const pingLongitude = numberOrNull(ping.longitude);
         const pingLatitude = numberOrNull(ping.latitude);

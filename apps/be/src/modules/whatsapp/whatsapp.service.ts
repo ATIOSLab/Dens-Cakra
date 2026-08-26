@@ -1,7 +1,6 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import {
-  AreaResolutionMethod,
   BaketStatus,
   CoordinateSource,
   FileLifecycleStatus,
@@ -19,13 +18,10 @@ import {
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SpatialRepository } from '../spatial/spatial.repository.js';
 import type {
-  DuplicateDto,
   AssignCategoryDto,
   CreateBaketFromMessageDto,
-  LinkDto,
   MessageQuery,
   ReasonDto,
-  ResolveDto,
   WebhookDto,
 } from './whatsapp.dto.js';
 
@@ -207,39 +203,6 @@ export class WhatsAppService {
     });
   }
 
-  async get(id: string, context: AuthorizationContext) {
-    return this.detail(id, context.primaryAssignmentId);
-  }
-
-  async link(id: string, body: LinkDto, context: AuthorizationContext) {
-    await this.detail(id, context.primaryAssignmentId);
-    const ownedJaring = await this.prisma.jaring.findFirst({
-      where: {
-        id: body.jaringId,
-        deletedAt: null,
-        caretakerAssignments: {
-          some: {
-            fieldOfficerAssignmentId: context.primaryAssignmentId,
-            isActive: true,
-            validUntil: null,
-          },
-        },
-      },
-    });
-    if (!ownedJaring) {
-      throw new ApiException(
-        'JARING_NOT_FOUND',
-        'Jaring tidak ditemukan.',
-        404,
-      );
-    }
-    await this.prisma.whatsAppMessage.update({
-      where: { id },
-      data: { jaringId: body.jaringId },
-    });
-    return this.detail(id, context.primaryAssignmentId);
-  }
-
   async assignCategory(
     id: string,
     body: AssignCategoryDto,
@@ -331,88 +294,6 @@ export class WhatsAppService {
     return this.detail(id, context.primaryAssignmentId);
   }
 
-  async resolve(id: string, body: ResolveDto, context: AuthorizationContext) {
-    const message = await this.detail(id, context.primaryAssignmentId);
-    let areaId = body.areaId;
-    let method: AreaResolutionMethod = AreaResolutionMethod.MANUAL_CONFIRMATION;
-    let confidence: number | null = null;
-    let resolvedAt = new Date();
-
-    if (!areaId && message.latitude !== null && message.longitude !== null) {
-      const resolution = await this.spatial.resolveReportArea(
-        Number(message.latitude),
-        Number(message.longitude),
-      );
-      areaId = resolution.area?.areaId;
-      method = resolution.method;
-      confidence = resolution.confidence;
-      resolvedAt = resolution.resolvedAt ?? resolvedAt;
-    }
-
-    if (!areaId) {
-      throw new ApiException(
-        'AREA_UNRESOLVED',
-        'Message coordinate cannot be resolved.',
-        422,
-      );
-    }
-
-    await this.prisma.whatsAppMessage.update({
-      where: { id },
-      data: {
-        resolvedAreaId: areaId,
-        areaResolutionMethod: method,
-        areaResolutionConfidence: confidence,
-        areaResolvedAt: resolvedAt,
-      },
-    });
-
-    return this.detail(id, context.primaryAssignmentId);
-  }
-
-  async route(id: string, context: AuthorizationContext) {
-    const message = await this.detail(id, context.primaryAssignmentId);
-    if (!message.jaringId) {
-      throw new ApiException(
-        'JARING_REQUIRED',
-        'Message must be linked to Jaring.',
-        422,
-      );
-    }
-
-    const caretaker = await this.prisma.jaringCaretakerAssignment.findFirst({
-      where: { jaringId: message.jaringId, isActive: true, validUntil: null },
-    });
-    if (!caretaker) {
-      throw new ApiException(
-        'CARETAKER_NOT_FOUND',
-        'Jaring has no active caretaker.',
-        422,
-      );
-    }
-
-    await this.prisma.$transaction([
-      this.prisma.whatsAppMessage.update({
-        where: { id },
-        data: {
-          routedToFieldOfficerAssignmentId: caretaker.fieldOfficerAssignmentId,
-          status: WhatsAppMessageStatus.ROUTED,
-          processedAt: new Date(),
-        },
-      }),
-      this.prisma.whatsAppRoutingLog.create({
-        data: {
-          messageId: id,
-          routedToAssignmentId: caretaker.fieldOfficerAssignmentId,
-          action: 'ROUTED',
-          note: `Routed by ${context.primaryAssignmentId}`,
-        },
-      }),
-    ]);
-
-    return this.detail(id);
-  }
-
   async spam(id: string, body: ReasonDto, context: AuthorizationContext) {
     await this.detail(id, context.primaryAssignmentId);
     await this.prisma.whatsAppMessage.update({
@@ -423,35 +304,6 @@ export class WhatsAppService {
       data: { messageId: id, action: 'MARKED_SPAM', note: body.reason },
     });
     return this.detail(id, context.primaryAssignmentId);
-  }
-
-  async duplicate(
-    id: string,
-    body: DuplicateDto,
-    context: AuthorizationContext,
-  ) {
-    await this.detail(id, context.primaryAssignmentId);
-    await this.detail(body.duplicateOfMessageId, context.primaryAssignmentId);
-    await this.prisma.whatsAppMessage.update({
-      where: { id },
-      data: { status: WhatsAppMessageStatus.DUPLICATE },
-    });
-    await this.prisma.whatsAppRoutingLog.create({
-      data: {
-        messageId: id,
-        action: 'MARKED_DUPLICATE',
-        note: `Duplicate of ${body.duplicateOfMessageId}. ${body.reason ?? ''}`,
-      },
-    });
-    return this.detail(id, context.primaryAssignmentId);
-  }
-
-  async logs(id: string, context: AuthorizationContext) {
-    await this.detail(id, context.primaryAssignmentId);
-    return this.prisma.whatsAppRoutingLog.findMany({
-      where: { messageId: id },
-      orderBy: { createdAt: 'asc' },
-    });
   }
 
   async createBaket(
@@ -619,28 +471,5 @@ export class WhatsAppService {
       });
       return baket;
     });
-  }
-
-  async summary(context: AuthorizationContext) {
-    const grouped = await this.prisma.whatsAppMessage.groupBy({
-      by: ['status'],
-      where: {
-        routedToFieldOfficerAssignmentId: context.primaryAssignmentId,
-      },
-      _count: { _all: true },
-    });
-    return {
-      statuses: Object.fromEntries(
-        grouped.map((group: { status: string; _count: { _all: number } }) => [
-          group.status,
-          group._count._all,
-        ]),
-      ),
-      total: grouped.reduce(
-        (count: number, group: { _count: { _all: number } }) =>
-          count + group._count._all,
-        0,
-      ),
-    };
   }
 }

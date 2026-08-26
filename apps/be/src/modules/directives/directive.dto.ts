@@ -99,32 +99,6 @@ export class CreateDirectiveDto {
   version!: DirectiveVersionCreateDto;
 }
 
-export class DirectiveRevisionPatchDto {
-  @IsOptional() @IsEnum(PriorityLevel) urgency?: PriorityLevel;
-  @IsOptional() @IsDateString() dueDate?: string;
-  @IsOptional() @IsString() strategicIssue?: string;
-  @IsOptional() @IsString() commandDescription?: string;
-  @IsOptional()
-  @IsArray()
-  @ArrayMinSize(1)
-  @IsUUID(undefined, { each: true })
-  targetAreaIds?: string[];
-  @IsOptional()
-  @IsArray()
-  @ArrayMinSize(1)
-  @ValidateNested({ each: true })
-  @Type(() => VersionRecipientDto)
-  recipients?: VersionRecipientDto[];
-}
-
-export class CreateDirectiveRevisionDto {
-  @IsOptional() @IsUUID() basedOnVersionId?: string;
-  @IsString() @MinLength(2) @MaxLength(2000) changeReason!: string;
-  @ValidateNested()
-  @Type(() => DirectiveRevisionPatchDto)
-  patch!: DirectiveRevisionPatchDto;
-}
-
 export class UpdateDirectiveVersionDto {
   @IsOptional() @IsEnum(PriorityLevel) urgency?: PriorityLevel;
   @IsOptional() @IsDateString() dueDate?: string;
@@ -156,10 +130,6 @@ export class PublishDirectiveDto {
 export class DistributeDirectiveDto {
   @IsBoolean() sendNotifications!: boolean;
   @IsOptional() @IsDateString() scheduledAt?: string;
-}
-
-export class OptionalNoteDto {
-  @IsOptional() @IsString() @MaxLength(1000) note?: string;
 }
 
 export class RequiredReasonDto {

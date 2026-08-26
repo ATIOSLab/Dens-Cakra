@@ -21,19 +21,6 @@ import { DomainScopeService } from './domain-scope.service.js';
 export class AccessController {
   constructor(private readonly scope: DomainScopeService) {}
 
-  @Get('roles')
-  @ApiContract({
-    operationId: 'apiAccess001',
-    contractId: 'API-ACCESS-001',
-    summary: 'Ambil katalog role aplikasi',
-    access: 'public-internal',
-  })
-  getRolesCatalog() {
-    return {
-      roles: SYSTEM_ROLE_CATALOG,
-    };
-  }
-
   @Get('me')
   @UseGuards(SessionGuard, DomainAccessGuard)
   @ApiContract({

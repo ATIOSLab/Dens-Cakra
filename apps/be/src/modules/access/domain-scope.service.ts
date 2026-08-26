@@ -7,6 +7,10 @@ import {
   isTerritorialCommandBranch,
 } from '../../common/command/command-chain.js';
 import { SYSTEM_ROLES } from '../../common/constants/system-role.js';
+import {
+  DKI_JAKARTA_PROVINCE_CODE,
+  DKI_JAKARTA_PROVINCE_NAME_MATCHERS,
+} from '../../common/administrative/dki-supervision.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
   ApplicationCacheService,
@@ -16,7 +20,6 @@ import {
 export type DomainScope = {
   organizationUnitId: string;
   commandRouteType: AuthorizationContext['commandRouteType'];
-  positionIds: string[];
   assignmentIds: string[];
   areaRootIds: string[];
 };
@@ -30,8 +33,6 @@ export type AreaScopeTreeNode = {
   level: string;
   children: AreaScopeTreeNode[];
 };
-
-const DKI_JAKARTA_CODE_PREFIX = '31';
 
 @Injectable()
 export class DomainScopeService {
@@ -61,6 +62,18 @@ export class DomainScopeService {
     const areaRootIds = [
       ...new Set(context.areaScopes.map((scope) => scope.areaId)),
     ];
+
+    // Petugas Wilayah (Gaswil) adalah role daun: cakupan akses dibatasi ke
+    // penugasannya sendiri agar tidak melihat Baket/Jaring Gaswil lain yang
+    // kebetulan bertugas di area yang sama.
+    if (context.authRole === SYSTEM_ROLES.FIELD_OFFICER) {
+      return {
+        organizationUnitId: context.organizationUnitId,
+        commandRouteType: context.commandRouteType,
+        assignmentIds: [context.primaryAssignmentId],
+        areaRootIds,
+      };
+    }
 
     const assignments = await this.prisma.userOperationalAssignment.findMany({
       where: {
@@ -92,7 +105,6 @@ export class DomainScopeService {
     return {
       organizationUnitId: context.organizationUnitId,
       commandRouteType: context.commandRouteType,
-      positionIds: assignments.map((assignment: any) => assignment.id),
       assignmentIds: assignments.map((assignment: any) => assignment.id),
       areaRootIds,
     };
@@ -215,10 +227,11 @@ export class DomainScopeService {
     const areas = context.areaScopes.map((area) => {
       const name = area.name.toLocaleLowerCase('id-ID');
       const isDkiJakarta =
-        area.code === DKI_JAKARTA_CODE_PREFIX ||
-        area.code.startsWith(`${DKI_JAKARTA_CODE_PREFIX}.`) ||
-        name.includes('dki jakarta') ||
-        name.includes('daerah khusus ibukota jakarta');
+        area.code === DKI_JAKARTA_PROVINCE_CODE ||
+        area.code.startsWith(`${DKI_JAKARTA_PROVINCE_CODE}.`) ||
+        DKI_JAKARTA_PROVINCE_NAME_MATCHERS.some((matcher) =>
+          name.includes(matcher),
+        );
 
       return {
         id: area.areaId,

@@ -13,7 +13,6 @@ import type {
   CreateVerificationDto,
   NeedsDevelopmentDto,
   RejectVerificationDto,
-  ReplaceCrossReferencesDto,
   UpdateVerificationDto,
 } from './baket.dto.js';
 import { BaketQueryService } from './baket-query.service.js';
@@ -122,48 +121,6 @@ export class BaketVerificationService {
       },
     });
     return this.baketQuery.verificationDetail(verificationId);
-  }
-
-  async replaceCrossReferences(
-    verificationId: string,
-    body: ReplaceCrossReferencesDto,
-  ) {
-    const verification = await this.prisma.baketVerification.findUniqueOrThrow({
-      where: { id: verificationId },
-    });
-    if (verification.status !== VerificationStatus.IN_PROGRESS) {
-      throw new ApiException(
-        'VERIFICATION_CROSS_REFERENCE_IMMUTABLE',
-        'Verification cross references can only be replaced while in progress.',
-        409,
-      );
-    }
-    for (const reference of body.references) {
-      if (!reference.relatedBaketId && !reference.externalRef) {
-        throw new ApiException(
-          'VERIFICATION_CROSS_REFERENCE_TARGET_REQUIRED',
-          'Each verification cross reference requires relatedBaketId or externalRef.',
-          422,
-        );
-      }
-    }
-    await this.prisma.$transaction(async (tx) => {
-      await tx.baketVerificationCrossReference.deleteMany({
-        where: { verificationId },
-      });
-      if (body.references.length > 0) {
-        await tx.baketVerificationCrossReference.createMany({
-          data: body.references.map((reference) => ({
-            verificationId,
-            relatedBaketId: reference.relatedBaketId,
-            externalRef: reference.externalRef,
-            description: reference.description,
-          })),
-        });
-      }
-    });
-    return (await this.baketQuery.verificationDetail(verificationId))
-      .crossReferences;
   }
 
   async completeVerification(
@@ -279,40 +236,5 @@ export class BaketVerificationService {
       });
     });
     return this.baketQuery.verificationDetail(verificationId);
-  }
-
-  async verificationScore(verificationId: string) {
-    const verification = await this.prisma.baketVerification.findUniqueOrThrow({
-      where: { id: verificationId },
-    });
-    const matrixLabel = this.baketQuery.scoreLabel(
-      verification.sourceReliability,
-      verification.informationCredibility,
-    );
-    const reliabilityText = {
-      A: 'sumber sepenuhnya dapat dipercaya',
-      B: 'sumber biasanya dapat dipercaya',
-      C: 'sumber cukup dapat dipercaya',
-      D: 'keandalan sumber diragukan',
-      E: 'sumber tidak dapat dipercaya',
-      F: 'keandalan sumber belum dapat dinilai',
-    }[verification.sourceReliability ?? 'F'];
-    const credibilityText = {
-      ONE: 'informasi dikonfirmasi sumber lain',
-      TWO: 'informasi sangat mungkin benar',
-      THREE: 'informasi mungkin benar',
-      FOUR: 'kebenaran informasi diragukan',
-      FIVE: 'informasi tidak mungkin benar',
-      SIX: 'kebenaran informasi belum dapat dinilai',
-    }[verification.informationCredibility ?? 'SIX'];
-    return {
-      verificationId,
-      sourceReliability: verification.sourceReliability,
-      informationCredibility: verification.informationCredibility,
-      matrixLabel,
-      interpretation: matrixLabel
-        ? `Neraca ${matrixLabel}: ${reliabilityText}; ${credibilityText}.`
-        : 'Neraca penilaian belum lengkap.',
-    };
   }
 }

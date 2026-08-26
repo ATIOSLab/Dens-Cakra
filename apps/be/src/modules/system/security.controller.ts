@@ -1,13 +1,4 @@
-import {
-  Controller,
-  Get,
-  Param,
-  ParseUUIDPipe,
-  Post,
-  Query,
-  Req,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
@@ -229,36 +220,5 @@ export class SecurityController {
         ),
       })),
     );
-  }
-
-  @Post('sessions/:sessionId/revoke')
-  @ApiContract({
-    operationId: 'apiSys021',
-    contractId: 'API-SYS-021',
-    summary: 'Cabut sesi login',
-    roles: ['admin_system'],
-    idempotent: true,
-  })
-  async revokeSession(
-    @Param('sessionId', ParseUUIDPipe) sessionId: string,
-    @Req() request: AuthenticatedRequest,
-  ) {
-    const session = await this.prisma.session.findUnique({
-      where: { id: sessionId },
-      select: { id: true, userId: true },
-    });
-
-    if (!session) {
-      return apiResult({ status: true });
-    }
-
-    await this.prisma.session.delete({
-      where: { id: session.id },
-    });
-
-    return apiResult({
-      status: true,
-      revokedCurrentSession: request.authSession?.id === session.id,
-    });
   }
 }

@@ -198,16 +198,6 @@ export class AuditService {
     return this.redactRecord(item);
   }
 
-  async trail(entityType: string, entityId: string, limit: number) {
-    const items = await this.prisma.auditLog.findMany({
-      where: { entityType, entityId },
-      take: limit,
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-      include: actorInclude,
-    });
-    return items.map((item) => this.redactRecord(item));
-  }
-
   private buildWhere(query: AuditQueryDto): Prisma.AuditLogWhereInput {
     const search = query.search?.trim();
     return {

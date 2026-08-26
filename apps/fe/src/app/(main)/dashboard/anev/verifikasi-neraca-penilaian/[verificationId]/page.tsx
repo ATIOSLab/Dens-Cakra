@@ -18,9 +18,5 @@ export default async function Page({ params }: PageProps) {
   }>(`/verifications/${verificationId}`);
   const baketId = verification.baketVersion?.baket?.id;
 
-  redirect(
-    baketId
-      ? `/dashboard/anev/laporan-masuk/${baketId}?tab=verification`
-      : "/dashboard/anev/laporan-masuk?status=UNDER_VERIFICATION",
-  );
+  redirect(baketId ? `/dashboard/baket/${baketId}` : "/dashboard/baket");
 }

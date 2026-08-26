@@ -17,7 +17,6 @@ import {
   MaxLength,
   Min,
   MinLength,
-  ValidateNested,
 } from 'class-validator';
 import {
   BaketStatus,
@@ -258,21 +257,4 @@ export class ReasonDto {
 
 export class RejectJaringDto {
   @IsOptional() @IsString() @MaxLength(1000) reason?: string;
-}
-
-export class TransferDto extends ReasonDto {
-  @IsUUID() fieldOfficerAssignmentId!: string;
-}
-
-export class CoverageItem {
-  @IsUUID() areaId!: string;
-  @IsBoolean() isPrimary!: boolean;
-}
-
-export class CoverageDto extends ReasonDto {
-  @IsArray()
-  @ArrayMinSize(1)
-  @ValidateNested({ each: true })
-  @Type(() => CoverageItem)
-  areas!: CoverageItem[];
 }

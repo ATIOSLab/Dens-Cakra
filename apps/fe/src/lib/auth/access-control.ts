@@ -34,6 +34,16 @@ const adminSystemAdminPermissions = {
 } as const;
 
 export const accessControlRoles = {
+  [SYSTEM_ROLES.NATIONAL_LEADER]: accessControl.newRole({
+    dashboard: ["read"],
+    organization: ["read"],
+    position: ["read"],
+    area: ["read"],
+    directive: ["cancel", "create", "distribute", "publish", "read", "track", "update"],
+    uuk: ["read"],
+    task: ["read"],
+    assignment: ["read"],
+  }),
   [SYSTEM_ROLES.EXECUTIVE]: accessControl.newRole({
     dashboard: ["read"],
     organization: ["read"],

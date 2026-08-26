@@ -1,9 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import {
-  InformationCredibility,
-  RevisionRequestStatus,
-  SourceReliability,
-} from '../../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { DomainScopeService } from '../access/domain-scope.service.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
@@ -376,143 +371,6 @@ export class BaketQueryService {
     };
   }
 
-  async versions(baketId: string) {
-    const versions = await this.prisma.baketVersion.findMany({
-      where: { baketId },
-      orderBy: { versionNumber: 'desc' },
-      include: {
-        eventArea: { include: administrativeAreaInclude },
-        verification: true,
-        coverageChecks: true,
-      },
-    });
-    return versions.map((version) => ({
-      ...version,
-      ...this.versionDisplayFields(version),
-    }));
-  }
-
-  async timeline(baketId: string) {
-    const baket = await this.baketDetail(baketId);
-    const audit = await this.prisma.auditLog.findMany({
-      where: {
-        OR: [
-          { entityType: 'Baket', entityId: baketId },
-          {
-            entityType: 'BaketVersion',
-            entityId: { in: baket.versions.map((version) => version.id) },
-          },
-          {
-            entityType: 'BaketRevisionRequest',
-            entityId: {
-              in: baket.revisionRequests.map((request) => request.id),
-            },
-          },
-        ],
-      },
-      orderBy: { createdAt: 'asc' },
-    });
-    const events = [
-      ...baket.versions.map((version) => ({
-        type: 'VERSION',
-        at: version.createdAt,
-        payload: version,
-      })),
-      ...baket.revisionRequests.map((request) => ({
-        type: 'REVISION_REQUEST',
-        at: request.createdAt,
-        payload: request,
-      })),
-      ...baket.versions
-        .filter((version) => version.verification)
-        .map((version) => ({
-          type: 'VERIFICATION',
-          at: version.verification?.createdAt ?? version.createdAt,
-          payload: version.verification,
-        })),
-      ...audit.map((entry) => ({
-        type: 'AUDIT',
-        at: entry.createdAt,
-        payload: entry,
-      })),
-    ].sort((left, right) => left.at.getTime() - right.at.getTime());
-    return { baketId, events };
-  }
-
-  async traceability(baketId: string) {
-    const baket = await this.baketDetail(baketId);
-    const versionIds = baket.versions.map((version) => version.id);
-    const verificationIds = baket.versions
-      .map((version) => version.verification?.id)
-      .filter((value): value is string => Boolean(value));
-    const analyses = await this.prisma.analysisSourceVerification.findMany({
-      where: { verificationId: { in: verificationIds } },
-      include: {
-        analysisCase: {
-          include: {
-            versions: true,
-          },
-        },
-      },
-    });
-    const products = await this.prisma.productSourceVerification.findMany({
-      where: { verificationId: { in: verificationIds } },
-      include: {
-        productVersion: {
-          include: {
-            product: true,
-            approvalWorkflow: {
-              include: { steps: true },
-            },
-            distributions: true,
-          },
-        },
-      },
-    });
-    return {
-      baketId,
-      versionIds,
-      sourceMessages: baket.versions.flatMap((version) =>
-        version.sourceMessages.map((source) => source.message),
-      ),
-      verifications: baket.versions
-        .map((version) => version.verification)
-        .filter(Boolean),
-      analyses,
-      products,
-    };
-  }
-
-  revisionRequests(baketId: string, status?: RevisionRequestStatus) {
-    return this.prisma.baketRevisionRequest.findMany({
-      where: {
-        baketId,
-        ...(status ? { status } : {}),
-      },
-      orderBy: { createdAt: 'desc' },
-      include: {
-        requestedAgainstVersion: true,
-        resolvedByVersion: true,
-        requestedByAssignment: {
-          include: { userProfile: true, role: true },
-        },
-      },
-    });
-  }
-
-  revisionRequestDetail(requestId: string) {
-    return this.prisma.baketRevisionRequest.findUniqueOrThrow({
-      where: { id: requestId },
-      include: {
-        requestedAgainstVersion: true,
-        resolvedByVersion: true,
-        requestedByAssignment: {
-          include: { userProfile: true, role: true },
-        },
-      },
-    });
-  }
-
   async listVerifications(
     query: VerificationQuery,
     context: AuthorizationContext,
@@ -567,23 +425,5 @@ export class BaketQueryService {
         },
       },
     });
-  }
-
-  scoreLabel(
-    reliability: SourceReliability | null,
-    credibility: InformationCredibility | null,
-  ) {
-    if (!reliability || !credibility) {
-      return null;
-    }
-    const credibilityMap: Record<InformationCredibility, string> = {
-      [InformationCredibility.ONE]: '1',
-      [InformationCredibility.TWO]: '2',
-      [InformationCredibility.THREE]: '3',
-      [InformationCredibility.FOUR]: '4',
-      [InformationCredibility.FIVE]: '5',
-      [InformationCredibility.SIX]: '6',
-    };
-    return `${reliability}${credibilityMap[credibility]}`;
   }
 }

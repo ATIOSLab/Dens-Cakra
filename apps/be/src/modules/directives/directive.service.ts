@@ -14,10 +14,8 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { DomainScopeService } from '../access/domain-scope.service.js';
 import type {
   CreateDirectiveDto,
-  CreateDirectiveRevisionDto,
   DirectiveQuery,
   DistributeDirectiveDto,
-  OptionalNoteDto,
   PublishDirectiveDto,
   ReplaceAreasDto,
   ReplaceRecipientsDto,
@@ -791,136 +789,6 @@ export class DirectiveService {
     return this.detail(directiveId, context);
   }
 
-  async versions(directiveId: string, context: AuthorizationContext) {
-    await this.detail(directiveId, context);
-
-    return this.prisma.directiveVersion.findMany({
-      where: {
-        directiveId,
-      },
-      orderBy: { versionNumber: 'desc' },
-      include: {
-        createdByAssignment: {
-          include: { userProfile: true, role: true },
-        },
-        targetAreas: { include: { area: true } },
-        recipients: {
-          include: {
-            targetAssignment: true,
-          },
-        },
-      },
-    });
-  }
-
-  async createVersion(
-    directiveId: string,
-    body: CreateDirectiveRevisionDto,
-    context: AuthorizationContext,
-  ) {
-    this.assertRole(
-      context,
-      [RoleCode.EXECUTIVE],
-      'Hanya Deputi II yang dapat merevisi arahan strategis.',
-    );
-
-    if (body.patch.recipients) {
-      this.validateRecipients(body.patch.recipients);
-    }
-
-    const directive = await this.detail(directiveId, context);
-
-    if (
-      directive.ownerAssignmentId !== context.primaryAssignmentId &&
-      directive.createdByAssignmentId !== context.primaryAssignmentId
-    ) {
-      throw new ApiException(
-        'DIRECTIVE_NOT_MUTABLE',
-        'Hanya rantai Deputi II pemilik yang dapat merevisi arahan strategis ini.',
-        403,
-      );
-    }
-
-    if (
-      directive.status === DirectiveStatus.CANCELLED ||
-      directive.status === DirectiveStatus.COMPLETED
-    ) {
-      throw new ApiException(
-        'DIRECTIVE_NOT_MUTABLE',
-        'Arahan strategis yang dibatalkan atau selesai tidak dapat direvisi.',
-        409,
-      );
-    }
-
-    const newVersion = await this.prisma.$transaction(async (tx) => {
-      const baseVersion = body.basedOnVersionId
-        ? await tx.directiveVersion.findUniqueOrThrow({
-            where: { id: body.basedOnVersionId },
-            include: { targetAreas: true, recipients: true },
-          })
-        : await tx.directiveVersion.findFirstOrThrow({
-            where: { directiveId },
-            orderBy: { versionNumber: 'desc' },
-            include: { targetAreas: true, recipients: true },
-          });
-
-      const nextVersionNumber = directive.currentVersionNumber + 1;
-
-      const version = await tx.directiveVersion.create({
-        data: {
-          directiveId,
-          versionNumber: nextVersionNumber,
-          classification: baseVersion.classification,
-          urgency: body.patch.urgency ?? baseVersion.urgency,
-          commandSource: baseVersion.commandSource,
-          commandIssuer: baseVersion.commandIssuer,
-          commandDate: baseVersion.commandDate,
-          dueDate: body.patch.dueDate
-            ? new Date(body.patch.dueDate)
-            : baseVersion.dueDate,
-          strategicIssue:
-            body.patch.strategicIssue ?? baseVersion.strategicIssue,
-          commandDescription:
-            body.patch.commandDescription ?? baseVersion.commandDescription,
-          createdByAssignmentId: context.primaryAssignmentId,
-          changeReason: body.changeReason,
-          targetAreas: {
-            create: (
-              body.patch.targetAreaIds ??
-              baseVersion.targetAreas.map((item) => item.areaId)
-            ).map((areaId, index) => ({
-              areaId,
-              isPrimary: index === 0,
-            })),
-          },
-          recipients: {
-            create: (body.patch.recipients ?? baseVersion.recipients).map(
-              (recipient) => ({
-                targetAssignmentId: recipient.targetAssignmentId,
-              }),
-            ),
-          },
-        },
-      });
-
-      await tx.directive.update({
-        where: { id: directiveId },
-        data: {
-          currentVersionNumber: nextVersionNumber,
-          status: DirectiveStatus.DRAFT,
-        },
-      });
-
-      return version;
-    });
-
-    await this.audit(context, 'DIRECTIVE.VERSION.CREATE', directiveId, {
-      versionId: newVersion.id,
-      versionNumber: newVersion.versionNumber,
-    });
-    return this.versionDetail(newVersion.id, context);
-  }
-
   async getVersion(versionId: string, context: AuthorizationContext) {
     return this.versionDetail(versionId, context);
   }
@@ -1165,55 +1033,6 @@ export class DirectiveService {
       result,
     );
     return result;
-  }
-
-  async acknowledge(
-    recipientId: string,
-    body: OptionalNoteDto,
-    context: AuthorizationContext,
-  ) {
-    const recipient = await this.prisma.directiveRecipient.findUniqueOrThrow({
-      where: { id: recipientId },
-    });
-
-    if (
-      recipient.targetAssignmentId &&
-      recipient.targetAssignmentId !== context.primaryAssignmentId
-    ) {
-      throw new ApiException(
-        'DIRECTIVE_RECIPIENT_NOT_OWNER',
-        'Penerima arahan strategis tidak sesuai dengan jabatan saat ini.',
-        403,
-      );
-    }
-
-    await this.prisma.directiveRecipient.update({
-      where: { id: recipientId },
-      data: {
-        status: RecipientStatus.ACKNOWLEDGED,
-        deliveredAt: recipient.deliveredAt ?? new Date(),
-        readAt: recipient.readAt ?? new Date(),
-        acknowledgedAt: recipient.acknowledgedAt ?? new Date(),
-        failureReason: body.note ?? recipient.failureReason,
-      },
-    });
-
-    await this.audit(
-      context,
-      'DIRECTIVE.ACKNOWLEDGE',
-      recipient.directiveVersionId,
-      {
-        recipientId,
-        note: body.note ?? null,
-      },
-    );
-
-    return this.prisma.directiveRecipient.findUniqueOrThrow({
-      where: { id: recipientId },
-      include: {
-        targetAssignment: true,
-      },
-    });
   }
 
   async markRead(versionId: string, context: AuthorizationContext) {

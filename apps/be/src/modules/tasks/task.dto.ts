@@ -58,36 +58,6 @@ export class TaskQuery {
   @IsOptional() @Type(() => Boolean) @IsBoolean() paginated?: boolean;
 }
 
-export class CreateTaskDto {
-  @IsOptional() @IsUUID() parentTaskId?: string;
-  @IsOptional() @IsUUID() directiveVersionId?: string;
-  @IsOptional() @IsUUID() uukStrVersionId?: string;
-  @IsUUID() ownerAssignmentId!: string;
-  @IsString() @MaxLength(300) title!: string;
-  @IsString() @MaxLength(10000) description!: string;
-  @IsEnum(PriorityLevel) priority!: PriorityLevel;
-  @IsOptional() @IsDateString() dueDate?: string;
-  @IsArray()
-  @ArrayMinSize(1)
-  @IsUUID(undefined, { each: true })
-  targetAreaIds!: string[];
-}
-
-export class UpdateTaskDto {
-  @IsOptional() @IsString() @MaxLength(300) title?: string;
-  @IsOptional() @IsString() @MaxLength(10000) description?: string;
-  @IsOptional() @IsEnum(PriorityLevel) priority?: PriorityLevel;
-  @IsOptional() @IsDateString() dueDate?: string;
-}
-
-export class TargetAreasDto {
-  @IsArray()
-  @ArrayMinSize(1)
-  @IsUUID(undefined, { each: true })
-  areaIds!: string[];
-  @IsOptional() @IsUUID() primaryAreaId?: string;
-}
-
 export class AssignmentItem {
   @IsUUID() assigneeAssignmentId!: string;
   @IsOptional() @IsDateString() dueDate?: string;

@@ -887,17 +887,6 @@ export class UserProfileService {
     });
   }
 
-  assignments(id: string, activeOnly: boolean) {
-    return this.prisma.userOperationalAssignment.findMany({
-      where: { userProfileId: id, ...(activeOnly ? { isActive: true } : {}) },
-      orderBy: { validFrom: 'desc' },
-      include: {
-        role: true,
-        areaScopes: { include: { area: true } },
-      },
-    });
-  }
-
   private dkiRegencyCities(input: { ids?: string[] } = {}) {
     return this.prisma.administrativeArea.findMany({
       where: {

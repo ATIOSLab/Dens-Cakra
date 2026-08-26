@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { ArrowDownUp, RefreshCw, Search, ShieldAlert, Signal, WifiOff } from "lucide-react";
+import { ArrowDownUp, Copy, RefreshCw, Search, ShieldAlert, Signal, WifiOff } from "lucide-react";
+import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -163,6 +164,81 @@ function scopeAreaLabel(area: ConnectivityScopeArea) {
   return area.parentName ? `${area.parentName} / ${area.name}` : area.name;
 }
 
+function shortCityLabel(name: string) {
+  return name
+    .replace(/^Kota\s+Administrasi\s+/i, "")
+    .replace(/^Kabupaten\s+Administrasi\s+/i, "")
+    .replace(/^Kota\s+/i, "")
+    .replace(/^Kabupaten\s+/i, "")
+    .toUpperCase();
+}
+
+function compactPhone(value?: string | null) {
+  const digits = (value ?? "").replace(/\D/g, "");
+  return digits ? `+${digits}` : "";
+}
+
+function primaryCityArea(item: ConnectivityItem) {
+  if (item.scopeAreas.length === 0) return null;
+  return item.scopeAreas.find((area) => area.level === "CITY" || area.level === "REGENCY") ?? item.scopeAreas[0];
+}
+
+function buildWhatsappListText(items: ConnectivityItem[]) {
+  const dateLabel = new Intl.DateTimeFormat("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(new Date());
+
+  const groups = new Map<string, { cityName: string; numbers: string[] }>();
+  for (const item of items) {
+    if (item.connectionStatus !== "CONNECTED") continue;
+    const city = primaryCityArea(item);
+    if (!city) continue;
+    const phone = compactPhone(item.botPhoneNumber);
+    if (!phone) continue;
+
+    const existing = groups.get(city.id);
+    if (existing) {
+      existing.numbers.push(phone);
+    } else {
+      groups.set(city.id, { cityName: city.name, numbers: [phone] });
+    }
+  }
+
+  const sortedGroups = [...groups.values()].sort((left, right) => left.cityName.localeCompare(right.cityName, "id"));
+
+  const lines: string[] = ["*DAFTAR NOMOR WHATSAPP TERHUBUNG*", `*Per Tanggal ${dateLabel}*`, "", "━━━━━━━━━━━━━━━━━━"];
+
+  for (const group of sortedGroups) {
+    lines.push("", `*${shortCityLabel(group.cityName)}*`, `_${group.cityName}_`);
+    for (const phone of [...group.numbers].sort()) {
+      lines.push(`📱 ${phone} ✅️ *AKTIF*`);
+    }
+  }
+
+  lines.push(
+    "",
+    "━━━━━━━━━━━━━━━━━━",
+    "",
+    "📌 *KETERANGAN*",
+    "",
+    "Seluruh nomor di atas *dapat digunakan*. Utamakan nomor yang berada di urutan paling atas.",
+    "",
+    "Apabila nomor tersebut *tidak merespons*, silakan gunakan nomor lainnya yang tersedia pada wilayah yang sama.",
+    "",
+    "⚠️ *PENTING*",
+    "",
+    "Mohon simpan seluruh nomor di atas ke dalam kontak dengan nama:",
+    "",
+    "*MERAH PUTIH*",
+    "",
+    "_Jangan menggunakan nama lain agar penamaan kontak tetap seragam._",
+  );
+
+  return lines.join("\n");
+}
+
 export function KonektivitasWhatsappPage() {
   const [data, setData] = useState<ConnectivityResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -256,6 +332,19 @@ export function KonektivitasWhatsappPage() {
     setSortDir("asc");
   }
 
+  const copyList = useCallback(() => {
+    const connected = (data?.items ?? []).filter((item) => item.connectionStatus === "CONNECTED");
+    if (connected.length === 0) {
+      toast.info("Belum ada nomor WhatsApp terhubung untuk disalin.");
+      return;
+    }
+
+    void navigator.clipboard
+      .writeText(buildWhatsappListText(connected))
+      .then(() => toast.success("Daftar nomor WhatsApp tersalin."))
+      .catch(() => toast.error("Gagal menyalin daftar nomor WhatsApp."));
+  }, [data?.items]);
+
   const summary = data?.summary ?? { connected: 0, disconnected: 0, connecting: 0, error: 0, total: 0 };
 
   return (
@@ -269,10 +358,16 @@ export function KonektivitasWhatsappPage() {
               Pantau status koneksi perangkat WhatsApp Center dan wilayah pelaporan yang dilayaninya.
             </p>
           </div>
-          <Button onClick={() => void loadData()} disabled={loading} variant="outline">
-            <RefreshCw className={cn("mr-2 size-4", loading && "animate-spin")} />
-            Muat ulang
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button onClick={copyList} variant="outline">
+              <Copy className="mr-2 size-4" />
+              Salin Daftar Nomor
+            </Button>
+            <Button onClick={() => void loadData()} disabled={loading} variant="outline">
+              <RefreshCw className={cn("mr-2 size-4", loading && "animate-spin")} />
+              Muat ulang
+            </Button>
+          </div>
         </div>
       </section>
 
