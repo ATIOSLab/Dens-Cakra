@@ -30,7 +30,7 @@ import {
 
 export class JaringQuery {
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) page = 1;
-  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) limit = 20;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(500) limit = 20;
   @IsOptional() @IsString() search?: string;
   @IsOptional() @IsString() status?: JaringStatus;
   @IsOptional()

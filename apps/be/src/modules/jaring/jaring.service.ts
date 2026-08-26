@@ -741,7 +741,11 @@ export class JaringService {
             area: {
               include: {
                 parent: {
-                  include: { parent: true },
+                  include: {
+                    parent: {
+                      include: { parent: true },
+                    },
+                  },
                 },
               },
             },
@@ -1497,6 +1501,15 @@ export class JaringService {
                         officialCode: true,
                         name: true,
                         level: true,
+                        parent: {
+                          select: {
+                            id: true,
+                            code: true,
+                            officialCode: true,
+                            name: true,
+                            level: true,
+                          },
+                        },
                       },
                     },
                   },

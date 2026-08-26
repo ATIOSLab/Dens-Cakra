@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type ComponentType, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -32,8 +32,6 @@ import { toast } from "sonner";
 
 import { useRoleWorkspace } from "@/app/(main)/dashboard/_components/sidebar/role-workspace-provider";
 import {
-  findJaringArea,
-  type JaringAdministrativeArea,
   jaringCity,
   jaringDistrict,
   jaringVillage,
@@ -139,16 +137,6 @@ function formatGender(value?: string | null) {
   return "-";
 }
 
-function formatPercent(value: number) {
-  return new Intl.NumberFormat("id-ID", {
-    maximumFractionDigits: value % 1 === 0 ? 0 : 1,
-  }).format(value);
-}
-
-function percentOf(value: number, total: number) {
-  return total <= 0 ? 0 : Math.round((value / total) * 1000) / 10;
-}
-
 function profilePhotoUrl(item: RegistrationJaring) {
   const fileId = item.profilePhotoFileId ?? item.profilePhotoFile?.id;
   return fileId ? `/api/files/${fileId}` : null;
@@ -163,6 +151,36 @@ function parseTime(value?: string | null) {
   if (!value) return null;
   const time = new Date(value).getTime();
   return Number.isNaN(time) ? null : time;
+}
+
+type ReportPeriodFilter = "ALL" | "LAST_7_DAYS" | "LAST_14_DAYS" | "LAST_30_DAYS" | "CUSTOM";
+
+const REPORT_PERIOD_OPTIONS: Array<{ value: ReportPeriodFilter; label: string }> = [
+  { value: "ALL", label: "Semua Periode" },
+  { value: "LAST_7_DAYS", label: "7 hari" },
+  { value: "LAST_14_DAYS", label: "14 hari" },
+  { value: "LAST_30_DAYS", label: "30 hari" },
+  { value: "CUSTOM", label: "Kustom" },
+];
+
+function reportActivityWithinPeriod(
+  item: RegistrationJaring,
+  period: ReportPeriodFilter,
+  startDate: string,
+  endDate: string,
+): boolean {
+  if (period === "ALL") return true;
+  const lastReport = parseTime(item.lastReportAt);
+  if (!lastReport) return false;
+  const now = Date.now();
+  if (period === "LAST_7_DAYS") return lastReport >= now - 7 * 86_400_000;
+  if (period === "LAST_14_DAYS") return lastReport >= now - 14 * 86_400_000;
+  if (period === "LAST_30_DAYS") return lastReport >= now - 30 * 86_400_000;
+  const from = startDate ? new Date(`${startDate}T00:00:00+07:00`).getTime() : null;
+  const to = endDate ? new Date(`${endDate}T23:59:59.999+07:00`).getTime() : null;
+  if (from && lastReport < from) return false;
+  if (to && lastReport > to) return false;
+  return true;
 }
 
 function jaringAddedTime(item: RegistrationJaring) {
@@ -218,37 +236,12 @@ function compareJaringFullName(left: RegistrationJaring, right: RegistrationJari
   return result || jaringDisplayName(left).localeCompare(jaringDisplayName(right), "id", { sensitivity: "base" });
 }
 
-type AreaFilterOption = {
+type ScopedArea = {
   id: string;
   name: string;
+  level: string;
+  parentId?: string | null;
 };
-
-function addAreaOption(options: Map<string, AreaFilterOption>, area?: JaringAdministrativeArea | null) {
-  if (area?.id && area.name) {
-    options.set(area.id, { id: area.id, name: area.name });
-  }
-}
-
-function hasAreaInHierarchy(item: RegistrationJaring, areaId: string, levels?: JaringAdministrativeArea["level"][]) {
-  if (areaId === "ALL") return true;
-  const acceptedLevels = levels ? new Set<JaringAdministrativeArea["level"]>(levels) : null;
-
-  for (const coverage of item.areaCoverages) {
-    let area: JaringAdministrativeArea | null | undefined = coverage.area;
-    while (area) {
-      if (area.id === areaId && (!acceptedLevels || acceptedLevels.has(area.level))) {
-        return true;
-      }
-      area = area.parent;
-    }
-  }
-
-  return false;
-}
-
-function sortedAreaOptions(options: Map<string, AreaFilterOption>) {
-  return [...options.values()].sort((left, right) => left.name.localeCompare(right.name, "id-ID"));
-}
 
 function getInitials(name?: string | null) {
   if (!name) return "JR";
@@ -273,7 +266,7 @@ function statusBadgeVariant(status: RegistrationJaring["registrationStatus"]) {
   return "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400";
 }
 
-export function JaringVerificationListClient({ initialItems }: { initialItems: RegistrationJaring[] }) {
+export function JaringVerificationListClient() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -282,7 +275,8 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
   const isFieldOfficer = activeRole === SYSTEM_ROLES.FIELD_OFFICER;
   const isFieldCoordinator = activeRole === SYSTEM_ROLES.FIELD_COORDINATOR;
   const isNationalRole = activeRole === SYSTEM_ROLES.EXECUTIVE || activeRole === SYSTEM_ROLES.NATIONAL_LEADER;
-  const [items, setItems] = useState<RegistrationJaring[]>(initialItems);
+  const [items, setItems] = useState<RegistrationJaring[]>([]);
+  const [scopedAreas, setScopedAreas] = useState<ScopedArea[]>([]);
   const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
   const [statusFilter, setStatusFilter] = useState<string>(() => {
     const value = searchParams.get("registrationStatus");
@@ -292,6 +286,14 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
     const value = searchParams.get("activityStatus");
     return value === "ACTIVE" || value === "INACTIVE" ? value : "ALL";
   });
+  const [periodFilter, setPeriodFilter] = useState<ReportPeriodFilter>(() => {
+    const value = searchParams.get("period");
+    return value === "LAST_7_DAYS" || value === "LAST_14_DAYS" || value === "LAST_30_DAYS" || value === "CUSTOM"
+      ? value
+      : "ALL";
+  });
+  const [periodStartDate, setPeriodStartDate] = useState<string>(() => searchParams.get("periodStart") ?? "");
+  const [periodEndDate, setPeriodEndDate] = useState<string>(() => searchParams.get("periodEnd") ?? "");
   const [provinceFilter, setProvinceFilter] = useState<string>(() => searchParams.get("provinceId") ?? "ALL");
   const [cityFilter, setCityFilter] = useState<string>(() => searchParams.get("cityId") ?? "ALL");
   const [districtFilter, setDistrictFilter] = useState<string>(() => searchParams.get("districtId") ?? "ALL");
@@ -315,34 +317,39 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
   const [rejectionReason, setRejectionReason] = useState("");
   const [isSubmittingAction, setIsSubmittingAction] = useState(false);
 
-  // Region matching helpers
-  const matchesProvince = useCallback((item: RegistrationJaring, province: string) => {
-    return hasAreaInHierarchy(item, province, ["PROVINCE"]);
-  }, []);
-
-  const matchesCity = useCallback((item: RegistrationJaring, city: string) => {
-    return hasAreaInHierarchy(item, city, ["CITY", "REGENCY"]);
-  }, []);
-
-  const matchesDistrict = useCallback((item: RegistrationJaring, district: string) => {
-    return hasAreaInHierarchy(item, district, ["DISTRICT"]);
+  // Load scoped administrative areas (province/city/district/village) for the area filter.
+  useEffect(() => {
+    const controller = new AbortController();
+    const loadScopes = async () => {
+      try {
+        const areas = await apiBrowserFetch<
+          Array<{ areaId: string; name: string; level: string; parentAreaId?: string | null }>
+        >("/me/area-scopes", { query: { includeDescendants: true }, init: { signal: controller.signal } });
+        if (!controller.signal.aborted) {
+          setScopedAreas(
+            areas.map((area) => ({
+              id: area.areaId,
+              name: area.name,
+              level: area.level,
+              parentId: area.parentAreaId ?? null,
+            })),
+          );
+        }
+      } catch {
+        // Area options are non-blocking; the list still loads without them.
+      }
+    };
+    void loadScopes();
+    return () => controller.abort();
   }, []);
 
   // Extract unique provinces, cities, districts, villages & officers for filter options
   const uniqueProvinces = useMemo(() => {
-    const options = new Map<string, AreaFilterOption>();
-    for (const item of initialItems) {
-      addAreaOption(options, findJaringArea(item, ["PROVINCE"]));
-      for (const cov of item.areaCoverages) {
-        let area: JaringAdministrativeArea | null | undefined = cov.area;
-        while (area) {
-          if (area.level === "PROVINCE") addAreaOption(options, area);
-          area = area.parent;
-        }
-      }
-    }
-    return sortedAreaOptions(options);
-  }, [initialItems]);
+    return scopedAreas
+      .filter((area) => area.level === "PROVINCE")
+      .map((area) => ({ id: area.id, name: area.name }))
+      .sort((left, right) => left.name.localeCompare(right.name, "id-ID"));
+  }, [scopedAreas]);
 
   const defaultProvinceFilter = useMemo(() => findDkiJakartaProvinceFilterId(uniqueProvinces), [uniqueProvinces]);
 
@@ -365,6 +372,9 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
       if (search.trim()) params.set("search", search.trim());
       if (statusFilter !== "ALL") params.set("registrationStatus", statusFilter);
       if (activeStatusFilter !== "ALL") params.set("activityStatus", activeStatusFilter);
+      if (periodFilter !== "ALL") params.set("period", periodFilter);
+      if (periodStartDate) params.set("periodStart", periodStartDate);
+      if (periodEndDate) params.set("periodEnd", periodEndDate);
       if (provinceFilter !== "ALL" && provinceFilter !== (defaultProvinceFilter || "ALL")) {
         params.set("provinceId", provinceFilter);
       }
@@ -384,6 +394,9 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
     search,
     statusFilter,
     activeStatusFilter,
+    periodFilter,
+    periodStartDate,
+    periodEndDate,
     provinceFilter,
     cityFilter,
     districtFilter,
@@ -394,74 +407,47 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
   ]);
 
   const uniqueCities = useMemo(() => {
-    const options = new Map<string, AreaFilterOption>();
-    for (const item of initialItems) {
-      if (provinceFilter !== "ALL" && !matchesProvince(item, provinceFilter)) continue;
-      addAreaOption(options, jaringCity(item));
-      for (const cov of item.areaCoverages) {
-        if (cov.area?.level === "CITY" || cov.area?.level === "REGENCY") {
-          addAreaOption(options, cov.area);
-        }
-      }
-    }
-    return sortedAreaOptions(options);
-  }, [initialItems, matchesProvince, provinceFilter]);
+    return scopedAreas
+      .filter(
+        (area) =>
+          (area.level === "CITY" || area.level === "REGENCY") &&
+          (provinceFilter === "ALL" || area.parentId === provinceFilter),
+      )
+      .map((area) => ({ id: area.id, name: area.name }))
+      .sort((left, right) => left.name.localeCompare(right.name, "id-ID"));
+  }, [scopedAreas, provinceFilter]);
 
   const uniqueDistricts = useMemo(() => {
-    const options = new Map<string, AreaFilterOption>();
-    for (const item of initialItems) {
-      if (provinceFilter !== "ALL" && !matchesProvince(item, provinceFilter)) continue;
-      if (cityFilter !== "ALL" && !matchesCity(item, cityFilter)) continue;
-      addAreaOption(options, jaringDistrict(item));
-      for (const cov of item.areaCoverages) {
-        if (cov.area?.level === "DISTRICT") {
-          addAreaOption(options, cov.area);
-        }
-      }
-    }
-    return sortedAreaOptions(options);
-  }, [initialItems, cityFilter, matchesCity, matchesProvince, provinceFilter]);
+    return scopedAreas
+      .filter((area) => area.level === "DISTRICT" && (cityFilter === "ALL" || area.parentId === cityFilter))
+      .map((area) => ({ id: area.id, name: area.name }))
+      .sort((left, right) => left.name.localeCompare(right.name, "id-ID"));
+  }, [scopedAreas, cityFilter]);
 
   const uniqueVillages = useMemo(() => {
-    const options = new Map<string, AreaFilterOption>();
-    for (const item of initialItems) {
-      if (provinceFilter !== "ALL" && !matchesProvince(item, provinceFilter)) continue;
-      if (cityFilter !== "ALL" && !matchesCity(item, cityFilter)) continue;
-      if (districtFilter !== "ALL" && !matchesDistrict(item, districtFilter)) continue;
-      addAreaOption(options, jaringVillage(item));
-      for (const cov of item.areaCoverages) {
-        if (cov.area?.level === "VILLAGE" || cov.area?.level === "URBAN_VILLAGE") {
-          addAreaOption(options, cov.area);
-        }
-      }
-    }
-    return sortedAreaOptions(options);
-  }, [initialItems, cityFilter, districtFilter, matchesCity, matchesDistrict, matchesProvince, provinceFilter]);
+    return scopedAreas
+      .filter(
+        (area) =>
+          (area.level === "VILLAGE" || area.level === "URBAN_VILLAGE") &&
+          (districtFilter === "ALL" || area.parentId === districtFilter),
+      )
+      .map((area) => ({ id: area.id, name: area.name }))
+      .sort((left, right) => left.name.localeCompare(right.name, "id-ID"));
+  }, [scopedAreas, districtFilter]);
 
   const uniqueOfficers = useMemo(() => {
     const set = new Set<string>();
-    for (const item of initialItems) {
+    for (const item of items) {
       const name = officerName(item);
       if (name && name !== "-") set.add(name);
     }
     return Array.from(set).sort();
-  }, [initialItems]);
+  }, [items]);
 
-  // Server-side filtered items: the backend applies area, search, and officer
-  // filters in the database so the list stays correct for large datasets.
+  // Server-side filtered items: the backend applies area and search filters in
+  // the database; status/activity/period/officer filtering remains client-side.
   const serverAreaId =
     [villageFilter, districtFilter, cityFilter, provinceFilter].find((value) => value !== "ALL") ?? undefined;
-
-  const officerAssignmentId = useMemo(() => {
-    if (officerFilter === "ALL") return undefined;
-    for (const item of initialItems) {
-      const [caretaker] = item.caretakerAssignments;
-      if (caretaker?.fieldOfficerAssignment.userProfile.fullName === officerFilter) {
-        return caretaker.fieldOfficerAssignment.id;
-      }
-    }
-    return undefined;
-  }, [initialItems, officerFilter]);
 
   const [isLoadingItems, setIsLoadingItems] = useState(false);
   const loadRequestRef = useRef(0);
@@ -480,14 +466,13 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
               registrationStatus,
               search: search.trim() || undefined,
               areaId: serverAreaId,
-              fieldOfficerAssignmentId: officerAssignmentId,
               page,
-              limit: 100,
+              limit: 500,
             },
           });
           results.push(...batch);
           page += 1;
-        } while (batch.length === 100);
+        } while (batch.length === 500);
         return results;
       };
       const lists = await Promise.all((["PENDING", "APPROVED", "REJECTED"] as const).map(fetchStatus));
@@ -501,7 +486,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
     } finally {
       if (requestId === loadRequestRef.current) setIsLoadingItems(false);
     }
-  }, [search, serverAreaId, officerAssignmentId]);
+  }, [search, serverAreaId]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -520,12 +505,11 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
     const pending = baseFilteredItems.filter((i) => i.registrationStatus === "PENDING").length;
     const approved = baseFilteredItems.filter((i) => i.registrationStatus === "APPROVED").length;
     const rejected = baseFilteredItems.filter((i) => i.registrationStatus === "REJECTED").length;
-    const active = baseFilteredItems.filter(isJaringActive).length;
-    const inactive = Math.max(0, total - active);
+    const verifiedItems = baseFilteredItems.filter((i) => i.registrationStatus === "APPROVED");
+    const active = verifiedItems.filter(isJaringActive).length;
+    const inactive = verifiedItems.length - active;
     return { total, pending, approved, rejected, active, inactive };
   }, [baseFilteredItems]);
-  const activeJaringShare = percentOf(summary.active, summary.total);
-  const inactiveJaringShare = percentOf(summary.inactive, summary.total);
 
   const areaSubtitle = useMemo(() => {
     const provinceName = uniqueProvinces.find((area) => area.id === provinceFilter)?.name;
@@ -552,7 +536,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
     villageFilter,
   ]);
 
-  // Final filtered items with status filter applied
+  // Final filtered items with status/activity/period/officer filters applied
   const filteredItems = useMemo(() => {
     return baseFilteredItems.filter((item) => {
       if (statusFilter !== "ALL" && item.registrationStatus !== statusFilter) {
@@ -564,9 +548,23 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
       if (activeStatusFilter === "INACTIVE" && isJaringActive(item)) {
         return false;
       }
+      if (!reportActivityWithinPeriod(item, periodFilter, periodStartDate, periodEndDate)) {
+        return false;
+      }
+      if (officerFilter !== "ALL" && officerName(item) !== officerFilter) {
+        return false;
+      }
       return true;
     });
-  }, [baseFilteredItems, statusFilter, activeStatusFilter]);
+  }, [
+    baseFilteredItems,
+    statusFilter,
+    activeStatusFilter,
+    periodFilter,
+    periodStartDate,
+    periodEndDate,
+    officerFilter,
+  ]);
 
   const sortedItems = useMemo(() => {
     return [...filteredItems].sort((left, right) => {
@@ -590,6 +588,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
     search.trim() !== "" ||
     statusFilter !== "ALL" ||
     activeStatusFilter !== "ALL" ||
+    periodFilter !== "ALL" ||
     provinceFilter !== (defaultProvinceFilter || "ALL") ||
     cityFilter !== "ALL" ||
     districtFilter !== "ALL" ||
@@ -600,6 +599,9 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
     setSearch("");
     setStatusFilter("ALL");
     setActiveStatusFilter("ALL");
+    setPeriodFilter("ALL");
+    setPeriodStartDate("");
+    setPeriodEndDate("");
     setProvinceFilter(defaultProvinceFilter || "ALL");
     setCityFilter("ALL");
     setDistrictFilter("ALL");
@@ -691,92 +693,95 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
         </div>
 
         {/* SUMMARY CARDS */}
-        <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-3">
-          {/* Total Jaring */}
-          <button
-            type="button"
+        <div className="grid w-full grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+          <SummaryCard
+            label="Total Jaring yang Diajukan"
+            value={summary.total}
+            icon={DOMAIN_VISUALS.jaring.Icon}
+            iconClass="bg-sky-500/10 text-sky-600 dark:text-sky-400"
+            valueClass="text-foreground"
+            selected={statusFilter === "ALL" && activeStatusFilter === "ALL"}
+            selectedClass="border-sky-500 ring-2 ring-sky-500/30 bg-sky-500/5 dark:bg-sky-500/10"
             onClick={() => {
               setStatusFilter("ALL");
               setActiveStatusFilter("ALL");
               setPage(1);
             }}
-            className={cn(
-              "flex min-w-[170px] cursor-pointer items-center gap-3 rounded-md border bg-card p-3.5 text-left shadow-xs transition-all duration-150 active:scale-[0.98]",
-              statusFilter === "ALL" && activeStatusFilter === "ALL"
-                ? "border-sky-500 ring-2 ring-sky-500/30 bg-sky-500/5 dark:bg-sky-500/10"
-                : "border-slate-200/80 dark:border-white/10 hover:border-sky-500/40 hover:bg-slate-50/50 dark:hover:bg-slate-900/50",
-            )}
-          >
-            <div className="flex size-10 items-center justify-center rounded-md bg-sky-500/10 text-sky-600 dark:text-sky-400 shrink-0">
-              <DOMAIN_VISUALS.jaring.Icon className="size-5" />
-            </div>
-            <div>
-              <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Total Jaring</p>
-              <p className="font-bold text-foreground text-xl tracking-normal">{summary.total}</p>
-            </div>
-          </button>
-
-          {/* Aktif */}
-          <button
-            type="button"
+          />
+          <SummaryCard
+            label="Total Jaring Terverifikasi"
+            value={summary.approved}
+            icon={CheckCircle2}
+            iconClass="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+            valueClass="text-emerald-600 dark:text-emerald-400"
+            selected={statusFilter === "APPROVED" && activeStatusFilter === "ALL"}
+            selectedClass="border-emerald-500 ring-2 ring-emerald-500/30 bg-emerald-500/5 dark:bg-emerald-500/10"
             onClick={() => {
+              setStatusFilter("APPROVED");
+              setActiveStatusFilter("ALL");
+              setPage(1);
+            }}
+          />
+          <SummaryCard
+            label="Total Jaring Ditolak"
+            value={summary.rejected}
+            icon={XCircle}
+            iconClass="bg-rose-500/10 text-rose-600 dark:text-rose-400"
+            valueClass="text-rose-600 dark:text-rose-400"
+            selected={statusFilter === "REJECTED" && activeStatusFilter === "ALL"}
+            selectedClass="border-rose-500 ring-2 ring-rose-500/30 bg-rose-500/5 dark:bg-rose-500/10"
+            onClick={() => {
+              setStatusFilter("REJECTED");
+              setActiveStatusFilter("ALL");
+              setPage(1);
+            }}
+          />
+          <SummaryCard
+            label="Total Jaring Menunggu Verifikasi"
+            value={summary.pending}
+            icon={Clock}
+            iconClass="bg-amber-500/10 text-amber-600 dark:text-amber-400"
+            valueClass="text-amber-600 dark:text-amber-400"
+            selected={statusFilter === "PENDING" && activeStatusFilter === "ALL"}
+            selectedClass="border-amber-500 ring-2 ring-amber-500/30 bg-amber-500/5 dark:bg-amber-500/10"
+            onClick={() => {
+              setStatusFilter("PENDING");
+              setActiveStatusFilter("ALL");
+              setPage(1);
+            }}
+          />
+          <SummaryCard
+            label="Total Jaring Aktif"
+            value={summary.active}
+            icon={DOMAIN_VISUALS.jaring.Icon}
+            iconClass="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+            valueClass="text-emerald-600 dark:text-emerald-400"
+            selected={statusFilter === "APPROVED" && activeStatusFilter === "ACTIVE"}
+            selectedClass="border-emerald-500 ring-2 ring-emerald-500/30 bg-emerald-500/5 dark:bg-emerald-500/10"
+            onClick={() => {
+              setStatusFilter("APPROVED");
               setActiveStatusFilter("ACTIVE");
               setPage(1);
             }}
-            className={cn(
-              "flex min-w-[170px] cursor-pointer items-center gap-3 rounded-md border bg-card p-3.5 text-left shadow-xs transition-all duration-150 active:scale-[0.98]",
-              activeStatusFilter === "ACTIVE"
-                ? "border-emerald-500 bg-emerald-500/5 ring-2 ring-emerald-500/30 dark:bg-emerald-500/10"
-                : "border-slate-200/80 hover:border-emerald-500/40 hover:bg-slate-50/50 dark:border-white/10 dark:hover:bg-slate-900/50",
-            )}
-          >
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-              <DOMAIN_VISUALS.jaring.Icon className="size-5" />
-            </div>
-            <div>
-              <p className="font-medium text-[11px] text-muted-foreground uppercase tracking-wider">
-                {DOMAIN_TERMS.jaringActive90Days}
-              </p>
-              <p className="font-bold text-emerald-600 text-xl tracking-normal dark:text-emerald-400">
-                {summary.active}
-              </p>
-              <p className="mt-1 font-mono font-semibold text-[11px] text-emerald-600 tabular-nums dark:text-emerald-400">
-                {formatPercent(activeJaringShare)}% dari total
-              </p>
-            </div>
-          </button>
-
-          {/* Tidak Aktif */}
-          <button
-            type="button"
+          />
+          <SummaryCard
+            label="Total Jaring Tidak Aktif"
+            value={summary.inactive}
+            icon={DOMAIN_VISUALS.jaring.Icon}
+            iconClass="bg-slate-500/10 text-slate-600 dark:text-slate-400"
+            valueClass="text-slate-600 dark:text-slate-300"
+            selected={statusFilter === "APPROVED" && activeStatusFilter === "INACTIVE"}
+            selectedClass="border-slate-500 ring-2 ring-slate-500/25 bg-slate-500/5 dark:bg-slate-500/10"
             onClick={() => {
+              setStatusFilter("APPROVED");
               setActiveStatusFilter("INACTIVE");
               setPage(1);
             }}
-            className={cn(
-              "flex min-w-[170px] cursor-pointer items-center gap-3 rounded-md border bg-card p-3.5 text-left shadow-xs transition-all duration-150 active:scale-[0.98]",
-              activeStatusFilter === "INACTIVE"
-                ? "border-slate-500 bg-slate-500/5 ring-2 ring-slate-500/25 dark:bg-slate-500/10"
-                : "border-slate-200/80 hover:border-slate-500/40 hover:bg-slate-50/50 dark:border-white/10 dark:hover:bg-slate-900/50",
-            )}
-          >
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-slate-500/10 text-slate-600 dark:text-slate-400">
-              <Clock className="size-5" />
-            </div>
-            <div>
-              <p className="font-medium text-[11px] text-muted-foreground uppercase tracking-wider">
-                {DOMAIN_TERMS.jaringInactive90Days}
-              </p>
-              <p className="font-bold text-slate-600 text-xl tracking-normal dark:text-slate-300">{summary.inactive}</p>
-              <p className="mt-1 font-mono font-semibold text-[11px] text-muted-foreground tabular-nums">
-                {formatPercent(inactiveJaringShare)}% dari total
-              </p>
-            </div>
-          </button>
+          />
         </div>
       </div>
 
-      {/* FILTER TOOLBAR CONTAINER */}
+      {/* FILTER & TOOLBAR CARD */}
       <div className="flex flex-col gap-3 rounded-md border border-slate-200/80 dark:border-white/10 bg-card p-4 shadow-xs">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/70 pb-3">
           <div>
@@ -792,9 +797,52 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
             {hasActiveFilters ? "Filter aktif" : "Tanpa filter"}
           </Badge>
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-3 flex-1">
-            {/* Filter Provinsi (hanya role nasional: Deputi II / KaBIN) */}
+
+        <div className="space-y-3.5">
+          {/* TOP ROW: Search input + Actions */}
+          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+            <div className="relative flex-1 min-w-[240px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
+                placeholder="Cari alias, nama, nomor HP, pekerjaan, Petugas Wilayah (Gaswil), atau wilayah penugasan..."
+                className={cn(DC_CONTROLS.input, "h-9 pl-9 text-xs")}
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearch("");
+                    setPage(1);
+                  }}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="size-3.5" />
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefresh}
+                disabled={isRefreshing || isLoadingItems}
+                className="h-9 gap-1.5 rounded-lg"
+              >
+                <RefreshCw className={cn("size-3.5", (isRefreshing || isLoadingItems) && "animate-spin text-primary")} />
+                <span className="hidden sm:inline">Muat Ulang</span>
+              </Button>
+            </div>
+          </div>
+
+          {/* MIDDLE ROW: Structured Grid of Filter Dropdowns */}
+          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+            {/* 1. Filter Provinsi (hanya role nasional: Deputi II / KaBIN) */}
             {isNationalRole && (
               <SearchableSelect
                 aria-label="Filter Provinsi"
@@ -813,11 +861,11 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
                 placeholder="Semua Provinsi"
                 searchPlaceholder="Cari provinsi..."
                 emptyText="Provinsi tidak ditemukan."
-                className="h-9 w-full min-w-[150px] sm:w-auto"
+                className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full min-w-0")}
               />
             )}
 
-            {/* Filter Kota / Kabupaten (sembunyikan untuk Korwil & Gaswil yang sudah ter-scope) */}
+            {/* 2. Filter Kota / Kabupaten (sembunyikan untuk Korwil & Gaswil yang sudah ter-scope) */}
             {!isFieldOfficer && !isFieldCoordinator && (
               <SearchableSelect
                 aria-label="Filter Kota/Kabupaten"
@@ -840,11 +888,11 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
                 placeholder={provinceFilter === "ALL" ? "Pilih Provinsi dahulu" : "Semua Kota/Kabupaten"}
                 searchPlaceholder="Cari kota/kabupaten..."
                 emptyText="Kota/Kabupaten tidak ditemukan."
-                className="h-9 w-full min-w-[150px] sm:w-auto"
+                className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full min-w-0")}
               />
             )}
 
-            {/* Filter Kecamatan (sembunyikan untuk Gaswil) */}
+            {/* 3. Filter Kecamatan (sembunyikan untuk Gaswil) */}
             {!isFieldOfficer && (
               <SearchableSelect
                 aria-label="Filter Kecamatan"
@@ -866,18 +914,18 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
                 placeholder={cityFilter === "ALL" ? "Pilih Kota/Kabupaten dahulu" : "Semua Kecamatan"}
                 searchPlaceholder="Cari kecamatan..."
                 emptyText="Kecamatan tidak ditemukan."
-                className="h-9 w-full min-w-[150px] sm:w-auto"
+                className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full min-w-0")}
               />
             )}
 
-            {/* Filter Kelurahan / Desa (untuk Gaswil = wilayah desanya) */}
+            {/* 4. Filter Kelurahan / Desa (untuk Gaswil = wilayah desanya) */}
             <SearchableSelect
               aria-label="Filter Kelurahan/Desa"
               value={villageFilter}
               options={[
                 {
                   value: "ALL",
-                  label: !isFieldOfficer && districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan",
+                  label: !isFieldOfficer && districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan/Desa",
                   disabled: !isFieldOfficer && districtFilter === "ALL",
                 },
                 ...uniqueVillages.map((vill) => ({ value: vill.id, label: vill.name })),
@@ -887,20 +935,21 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
                 setPage(1);
               }}
               disabled={!isFieldOfficer && districtFilter === "ALL"}
-              placeholder={!isFieldOfficer && districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan"}
+              placeholder={!isFieldOfficer && districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan/Desa"}
               searchPlaceholder="Cari kelurahan/desa..."
               emptyText="Kelurahan/Desa tidak ditemukan."
-              className="h-9 w-full min-w-[150px] sm:w-auto"
+              className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full min-w-0")}
             />
 
-            {/* Filter Status */}
+            {/* 5. Filter Status */}
             <NativeSelect
+              aria-label="Filter Status"
               value={statusFilter}
               onChange={(e) => {
                 setStatusFilter(e.target.value);
                 setPage(1);
               }}
-              className="w-full sm:w-auto min-w-[140px]"
+              className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full text-xs")}
             >
               <option value="ALL">Semua Status</option>
               <option value="PENDING">Menunggu Tinjauan</option>
@@ -908,21 +957,39 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
               <option value="REJECTED">Ditolak</option>
             </NativeSelect>
 
-            {/* Filter Aktivitas Laporan 90 Hari */}
+            {/* 6. Filter Aktivitas Laporan 90 Hari */}
             <NativeSelect
+              aria-label="Filter Aktivitas Laporan"
               value={activeStatusFilter}
               onChange={(e) => {
                 setActiveStatusFilter(e.target.value);
                 setPage(1);
               }}
-              className="w-full sm:w-auto min-w-[150px]"
+              className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full text-xs")}
             >
               <option value="ALL">Semua Aktivitas</option>
               <option value="ACTIVE">{DOMAIN_TERMS.jaringActive90Days}</option>
               <option value="INACTIVE">{DOMAIN_TERMS.jaringInactive90Days}</option>
             </NativeSelect>
 
-            {/* Filter Petugas Wilayah (Gaswil) */}
+            {/* 7. Filter Periode Pelaporan */}
+            <NativeSelect
+              aria-label="Filter periode pelaporan"
+              value={periodFilter}
+              onChange={(e) => {
+                setPeriodFilter(e.target.value as ReportPeriodFilter);
+                setPage(1);
+              }}
+              className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full text-xs")}
+            >
+              {REPORT_PERIOD_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </NativeSelect>
+
+            {/* 8. Filter Petugas Wilayah (Gaswil) */}
             <SearchableSelect
               aria-label="Filter Petugas Wilayah (Gaswil)"
               value={officerFilter}
@@ -937,72 +1004,64 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
               placeholder="Semua Gaswil"
               searchPlaceholder="Cari Petugas Wilayah (Gaswil)..."
               emptyText="Petugas Wilayah (Gaswil) tidak ditemukan."
-              className="h-9 w-full min-w-[160px] text-xs sm:w-auto"
+              className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full min-w-0")}
             />
-          </div>
 
-          <div className="flex items-center gap-2 self-end lg:self-auto">
-            {/* Sort Dropdown */}
+            {/* 9. Sort Dropdown */}
             <NativeSelect
+              aria-label="Urutkan"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-              className="w-auto min-w-[130px]"
+              className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full text-xs")}
             >
               <option value="newest">Terbaru</option>
               <option value="oldest">Terlama</option>
               <option value="name_asc">Nama A-Z</option>
               <option value="name_desc">Nama Z-A</option>
             </NativeSelect>
+          </div>
 
-            {/* Reset Filters */}
-            {hasActiveFilters ? (
+          {/* CUSTOM PERIOD DATE RANGE */}
+          {periodFilter === "CUSTOM" && (
+            <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-muted-foreground">
+              <span>Dari:</span>
+              <Input
+                aria-label="Periode mulai"
+                type="date"
+                value={periodStartDate}
+                onChange={(e) => {
+                  setPeriodStartDate(e.target.value);
+                  setPage(1);
+                }}
+                className={cn(DC_CONTROLS.input, "h-8 w-[140px] px-2 text-xs")}
+              />
+              <span>s.d.</span>
+              <Input
+                aria-label="Periode selesai"
+                type="date"
+                value={periodEndDate}
+                onChange={(e) => {
+                  setPeriodEndDate(e.target.value);
+                  setPage(1);
+                }}
+                className={cn(DC_CONTROLS.input, "h-8 w-[140px] px-2 text-xs")}
+              />
+            </div>
+          )}
+
+          {/* BOTTOM ROW: Reset Filter */}
+          {hasActiveFilters && (
+            <div className="flex justify-end pt-1">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleResetFilters}
-                className="h-8 text-xs text-muted-foreground hover:text-foreground"
+                className="h-8 text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 font-medium"
               >
                 Reset Filter
               </Button>
-            ) : null}
-
-            {/* Refresh Button */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRefresh}
-              disabled={isRefreshing || isLoadingItems}
-              className="h-8 gap-1.5 rounded-lg"
-            >
-              <RefreshCw className={cn("size-3.5", (isRefreshing || isLoadingItems) && "animate-spin text-primary")} />
-              <span className="hidden sm:inline">Muat Ulang</span>
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* SEARCH BAR CONTAINER (SEPARATED & POSITIONED BELOW FILTER TOOLBAR) */}
-      <div className="relative w-full rounded-md border border-slate-200/80 dark:border-white/10 bg-card p-3 shadow-xs">
-        <div className="relative flex-1">
-          <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-            placeholder="Cari alias, nama, nomor HP, pekerjaan, Petugas Wilayah (Gaswil), atau wilayah penugasan..."
-            className={cn(DC_CONTROLS.input, "pl-10 pr-9")}
-          />
-          {search ? (
-            <button
-              type="button"
-              onClick={() => setSearch("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-            >
-              <X className="size-4" />
-            </button>
-          ) : null}
+            </div>
+          )}
         </div>
       </div>
 
@@ -2332,5 +2391,46 @@ function StatusPill({ children, tone }: { children: ReactNode; tone: string }) {
     >
       {children}
     </span>
+  );
+}
+
+function SummaryCard({
+  label,
+  value,
+  icon: Icon,
+  iconClass,
+  valueClass,
+  selected,
+  selectedClass,
+  onClick,
+}: {
+  label: string;
+  value: number;
+  icon: ComponentType<{ className?: string }>;
+  iconClass: string;
+  valueClass: string;
+  selected: boolean;
+  selectedClass: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "flex min-w-[170px] cursor-pointer items-center gap-3 rounded-md border bg-card p-3.5 text-left shadow-xs transition-all duration-150 active:scale-[0.98]",
+        selected
+          ? selectedClass
+          : "border-slate-200/80 hover:border-slate-300/60 hover:bg-slate-50/50 dark:border-white/10 dark:hover:bg-slate-900/50",
+      )}
+    >
+      <div className={cn("flex size-10 shrink-0 items-center justify-center rounded-md", iconClass)}>
+        <Icon className="size-5" />
+      </div>
+      <div className="min-w-0">
+        <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
+        <p className={cn("font-bold text-xl tracking-normal", valueClass)}>{value}</p>
+      </div>
+    </button>
   );
 }
