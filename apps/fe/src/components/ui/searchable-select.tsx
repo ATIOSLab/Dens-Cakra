@@ -30,6 +30,7 @@ type SearchableSelectProps = {
   contentClassName?: string;
   icon?: React.ReactNode;
   maxVisibleOptions?: number;
+  pageSize?: number;
   container?: HTMLElement | null;
   "aria-label"?: string;
 };
@@ -46,11 +47,13 @@ export function SearchableSelect({
   contentClassName,
   icon,
   maxVisibleOptions = 80,
+  pageSize,
   container,
   "aria-label": ariaLabel,
 }: SearchableSelectProps) {
   const [open, setOpen] = React.useState(false);
   const [search, setSearch] = React.useState("");
+  const [visibleCount, setVisibleCount] = React.useState(pageSize ?? maxVisibleOptions);
 
   const selectedOption = React.useMemo(() => options.find((option) => option.value === value), [options, value]);
 
@@ -67,11 +70,27 @@ export function SearchableSelect({
   }, [options, search]);
 
   React.useEffect(() => {
-    if (!open) setSearch("");
-  }, [open]);
+    if (open) {
+      setVisibleCount(pageSize ?? maxVisibleOptions);
+    } else {
+      setSearch("");
+    }
+  }, [open, pageSize, maxVisibleOptions]);
 
-  const visibleOptions = filteredOptions.slice(0, maxVisibleOptions);
-  const hiddenCount = Math.max(filteredOptions.length - visibleOptions.length, 0);
+  const handleScroll = (event: React.UIEvent<HTMLDivElement>) => {
+    if (!pageSize) return;
+    const { scrollTop, scrollHeight, clientHeight } = event.currentTarget;
+    if (scrollHeight - scrollTop - clientHeight < 50) {
+      setVisibleCount((prev) => Math.min(prev + pageSize, filteredOptions.length));
+    }
+  };
+
+  const visibleOptions = pageSize
+    ? filteredOptions.slice(0, visibleCount)
+    : filteredOptions.slice(0, maxVisibleOptions);
+  const hiddenCount = pageSize
+    ? Math.max(filteredOptions.length - visibleCount, 0)
+    : Math.max(filteredOptions.length - maxVisibleOptions, 0);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -86,12 +105,12 @@ export function SearchableSelect({
           className={cn(
             DC_CONTROLS.selectTrigger,
             DC_TYPOGRAPHY.control,
-            "w-full justify-between gap-2 text-left font-normal hover:bg-muted/50",
+            "w-full min-w-0 justify-between gap-2 text-left font-normal hover:bg-muted/50",
             !selectedOption && "text-muted-foreground",
             className,
           )}
         >
-          <span className="flex min-w-0 items-center gap-2">
+          <span className="flex min-w-0 flex-1 items-center gap-2">
             {icon ? <span className="shrink-0 text-muted-foreground">{icon}</span> : null}
             <span className="truncate">{selectedOption?.label ?? placeholder}</span>
           </span>
@@ -107,7 +126,10 @@ export function SearchableSelect({
           <Search className="pointer-events-none absolute top-1/2 left-4 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setVisibleCount(pageSize ?? maxVisibleOptions);
+            }}
             placeholder={searchPlaceholder}
             className={cn(DC_CONTROLS.input, "h-8 pr-8 pl-8 text-xs")}
           />
@@ -123,7 +145,7 @@ export function SearchableSelect({
           ) : null}
         </div>
 
-        <div className="max-h-72 overflow-y-auto p-1">
+        <div className="max-h-72 overflow-y-auto p-1" onScroll={pageSize ? handleScroll : undefined}>
           {visibleOptions.length === 0 ? (
             <div className="px-3 py-6 text-center text-muted-foreground text-xs">{emptyText}</div>
           ) : (
@@ -159,7 +181,9 @@ export function SearchableSelect({
 
         {hiddenCount > 0 ? (
           <div className="border-t px-3 py-2 text-muted-foreground text-[11px]">
-            {hiddenCount} pilihan lain disembunyikan. Ketik kata kunci untuk mempersempit hasil.
+            {pageSize
+              ? `Gulir untuk memuat ${hiddenCount} pilihan lagi (${visibleCount}/${filteredOptions.length}).`
+              : `${hiddenCount} pilihan lain disembunyikan. Ketik kata kunci untuk mempersempit hasil.`}
           </div>
         ) : null}
       </PopoverContent>

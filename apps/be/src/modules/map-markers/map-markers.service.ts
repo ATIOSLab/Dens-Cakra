@@ -3,6 +3,7 @@ import {
   AdministrativeLevel,
   BaketStatus,
   CoverageValidationStatus,
+  JaringRegistrationStatus,
   Prisma,
   PriorityLevel,
   WhatsAppMessageStatus,
@@ -114,26 +115,36 @@ export class MapMarkersService {
       unlocatedCount: 0,
       totalCount: 0,
     };
-    const [reportResult, baketResult, agentResult, categories, jaringCount] =
-      await Promise.all([
-        filters.types.has(MapMarkerType.REPORT)
-          ? this.getReportFeatures(query, context, filters)
-          : Promise.resolve(emptyResult),
-        filters.types.has(MapMarkerType.BAKET)
-          ? this.getBaketFeatures(query, context, filters)
-          : Promise.resolve(emptyResult),
-        filters.types.has(MapMarkerType.AGENT)
-          ? this.getAgentFeatures(query, context, filters)
-          : Promise.resolve(emptyResult),
-        this.prisma.reportCategory.findMany({
-          where: { isActive: true },
-          orderBy: { name: 'asc' },
-          select: { id: true, code: true, name: true },
-        }),
-        this.scope
-          .jaringWhere(context)
-          .then((where) => this.prisma.jaring.count({ where })),
-      ]);
+    const [
+      reportResult,
+      baketResult,
+      agentResult,
+      categories,
+      jaringHealth,
+      reportingJaring,
+    ] = await Promise.all([
+      filters.types.has(MapMarkerType.REPORT)
+        ? this.getReportFeatures(query, context, filters)
+        : Promise.resolve(emptyResult),
+      filters.types.has(MapMarkerType.BAKET)
+        ? this.getBaketFeatures(query, context, filters)
+        : Promise.resolve(emptyResult),
+      filters.types.has(MapMarkerType.AGENT)
+        ? this.getAgentFeatures(query, context, filters)
+        : Promise.resolve(emptyResult),
+      this.prisma.reportCategory.findMany({
+        where: { isActive: true },
+        orderBy: { name: 'asc' },
+        select: { id: true, code: true, name: true },
+      }),
+      this.jaringHealth(context, filters.now, query.areaIds),
+      this.reportingJaringCount(
+        context,
+        filters.from,
+        filters.to,
+        query.areaIds,
+      ),
+    ]);
     const features = [
       ...reportResult.features,
       ...baketResult.features,
@@ -152,7 +163,10 @@ export class MapMarkersService {
           agent: agentResult.features.length,
           totalReports: reportResult.totalCount,
           totalBakets: baketResult.totalCount,
-          jaring: jaringCount,
+          jaring: jaringHealth.verified,
+          activeJaring: jaringHealth.activeLast90Days,
+          inactiveJaring: jaringHealth.neverReported,
+          reportingJaring,
           mappableReports: Math.max(
             0,
             reportResult.totalCount - reportResult.unlocatedCount,
@@ -217,6 +231,79 @@ export class MapMarkersService {
         security: { stealthLocationsExcluded: true },
       },
     };
+  }
+
+  private async jaringHealth(
+    context: AuthorizationContext,
+    now: Date,
+    areaIds?: string[],
+  ) {
+    const scope = await this.scope.jaringWhere(context);
+    const verifiedWhere = this.withAreaFilter(
+      {
+        ...scope,
+        registrationStatus: JaringRegistrationStatus.APPROVED,
+      },
+      areaIds,
+    );
+    const activeSince = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+    const [verified, activeLast90Days, neverReported] = await Promise.all([
+      this.prisma.jaring.count({ where: verifiedWhere }),
+      this.prisma.jaring.count({
+        where: {
+          ...verifiedWhere,
+          reportSessions: { some: { submittedAt: { gte: activeSince } } },
+        },
+      }),
+      this.prisma.jaring.count({
+        where: {
+          ...verifiedWhere,
+          reportSessions: { none: { submittedAt: { not: null } } },
+        },
+      }),
+    ]);
+    return { verified, activeLast90Days, neverReported };
+  }
+
+  private withAreaFilter(
+    where: Prisma.JaringWhereInput,
+    areaIds?: string[],
+  ): Prisma.JaringWhereInput {
+    if (!areaIds?.length) return where;
+    const areaWhere: Prisma.AdministrativeAreaWhereInput = {
+      OR: [
+        { id: { in: areaIds } },
+        { descendantLinks: { some: { ancestorId: { in: areaIds } } } },
+      ],
+    };
+    return {
+      ...where,
+      areaCoverages: {
+        some: { validUntil: null, area: areaWhere },
+      },
+    };
+  }
+
+  private async reportingJaringCount(
+    context: AuthorizationContext,
+    from: Date | null,
+    to: Date | null,
+    areaIds?: string[],
+  ) {
+    const scopedJaringWhere = await this.scope.jaringWhere(context);
+    const rows = await this.prisma.whatsAppReportSession.findMany({
+      where: {
+        jaring: this.withAreaFilter(scopedJaringWhere, areaIds),
+        submittedAt: {
+          not: null,
+          ...(from ? { gte: from } : {}),
+          ...(to ? { lte: to } : {}),
+        },
+      },
+      distinct: ['jaringId'],
+      select: { jaringId: true },
+    });
+    return rows.length;
   }
 
   private async getReportFeatures(

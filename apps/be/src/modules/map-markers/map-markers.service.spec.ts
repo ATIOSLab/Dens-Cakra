@@ -4,6 +4,7 @@ import {
   AreaResolutionMethod,
   BaketStatus,
   CoordinateSource,
+  JaringRegistrationStatus,
   PriorityLevel,
   RoleCode,
   WhatsAppValidationSummary,
@@ -127,6 +128,9 @@ describe('MapMarkersService', () => {
           .mockResolvedValue([
             { id: 'category', code: 'AKSI_MASSA', name: 'Aksi Massa' },
           ] as never),
+      },
+      whatsAppReportSession: {
+        findMany: jest.fn().mockResolvedValue([] as never),
       },
       baket: {
         findMany: jest.fn().mockResolvedValue([
@@ -275,6 +279,9 @@ describe('MapMarkersService', () => {
     const prisma = {
       jaring: { count: jest.fn().mockResolvedValue(0) },
       reportCategory: { findMany: jest.fn().mockResolvedValue([] as never) },
+      whatsAppReportSession: {
+        findMany: jest.fn().mockResolvedValue([] as never),
+      },
       jaringCaretakerAssignment: {
         findMany: jest.fn().mockResolvedValue([] as never),
       },
@@ -447,7 +454,7 @@ describe('MapMarkersService', () => {
       }),
     );
     expect(result.meta.unlocatedItems).toHaveLength(1);
-    expect(scope.jaringWhere).toHaveBeenCalledTimes(2);
+    expect(scope.jaringWhere).toHaveBeenCalledTimes(3);
     expect(prisma.whatsAppReportSession.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
@@ -582,5 +589,63 @@ describe('MapMarkersService', () => {
     await expect(service.list(query, {} as never)).rejects.toMatchObject({
       code: 'MAP_MARKER_BBOX_INVALID',
     });
+  });
+
+  it('computes verified, active (90 days), and never-reported Jaring counts', async () => {
+    const prisma = {
+      jaring: {
+        count: jest.fn(
+          (args: { where: { reportSessions?: { some?: unknown } } }) => {
+            const sessions = args.where.reportSessions;
+            if (!sessions) return Promise.resolve(12);
+            if ('some' in sessions) return Promise.resolve(7);
+            return Promise.resolve(3);
+          },
+        ),
+      },
+      reportCategory: {
+        findMany: jest.fn().mockResolvedValue([] as never),
+      },
+      whatsAppReportSession: {
+        findMany: jest.fn((args: { distinct?: unknown }) =>
+          Promise.resolve(
+            args.distinct
+              ? [{ jaringId: 'jaring-a' }, { jaringId: 'jaring-b' }]
+              : [],
+          ),
+        ),
+      },
+    };
+    const scope = {
+      jaringWhere: jest.fn().mockResolvedValue({} as never),
+    };
+    const spatial = {
+      matchCoordinates: jest.fn().mockResolvedValue(new Map() as never),
+    };
+    const service = new MapMarkersService(
+      prisma as never,
+      scope as never,
+      spatial as never,
+    );
+    const query = new MapMarkersQuery();
+    query.types = [MapMarkerType.REPORT];
+
+    const result = await service.list(query, {} as never);
+
+    expect(result.meta.counts).toEqual(
+      expect.objectContaining({
+        jaring: 12,
+        activeJaring: 7,
+        inactiveJaring: 3,
+        reportingJaring: 2,
+      }),
+    );
+    expect(prisma.jaring.count).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          registrationStatus: JaringRegistrationStatus.APPROVED,
+        }),
+      }),
+    );
   });
 });

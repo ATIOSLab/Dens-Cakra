@@ -270,6 +270,10 @@ Frontend `apiBrowserFetch` mengembalikan isi properti `data`, sehingga komponen 
     "agent": 20,
     "totalReports": 1250,
     "totalBakets": 340,
+    "jaring": 95,
+    "activeJaring": 61,
+    "inactiveJaring": 24,
+    "reportingJaring": 40,
     "mappableReports": 1180,
     "mappableBakets": 330,
     "unlocatedReport": 70,
@@ -317,6 +321,11 @@ Catatan perhitungan:
 - `totalReports`/`totalBakets` serta `summary.reports`/`summary.bakets` adalah agregat hasil filter sebelum pemotongan feature.
 - `unlocatedItems` berisi pratinjau Laporan Jaring tanpa koordinat, maksimal 20 item; Baket/personel tanpa koordinat hanya tersedia sebagai angka agregat.
 - `areas` berasal dari area yang benar-benar ditemukan pada feature hasil dan mengikuti scope akses.
+- Metrik kesehatan Jaring (mengikuti scope akses dan filter wilayah `areaIds`; tidak dipengaruhi filter periode/marker, kecuali `reportingJaring` yang mengikuti periode):
+  - `counts.jaring` — Jaring **terverifikasi** (`registrationStatus = APPROVED`) dalam scope dan wilayah terpilih.
+  - `counts.activeJaring` — Jaring terverifikasi yang memiliki laporan (`reportSessions.submittedAt`) dalam **90 hari terakhir**.
+  - `counts.inactiveJaring` — Jaring terverifikasi yang **belum pernah** memiliki laporan terkirim.
+  - `counts.reportingJaring` — Jaring **unik** yang memiliki laporan terkirim dalam rentang `from`–`to` (mengikuti filter tanggal & wilayah; Jaring yang sama dihitung sekali).
 
 ## Pemakaian pada halaman Peta Jejaring Intelijen
 

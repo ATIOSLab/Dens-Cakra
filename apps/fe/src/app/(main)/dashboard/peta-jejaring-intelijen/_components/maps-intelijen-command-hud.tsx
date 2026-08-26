@@ -435,11 +435,10 @@ export function MapsIntelijenCommandHud({
               value={filters.period}
               onChange={(value) => onFilterChange({ period: value as MapNetworkFilters["period"] })}
               options={[
-                ["ALL", "Semua waktu"],
                 ["TODAY", "Hari ini"],
                 ["LAST_7_DAYS", "7 hari terakhir"],
+                ["LAST_14_DAYS", "14 hari terakhir"],
                 ["LAST_30_DAYS", "30 hari terakhir"],
-                ["THIS_MONTH", "Bulan berjalan"],
                 ["CUSTOM", "Rentang kustom"],
               ]}
             />

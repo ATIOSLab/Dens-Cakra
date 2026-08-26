@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { ArrowDownUp, Copy, RefreshCw, Search, ShieldAlert, Signal, WifiOff } from "lucide-react";
+import { ArrowDownUp, Copy, RefreshCw, Search, ShieldAlert, Signal, WifiOff, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -347,6 +347,24 @@ export function KonektivitasWhatsappPage() {
 
   const summary = data?.summary ?? { connected: 0, disconnected: 0, connecting: 0, error: 0, total: 0 };
 
+  const isFilterActive = Boolean(
+    filters.q ||
+      filters.provinceId !== ALL ||
+      filters.regencyCityId !== ALL ||
+      filters.connectionStatus !== ALL ||
+      filters.channelId !== ALL,
+  );
+
+  const handleResetFilters = useCallback(() => {
+    setFilters({
+      q: "",
+      provinceId: ALL,
+      regencyCityId: ALL,
+      connectionStatus: ALL,
+      channelId: ALL,
+    });
+  }, []);
+
   return (
     <main className="space-y-6 p-6">
       <section className="space-y-2">
@@ -410,19 +428,47 @@ export function KonektivitasWhatsappPage() {
         </Card>
       </section>
 
-      <section className={cn(DC_CONTROLS.card, "space-y-4 p-4")}>
-        <div className="grid gap-3 lg:grid-cols-[minmax(13rem,0.9fr)_minmax(15rem,1fr)_minmax(15rem,1fr)_minmax(13rem,0.7fr)]">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+      {/* FILTER & TOOLBAR CARD */}
+      <div className="flex flex-col gap-3 rounded-md border border-slate-200/80 bg-card p-4 shadow-xs dark:border-white/10">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-border/70 border-b pb-3">
+          <div>
+            <p className={cn(DC_TYPOGRAPHY.cardTitle, "flex items-center gap-2")}>
+              <Search className="size-4 text-primary" />
+              Filter Konektivitas WhatsApp
+            </p>
+            <p className="mt-1 text-muted-foreground text-xs">
+              Urutan wilayah: Provinsi lalu Kota/Kabupaten.
+            </p>
+          </div>
+          <Badge variant="outline" className="rounded-full font-mono text-[11px]">
+            {isFilterActive ? "Filter aktif" : "Tanpa filter"}
+          </Badge>
+        </div>
+
+        <div className="space-y-3.5">
+          {/* TOP ROW: Search input */}
+          <div className="relative flex-1 min-w-[240px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
             <Input
-              className="pl-9"
               placeholder="Cari perangkat, kanal, wilayah..."
               value={filters.q}
               onChange={(event) => updateFilter("q", event.target.value)}
+              className={cn(DC_CONTROLS.input, "h-9 pl-9 text-xs")}
             />
+            {filters.q && (
+              <button
+                type="button"
+                onClick={() => updateFilter("q", "")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="size-3.5" />
+              </button>
+            )}
           </div>
-          <div className="grid min-w-0 gap-1">
-            <span className="text-xs text-muted-foreground">Provinsi</span>
+
+          {/* MIDDLE ROW: Structured Grid of Filter Dropdowns */}
+          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+            {/* 1. Filter Provinsi */}
             <SearchableSelect
               value={filters.provinceId}
               options={[
@@ -434,16 +480,16 @@ export function KonektivitasWhatsappPage() {
               searchPlaceholder="Cari provinsi..."
               emptyText="Provinsi tidak ditemukan."
               aria-label="Filter provinsi"
+              className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full")}
             />
-          </div>
-          <div className="grid min-w-0 gap-1">
-            <span className="text-xs text-muted-foreground">Kota/Kabupaten</span>
+
+            {/* 2. Filter Kota/Kabupaten */}
             <SearchableSelect
               value={canSelectRegency ? filters.regencyCityId : ALL}
               options={[
                 {
                   value: ALL,
-                  label: canSelectRegency ? "Semua Kota/Kabupaten" : "Pilih Provinsi terlebih dahulu",
+                  label: canSelectRegency ? "Semua Kota/Kabupaten" : "Pilih Provinsi dahulu",
                   description: canSelectRegency ? "Dalam provinsi terpilih" : "Filter aktif setelah Provinsi dipilih",
                 },
                 ...regencyCities.map(areaOption),
@@ -454,14 +500,15 @@ export function KonektivitasWhatsappPage() {
               emptyText="Kota/kabupaten tidak ditemukan."
               disabled={!canSelectRegency}
               aria-label="Filter kota atau kabupaten"
+              className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full")}
             />
-          </div>
-          <div className="grid min-w-0 gap-1">
-            <span className="text-xs text-muted-foreground">Status Koneksi</span>
+
+            {/* 3. Filter Status Koneksi */}
             <NativeSelect
               value={filters.connectionStatus}
               onChange={(event) => updateFilter("connectionStatus", event.target.value)}
-              className="w-full"
+              className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full text-xs")}
+              aria-label="Filter status koneksi"
             >
               <NativeSelectOption value={ALL}>Semua status</NativeSelectOption>
               {(data?.filters.connectionStatuses ?? []).map((status) => (
@@ -470,11 +517,8 @@ export function KonektivitasWhatsappPage() {
                 </NativeSelectOption>
               ))}
             </NativeSelect>
-          </div>
-        </div>
-        <div className="grid gap-3 lg:grid-cols-4">
-          <div className="grid min-w-0 gap-1 lg:col-span-1">
-            <span className="text-xs text-muted-foreground">Perangkat / Kanal</span>
+
+            {/* 4. Filter Perangkat / Kanal */}
             <SearchableSelect
               value={filters.channelId}
               options={[
@@ -491,10 +535,25 @@ export function KonektivitasWhatsappPage() {
               searchPlaceholder="Cari perangkat..."
               emptyText="Perangkat tidak ditemukan."
               aria-label="Filter perangkat"
+              className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full")}
             />
           </div>
+
+          {/* BOTTOM ROW: Reset Filter Button */}
+          {isFilterActive && (
+            <div className="flex justify-end pt-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleResetFilters}
+                className="h-8 text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 font-medium"
+              >
+                Reset Filter
+              </Button>
+            </div>
+          )}
         </div>
-      </section>
+      </div>
 
       <section className={cn(DC_CONTROLS.card, "overflow-hidden")}>
         {error ? <div className="p-4 text-sm text-rose-200">{error}</div> : null}

@@ -184,7 +184,7 @@ export type AdministrativeAreaScope = {
   parentOfficialCode?: string | null;
 };
 
-export type PeriodPreset = "ALL" | "TODAY" | "LAST_7_DAYS" | "LAST_30_DAYS" | "THIS_MONTH" | "CUSTOM";
+export type PeriodPreset = "TODAY" | "LAST_7_DAYS" | "LAST_14_DAYS" | "LAST_30_DAYS" | "CUSTOM";
 
 export function resolveCoordinates(report: JaringReportSessionDetail): [number, number] | null {
   if (
@@ -239,7 +239,6 @@ export type BaseMapLayer = "dark" | "satellite" | "terrain" | "light" | "osm";
 export type CommandLayerKey = "report" | "baket";
 export type MarkerColorMode = "validity" | "urgency" | "category";
 export type HeatmapWeight = "count" | "urgency" | "valid" | "baket";
-export type SummaryCardFilter = "ALL" | "REPORT" | "BAKET";
 export type DataTypeFilter = "ALL" | "REPORT" | "BAKET";
 
 export type MapNetworkFilters = {
@@ -424,6 +423,9 @@ export type MapNetworkResponse = {
       totalReports: number;
       totalBakets: number;
       jaring: number;
+      activeJaring: number;
+      inactiveJaring: number;
+      reportingJaring: number;
       mappableReports: number;
       mappableBakets: number;
       unlocatedReport: number;
@@ -487,6 +489,9 @@ export const EMPTY_MAP_RESPONSE: MapNetworkResponse = {
       totalReports: 0,
       totalBakets: 0,
       jaring: 0,
+      activeJaring: 0,
+      inactiveJaring: 0,
+      reportingJaring: 0,
       mappableReports: 0,
       mappableBakets: 0,
       unlocatedReport: 0,

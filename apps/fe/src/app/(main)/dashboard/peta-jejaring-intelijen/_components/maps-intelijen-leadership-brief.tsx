@@ -7,12 +7,7 @@ import { ChevronRight, type LucideIcon, ShieldCheck, TrendingUp, TriangleAlert }
 import { DC_TYPOGRAPHY } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 
-import type {
-  MapNetworkFeature,
-  MapNetworkFilters,
-  MapNetworkResponse,
-  SummaryCardFilter,
-} from "./maps-intelijen-types";
+import type { MapNetworkFeature, MapNetworkFilters, MapNetworkResponse } from "./maps-intelijen-types";
 
 type Props = {
   features: MapNetworkFeature[];
@@ -20,21 +15,13 @@ type Props = {
   periodLabel: string;
   loading: boolean;
   onFilterChange: (patch: Partial<MapNetworkFilters>) => void;
-  onCardFilterChange: (filter: SummaryCardFilter) => void;
 };
 
 function percentage(value: number, total: number) {
   return total > 0 ? Math.round((value / total) * 100) : 0;
 }
 
-export function MapsIntelijenLeadershipBrief({
-  features,
-  meta,
-  periodLabel,
-  loading,
-  onFilterChange,
-  onCardFilterChange,
-}: Props) {
+export function MapsIntelijenLeadershipBrief({ features, meta, periodLabel, loading, onFilterChange }: Props) {
   const intelligence = useMemo(() => {
     const reportTotal = meta.summary.reports.total ?? meta.counts.report ?? 0;
     const baketTotal = meta.summary.bakets.total ?? 0;
@@ -120,7 +107,6 @@ export function MapsIntelijenLeadershipBrief({
               tone="amber"
               disabled={loading || intelligence.outsideScope === 0}
               onClick={() => {
-                onCardFilterChange("ALL");
                 onFilterChange({
                   suitability: "OUTSIDE_SCOPE",
                   urgency: "ALL",

@@ -28,7 +28,7 @@ import { DOMAIN_TERMS } from "@/lib/domain/terminology";
 import { DOMAIN_VISUALS, PERSONNEL_LOCATION_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 
-import type { HeatmapWeight, MapMarkerType, MapNetworkProperties, SummaryCardFilter } from "./maps-intelijen-types";
+import type { HeatmapWeight, MapMarkerType, MapNetworkProperties } from "./maps-intelijen-types";
 
 export type MapSemanticPresentation = {
   label: string;
@@ -212,12 +212,6 @@ export const COORDINATE_AVAILABILITY_PRESENTATION: Record<"WITH" | "WITHOUT", Ma
     icon: MapPinOff,
     ...toneFields("neutral"),
   },
-};
-
-export const SUMMARY_CARD_PRESENTATION: Record<SummaryCardFilter, MapSemanticPresentation> = {
-  ALL: DATA_TYPE_PRESENTATION.report,
-  REPORT: DATA_TYPE_PRESENTATION.report,
-  BAKET: DATA_TYPE_PRESENTATION.baket,
 };
 
 export const HEATMAP_WEIGHT_PRESENTATION: Record<HeatmapWeight, MapSemanticPresentation> = {

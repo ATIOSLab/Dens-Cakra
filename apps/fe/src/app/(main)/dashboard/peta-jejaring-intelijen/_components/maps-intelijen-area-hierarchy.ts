@@ -28,7 +28,7 @@ function loadingOrAllLabel(
 ) {
   if (loading) return loadingLabel;
   if (!selectedParent) return parentPrompt;
-  return `${allLabel} di ${selectedParent.name}`;
+  return allLabel;
 }
 
 export function buildMapAreaHierarchyOptions(areaOptions: MapAreaFilterOptions, filters: MapNetworkFilters) {
@@ -48,7 +48,7 @@ export function buildMapAreaHierarchyOptions(areaOptions: MapAreaFilterOptions, 
     provinces: [
       [
         "ALL",
-        areaOptions.loadingLevel === "province" ? "Memuat Provinsi/Binda..." : "Pilih Provinsi/Binda terlebih dahulu",
+        areaOptions.loadingLevel === "province" ? "Memuat Provinsi..." : "Semua Provinsi",
       ],
       ...provinces.map((area) => [area.id, optionLabel(area)] as MapAreaSelectOption),
     ] satisfies MapAreaSelectOption[],
@@ -59,7 +59,7 @@ export function buildMapAreaHierarchyOptions(areaOptions: MapAreaFilterOptions, 
           areaOptions.loadingLevel === "regency",
           "Memuat Kota/Kabupaten...",
           selectedProvince,
-          "Pilih Provinsi/Binda terlebih dahulu",
+          "Pilih Provinsi dahulu",
           "Semua Kota/Kabupaten",
         ),
       ],
@@ -72,7 +72,7 @@ export function buildMapAreaHierarchyOptions(areaOptions: MapAreaFilterOptions, 
           areaOptions.loadingLevel === "district",
           "Memuat Kecamatan...",
           selectedRegency,
-          "Pilih Kota/Kabupaten terlebih dahulu",
+          "Pilih Kota/Kabupaten dahulu",
           "Semua Kecamatan",
         ),
       ],
@@ -85,8 +85,8 @@ export function buildMapAreaHierarchyOptions(areaOptions: MapAreaFilterOptions, 
           areaOptions.loadingLevel === "village",
           "Memuat Kelurahan/Desa...",
           selectedDistrict,
-          "Pilih Kecamatan terlebih dahulu",
-          "Semua Kelurahan",
+          "Pilih Kecamatan dahulu",
+          "Semua Kelurahan/Desa",
         ),
       ],
       ...villages.map((area) => [area.id, optionLabel(area)] as MapAreaSelectOption),
