@@ -3,6 +3,7 @@ import { ApiException } from '../../common/api/api-exception.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
 import {
   IntegrationStatus,
+  JaringRegistrationStatus,
   JaringStatus,
   type Prisma,
   WhatsAppBotConnectionStatus,
@@ -50,6 +51,9 @@ import {
 } from './kpi-metrics.js';
 
 const JAKARTA_OFFSET_MS = 7 * 60 * 60 * 1000;
+
+/** Jumlah baris teratas yang ditampilkan pada leaderboard (Peringkat). */
+const KPI_LEADERBOARD_LIMIT = 10;
 
 type KpiDateRange = {
   from: Date;
@@ -99,11 +103,39 @@ const jaringSelect = {
   registeredAt: true,
   reviewedAt: true,
   whatsappNumber: true,
+  aliasName: true,
+  fullName: true,
   areaCoverages: {
     where: { validUntil: null },
     orderBy: [{ isPrimary: 'desc' as const }, { validFrom: 'desc' as const }],
     take: 1,
     select: { area: { select: areaWithParentsSelect } },
+  },
+  caretakerAssignments: {
+    where: { isActive: true, validUntil: null },
+    orderBy: { validFrom: 'desc' as const },
+    take: 1,
+    select: {
+      fieldOfficerAssignmentId: true,
+      fieldOfficerAssignment: {
+        select: {
+          id: true,
+          userProfile: {
+            select: { id: true, fullName: true, username: true },
+          },
+        },
+      },
+    },
+  },
+  messages: {
+    take: 1,
+    orderBy: { receivedAt: 'desc' as const },
+    select: { receivedAt: true },
+  },
+  reportSessions: {
+    take: 1,
+    orderBy: { lastActivityAt: 'desc' as const },
+    select: { submittedAt: true },
   },
 } satisfies Prisma.JaringSelect;
 
@@ -289,6 +321,23 @@ export class KpiService {
     return this.loadDetail(query, context, range);
   }
 
+  async leaderboard(query: KpiQueryDto, context: AuthorizationContext) {
+    const range = this.resolveRange(query);
+    return this.cache.getOrSet(
+      {
+        namespace: 'kpi-v1',
+        identity: {
+          kind: 'leaderboard',
+          scope: authorizationScopeIdentity(context),
+          query,
+          range,
+        },
+        ttlMs: 15_000,
+      },
+      () => this.loadLeaderboard(query, context, range),
+    );
+  }
+
   async filterOptions(context: AuthorizationContext) {
     const areaTree = await this.scope.areaTree(context);
     return {
@@ -398,7 +447,12 @@ export class KpiService {
         other: current.other,
         withoutArea: current.jaringWithoutArea,
       },
-      insight: this.buildInsight(current, core, range),
+      insight: this.buildInsight(
+        current,
+        core,
+        range,
+        await this.resolveRegionLevel(context, query),
+      ),
     };
   }
 
@@ -476,6 +530,15 @@ export class KpiService {
           status: true,
           primaryJaringId: true,
           createdAt: true,
+          createdByFieldOfficerAssignmentId: true,
+          createdByFieldOfficerAssignment: {
+            select: {
+              id: true,
+              userProfile: {
+                select: { id: true, fullName: true, username: true },
+              },
+            },
+          },
           _count: { select: { convertedSourceMessages: true } },
           versions: {
             select: { sourceMessages: { select: { messageId: true } } },
@@ -659,6 +722,21 @@ export class KpiService {
         .map((item) => item.id),
     );
     const activeVerifiedJaring = activeVerifiedIds.size;
+    const approvedIds = new Set(
+      jaring
+        .filter(
+          (item) =>
+            item.registrationStatus === JaringRegistrationStatus.APPROVED,
+        )
+        .map((item) => item.id),
+    );
+    const verifiedJaring = approvedIds.size;
+    const activeJaring = jaring.filter(
+      (item) =>
+        item.registrationStatus === JaringRegistrationStatus.APPROVED &&
+        this.isOperationalActive(item),
+    ).length;
+    const inactiveJaring = verifiedJaring - activeJaring;
 
     const validReports = reports.filter((report) => this.isValidReport(report));
     const totalReports = reports.length;
@@ -721,7 +799,10 @@ export class KpiService {
 
     return {
       totalJaring,
+      verifiedJaring,
+      activeJaring,
       activeVerifiedJaring,
+      inactiveJaring,
       productiveJaring,
       notReportingJaring,
       productivityPercent,
@@ -759,17 +840,9 @@ export class KpiService {
       // Status Jaring adalah snapshot "sekarang"; perbandingan periode tidak
       // tersedia tanpa rekonstruksi historis, jadi jangan tampilkan "Tetap".
       card('totalJaring', null),
-      card('activeVerifiedJaring', null),
-      card(
-        'productiveJaring',
-        compareMetric(current.productiveJaring, previous.productiveJaring),
-        { tone: 'positive' },
-      ),
-      card(
-        'notReportingJaring',
-        compareMetric(current.notReportingJaring, previous.notReportingJaring),
-        { tone: 'warning' },
-      ),
+      card('verifiedJaring', null),
+      card('activeJaring', null),
+      card('inactiveJaring', null),
       {
         key: 'productivityPercent',
         value: current.productivityPercent,
@@ -827,11 +900,13 @@ export class KpiService {
     metrics: ReturnType<KpiService['computeMetrics']>,
     core: Awaited<ReturnType<KpiService['loadCore']>>,
     range: KpiDateRange,
+    level: KpiRegionLevel,
   ) {
     const regions = this.groupByRegion(
       core.jaring,
       core.reports,
       core.sourceMessageIds,
+      level,
     );
     const ranked = regions.filter((region) => region.activeVerified > 0);
     const top = ranked.length
@@ -936,7 +1011,7 @@ export class KpiService {
       core.jaring,
       core.reports,
       core.sourceMessageIds,
-      KpiRegionLevel.PROVINCE,
+      await this.resolveRegionLevel(context, query),
       query.search,
     )
       .filter((region) => region.activeVerified > 0 || region.totalReports > 0)
@@ -1137,7 +1212,7 @@ export class KpiService {
       core.jaring,
       core.reports,
       core.sourceMessageIds,
-      KpiRegionLevel.PROVINCE,
+      await this.resolveRegionLevel(context, query),
       query.search,
     )
       .filter((region) => region.totalReports > 0)
@@ -1674,6 +1749,24 @@ export class KpiService {
     range: KpiDateRange,
   ) {
     const core = await this.loadCore(query, context, range);
+
+    if (query.dimension === 'gaswil') {
+      const leaderboard = this.groupByGaswil(core);
+      return {
+        period: this.periodPayload(query, range),
+        dimension: query.dimension,
+        leaderboard: this.paginate(leaderboard, query),
+      };
+    }
+    if (query.dimension === 'jaring') {
+      const leaderboard = this.groupByJaring(core);
+      return {
+        period: this.periodPayload(query, range),
+        dimension: query.dimension,
+        leaderboard: this.paginate(leaderboard, query),
+      };
+    }
+
     const allowedMetrics = [
       'totalJaring',
       'activeVerifiedJaring',
@@ -1706,7 +1799,7 @@ export class KpiService {
         core.jaring,
         core.reports,
         core.sourceMessageIds,
-        KpiRegionLevel.PROVINCE,
+        await this.resolveRegionLevel(context, query),
         query.search,
       ).map((region) => ({
         dimension: region.name,
@@ -1732,6 +1825,25 @@ export class KpiService {
       metric: query.metric,
       dimension: query.dimension,
       rows,
+    };
+  }
+
+  private async loadLeaderboard(
+    query: KpiQueryDto,
+    context: AuthorizationContext,
+    range: KpiDateRange,
+  ) {
+    const core = await this.loadCore(query, context, range);
+    const gaswil = this.groupByGaswil(core)
+      .slice(0, KPI_LEADERBOARD_LIMIT)
+      .map((row, index) => ({ rank: index + 1, ...row }));
+    const jaring = this.groupByJaring(core)
+      .slice(0, KPI_LEADERBOARD_LIMIT)
+      .map((row, index) => ({ rank: index + 1, ...row }));
+    return {
+      period: this.periodPayload(query, range),
+      gaswil,
+      jaring,
     };
   }
 
@@ -1874,6 +1986,196 @@ export class KpiService {
       .sort((a, b) => a.name.localeCompare(b.name));
   }
 
+  private groupByGaswil(core: Awaited<ReturnType<KpiService['loadCore']>>) {
+    const activeVerifiedIds = new Set(
+      core.jaring
+        .filter(
+          (item) =>
+            classifyJaringStatus(item.status, item.registrationStatus) ===
+            JARING_STATUS_GROUP.ACTIVE_VERIFIED,
+        )
+        .map((item) => item.id),
+    );
+    const validReports = core.reports.filter((report) =>
+      this.isValidReport(report),
+    );
+
+    const jaringGaswil = new Map<string, { id: string; name: string }>();
+    for (const item of core.jaring) {
+      const caretaker = item.caretakerAssignments[0];
+      if (!caretaker) continue;
+      const profile = caretaker.fieldOfficerAssignment.userProfile;
+      jaringGaswil.set(item.id, {
+        id: caretaker.fieldOfficerAssignment.id,
+        name: this.personName(profile),
+      });
+    }
+
+    type GaswilGroup = {
+      id: string;
+      name: string;
+      binaan: Set<string>;
+      aktif: Set<string>;
+      melapor: Set<string>;
+      baketDibuat: number;
+      baketBinaan: number;
+    };
+    const groups = new Map<string, GaswilGroup>();
+    const ensure = (id: string, name: string): GaswilGroup => {
+      const existing = groups.get(id);
+      if (existing) return existing;
+      const created: GaswilGroup = {
+        id,
+        name,
+        binaan: new Set(),
+        aktif: new Set(),
+        melapor: new Set(),
+        baketDibuat: 0,
+        baketBinaan: 0,
+      };
+      groups.set(id, created);
+      return created;
+    };
+
+    for (const item of core.jaring) {
+      const gaswil = jaringGaswil.get(item.id);
+      if (!gaswil) continue;
+      const group = ensure(gaswil.id, gaswil.name);
+      group.binaan.add(item.id);
+      if (activeVerifiedIds.has(item.id)) group.aktif.add(item.id);
+    }
+    for (const report of validReports) {
+      const gaswil = jaringGaswil.get(report.jaringId);
+      if (!gaswil) continue;
+      const group = ensure(gaswil.id, gaswil.name);
+      group.melapor.add(report.jaringId);
+      const isBaket =
+        Boolean(report.submittedMessage?.convertedBaketId) ||
+        (report.submittedMessageId
+          ? core.sourceMessageIds.has(report.submittedMessageId)
+          : false);
+      if (isBaket) group.baketBinaan += 1;
+    }
+    for (const baket of core.bakets) {
+      if (!baket.createdByFieldOfficerAssignmentId) continue;
+      const profile = baket.createdByFieldOfficerAssignment?.userProfile;
+      ensure(
+        baket.createdByFieldOfficerAssignmentId,
+        this.personName(profile),
+      ).baketDibuat += 1;
+    }
+
+    return [...groups.values()]
+      .map((group) => ({
+        id: group.id,
+        name: group.name,
+        binaan: group.binaan.size,
+        aktif: group.aktif.size,
+        melapor: group.melapor.size,
+        baketDibuat: group.baketDibuat,
+        baketBinaan: group.baketBinaan,
+      }))
+      .filter((row) => row.binaan > 0 || row.baketDibuat > 0)
+      .sort(
+        (a, b) =>
+          b.melapor - a.melapor || b.baketBinaan - a.baketBinaan || b.binaan - a.binaan,
+      );
+  }
+
+  private groupByJaring(core: Awaited<ReturnType<KpiService['loadCore']>>) {
+    const validReports = core.reports.filter((report) =>
+      this.isValidReport(report),
+    );
+    const jaringById = new Map(core.jaring.map((item) => [item.id, item]));
+
+    const reportsByJaring = new Map<string, number>();
+    const baketByJaring = new Map<string, number>();
+    for (const report of validReports) {
+      reportsByJaring.set(
+        report.jaringId,
+        (reportsByJaring.get(report.jaringId) ?? 0) + 1,
+      );
+      const isBaket =
+        Boolean(report.submittedMessage?.convertedBaketId) ||
+        (report.submittedMessageId
+          ? core.sourceMessageIds.has(report.submittedMessageId)
+          : false);
+      if (isBaket) {
+        baketByJaring.set(
+          report.jaringId,
+          (baketByJaring.get(report.jaringId) ?? 0) + 1,
+        );
+      }
+    }
+
+    const rows: Array<{
+      id: string;
+      name: string;
+      alias: string | null;
+      whatsappNumber: string;
+      wilayah: string;
+      gaswil: string;
+      laporan: number;
+      baket: number;
+    }> = [];
+    for (const [jaringId, laporan] of reportsByJaring) {
+      const jaring = jaringById.get(jaringId);
+      const region = this.resolveRegion(jaring?.areaCoverages[0]?.area);
+      const wilayah =
+        region.districtName !== 'Wilayah Belum Terpetakan'
+          ? region.districtName
+          : region.regencyName !== 'Wilayah Belum Terpetakan'
+            ? region.regencyName
+            : region.provinceName;
+      const caretaker = jaring?.caretakerAssignments[0];
+      const gaswil =
+        this.personName(caretaker?.fieldOfficerAssignment.userProfile) ||
+        'Tanpa Nama';
+      rows.push({
+        id: jaringId,
+        name: jaring?.fullName?.trim() || jaring?.aliasName?.trim() || jaringId,
+        alias: jaring?.aliasName ?? null,
+        whatsappNumber: maskPhone(jaring?.whatsappNumber),
+        wilayah,
+        gaswil,
+        laporan,
+        baket: baketByJaring.get(jaringId) ?? 0,
+      });
+    }
+
+    return rows.sort((a, b) => b.laporan - a.laporan || b.baket - a.baket);
+  }
+
+  private personName(
+    profile?: { fullName?: string | null; username?: string | null } | null,
+  ): string {
+    return profile?.fullName?.trim() || profile?.username?.trim() || 'Tanpa Nama';
+  }
+
+  /**
+   * Waktu laporan terakhir Jaring (dari pesan terakhir atau sesi laporan
+   * terakhir), konsisten dengan status operasional "Jaring Aktif 90 Hari" pada
+   * halaman Daftar Jaring.
+   */
+  private jaringLastReportAt(item: KpiJaring): Date | null {
+    const messageDate = item.messages?.[0]?.receivedAt;
+    const sessionDate = item.reportSessions?.[0]?.submittedAt;
+    if (!messageDate && !sessionDate) return null;
+    const latest = Math.max(
+      messageDate ? new Date(messageDate).getTime() : 0,
+      sessionDate ? new Date(sessionDate).getTime() : 0,
+    );
+    return new Date(latest);
+  }
+
+  /** Jaring dianggap aktif bila melapor dalam 90 hari terakhir (operasional). */
+  private isOperationalActive(item: KpiJaring): boolean {
+    const lastReportAt = this.jaringLastReportAt(item);
+    if (!lastReportAt) return false;
+    const ninetyDaysAgo = Date.now() - 90 * 24 * 60 * 60 * 1000;
+    return lastReportAt.getTime() >= ninetyDaysAgo;
+  }
+
   private resolveRegion(area?: AreaNode | null): RegionKey {
     if (!area) return this.emptyRegion();
     const chain: AreaNode[] = [];
@@ -1949,6 +2251,7 @@ export class KpiService {
     if (levels.has('DISTRICT')) return KpiRegionLevel.DISTRICT;
     if (levels.has('REGENCY') || levels.has('CITY'))
       return KpiRegionLevel.REGENCY;
+    if (levels.has('PROVINCE')) return KpiRegionLevel.REGENCY;
     return KpiRegionLevel.PROVINCE;
   }
 

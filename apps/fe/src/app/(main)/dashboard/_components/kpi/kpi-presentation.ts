@@ -64,8 +64,10 @@ export function comparisonLabel(comparison: KpiComparison): string {
 }
 
 export const CARD_LABELS: Record<string, string> = {
-  totalJaring: "Total Seluruh Jaring",
-  activeVerifiedJaring: "Jaring Aktif Terverifikasi",
+  totalJaring: "Total Jaring yang Diajukan",
+  verifiedJaring: "Total Jaring Terverifikasi",
+  activeJaring: "Total Jaring Aktif",
+  inactiveJaring: "Total Jaring Tidak Aktif",
   productiveJaring: "Jaring Produktif",
   notReportingJaring: "Jaring Belum Mengirim Laporan",
   productivityPercent: "Persentase Produktivitas",
@@ -78,8 +80,10 @@ export const CARD_LABELS: Record<string, string> = {
 };
 
 export const CARD_DESCRIPTIONS: Record<string, string> = {
-  totalJaring: "Seluruh Jaring yang terdata dalam cakupan wilayah pengguna.",
-  activeVerifiedJaring: "Jaring disetujui (APPROVED) dan aktif (ACTIVE). Basis produktivitas.",
+  totalJaring: "Seluruh Jaring yang diajukan dan terdata dalam cakupan wilayah pengguna.",
+  verifiedJaring: "Jaring disetujui (APPROVED), baik yang aktif maupun tidak aktif.",
+  activeJaring: "Jaring terverifikasi (APPROVED) yang melapor dalam 90 hari terakhir.",
+  inactiveJaring: "Jaring terverifikasi (APPROVED) yang tidak melapor dalam 90 hari terakhir.",
   productiveJaring: "Jaring Aktif Terverifikasi yang mengirim minimal satu Laporan Jaring valid.",
   notReportingJaring: "Jaring Aktif Terverifikasi tanpa Laporan Jaring valid pada periode.",
   productivityPercent: "Rasio Jaring Produktif terhadap Jaring Aktif Terverifikasi.",

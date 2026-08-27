@@ -162,6 +162,20 @@ export class KpiController {
     return apiResult(await this.service.detail(query, context));
   }
 
+  @Get('leaderboard')
+  @ApiContract({
+    operationId: 'apiKpi011',
+    contractId: 'API-KPI-011',
+    summary: 'Peringkat (leaderboard) Petugas Wilayah dan Jaring',
+    roles: [...KPI_ROLES],
+  })
+  async leaderboard(
+    @Query() query: KpiQueryDto,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.service.leaderboard(query, context));
+  }
+
   @Get('export')
   @ApiContract({
     operationId: 'apiKpi009',

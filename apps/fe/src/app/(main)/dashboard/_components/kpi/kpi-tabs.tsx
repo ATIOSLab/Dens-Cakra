@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
+import { DonutChart, HorizontalBar, TrendArea, VerticalBar } from "./kpi-charts";
 import {
   buildDrilldownUrl,
   cardDescription,
@@ -31,6 +32,9 @@ import type {
   KpiComparison,
   KpiDetail,
   KpiFilters,
+  KpiGaswilRow,
+  KpiJaringRow,
+  KpiLeaderboardData,
   KpiProductivity,
   KpiRegionComparison,
   KpiReportsBaket,
@@ -109,6 +113,41 @@ function MetricCard({ card, drilldown }: { card: KpiCard; drilldown?: string | n
   );
 }
 
+function MetodologiPanel() {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-sm">Metodologi Perhitungan</CardTitle>
+        <CardDescription>
+          Pedoman membaca seluruh angka agar Laporan Jaring yang sudah menjadi Baket tidak dihitung dua kali.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3 text-xs leading-relaxed text-[var(--dc-text-secondary)]">
+        <ol className="list-decimal space-y-1 pl-5">
+          <li>
+            <strong>Total Laporan Jaring Masuk</strong> — seluruh Laporan Jaring unik yang berhasil dikirim dalam
+            periode, termasuk yang kemudian menjadi Baket.
+          </li>
+          <li>
+            <strong>Masih Berstatus Laporan Jaring</strong> — bagian dari Total yang belum dikonversi menjadi Baket.
+          </li>
+          <li>
+            <strong>Sudah Menjadi Baket</strong> — bagian dari Total yang telah diproses menjadi Baket (bukan tambahan
+            di luar Total).
+          </li>
+          <li>
+            <strong>Jaring Produktif</strong> — Jaring Aktif Terverifikasi yang mengirim minimal satu Laporan Jaring
+            valid dalam periode.
+          </li>
+        </ol>
+        <div className="rounded-md border bg-muted/40 p-3 font-mono text-[11px]">
+          Rumus: Total Laporan Jaring Masuk = Masih Berstatus Laporan Jaring + Sudah Menjadi Baket
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export function SummaryTab({ state, filters }: { state: FetchState<KpiSummary>; filters: KpiFilters }) {
   if (state.loading) return <KpiLoading rows={4} />;
   if (state.error) return <KpiError message={state.error} />;
@@ -126,26 +165,28 @@ export function SummaryTab({ state, filters }: { state: FetchState<KpiSummary>; 
         ))}
       </div>
 
-      <div>
-        <SectionTitle>Status Administratif Jaring</SectionTitle>
-        <div className="mt-3 grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
-          {statusBreakdown.groups.map((group) => (
-            <Card key={group.key} size="sm">
-              <CardHeader>
-                <CardTitle className="text-sm">{group.label}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-xl font-semibold tabular-nums text-[var(--dc-text-primary)]">
-                  {formatNumber(group.value)}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-        <p className="mt-2 text-xs text-[var(--dc-text-muted)]">
-          Wilayah Belum Terpetakan: {formatNumber(statusBreakdown.withoutArea)} Jaring tanpa relasi wilayah.
-        </p>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Status Administratif Jaring</CardTitle>
+            <CardDescription>Distribusi status seluruh Jaring dalam cakupan.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <DonutChart
+              items={statusBreakdown.groups.map((group) => ({
+                key: group.key,
+                label: group.label,
+                value: group.value,
+              }))}
+              centerLabel="Jaring"
+            />
+          </CardContent>
+        </Card>
+        <MetodologiPanel />
       </div>
+      <p className="mt-2 text-xs text-[var(--dc-text-muted)]">
+        Wilayah Belum Terpetakan: {formatNumber(statusBreakdown.withoutArea)} Jaring tanpa relasi wilayah.
+      </p>
 
       {insight ? (
         <Card>
@@ -155,11 +196,10 @@ export function SummaryTab({ state, filters }: { state: FetchState<KpiSummary>; 
           <CardContent className="space-y-2 text-sm leading-relaxed text-[var(--dc-text-secondary)]">
             <p>
               <strong>Fakta:</strong> Terdapat{" "}
-              {formatNumber(cards.find((card) => card.key === "activeVerifiedJaring")?.value ?? 0)} Jaring Aktif
-              Terverifikasi, dengan {formatNumber(cards.find((card) => card.key === "productiveJaring")?.value ?? 0)}{" "}
-              Jaring Produktif ({formatPercent(cards.find((card) => card.key === "productivityPercent")?.value ?? 0)}{" "}
-              produktivitas) dan {formatNumber(cards.find((card) => card.key === "notReportingJaring")?.value ?? 0)}{" "}
-              Jaring Belum Mengirim Laporan.
+              {formatNumber(cards.find((card) => card.key === "totalJaring")?.value ?? 0)} Jaring yang Diajukan,{" "}
+              {formatNumber(cards.find((card) => card.key === "verifiedJaring")?.value ?? 0)} Jaring Terverifikasi,{" "}
+              {formatNumber(cards.find((card) => card.key === "activeJaring")?.value ?? 0)} Jaring Aktif, dan{" "}
+              {formatNumber(cards.find((card) => card.key === "inactiveJaring")?.value ?? 0)} Jaring Tidak Aktif.
             </p>
             {insight.topRegion ? (
               <p>
@@ -192,7 +232,6 @@ export function ProductivityTab({ state }: { state: FetchState<KpiProductivity> 
   if (!state.data) return <KpiEmpty title="Tidak ada data" description="Data produktivitas belum tersedia." />;
 
   const { metrics, frequencyDistribution, ranking } = state.data;
-  const maxBucket = Math.max(...frequencyDistribution.map((bucket) => bucket.value), 1);
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
@@ -211,21 +250,14 @@ export function ProductivityTab({ state }: { state: FetchState<KpiProductivity> 
 
       <div>
         <SectionTitle>Distribusi Frekuensi Pelaporan</SectionTitle>
-        <div className="mt-3 space-y-2">
-          {frequencyDistribution.map((bucket) => (
-            <div key={bucket.label} className="flex items-center gap-3">
-              <span className="w-40 shrink-0 text-xs text-[var(--dc-text-secondary)]">{bucket.label}</span>
-              <div className="h-5 flex-1 overflow-hidden rounded bg-muted">
-                <div
-                  className="h-full bg-[var(--dc-primary)] transition-all"
-                  style={{ width: `${Math.round((bucket.value / maxBucket) * 100)}%` }}
-                />
-              </div>
-              <span className="w-12 text-right text-xs font-medium tabular-nums text-[var(--dc-text-primary)]">
-                {formatNumber(bucket.value)}
-              </span>
-            </div>
-          ))}
+        <div className="mt-3">
+          <VerticalBar
+            items={frequencyDistribution.map((bucket) => ({
+              key: bucket.label,
+              label: bucket.label,
+              value: bucket.value,
+            }))}
+          />
         </div>
       </div>
 
@@ -331,6 +363,28 @@ export function RegionTab({
           </button>
         ) : null}
       </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Total Laporan per Wilayah</CardTitle>
+            <CardDescription>Volume Laporan Jaring untuk setiap wilayah dalam cakupan.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <HorizontalBar
+              items={rows.items.map((row) => ({ key: row.id, label: row.name, value: row.totalReports }))}
+            />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Jaring Produktif per Wilayah</CardTitle>
+            <CardDescription>Jumlah Jaring Aktif Terverifikasi yang mengirim laporan.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <HorizontalBar items={rows.items.map((row) => ({ key: row.id, label: row.name, value: row.productive }))} />
+          </CardContent>
+        </Card>
+      </div>
       <Table>
         <TableHeader>
           <TableRow>
@@ -387,7 +441,6 @@ export function ReportsTab({ state }: { state: FetchState<KpiReportsBaket> }) {
     return <KpiEmpty title="Tidak ada data" description="Data Laporan Jaring dan Baket belum tersedia." />;
 
   const { pipeline, baket, trend, highestConversionRegions, lowestConversionRegions } = state.data;
-  const maxTrend = Math.max(...trend.points.map((point) => point.total), 1);
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
@@ -397,39 +450,50 @@ export function ReportsTab({ state }: { state: FetchState<KpiReportsBaket> }) {
         <StatTile label="Baket dari Laporan" value={formatNumber(baket.fromReport)} />
       </div>
 
-      <div>
-        <SectionTitle>Alur Pengolahan Laporan Jaring → Baket</SectionTitle>
-        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-          <Badge variant="secondary">Masuk</Badge>
-          <span className="text-[var(--dc-text-muted)]">→</span>
-          <Badge variant="secondary">Diproses</Badge>
-          <span className="text-[var(--dc-text-muted)]">→</span>
-          <Badge variant="secondary">Diverifikasi</Badge>
-          <span className="text-[var(--dc-text-muted)]">→</span>
-          <Badge>Baket</Badge>
-        </div>
-        <div className="mt-3 grid grid-cols-2 gap-4 md:grid-cols-4">
-          {pipeline.byStage.map((stage) => (
-            <StatTile key={stage.key} label={stage.label} value={formatNumber(stage.value)} />
-          ))}
-        </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Komposisi Total Laporan Jaring</CardTitle>
+            <CardDescription>Bagian yang masih berstatus laporan dan yang sudah menjadi Baket.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <DonutChart
+              items={[
+                { key: "pending", label: "Masih Berstatus Laporan Jaring", value: pipeline.total - pipeline.toBaket },
+                { key: "baket", label: "Sudah Menjadi Baket", value: pipeline.toBaket },
+              ]}
+              centerLabel="Laporan"
+            />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Alur Pengolahan Laporan Jaring → Baket</CardTitle>
+            <CardDescription>Tahapan pemrosesan dari Laporan Jaring masuk hingga menjadi Baket.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              <Badge variant="secondary">Masuk</Badge>
+              <span className="text-[var(--dc-text-muted)]">→</span>
+              <Badge variant="secondary">Diproses</Badge>
+              <span className="text-[var(--dc-text-muted)]">→</span>
+              <Badge variant="secondary">Diverifikasi</Badge>
+              <span className="text-[var(--dc-text-muted)]">→</span>
+              <Badge>Baket</Badge>
+            </div>
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+              {pipeline.byStage.map((stage) => (
+                <StatTile key={stage.key} label={stage.label} value={formatNumber(stage.value)} />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <div>
         <SectionTitle>Tren Laporan Jaring</SectionTitle>
-        <div className="mt-3 space-y-1">
-          {trend.points.slice(-14).map((point) => (
-            <div key={point.bucket} className="flex items-center gap-3">
-              <span className="w-24 shrink-0 font-mono text-[11px] text-[var(--dc-text-muted)]">{point.bucket}</span>
-              <div className="h-4 flex-1 overflow-hidden rounded bg-muted">
-                <div
-                  className="h-full bg-[var(--dc-primary)]"
-                  style={{ width: `${Math.round((point.total / maxTrend) * 100)}%` }}
-                />
-              </div>
-              <span className="w-10 text-right font-mono text-xs tabular-nums">{point.total}</span>
-            </div>
-          ))}
+        <div className="mt-3">
+          <TrendArea points={trend.points} granularity={trend.granularity} />
         </div>
       </div>
 
@@ -493,6 +557,25 @@ export function WhatsappTab({ state }: { state: FetchState<KpiWhatsappCenter> })
         <StatTile label="Suspend" value={formatNumber(summary.suspend)} />
         <StatTile label="Status tidak diketahui" value={formatNumber(summary.unknown)} />
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Distribusi Status WhatsApp Center</CardTitle>
+          <CardDescription>Kondisi saluran WhatsApp Center saat ini.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <DonutChart
+            items={[
+              { key: "active", label: "Aktif", value: summary.active },
+              { key: "inactive", label: "Tidak aktif", value: summary.inactive },
+              { key: "disconnected", label: "Terputus", value: summary.disconnected },
+              { key: "suspend", label: "Suspend", value: summary.suspend },
+              { key: "unknown", label: "Status tidak diketahui", value: summary.unknown },
+            ]}
+            centerLabel="Saluran"
+          />
+        </CardContent>
+      </Card>
 
       <div>
         <SectionTitle>Status WhatsApp Center</SectionTitle>
@@ -581,8 +664,27 @@ export function AnomaliesTab({ state }: { state: FetchState<KpiAnomalies> }) {
   if (!state.data) return <KpiEmpty title="Tidak ada data" description="Data anomali belum tersedia." />;
 
   const { rows } = state.data;
+  const byType = new Map<string, { key: string; label: string; value: number }>();
+  for (const row of rows) {
+    const existing = byType.get(row.typeKey);
+    if (existing) {
+      existing.value += row.eventCount;
+    } else {
+      byType.set(row.typeKey, { key: row.typeKey, label: row.type, value: row.eventCount });
+    }
+  }
+  const typeItems = [...byType.values()];
   return (
     <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Jumlah Kejadian per Jenis Anomali</CardTitle>
+          <CardDescription>Frekuensi kejadian anomali yang terdeteksi dalam periode.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <HorizontalBar items={typeItems} />
+        </CardContent>
+      </Card>
       <Table>
         <TableHeader>
           <TableRow>
@@ -634,9 +736,18 @@ export function TrendsTab({ state }: { state: FetchState<KpiTrends> }) {
   if (state.error) return <KpiError message={state.error} />;
   if (!state.data) return <KpiEmpty title="Tidak ada data" description="Data tren belum tersedia." />;
 
-  const { metricsTrend } = state.data;
+  const { series, metricsTrend } = state.data;
   return (
     <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Tren Total Laporan dan Konversi Baket</CardTitle>
+          <CardDescription>Perkembangan volume laporan dan yang menjadi Baket dari waktu ke waktu.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <TrendArea points={series.points} granularity={series.granularity} />
+        </CardContent>
+      </Card>
       <Table>
         <TableHeader>
           <TableRow>
@@ -682,6 +793,8 @@ const DETAIL_DIMENSIONS = [
   { value: "wilayah", label: "Wilayah" },
   { value: "status", label: "Status Jaring" },
   { value: "waktu", label: "Waktu" },
+  { value: "gaswil", label: "Petugas Wilayah (Gaswil)" },
+  { value: "jaring", label: "Per Jaring" },
 ];
 
 const DETAIL_METRICS = [
@@ -710,6 +823,17 @@ export function DetailTab({
   onDimensionChange: (value: string) => void;
   onMetricChange: (value: string) => void;
 }) {
+  const isLeaderboard = dimension === "gaswil" || dimension === "jaring";
+  const renderBody = () => {
+    if (state.loading) return <KpiLoading rows={4} />;
+    if (state.error) return <KpiError message={state.error} />;
+    if (!state.data) return <KpiEmpty title="Tidak ada data" description="Detail data belum tersedia." />;
+    if (dimension === "gaswil")
+      return <GaswilLeaderboard items={(state.data.leaderboard?.items ?? []) as KpiGaswilRow[]} />;
+    if (dimension === "jaring")
+      return <JaringLeaderboard items={(state.data.leaderboard?.items ?? []) as KpiJaringRow[]} />;
+    return <DetailRows rows={state.data.rows ?? []} />;
+  };
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-end gap-3">
@@ -732,29 +856,157 @@ export function DetailTab({
             ))}
           </NativeSelect>
         </div>
-        <div className="space-y-1">
-          <label
-            className="block font-medium text-[10px] text-[var(--dc-text-muted)] uppercase"
-            htmlFor="kpi-detail-metric"
-          >
-            Metrik
-          </label>
-          <NativeSelect id="kpi-detail-metric" value={metric} onChange={(event) => onMetricChange(event.target.value)}>
-            {DETAIL_METRICS.map((option) => (
-              <NativeSelectOption key={option.value} value={option.value}>
-                {option.label}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
+        {!isLeaderboard ? (
+          <div className="space-y-1">
+            <label
+              className="block font-medium text-[10px] text-[var(--dc-text-muted)] uppercase"
+              htmlFor="kpi-detail-metric"
+            >
+              Metrik
+            </label>
+            <NativeSelect
+              id="kpi-detail-metric"
+              value={metric}
+              onChange={(event) => onMetricChange(event.target.value)}
+            >
+              {DETAIL_METRICS.map((option) => (
+                <NativeSelectOption key={option.value} value={option.value}>
+                  {option.label}
+                </NativeSelectOption>
+              ))}
+            </NativeSelect>
+          </div>
+        ) : null}
+      </div>
+
+      {renderBody()}
+    </div>
+  );
+}
+
+const RANK_STYLES: Record<number, string> = {
+  1: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
+  2: "bg-slate-400/20 text-slate-600 dark:text-slate-300",
+  3: "bg-orange-500/15 text-orange-700 dark:text-orange-400",
+};
+
+function RankCell({ rank }: { rank?: number }) {
+  if (rank === undefined) return null;
+  const medal = RANK_STYLES[rank] ?? "bg-muted text-[var(--dc-text-secondary)]";
+  return (
+    <TableCell className="w-16">
+      <span
+        className={cn(
+          "inline-flex size-6 items-center justify-center rounded-full font-mono text-xs font-semibold tabular-nums",
+          medal,
+        )}
+      >
+        {rank}
+      </span>
+    </TableCell>
+  );
+}
+
+function GaswilLeaderboard({ items }: { items: KpiGaswilRow[] }) {
+  const ranked = items.some((item) => item.rank !== undefined);
+  if (items.length === 0)
+    return (
+      <KpiEmpty
+        title="Tidak ada data"
+        description="Belum ada Petugas Wilayah (Gaswil) dengan aktivitas pada periode ini."
+      />
+    );
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          {ranked ? <TableHead className="w-16">Peringkat</TableHead> : null}
+          <TableHead>Petugas Wilayah (Gaswil)</TableHead>
+          <TableHead className="text-right">Binaan</TableHead>
+          <TableHead className="text-right">Aktif</TableHead>
+          <TableHead className="text-right">Melapor</TableHead>
+          <TableHead className="text-right">Baket Dibuat</TableHead>
+          <TableHead className="text-right">Baket dari Binaan</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {items.map((row) => (
+          <TableRow key={row.id}>
+            {ranked ? <RankCell rank={row.rank} /> : null}
+            <TableCell className="font-medium">{row.name}</TableCell>
+            <TableCell className="text-right tabular-nums">{formatNumber(row.binaan)}</TableCell>
+            <TableCell className="text-right tabular-nums">{formatNumber(row.aktif)}</TableCell>
+            <TableCell className="text-right tabular-nums">{formatNumber(row.melapor)}</TableCell>
+            <TableCell className="text-right tabular-nums">{formatNumber(row.baketDibuat)}</TableCell>
+            <TableCell className="text-right tabular-nums">{formatNumber(row.baketBinaan)}</TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+}
+
+function JaringLeaderboard({ items }: { items: KpiJaringRow[] }) {
+  const ranked = items.some((item) => item.rank !== undefined);
+  if (items.length === 0)
+    return <KpiEmpty title="Tidak ada data" description="Belum ada Jaring yang melapor pada periode ini." />;
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          {ranked ? <TableHead className="w-16">Peringkat</TableHead> : null}
+          <TableHead>Jaring</TableHead>
+          <TableHead>Wilayah</TableHead>
+          <TableHead>Petugas Wilayah (Gaswil)</TableHead>
+          <TableHead className="text-right">Laporan</TableHead>
+          <TableHead className="text-right">Menjadi Baket</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {items.map((row) => (
+          <TableRow key={row.id}>
+            {ranked ? <RankCell rank={row.rank} /> : null}
+            <TableCell>
+              <div className="font-medium">{row.name}</div>
+              {row.alias ? <div className="text-xs text-[var(--dc-text-muted)]">{row.alias}</div> : null}
+            </TableCell>
+            <TableCell className="text-xs">{row.wilayah}</TableCell>
+            <TableCell className="text-xs">{row.gaswil}</TableCell>
+            <TableCell className="text-right tabular-nums">{formatNumber(row.laporan)}</TableCell>
+            <TableCell className="text-right tabular-nums">{formatNumber(row.baket)}</TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+}
+
+export function LeaderboardTab({ state }: { state: FetchState<KpiLeaderboardData> }) {
+  if (state.loading) return <KpiLoading rows={4} />;
+  if (state.error) return <KpiError message={state.error} />;
+  if (!state.data) return <KpiEmpty title="Tidak ada data" description="Data peringkat belum tersedia." />;
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <SectionTitle>Peringkat Petugas Wilayah (Gaswil)</SectionTitle>
+        <p className="mt-1 text-xs text-[var(--dc-text-muted)]">
+          Sepuluh teratas berdasarkan Jaring binaan yang melapor dan Baket dari binaan.
+        </p>
+        <div className="mt-3">
+          <GaswilLeaderboard items={state.data.gaswil} />
         </div>
       </div>
 
-      {state.loading ? <KpiLoading rows={4} /> : null}
-      {state.error ? <KpiError message={state.error} /> : null}
-      {!state.loading && !state.error && !state.data ? (
-        <KpiEmpty title="Tidak ada data" description="Detail data belum tersedia." />
-      ) : null}
-      {!state.loading && !state.error && state.data ? <DetailRows rows={state.data.rows} /> : null}
+      <div>
+        <SectionTitle>Peringkat Jaring</SectionTitle>
+        <p className="mt-1 text-xs text-[var(--dc-text-muted)]">
+          Sepuluh teratas berdasarkan jumlah Laporan Jaring dan yang menjadi Baket.
+        </p>
+        <div className="mt-3">
+          <JaringLeaderboard items={state.data.jaring} />
+        </div>
+      </div>
     </div>
   );
 }

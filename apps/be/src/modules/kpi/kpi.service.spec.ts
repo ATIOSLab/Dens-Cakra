@@ -88,7 +88,7 @@ describe('KpiService summary', () => {
     expect(totalJaring?.value).toBe(0);
   });
 
-  it('menghitung produktivitas hanya dari Jaring Aktif Terverifikasi', async () => {
+  it('menyajikan kartu status Jaring dan produktivitas sesuai kelompok verifikasi', async () => {
     const activeVerified = {
       id: 'jaring-1',
       status: JaringStatus.ACTIVE,
@@ -97,6 +97,8 @@ describe('KpiService summary', () => {
       reviewedAt: new Date(),
       whatsappNumber: '6281200000001',
       areaCoverages: [],
+      messages: [{ receivedAt: new Date() }],
+      reportSessions: [{ submittedAt: new Date() }],
     };
     const pending = {
       ...activeVerified,
@@ -147,17 +149,17 @@ describe('KpiService summary', () => {
     );
 
     const cards = result.cards as Array<{ key: string; value: number }>;
-    const activeCard = cards.find(
-      (card) => card.key === 'activeVerifiedJaring',
+    const totalCard = cards.find((card) => card.key === 'totalJaring');
+    const verifiedCard = cards.find((card) => card.key === 'verifiedJaring');
+    const activeCard = cards.find((card) => card.key === 'activeJaring');
+    const inactiveCard = cards.find((card) => card.key === 'inactiveJaring');
+    const productivityCard = cards.find(
+      (card) => card.key === 'productivityPercent',
     );
-    const productiveCard = cards.find(
-      (card) => card.key === 'productiveJaring',
-    );
-    const notReportingCard = cards.find(
-      (card) => card.key === 'notReportingJaring',
-    );
+    expect(totalCard?.value).toBe(2);
+    expect(verifiedCard?.value).toBe(1);
     expect(activeCard?.value).toBe(1);
-    expect(productiveCard?.value).toBe(1);
-    expect(notReportingCard?.value).toBe(0);
+    expect(inactiveCard?.value).toBe(0);
+    expect(productivityCard?.value).toBe(100);
   });
 });

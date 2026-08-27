@@ -175,9 +175,44 @@ export type KpiTrends = {
 };
 
 export type KpiDetail = {
-  metric: string;
+  metric?: string;
   dimension: string;
-  rows: Array<{ dimension: string; value: number }>;
+  rows?: Array<{ dimension: string; value: number }>;
+  leaderboard?: KpiLeaderboard;
+};
+
+export type KpiGaswilRow = {
+  id: string;
+  name: string;
+  binaan: number;
+  aktif: number;
+  melapor: number;
+  baketDibuat: number;
+  baketBinaan: number;
+  rank?: number;
+};
+
+export type KpiJaringRow = {
+  id: string;
+  name: string;
+  alias: string | null;
+  whatsappNumber: string;
+  wilayah: string;
+  gaswil: string;
+  laporan: number;
+  baket: number;
+  rank?: number;
+};
+
+export type KpiLeaderboardData = {
+  period: { preset: string; timezone: string; from: string; to: string };
+  gaswil: KpiGaswilRow[];
+  jaring: KpiJaringRow[];
+};
+
+export type KpiLeaderboard = {
+  items: Array<KpiGaswilRow | KpiJaringRow>;
+  pagination: KpiPagination;
 };
 
 export type KpiAreaTreeNode = {

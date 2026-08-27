@@ -157,23 +157,55 @@ export type KpiMetricDefinition = {
 export const KPI_METRIC_DEFINITIONS: KpiMetricDefinition[] = [
   {
     key: 'totalJaring',
-    label: 'Total Seluruh Jaring',
+    label: 'Total Jaring yang Diajukan',
     description:
-      'Jumlah seluruh Jaring yang terdata dalam cakupan wilayah pengguna.',
+      'Jumlah seluruh Jaring yang diajukan dan terdata dalam cakupan wilayah pengguna.',
     formula: 'countDistinct(Jaring.id) dalam cakupan',
     format: 'number',
     entity: 'Jaring',
     drilldown: '/dashboard/daftar-jaring',
   },
   {
+    key: 'verifiedJaring',
+    label: 'Total Jaring Terverifikasi',
+    description:
+      'Jaring dengan status disetujui (APPROVED), baik yang aktif maupun tidak aktif.',
+    formula: 'registrationStatus=APPROVED',
+    format: 'number',
+    entity: 'Jaring',
+    drilldown: '/dashboard/daftar-jaring?registrationStatus=APPROVED',
+  },
+  {
+    key: 'activeJaring',
+    label: 'Total Jaring Aktif',
+    description:
+      'Jaring terverifikasi (APPROVED) yang melapor dalam 90 hari terakhir (status operasional).',
+    formula: 'registrationStatus=APPROVED AND lastReportAt ≥ 90 hari terakhir',
+    format: 'number',
+    entity: 'Jaring',
+    drilldown:
+      '/dashboard/daftar-jaring?registrationStatus=APPROVED&activityStatus=ACTIVE',
+  },
+  {
+    key: 'inactiveJaring',
+    label: 'Total Jaring Tidak Aktif',
+    description:
+      'Jaring terverifikasi (APPROVED) yang tidak melapor dalam 90 hari terakhir (status operasional).',
+    formula: 'registrationStatus=APPROVED AND lastReportAt < 90 hari terakhir',
+    format: 'number',
+    entity: 'Jaring',
+    drilldown:
+      '/dashboard/daftar-jaring?registrationStatus=APPROVED&activityStatus=INACTIVE',
+  },
+  {
     key: 'activeVerifiedJaring',
     label: 'Jaring Aktif Terverifikasi',
     description:
-      'Jaring dengan status APPROVED dan ACTIVE. Basis produktivitas.',
+      'Jaring disetujui (APPROVED) dan berstatus aktif (ACTIVE). Basis perhitungan produktivitas.',
     formula: 'registrationStatus=APPROVED AND status=ACTIVE',
     format: 'number',
     entity: 'Jaring',
-    drilldown: '/dashboard/daftar-jaring?activityStatus=ACTIVE',
+    drilldown: '/dashboard/daftar-jaring?registrationStatus=APPROVED',
   },
   {
     key: 'productiveJaring',

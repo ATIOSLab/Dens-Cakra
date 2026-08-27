@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import {
   AnomaliesTab,
   DetailTab,
+  LeaderboardTab,
   ProductivityTab,
   RegionTab,
   ReportsTab,
@@ -32,6 +33,7 @@ import type {
   KpiDetail,
   KpiFilterOptions,
   KpiFilters,
+  KpiLeaderboardData,
   KpiProductivity,
   KpiRegionComparison,
   KpiReportsBaket,
@@ -246,6 +248,7 @@ export function KpiClient({
   const whatsapp = useKpiData<KpiWhatsappCenter>("/dashboard/kpi/whatsapp-center", filters);
   const anomalies = useKpiData<KpiAnomalies>("/dashboard/kpi/anomalies", filters);
   const trends = useKpiData<KpiTrends>("/dashboard/kpi/trends", filters);
+  const leaderboard = useKpiData<KpiLeaderboardData>("/dashboard/kpi/leaderboard", filters);
   const detailQuery = useMemo(
     () => ({ dimension: detailDimension, metric: detailMetric }),
     [detailDimension, detailMetric],
@@ -501,6 +504,7 @@ export function KpiClient({
           <TabsTrigger value="ringkasan">Ringkasan</TabsTrigger>
           <TabsTrigger value="produktivitas">Produktivitas Jaring</TabsTrigger>
           <TabsTrigger value="wilayah">Perbandingan Wilayah</TabsTrigger>
+          <TabsTrigger value="peringkat">Peringkat</TabsTrigger>
           <TabsTrigger value="laporan-baket">Laporan Jaring &amp; Baket</TabsTrigger>
           <TabsTrigger value="whatsapp">Kendala WhatsApp Center</TabsTrigger>
           <TabsTrigger value="anomali">Anomali</TabsTrigger>
@@ -522,6 +526,9 @@ export function KpiClient({
               onSelectRegion={(areaId) => setFilter({ areaId, childLevel: "" })}
               onBack={() => setFilter({ areaId: "", childLevel: "" })}
             />
+          </TabsContent>
+          <TabsContent value="peringkat">
+            <LeaderboardTab state={leaderboard} />
           </TabsContent>
           <TabsContent value="laporan-baket">
             <ReportsTab state={reports} />
