@@ -51,9 +51,10 @@ export function SearchableSelect({
   container,
   "aria-label": ariaLabel,
 }: SearchableSelectProps) {
+  const initialLimit = pageSize ? Math.max(pageSize * 2, 20) : maxVisibleOptions;
   const [open, setOpen] = React.useState(false);
   const [search, setSearch] = React.useState("");
-  const [visibleCount, setVisibleCount] = React.useState(pageSize ?? maxVisibleOptions);
+  const [visibleCount, setVisibleCount] = React.useState(initialLimit);
 
   const selectedOption = React.useMemo(() => options.find((option) => option.value === value), [options, value]);
 
@@ -71,7 +72,7 @@ export function SearchableSelect({
 
   React.useEffect(() => {
     if (open) {
-      setVisibleCount(pageSize ?? maxVisibleOptions);
+      setVisibleCount(pageSize ? Math.max(pageSize * 2, 20) : maxVisibleOptions);
     } else {
       setSearch("");
     }
@@ -80,8 +81,18 @@ export function SearchableSelect({
   const handleScroll = (event: React.UIEvent<HTMLDivElement>) => {
     if (!pageSize) return;
     const { scrollTop, scrollHeight, clientHeight } = event.currentTarget;
-    if (scrollHeight - scrollTop - clientHeight < 50) {
-      setVisibleCount((prev) => Math.min(prev + pageSize, filteredOptions.length));
+    if (scrollHeight - scrollTop - clientHeight < 60) {
+      setVisibleCount((prev) => Math.min(prev + (pageSize || 10), filteredOptions.length));
+    }
+  };
+
+  const handleWheel = (event: React.WheelEvent<HTMLDivElement>) => {
+    if (!pageSize) return;
+    if (event.deltaY > 0) {
+      const { scrollTop, scrollHeight, clientHeight } = event.currentTarget;
+      if (scrollHeight - scrollTop - clientHeight < 80) {
+        setVisibleCount((prev) => Math.min(prev + (pageSize || 10), filteredOptions.length));
+      }
     }
   };
 
@@ -128,7 +139,7 @@ export function SearchableSelect({
             value={search}
             onChange={(event) => {
               setSearch(event.target.value);
-              setVisibleCount(pageSize ?? maxVisibleOptions);
+              setVisibleCount(pageSize ? Math.max(pageSize * 2, 20) : maxVisibleOptions);
             }}
             placeholder={searchPlaceholder}
             className={cn(DC_CONTROLS.input, "h-8 pr-8 pl-8 text-xs")}
@@ -145,7 +156,11 @@ export function SearchableSelect({
           ) : null}
         </div>
 
-        <div className="max-h-72 overflow-y-auto p-1" onScroll={pageSize ? handleScroll : undefined}>
+        <div
+          className={cn("overflow-y-auto p-1", pageSize ? "max-h-56" : "max-h-72")}
+          onScroll={pageSize ? handleScroll : undefined}
+          onWheel={pageSize ? handleWheel : undefined}
+        >
           {visibleOptions.length === 0 ? (
             <div className="px-3 py-6 text-center text-muted-foreground text-xs">{emptyText}</div>
           ) : (

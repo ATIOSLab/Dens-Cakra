@@ -4,16 +4,17 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react"
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-import { Download, RotateCcw } from "lucide-react";
+import { Download, RotateCcw, Search, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiBrowserFetch } from "@/lib/api/browser-client";
 import type { QueryParams } from "@/lib/api/types";
-import { DC_CONTROLS } from "@/lib/domain/visual-system";
+import { DC_CONTROLS, DC_TYPOGRAPHY } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 
 import {
@@ -354,12 +355,55 @@ export function KpiClient({
         </div>
       </header>
 
-      <section
-        aria-label="Filter evaluasi"
-        className="rounded-lg border border-[var(--dc-border-subtle)] bg-[var(--dc-surface)] p-4"
-      >
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-wrap items-end gap-3">
+      {/* FILTER & TOOLBAR CARD */}
+      <div className="flex flex-col gap-3 rounded-md border border-slate-200/80 bg-card p-4 shadow-xs dark:border-white/10">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-border/70 border-b pb-3">
+          <div>
+            <p className={cn(DC_TYPOGRAPHY.cardTitle, "flex items-center gap-2")}>
+              <Search className="size-4 text-primary" />
+              Filter Kinerja &amp; Evaluasi
+            </p>
+            <p className="mt-1 text-muted-foreground text-xs">
+              Urutan wilayah: Provinsi, Kota/Kabupaten, Kecamatan. Filter berdasarkan status Jaring, pelaporan, dan kendala.
+            </p>
+          </div>
+          <Badge variant="outline" className="rounded-full font-mono text-[11px]">
+            {activeFilterCount > 0 ? "Filter aktif" : "Tanpa filter"}
+          </Badge>
+        </div>
+
+        <div className="space-y-3.5">
+          {/* TOP ROW: Search Input + Action buttons */}
+          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+            <div className="relative flex-1 min-w-[240px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+              <Input
+                id="kpi-search"
+                value={filters.search}
+                onChange={(event) => setFilter({ search: event.target.value })}
+                placeholder="Cari nama wilayah atau kata kunci..."
+                className={cn(DC_CONTROLS.input, "h-9 pl-9 text-xs")}
+              />
+              {filters.search && (
+                <button
+                  type="button"
+                  onClick={() => setFilter({ search: "" })}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="size-3.5" />
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+              <Button type="button" onClick={applyFilters} className="h-9 gap-1.5 rounded-lg text-xs">
+                Terapkan{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
+              </Button>
+            </div>
+          </div>
+
+          {/* MIDDLE ROW: Structured Grid of Filter Dropdowns */}
+          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
             <RegionFilter
               tree={filterOptions?.areaTree ?? null}
               areaId={filters.areaId}
@@ -372,39 +416,11 @@ export function KpiClient({
               onChange={(value) => setFilter({ period: value })}
             />
             <FilterSelect
-              label="Zona waktu"
+              label="Zona Waktu"
               value={filters.timezone}
               options={TIMEZONE_OPTIONS}
               onChange={(value) => setFilter({ timezone: value })}
             />
-            {filters.period === "CUSTOM" ? (
-              <>
-                <div className="space-y-1">
-                  <label className="font-medium text-[10px] text-[var(--dc-text-muted)] uppercase" htmlFor="kpi-from">
-                    Dari
-                  </label>
-                  <Input
-                    id="kpi-from"
-                    type="date"
-                    value={filters.from}
-                    onChange={(event) => setFilter({ from: event.target.value })}
-                    className={cn(DC_CONTROLS.input, "text-xs")}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="font-medium text-[10px] text-[var(--dc-text-muted)] uppercase" htmlFor="kpi-to">
-                    Sampai
-                  </label>
-                  <Input
-                    id="kpi-to"
-                    type="date"
-                    value={filters.to}
-                    onChange={(event) => setFilter({ to: event.target.value })}
-                    className={cn(DC_CONTROLS.input, "text-xs")}
-                  />
-                </div>
-              </>
-            ) : null}
             <FilterSelect
               label="Status Jaring"
               value={filters.jaringStatus}
@@ -435,28 +451,49 @@ export function KpiClient({
               options={KENDALA_OPTIONS}
               onChange={(value) => setFilter({ kendalaType: value })}
             />
-            <div className="space-y-1">
-              <label className="font-medium text-[10px] text-[var(--dc-text-muted)] uppercase" htmlFor="kpi-search">
-                Pencarian wilayah
-              </label>
+          </div>
+
+          {/* CUSTOM PERIOD DATE RANGE */}
+          {filters.period === "CUSTOM" && (
+            <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-muted-foreground">
+              <span>Dari:</span>
               <Input
-                id="kpi-search"
-                value={filters.search}
-                onChange={(event) => setFilter({ search: event.target.value })}
-                placeholder="Nama wilayah…"
-                className={cn(DC_CONTROLS.input, "w-44 text-xs")}
+                id="kpi-from"
+                aria-label="Tanggal mulai"
+                type="date"
+                value={filters.from}
+                onChange={(event) => setFilter({ from: event.target.value })}
+                className={cn(DC_CONTROLS.input, "h-8 w-[140px] px-2 text-xs")}
+              />
+              <span>s.d.</span>
+              <Input
+                id="kpi-to"
+                aria-label="Tanggal selesai"
+                type="date"
+                value={filters.to}
+                onChange={(event) => setFilter({ to: event.target.value })}
+                className={cn(DC_CONTROLS.input, "h-8 w-[140px] px-2 text-xs")}
               />
             </div>
-            <Button type="button" onClick={applyFilters} className="h-9">
-              Terapkan{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
-            </Button>
-            <Button type="button" variant="outline" onClick={resetFilters} className="h-9">
-              <RotateCcw className="mr-1.5 size-3.5" aria-hidden />
-              Reset
-            </Button>
-          </div>
+          )}
+
+          {/* BOTTOM ROW: Reset Filter Button */}
+          {activeFilterCount > 0 && (
+            <div className="flex justify-end pt-1">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={resetFilters}
+                className="h-8 text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 font-medium"
+              >
+                <RotateCcw className="mr-1.5 size-3.5" aria-hidden />
+                Reset Filter
+              </Button>
+            </div>
+          )}
         </div>
-      </section>
+      </div>
 
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-xs text-[var(--dc-text-muted)]">Ekspor laporan:</span>
@@ -570,11 +607,16 @@ function FilterSelect({
 }) {
   const id = useId();
   return (
-    <div className="space-y-1">
-      <label htmlFor={id} className="block font-medium text-[10px] text-[var(--dc-text-muted)] uppercase">
+    <div className="grid min-w-0 gap-1">
+      <label htmlFor={id} className="truncate text-xs text-muted-foreground font-medium">
         {label}
       </label>
-      <NativeSelect id={id} value={value} onChange={(event) => onChange(event.target.value)}>
+      <NativeSelect
+        id={id}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full min-w-0 text-xs")}
+      >
         {options.map((option) => (
           <NativeSelectOption key={option.value} value={option.value}>
             {option.label}
@@ -586,8 +628,8 @@ function FilterSelect({
 }
 
 function levelLabel(level: string | undefined): string {
-  if (level === "PROVINCE") return "Provinsi/BINDA";
-  if (level === "REGENCY" || level === "CITY") return "Kabupaten/Kota";
+  if (level === "PROVINCE") return "Provinsi";
+  if (level === "REGENCY" || level === "CITY") return "Kota/Kabupaten";
   if (level === "DISTRICT") return "Kecamatan";
   return "Wilayah";
 }
@@ -604,7 +646,6 @@ function RegionFilter({
   const [sel1, setSel1] = useState("");
   const [sel2, setSel2] = useState("");
   const [sel3, setSel3] = useState("");
-  const baseId = useId();
 
   useEffect(() => {
     if (!areaId) {
@@ -627,83 +668,74 @@ function RegionFilter({
 
   return (
     <>
-      <div className="space-y-1">
-        <label
-          htmlFor={`${baseId}-level1`}
-          className="block font-medium text-[10px] text-[var(--dc-text-muted)] uppercase"
-        >
+      <div className="grid min-w-0 gap-1">
+        <span className="truncate text-xs text-muted-foreground font-medium">
           {label1}
-        </label>
-        <NativeSelect
-          id={`${baseId}-level1`}
+        </span>
+        <SearchableSelect
           value={sel1}
-          onChange={(event) => {
-            const value = event.target.value;
+          options={[
+            { value: "", label: "Nasional" },
+            ...level1.map((node) => ({ value: node.id, label: node.name })),
+          ]}
+          onValueChange={(value) => {
             setSel1(value);
             setSel2("");
             setSel3("");
             onChange(value);
           }}
-        >
-          <NativeSelectOption value="">Nasional</NativeSelectOption>
-          {level1.map((node) => (
-            <NativeSelectOption key={node.id} value={node.id}>
-              {node.name}
-            </NativeSelectOption>
-          ))}
-        </NativeSelect>
+          placeholder="Nasional"
+          searchPlaceholder={`Cari ${label1.toLowerCase()}...`}
+          emptyText={`${label1} tidak ditemukan.`}
+          pageSize={7}
+          className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full min-w-0 text-xs")}
+        />
       </div>
       {level2.length > 0 ? (
-        <div className="space-y-1">
-          <label
-            htmlFor={`${baseId}-level2`}
-            className="block font-medium text-[10px] text-[var(--dc-text-muted)] uppercase"
-          >
+        <div className="grid min-w-0 gap-1">
+          <span className="truncate text-xs text-muted-foreground font-medium">
             {label2}
-          </label>
-          <NativeSelect
-            id={`${baseId}-level2`}
+          </span>
+          <SearchableSelect
             value={sel2}
-            onChange={(event) => {
-              const value = event.target.value;
+            options={[
+              { value: "", label: `Semua ${label2}` },
+              ...level2.map((node) => ({ value: node.id, label: node.name })),
+            ]}
+            onValueChange={(value) => {
               setSel2(value);
               setSel3("");
-              onChange(value);
+              onChange(value || sel1);
             }}
-          >
-            <NativeSelectOption value="">Semua</NativeSelectOption>
-            {level2.map((node) => (
-              <NativeSelectOption key={node.id} value={node.id}>
-                {node.name}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
+            placeholder={`Semua ${label2}`}
+            searchPlaceholder={`Cari ${label2.toLowerCase()}...`}
+            emptyText={`${label2} tidak ditemukan.`}
+            pageSize={7}
+            className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full min-w-0 text-xs")}
+          />
         </div>
       ) : null}
       {level3.length > 0 ? (
-        <div className="space-y-1">
-          <label
-            htmlFor={`${baseId}-level3`}
-            className="block font-medium text-[10px] text-[var(--dc-text-muted)] uppercase"
-          >
+        <div className="grid min-w-0 gap-1">
+          <span className="truncate text-xs text-muted-foreground font-medium">
             {label3}
-          </label>
-          <NativeSelect
-            id={`${baseId}-level3`}
+          </span>
+          <SearchableSelect
             value={sel3}
-            onChange={(event) => {
-              const value = event.target.value;
+            options={[
+              { value: "", label: `Semua ${label3}` },
+              ...level3.map((node) => ({ value: node.id, label: node.name })),
+            ]}
+            onValueChange={(value) => {
               setSel3(value);
-              onChange(value);
+              onChange(value || sel2 || sel1);
             }}
-          >
-            <NativeSelectOption value="">Semua</NativeSelectOption>
-            {level3.map((node) => (
-              <NativeSelectOption key={node.id} value={node.id}>
-                {node.name}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
+            placeholder={`Semua ${label3}`}
+            searchPlaceholder={`Cari ${label3.toLowerCase()}...`}
+            emptyText={`${label3} tidak ditemukan.`}
+            pageSize={7}
+            className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full min-w-0 text-xs")}
+          />
         </div>
       ) : null}
     </>
