@@ -6,6 +6,7 @@ import { AlertTriangle, Info } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { apiBrowserFetch } from "@/lib/api/browser-client";
+import { fetchAllVerifiedJaringOptions } from "@/lib/api/jaring-options";
 import { findDkiJakartaProvinceFilterId } from "@/lib/domain/area-filter";
 
 import { MapsIntelijenAreaFilter } from "./maps-intelijen-area-filter";
@@ -171,6 +172,7 @@ function buildQuery(filters: MapNetworkFilters, debouncedSearch: string) {
 
 type MapEntityFilterOptions = {
   jarings: MapEntityFilterOption[];
+  fieldOfficers: MapEntityFilterOption[];
 };
 
 function mergeEntityFilterOptions(
@@ -178,33 +180,49 @@ function mergeEntityFilterOptions(
   response: MapNetworkResponse,
 ): MapEntityFilterOptions {
   const jarings = new Map(current.jarings.map((item) => [item.id, item]));
+  const officers = new Map(current.fieldOfficers.map((item) => [item.id, item]));
 
-  const addJaring = (jaring?: MapNetworkFeature["properties"]["jaring"]) => {
+  const addJaring = (jaring?: MapNetworkFeature["properties"]["jaring"], fieldOfficerAssignmentId?: string | null) => {
     if (!jaring?.id) return;
     const label = jaring.code ? `${jaring.name} - ${jaring.code}` : jaring.name;
+    const existing = jarings.get(jaring.id);
     jarings.set(jaring.id, {
       id: jaring.id,
       label,
-      fieldOfficerAssignmentId: jaring.gaswilAssignmentId ?? null,
+      fieldOfficerAssignmentId: fieldOfficerAssignmentId ?? existing?.fieldOfficerAssignmentId ?? null,
+    });
+  };
+
+  const addOfficer = (officer?: { assignmentId?: string | null; name?: string | null } | null) => {
+    if (!officer?.assignmentId) return;
+    const label = officer.name?.trim() || "Petugas Wilayah tanpa nama";
+    officers.set(officer.assignmentId, {
+      id: officer.assignmentId,
+      label,
     });
   };
 
   for (const feature of response.features) {
     const properties = feature.properties;
-    addJaring(properties.jaring);
-    for (const jaring of properties.jarings ?? []) addJaring(jaring);
+    const officerAssignmentId = properties.fieldOfficer?.assignmentId ?? null;
+    addOfficer(properties.fieldOfficer);
+    addJaring(properties.jaring, officerAssignmentId);
+    for (const jaring of properties.jarings ?? []) {
+      addJaring(jaring, officerAssignmentId);
+    }
   }
   const sortByLabel = (left: MapEntityFilterOption, right: MapEntityFilterOption) =>
     left.label.localeCompare(right.label, "id-ID");
   return {
     jarings: [...jarings.values()].sort(sortByLabel),
+    fieldOfficers: [...officers.values()].sort(sortByLabel),
   };
 }
 
 function withoutPersonnelMarkers(response: MapNetworkResponse): MapNetworkResponse {
   const features = response.features.filter((feature) => feature.properties.markerType !== "agent");
-  const reportCount = response.meta.counts.report ?? response.meta.summary.visible.reports ?? 0;
-  const baketCount = response.meta.counts.baket ?? response.meta.summary.visible.bakets ?? 0;
+  const reportCount = response.meta.counts.report;
+  const baketCount = response.meta.counts.baket;
   const visibleReports = response.meta.summary.visible.reports ?? reportCount;
   const visibleBakets = response.meta.summary.visible.bakets ?? baketCount;
 
@@ -243,6 +261,7 @@ export function MapsIntelijenNetworkClient() {
   const [filters, setFilters] = useState<MapNetworkFilters>(INITIAL_FILTERS);
   const [entityFilterOptions, setEntityFilterOptions] = useState<MapEntityFilterOptions>({
     jarings: [],
+    fieldOfficers: [],
   });
   const [areaOptions, setAreaOptions] = useState<MapAreaFilterOptions>({
     provinces: [],
@@ -362,6 +381,74 @@ export function MapsIntelijenNetworkClient() {
     };
     void loadScopedAreaHierarchy();
     return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadJarings() {
+      try {
+        const jaringList = await fetchAllVerifiedJaringOptions<{
+          id: string;
+          aliasName?: string | null;
+          fullName?: string | null;
+          name?: string | null;
+          code?: string | null;
+          caretakerAssignments?: Array<{
+            fieldOfficerAssignmentId?: string | null;
+            fieldOfficerAssignment?: {
+              id?: string | null;
+              userProfile?: { fullName?: string | null; username?: string | null } | null;
+            } | null;
+          }>;
+        }>();
+        if (cancelled) return;
+        setEntityFilterOptions((current) => {
+          const jaringMap = new Map(current.jarings.map((item) => [item.id, item]));
+          const officerMap = new Map(current.fieldOfficers.map((item) => [item.id, item]));
+
+          for (const item of jaringList) {
+            const caretaker = item.caretakerAssignments?.[0];
+            const officerAssignmentId =
+              caretaker?.fieldOfficerAssignmentId ?? caretaker?.fieldOfficerAssignment?.id ?? null;
+            const officerName =
+              caretaker?.fieldOfficerAssignment?.userProfile?.fullName?.trim() ||
+              caretaker?.fieldOfficerAssignment?.userProfile?.username?.trim();
+
+            if (officerAssignmentId && officerName) {
+              if (!officerMap.has(officerAssignmentId)) {
+                officerMap.set(officerAssignmentId, {
+                  id: officerAssignmentId,
+                  label: officerName,
+                });
+              }
+            }
+
+            const code = item.code || item.aliasName;
+            const name = item.fullName || item.name || code || item.id;
+            const label = code && code !== name ? `${name} - ${code}` : name;
+            jaringMap.set(item.id, {
+              id: item.id,
+              label,
+              fieldOfficerAssignmentId: officerAssignmentId,
+            });
+          }
+
+          const sortByLabel = (left: MapEntityFilterOption, right: MapEntityFilterOption) =>
+            left.label.localeCompare(right.label, "id-ID");
+
+          return {
+            jarings: [...jaringMap.values()].sort(sortByLabel),
+            fieldOfficers: [...officerMap.values()].sort(sortByLabel),
+          };
+        });
+      } catch {
+        // Fallback gracefully to jarings from features
+      }
+    }
+    void loadJarings();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const query = useMemo(() => buildQuery(filters, debouncedSearch), [debouncedSearch, filters]);
@@ -543,6 +630,7 @@ export function MapsIntelijenNetworkClient() {
         onVisibleCountChange={setVisibleCount}
         filters={filters}
         jaringOptions={entityFilterOptions.jarings}
+        fieldOfficerOptions={entityFilterOptions.fieldOfficers}
         areaOptions={areaOptions}
         onFilterChange={handleFilterChange}
         onResetFilters={resetFilters}

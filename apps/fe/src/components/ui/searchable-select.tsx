@@ -51,7 +51,7 @@ export function SearchableSelect({
   container,
   "aria-label": ariaLabel,
 }: SearchableSelectProps) {
-  const initialLimit = pageSize ? Math.max(pageSize * 2, 20) : maxVisibleOptions;
+  const initialLimit = pageSize ? pageSize : maxVisibleOptions;
   const [open, setOpen] = React.useState(false);
   const [search, setSearch] = React.useState("");
   const [visibleCount, setVisibleCount] = React.useState(initialLimit);
@@ -72,7 +72,7 @@ export function SearchableSelect({
 
   React.useEffect(() => {
     if (open) {
-      setVisibleCount(pageSize ? Math.max(pageSize * 2, 20) : maxVisibleOptions);
+      setVisibleCount(pageSize ? pageSize : maxVisibleOptions);
     } else {
       setSearch("");
     }
@@ -139,7 +139,7 @@ export function SearchableSelect({
             value={search}
             onChange={(event) => {
               setSearch(event.target.value);
-              setVisibleCount(pageSize ? Math.max(pageSize * 2, 20) : maxVisibleOptions);
+              setVisibleCount(pageSize ? pageSize : maxVisibleOptions);
             }}
             placeholder={searchPlaceholder}
             className={cn(DC_CONTROLS.input, "h-8 pr-8 pl-8 text-xs")}

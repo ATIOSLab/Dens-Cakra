@@ -53,6 +53,7 @@ interface MapsIntelijenMapViewProps {
   onVisibleCountChange: (count: number) => void;
   filters: MapNetworkFilters;
   jaringOptions: MapEntityFilterOption[];
+  fieldOfficerOptions: MapEntityFilterOption[];
   areaOptions: MapAreaFilterOptions;
   onFilterChange: (patch: Partial<MapNetworkFilters>) => void;
   onResetFilters: () => void;
@@ -120,6 +121,7 @@ export function MapsIntelijenMapView({
   onVisibleCountChange,
   filters,
   jaringOptions,
+  fieldOfficerOptions,
   areaOptions,
   onFilterChange,
   onResetFilters,
@@ -441,6 +443,7 @@ export function MapsIntelijenMapView({
         loading={loading}
         filters={filters}
         jaringOptions={jaringOptions}
+        fieldOfficerOptions={fieldOfficerOptions}
         areaOptions={areaOptions}
         layerVisibility={layerVisibility}
         visualization={mode}

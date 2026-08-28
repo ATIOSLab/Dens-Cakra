@@ -14,15 +14,18 @@ import {
   type LucideIcon,
   MapPin,
   Minimize2,
+  Radio,
   RefreshCw,
   RotateCcw,
   Search,
   Siren,
+  UserMinus,
 } from "lucide-react";
 
 import { AppLogo } from "@/components/app-logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SearchableSelect, type SearchableSelectOption } from "@/components/ui/searchable-select";
 import { sortReportCategories } from "@/lib/domain/report-category-order";
 import { DOMAIN_TERMS } from "@/lib/domain/terminology";
 import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
@@ -59,6 +62,7 @@ type MapsIntelijenCommandHudProps = {
   loading: boolean;
   filters: MapNetworkFilters;
   jaringOptions: MapEntityFilterOption[];
+  fieldOfficerOptions: MapEntityFilterOption[];
   areaOptions: MapAreaFilterOptions;
   layerVisibility: LayerVisibility;
   visualization: VisualizationMode;
@@ -132,6 +136,7 @@ export function MapsIntelijenCommandHud({
   loading,
   filters,
   jaringOptions,
+  fieldOfficerOptions,
   areaOptions,
   layerVisibility,
   visualization,
@@ -153,6 +158,13 @@ export function MapsIntelijenCommandHud({
   const [rightPanelOpen, setRightPanelOpen] = useState(true);
   const [analyticsOpen, setAnalyticsOpen] = useState(true);
   const areaHierarchyOptions = buildMapAreaHierarchyOptions(areaOptions, filters);
+
+  const visibleJaringOptions = useMemo(() => {
+    if (filters.fieldOfficerAssignmentId === "ALL") return jaringOptions;
+    return jaringOptions.filter(
+      (item) => !item.fieldOfficerAssignmentId || item.fieldOfficerAssignmentId === filters.fieldOfficerAssignmentId,
+    );
+  }, [filters.fieldOfficerAssignmentId, jaringOptions]);
 
   useEffect(() => {
     if (!isFullscreen) return;
@@ -267,18 +279,18 @@ export function MapsIntelijenCommandHud({
 
   const kpiCards = [
     {
-      key: "jaring",
-      label: "Total Jaring",
-      value: intelligence.jaringTotal,
-      detail: "Jaring unik pada titik berkoordinat",
-      icon: DOMAIN_VISUALS.jaring.Icon,
-      tone: "cyan",
+      key: "reporting",
+      label: "Jaring Melapor",
+      value: meta.counts.reportingJaring ?? 0,
+      detail: "Jaring yang melapor dalam periode terpilih (dihitung unik).",
+      icon: Radio,
+      tone: "violet",
     },
     {
       key: "report",
-      label: DOMAIN_TERMS.jaringReport,
-      value: intelligence.reportTotal,
-      detail: "Sesuai filter aktif",
+      label: "Total Laporan Jaring",
+      value: meta.summary.reports.total ?? meta.counts.totalReports ?? 0,
+      detail: "Laporan Jaring yang masuk sesuai periode terpilih.",
       icon: DOMAIN_VISUALS.jaringReport.Icon,
       tone: DOMAIN_VISUALS.jaringReport.tone,
     },
@@ -291,12 +303,28 @@ export function MapsIntelijenCommandHud({
       tone: DOMAIN_VISUALS.baket.tone,
     },
     {
-      key: "area",
-      label: "Wilayah Terpantau",
-      value: meta.facets.areas.length,
-      detail: "Dalam cakupan akses",
-      icon: MapPin,
+      key: "active",
+      label: "Keaktifan Jaring",
+      value: meta.counts.activeJaring ?? 0,
+      detail: "Jaring terverifikasi yang melapor dalam 90 hari terakhir.",
+      icon: Activity,
       tone: "emerald",
+    },
+    {
+      key: "inactive",
+      label: "Jaring Tidak Aktif",
+      value: meta.counts.inactiveJaring ?? 0,
+      detail: "Jaring terverifikasi yang belum pernah melapor.",
+      icon: UserMinus,
+      tone: "amber",
+    },
+    {
+      key: "jaring",
+      label: "Total Jaring",
+      value: meta.counts.jaring ?? 0,
+      detail: "Jaring terverifikasi dalam cakupan akses.",
+      icon: DOMAIN_VISUALS.jaring.Icon,
+      tone: DOMAIN_VISUALS.jaring.tone,
     },
   ];
 
@@ -488,12 +516,28 @@ export function MapsIntelijenCommandHud({
               ]}
             />
             <HudSelect
+              label={DOMAIN_TERMS.fieldOfficer}
+              value={filters.fieldOfficerAssignmentId}
+              onChange={(fieldOfficerAssignmentId) =>
+                onFilterChange({
+                  fieldOfficerAssignmentId,
+                  ...(filters.jaringId !== "ALL" && fieldOfficerAssignmentId !== "ALL" ? { jaringId: "ALL" } : {}),
+                })
+              }
+              searchPlaceholder={`Cari ${DOMAIN_TERMS.fieldOfficer.toLowerCase()}...`}
+              options={[
+                ["ALL", `Semua ${DOMAIN_TERMS.fieldOfficer}`],
+                ...fieldOfficerOptions.map((item) => [item.id, item.label] as [string, string]),
+              ]}
+            />
+            <HudSelect
               label="Jaring"
               value={filters.jaringId}
               onChange={(jaringId) => onFilterChange({ jaringId })}
+              searchPlaceholder="Cari jaring..."
               options={[
                 ["ALL", "Semua Jaring"],
-                ...jaringOptions.map((item) => [item.id, item.label] as [string, string]),
+                ...visibleJaringOptions.map((item) => [item.id, item.label] as [string, string]),
               ]}
             />
             <HudSelect
@@ -525,18 +569,6 @@ export function MapsIntelijenCommandHud({
               disabled={filters.districtId === "ALL" || areaOptions.loadingLevel === "village"}
               onChange={(villageId) => onFilterChange({ villageId })}
               options={areaHierarchyOptions.villages}
-            />
-            <HudSelect
-              label="Kesesuaian Wilayah"
-              value={filters.suitability}
-              onChange={(value) => onFilterChange({ suitability: value })}
-              options={[
-                ["ALL", "Semua"],
-                ["WITHIN_SCOPE", "Dalam penugasan"],
-                ["OUTSIDE_SCOPE", "Di luar penugasan"],
-                ["BORDER_AMBIGUOUS", "Area perbatasan"],
-                ["NOT_DETERMINED", "Belum ditentukan"],
-              ]}
             />
           </div>
           <div className="grid grid-cols-2 gap-2 border-t border-slate-800 p-3">
@@ -813,29 +845,37 @@ function HudSelect({
   options,
   onChange,
   disabled = false,
+  pageSize = 7,
+  searchPlaceholder,
 }: {
   label: string;
   value: string;
-  options: Array<[string, string]>;
+  options: Array<[string, string]> | SearchableSelectOption[];
   onChange: (value: string) => void;
   disabled?: boolean;
+  pageSize?: number;
+  searchPlaceholder?: string;
 }) {
+  const formattedOptions: SearchableSelectOption[] = options.map((opt) =>
+    Array.isArray(opt) ? { value: opt[0], label: opt[1] } : opt,
+  );
+
   return (
-    <label className="grid gap-1 text-[10px] text-slate-400">
-      {label}
-      <select
-        className={hudControlClass}
+    <div className="grid min-w-0 gap-1 text-[10px] text-slate-400">
+      <span className="truncate">{label}</span>
+      <SearchableSelect
         value={value}
+        options={formattedOptions}
+        onValueChange={onChange}
+        placeholder={`Pilih ${label}`}
+        searchPlaceholder={searchPlaceholder ?? `Cari ${label.toLowerCase()}...`}
         disabled={disabled}
-        onChange={(event) => onChange(event.target.value)}
-      >
-        {options.map(([key, text]) => (
-          <option key={key} value={key}>
-            {text}
-          </option>
-        ))}
-      </select>
-    </label>
+        pageSize={pageSize}
+        aria-label={label}
+        className="h-9 border-slate-700 bg-slate-950/90 text-xs text-slate-100 hover:bg-slate-900 hover:text-slate-100 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20"
+        contentClassName="border-slate-700 bg-slate-950 text-slate-100"
+      />
+    </div>
   );
 }
 
