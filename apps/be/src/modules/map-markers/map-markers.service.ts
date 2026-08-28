@@ -51,6 +51,7 @@ type MarkerResult = {
   totalCount: number;
   summary?: Record<string, number>;
   unlocatedItems?: Array<Record<string, unknown>>;
+  reportingJaring?: number;
 };
 
 type ReportCoordinate = {
@@ -115,36 +116,24 @@ export class MapMarkersService {
       unlocatedCount: 0,
       totalCount: 0,
     };
-    const [
-      reportResult,
-      baketResult,
-      agentResult,
-      categories,
-      jaringHealth,
-      reportingJaring,
-    ] = await Promise.all([
-      filters.types.has(MapMarkerType.REPORT)
-        ? this.getReportFeatures(query, context, filters)
-        : Promise.resolve(emptyResult),
-      filters.types.has(MapMarkerType.BAKET)
-        ? this.getBaketFeatures(query, context, filters)
-        : Promise.resolve(emptyResult),
-      filters.types.has(MapMarkerType.AGENT)
-        ? this.getAgentFeatures(query, context, filters)
-        : Promise.resolve(emptyResult),
-      this.prisma.reportCategory.findMany({
-        where: { isActive: true },
-        orderBy: { name: 'asc' },
-        select: { id: true, code: true, name: true },
-      }),
-      this.jaringHealth(context, filters.now, query.areaIds),
-      this.reportingJaringCount(
-        context,
-        filters.from,
-        filters.to,
-        query.areaIds,
-      ),
-    ]);
+    const [reportResult, baketResult, agentResult, categories, jaringHealth] =
+      await Promise.all([
+        filters.types.has(MapMarkerType.REPORT)
+          ? this.getReportFeatures(query, context, filters)
+          : Promise.resolve(emptyResult),
+        filters.types.has(MapMarkerType.BAKET)
+          ? this.getBaketFeatures(query, context, filters)
+          : Promise.resolve(emptyResult),
+        filters.types.has(MapMarkerType.AGENT)
+          ? this.getAgentFeatures(query, context, filters)
+          : Promise.resolve(emptyResult),
+        this.prisma.reportCategory.findMany({
+          where: { isActive: true },
+          orderBy: { name: 'asc' },
+          select: { id: true, code: true, name: true },
+        }),
+        this.jaringHealth(context, filters.now, query.areaIds),
+      ]);
     const features = [
       ...reportResult.features,
       ...baketResult.features,
@@ -166,7 +155,7 @@ export class MapMarkersService {
           jaring: jaringHealth.verified,
           activeJaring: jaringHealth.activeLast90Days,
           inactiveJaring: jaringHealth.neverReported,
-          reportingJaring,
+          reportingJaring: reportResult.reportingJaring ?? 0,
           mappableReports: Math.max(
             0,
             reportResult.totalCount - reportResult.unlocatedCount,
@@ -282,28 +271,6 @@ export class MapMarkersService {
         some: { validUntil: null, area: areaWhere },
       },
     };
-  }
-
-  private async reportingJaringCount(
-    context: AuthorizationContext,
-    from: Date | null,
-    to: Date | null,
-    areaIds?: string[],
-  ) {
-    const scopedJaringWhere = await this.scope.jaringWhere(context);
-    const rows = await this.prisma.whatsAppReportSession.findMany({
-      where: {
-        jaring: this.withAreaFilter(scopedJaringWhere, areaIds),
-        submittedAt: {
-          not: null,
-          ...(from ? { gte: from } : {}),
-          ...(to ? { lte: to } : {}),
-        },
-      },
-      distinct: ['jaringId'],
-      select: { jaringId: true },
-    });
-    return rows.length;
   }
 
   private async getReportFeatures(
@@ -715,6 +682,9 @@ export class MapMarkersService {
         );
       });
 
+    const reportingJaring = new Set(
+      prepared.map((item) => item.report.jaringId),
+    ).size;
     const located = prepared.filter((item) => item.hasCoordinates);
     const visible = located
       .filter(({ coordinate }) =>
@@ -830,6 +800,7 @@ export class MapMarkersService {
       features,
       totalCount: prepared.length,
       unlocatedCount: prepared.length - located.length,
+      reportingJaring,
       summary: {
         total: prepared.length,
         valid: prepared.filter(

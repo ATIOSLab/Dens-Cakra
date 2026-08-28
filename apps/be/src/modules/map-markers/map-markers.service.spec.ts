@@ -454,7 +454,8 @@ describe('MapMarkersService', () => {
       }),
     );
     expect(result.meta.unlocatedItems).toHaveLength(1);
-    expect(scope.jaringWhere).toHaveBeenCalledTimes(3);
+    expect(result.meta.counts.reportingJaring).toBe(1);
+    expect(scope.jaringWhere).toHaveBeenCalledTimes(2);
     expect(prisma.whatsAppReportSession.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
@@ -607,13 +608,7 @@ describe('MapMarkersService', () => {
         findMany: jest.fn().mockResolvedValue([] as never),
       },
       whatsAppReportSession: {
-        findMany: jest.fn((args: { distinct?: unknown }) =>
-          Promise.resolve(
-            args.distinct
-              ? [{ jaringId: 'jaring-a' }, { jaringId: 'jaring-b' }]
-              : [],
-          ),
-        ),
+        findMany: jest.fn().mockResolvedValue([] as never),
       },
     };
     const scope = {
@@ -637,7 +632,7 @@ describe('MapMarkersService', () => {
         jaring: 12,
         activeJaring: 7,
         inactiveJaring: 3,
-        reportingJaring: 2,
+        reportingJaring: 0,
       }),
     );
     expect(prisma.jaring.count).toHaveBeenCalledWith(
