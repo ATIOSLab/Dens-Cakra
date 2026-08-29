@@ -192,6 +192,108 @@ describe('JaringService registration security', () => {
     });
   });
 
+  it('menghitung ringkasan Laporan Jaring dari filter tahap yang sama dengan daftar', async () => {
+    const count = jest.fn(() => Promise.resolve(0));
+    const groupBy = jest.fn(() => Promise.resolve([]));
+    const service = createService(
+      {
+        whatsAppReportSession: {
+          findMany: jest.fn(() => Promise.resolve([])),
+          count,
+          groupBy,
+        },
+      },
+      {
+        jaringWhere: jest.fn(() => Promise.resolve({ deletedAt: null })),
+      },
+    );
+
+    await service.allReports({ page: 1, limit: 10, stage: 'JARING_REPORT' }, {
+      authRole: 'field_coordinator',
+      primaryAssignmentId: 'assignment-id',
+    } as never);
+
+    expect(count).toHaveBeenNthCalledWith(1, {
+      where: expect.objectContaining({
+        AND: expect.arrayContaining([
+          { submittedMessage: { is: { convertedBaketId: null } } },
+        ]),
+      }),
+    });
+    expect(count).toHaveBeenNthCalledWith(2, {
+      where: expect.objectContaining({
+        AND: expect.arrayContaining([
+          { submittedMessage: { is: { convertedBaketId: null } } },
+        ]),
+      }),
+    });
+    expect(groupBy).toHaveBeenNthCalledWith(1, {
+      by: ['status'],
+      where: expect.objectContaining({
+        AND: expect.arrayContaining([
+          { submittedMessage: { is: { convertedBaketId: null } } },
+        ]),
+      }),
+      _count: { _all: true },
+    });
+  });
+
+  it('menghitung total Laporan Jaring sebagai seluruh laporan masuk pada filter semua tahap', async () => {
+    const count = jest
+      .fn()
+      .mockResolvedValueOnce(2021)
+      .mockResolvedValueOnce(2021)
+      .mockResolvedValueOnce(644);
+    const groupBy = jest
+      .fn()
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        { jaringId: 'jaring-1' },
+        { jaringId: 'jaring-2' },
+      ]);
+    const service = createService(
+      {
+        whatsAppReportSession: {
+          findMany: jest.fn(() => Promise.resolve([])),
+          count,
+          groupBy,
+        },
+      },
+      {
+        jaringWhere: jest.fn(() => Promise.resolve({ deletedAt: null })),
+      },
+    );
+
+    await expect(
+      service.allReports({ page: 1, limit: 10, stage: 'ALL' }, {
+        authRole: 'field_coordinator',
+        primaryAssignmentId: 'assignment-id',
+      } as never),
+    ).resolves.toMatchObject({
+      pagination: { total: 2021 },
+      summary: {
+        totalSessions: 2021,
+        totalJaringReports: 2021,
+        baketReports: 644,
+        reportingJaringCount: 2,
+      },
+    });
+
+    expect(count).toHaveBeenNthCalledWith(2, {
+      where: expect.not.objectContaining({
+        submittedMessage: { is: { convertedBaketId: null } },
+      }),
+    });
+    expect(count).toHaveBeenNthCalledWith(3, {
+      where: expect.objectContaining({
+        AND: expect.arrayContaining([
+          expect.objectContaining({ AND: expect.any(Array) }),
+          { submittedMessage: { is: { convertedBaketId: { not: null } } } },
+        ]),
+      }),
+    });
+  });
+
   it('menolak tanggal bergabung sebelum tanggal lahir', async () => {
     const service = createService(
       {
@@ -856,11 +958,7 @@ describe('JaringService registration security', () => {
       .fn<() => Promise<number>>()
       .mockResolvedValueOnce(3)
       .mockResolvedValueOnce(3)
-      .mockResolvedValueOnce(2)
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(1);
+      .mockResolvedValueOnce(2);
     const groupBy = jest
       .fn()
       .mockResolvedValueOnce([])
@@ -878,7 +976,7 @@ describe('JaringService registration security', () => {
     );
 
     const result = await service.allReports(
-      { page: 1, limit: 100, stage: 'JARING_REPORT' } as never,
+      { page: 1, limit: 100, stage: 'ALL' } as never,
       {
         authRole: 'field_officer',
         primaryAssignmentId: 'assignment-id',
@@ -894,26 +992,10 @@ describe('JaringService registration security', () => {
     );
     expect(findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({
-          AND: expect.arrayContaining([
-            {
-              submittedMessage: { is: { convertedBaketId: null } },
-            },
-          ]),
-        }),
+        where: expect.objectContaining({ AND: expect.any(Array) }),
       }),
     );
     expect(count).toHaveBeenNthCalledWith(3, {
-      where: {
-        AND: [
-          expect.any(Object),
-          {
-            submittedMessage: { is: { convertedBaketId: null } },
-          },
-        ],
-      },
-    });
-    expect(count).toHaveBeenNthCalledWith(4, {
       where: {
         AND: [
           expect.any(Object),
@@ -929,11 +1011,11 @@ describe('JaringService registration security', () => {
     });
     expect(result.summary).toEqual({
       totalSessions: 3,
-      totalJaringReports: 2,
-      baketReports: 1,
+      totalJaringReports: 3,
+      baketReports: 2,
       reportingJaringCount: 1,
     });
-    expect(result.summary.baketReports).toBe(1);
+    expect(result.summary.baketReports).toBe(2);
   });
 
   it('menerapkan filter laporan pada seluruh dataset dan sorting stabil', async () => {

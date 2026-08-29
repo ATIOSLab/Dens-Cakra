@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { apiBrowserFetch } from "@/lib/api/browser-client";
 import { fetchAllVerifiedJaringOptions } from "@/lib/api/jaring-options";
 import { findDkiJakartaProvinceFilterId } from "@/lib/domain/area-filter";
+import { jakartaBoundaryIso, jakartaDateKey } from "@/lib/domain/date-time";
 
 import { MapsIntelijenAreaFilter } from "./maps-intelijen-area-filter";
 import { normalizeMapAreas } from "./maps-intelijen-area-hierarchy";
@@ -46,7 +47,7 @@ function scopeAreaToMapArea(area: AdministrativeAreaScope): MapArea {
 
 const INITIAL_FILTERS: MapNetworkFilters = {
   search: "",
-  period: "TODAY",
+  period: "LAST_30_DAYS",
   startDate: "",
   endDate: "",
   dataType: "ALL",
@@ -67,34 +68,24 @@ const MAP_REQUEST_TIMEOUT_MS = 45_000;
 
 function periodRange(filters: MapNetworkFilters) {
   const now = new Date();
-  const end = now.toISOString();
-  if (filters.period === "TODAY") {
-    const value = new Intl.DateTimeFormat("en-CA", {
-      timeZone: "Asia/Jakarta",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(now);
-    return { from: new Date(`${value}T00:00:00+07:00`).toISOString(), to: end };
+  if (filters.period !== "CUSTOM") {
+    const daysBack = {
+      TODAY: 0,
+      LAST_7_DAYS: 6,
+      LAST_14_DAYS: 13,
+      LAST_30_DAYS: 29,
+    }[filters.period];
+    const from = jakartaDateKey(new Date(now.getTime() - daysBack * 86_400_000));
+    const to = jakartaDateKey(now);
+
+    return {
+      from: jakartaBoundaryIso(from),
+      to: jakartaBoundaryIso(to, true),
+    };
   }
-  if (filters.period === "LAST_7_DAYS")
-    return {
-      from: new Date(now.getTime() - 7 * 86_400_000).toISOString(),
-      to: end,
-    };
-  if (filters.period === "LAST_14_DAYS")
-    return {
-      from: new Date(now.getTime() - 14 * 86_400_000).toISOString(),
-      to: end,
-    };
-  if (filters.period === "LAST_30_DAYS")
-    return {
-      from: new Date(now.getTime() - 30 * 86_400_000).toISOString(),
-      to: end,
-    };
   return {
-    ...(filters.startDate ? { from: new Date(`${filters.startDate}T00:00:00+07:00`).toISOString() } : {}),
-    ...(filters.endDate ? { to: new Date(`${filters.endDate}T23:59:59.999+07:00`).toISOString() } : {}),
+    ...(filters.startDate ? { from: jakartaBoundaryIso(filters.startDate) } : {}),
+    ...(filters.endDate ? { to: jakartaBoundaryIso(filters.endDate, true) } : {}),
   };
 }
 
@@ -526,7 +517,7 @@ export function MapsIntelijenNetworkClient() {
     () =>
       Object.entries(filters).filter(([key, value]) => {
         if (key === "search") return Boolean(value);
-        if (key === "period") return value !== "TODAY";
+        if (key === "period") return value !== INITIAL_FILTERS.period;
         if (key === "startDate" || key === "endDate") return Boolean(value);
         return value !== "ALL";
       }).length,

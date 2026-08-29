@@ -20,7 +20,7 @@ export const JARING_REPORT_CATEGORY_FILTERS = {
   TOTAL: {
     label: "Total Laporan Jaring",
     verificationStatus: "ALL",
-    stage: "JARING_REPORT",
+    stage: "ALL",
   },
   BAKET: {
     label: DOMAIN_TERMS.baket,
@@ -60,7 +60,6 @@ export function resolveJaringReportCategorySelectValue(filters: {
   ) {
     return "BAKET";
   }
-  if (filters.stage !== "JARING_REPORT") return "ALL_DATA";
   return "TOTAL";
 }
 
@@ -70,6 +69,10 @@ export function alignJaringReportCategorySummary(summary?: JaringReportCategoryS
     baketReports: summary?.baketReports ?? 0,
     reportingJaringCount: summary?.reportingJaringCount ?? 0,
   };
+}
+
+export function formatReportNumber(value: number) {
+  return new Intl.NumberFormat("id-ID").format(value);
 }
 
 export function formatReportPercent(value: number) {

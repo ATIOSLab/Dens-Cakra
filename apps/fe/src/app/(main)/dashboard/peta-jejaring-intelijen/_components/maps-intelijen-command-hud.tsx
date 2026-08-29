@@ -175,7 +175,7 @@ export function MapsIntelijenCommandHud({
   }, [isFullscreen]);
 
   const intelligence = useMemo(() => {
-    const reportTotal = meta.summary.reports.total ?? meta.counts.totalReports ?? meta.counts.report ?? 0;
+    const reportTotal = meta.counts.totalReports ?? meta.summary.reports.total ?? meta.counts.report ?? 0;
     const baketTotal = meta.summary.bakets.total ?? meta.counts.totalBakets ?? meta.counts.baket ?? 0;
     const baketCategoryLabels = new Map<string, string>();
     for (const category of sortReportCategories(meta.facets.categories)) {
@@ -289,7 +289,7 @@ export function MapsIntelijenCommandHud({
     {
       key: "report",
       label: "Total Laporan Jaring",
-      value: meta.summary.reports.total ?? meta.counts.totalReports ?? 0,
+      value: meta.counts.totalReports ?? meta.summary.reports.total ?? 0,
       detail: "Laporan Jaring yang masuk sesuai periode terpilih.",
       icon: DOMAIN_VISUALS.jaringReport.Icon,
       tone: DOMAIN_VISUALS.jaringReport.tone,

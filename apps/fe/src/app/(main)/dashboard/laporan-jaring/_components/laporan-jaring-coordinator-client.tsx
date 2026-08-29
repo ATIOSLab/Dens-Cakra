@@ -66,8 +66,7 @@ import {
 import {
   alignJaringReportCategorySummary,
   formatDateTime,
-  isJaringReportCategoryFilterActive,
-  type JaringReportCategoryKey,
+  formatReportNumber,
   verificationStatusBadgeVariant,
   verificationStatusLabel,
 } from "./laporan-jaring-presentation";
@@ -77,6 +76,8 @@ import {
   type PriorityLevel,
   type VerificationStatus,
 } from "./laporan-jaring-types";
+
+const DEFAULT_REPORT_PERIOD_PRESET = "LAST_30_DAYS" as const;
 
 function getUrgencyCardStyle(urgency?: PriorityLevel | null) {
   switch (urgency) {
@@ -190,7 +191,7 @@ type AdministrativeAreaScope = {
   parentOfficialCode?: string | null;
 };
 
-type ReportStage = "JARING_REPORT";
+type ReportStage = "ALL" | "JARING_REPORT" | "DRAFT_BAKET" | "VALIDATED_BAKET";
 
 type JaringAdministrativeArea = {
   id: string;
@@ -240,7 +241,7 @@ function resolveInitialReportFilters(searchParams: { get(name: string): string |
   const verificationStatus = searchParams.get("verificationStatus");
   return {
     status: verificationStatus && verificationStatus !== "ALL" ? verificationStatus : "ALL",
-    stage: "JARING_REPORT",
+    stage: "ALL",
   };
 }
 
@@ -356,7 +357,7 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
   );
   const [locationFilter, setLocationFilter] = useState(() => searchParams.get("locationSuitability") || "");
   const [periodPreset, setPeriodPreset] = useState<"ALL" | "TODAY" | "LAST_7_DAYS" | "LAST_30_DAYS" | "CUSTOM">(() =>
-    searchParams.get("from") || searchParams.get("to") ? "CUSTOM" : "ALL",
+    searchParams.get("from") || searchParams.get("to") ? "CUSTOM" : DEFAULT_REPORT_PERIOD_PRESET,
   );
   const [startDate, setStartDate] = useState<string>(() => jakartaDateInput(searchParams.get("from")));
   const [endDate, setEndDate] = useState<string>(() => jakartaDateInput(searchParams.get("to")));
@@ -380,7 +381,7 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
     return {
       page: requestedPage,
       limit: requestedLimit,
-      stage: "JARING_REPORT",
+      stage: "ALL",
       sortBy: "reportedAt",
       sortOrder: "desc",
       search: debouncedSearch || undefined,
@@ -564,35 +565,42 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
   ]);
 
   const kpiSummary = alignJaringReportCategorySummary(reportSummary);
-  const categoryFilterState = {
-    verificationStatus: statusFilter,
-    stage: "JARING_REPORT",
-  };
-
-  function applyCategoryFilter(_category: JaringReportCategoryKey) {
-    setStatusFilter("ALL");
-    setPage(1);
-  }
-
-  const statusKpiCards = [
+  const reportKpiCards = [
     {
       key: "TOTAL" as const,
-      label: "TOTAL",
-      description: "Sesuai filter aktif",
+      label: "Total Laporan Jaring",
+      description: "Seluruh laporan yang masuk sesuai filter aktif",
       count: kpiSummary.totalJaringReports,
       icon: DOMAIN_VISUALS.jaringReport.Icon,
-      isActive: isJaringReportCategoryFilterActive("TOTAL", categoryFilterState),
-      onClick: () => applyCategoryFilter("TOTAL"),
       styles: {
-        activeCard: "border-sky-500 bg-sky-50/80 dark:bg-sky-950/40 ring-2 ring-sky-500/40 shadow-sm shadow-sky-500/10",
-        inactiveCard:
-          "border-sky-200/80 dark:border-sky-900/30 bg-card hover:border-sky-300 dark:hover:border-sky-800 hover:bg-sky-50/30 dark:hover:bg-sky-950/20",
-        activeBadge: "bg-sky-600 text-white border-sky-600 font-semibold shadow-xs",
-        inactiveBadge:
-          "border-sky-200 bg-sky-100/80 text-sky-700 dark:border-sky-900/50 dark:bg-sky-950/50 dark:text-sky-400",
-        activeIcon: "bg-sky-600 text-white shadow-md shadow-sky-500/30",
-        inactiveIcon: "bg-sky-100 text-sky-600 dark:bg-sky-950/60 dark:text-sky-400",
+        card: "border-sky-200/80 dark:border-sky-900/30",
+        icon: "bg-sky-100 text-sky-600 dark:bg-sky-950/60 dark:text-sky-400",
         countText: "text-sky-700 dark:text-sky-400",
+      },
+    },
+    {
+      key: "BAKET" as const,
+      label: "Laporan Jaring yang Sudah Menjadi Baket",
+      description: "Laporan Jaring yang sudah dikonversi menjadi Bahan Keterangan (Baket)",
+      count: kpiSummary.baketReports,
+      icon: DOMAIN_VISUALS.baket.Icon,
+      styles: {
+        card: "border-violet-200/80 dark:border-violet-900/30",
+        icon: "bg-violet-100 text-violet-600 dark:bg-violet-950/60 dark:text-violet-400",
+        countText: "text-violet-700 dark:text-violet-400",
+      },
+    },
+    {
+      key: "JARING" as const,
+      label: "Total Jaring Melaporkan",
+      description:
+        jaringFilter === "ALL" ? "Jaring unik yang mengirim laporan sesuai filter aktif" : "Jaring pelapor terpilih",
+      count: kpiSummary.reportingJaringCount,
+      icon: DOMAIN_VISUALS.jaring.Icon,
+      styles: {
+        card: "border-emerald-200/80 dark:border-emerald-900/30",
+        icon: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+        countText: "text-emerald-600 dark:text-emerald-400",
       },
     },
   ];
@@ -644,8 +652,6 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
       (jaring) => getJaringGaswilAssignment(jaring)?.assignmentId === fieldOfficerFilter,
     );
   }, [areaFilteredJaringList, fieldOfficerFilter]);
-
-  const reportingJaringCount = kpiSummary.reportingJaringCount;
 
   const popoverJaringOptions: JaringOption[] = useMemo(() => {
     return connectedJaringList.map((j) => ({
@@ -754,7 +760,7 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
     setAttachmentFilter("");
     setCoordinateSourceFilter("");
     setLocationFilter("");
-    setPeriodPreset("TODAY");
+    setPeriodPreset(DEFAULT_REPORT_PERIOD_PRESET);
     setStartDate("");
     setEndDate("");
     setPage(1);
@@ -871,68 +877,32 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
         </div>
       </div>
 
-      {/* KPI status laporan: klik untuk menerapkan atau melepas filter */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {statusKpiCards.map((item) => {
+      {/* KPI ringkasan laporan */}
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+        {reportKpiCards.map((item) => {
           const Icon = item.icon;
-          const isActive = item.isActive;
 
           return (
-            <button
+            <div
               key={item.key}
-              type="button"
-              aria-pressed={isActive}
-              aria-label={`Filter ${item.label}`}
-              onClick={() => {
-                if (isActive) {
-                  applyCategoryFilter("TOTAL");
-                } else {
-                  item.onClick();
-                }
-              }}
               className={cn(
-                "flex min-h-[104px] cursor-pointer items-center gap-3 rounded-md border bg-card p-3.5 text-left shadow-xs transition-all duration-150 active:scale-[0.98]",
-                isActive ? item.styles.activeCard : item.styles.inactiveCard,
+                "flex min-h-[112px] items-center gap-3 rounded-md border bg-card p-3.5 text-left shadow-xs",
+                item.styles.card,
               )}
             >
-              <div
-                className={cn(
-                  "flex size-10 shrink-0 items-center justify-center rounded-md transition-all duration-150",
-                  isActive ? item.styles.activeIcon : item.styles.inactiveIcon,
-                )}
-              >
+              <div className={cn("flex size-10 shrink-0 items-center justify-center rounded-md", item.styles.icon)}>
                 <Icon className="size-5" />
               </div>
               <div className="min-w-0">
-                <p className="font-medium text-[11px] text-muted-foreground uppercase tracking-wider">{item.label}</p>
-                <p
-                  className={cn(
-                    "font-bold text-xl tracking-normal transition-colors",
-                    isActive ? item.styles.countText : "text-foreground",
-                  )}
-                >
-                  {item.count}
+                <p className="font-semibold text-[11px] text-muted-foreground leading-snug">{item.label}</p>
+                <p className={cn("font-bold text-xl tracking-normal", item.styles.countText)}>
+                  {formatReportNumber(item.count)}
                 </p>
-                <p className="mt-0.5 truncate font-medium text-muted-foreground text-xs">{item.description}</p>
+                <p className="mt-0.5 text-muted-foreground text-xs leading-relaxed">{item.description}</p>
               </div>
-            </button>
+            </div>
           );
         })}
-
-        <div className="flex min-h-[104px] items-center gap-3 rounded-md border border-emerald-200/80 bg-card p-3.5 text-left shadow-xs transition-colors dark:border-emerald-900/30">
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-emerald-500/10 text-emerald-600 transition-colors dark:text-emerald-400">
-            <DOMAIN_VISUALS.jaring.Icon className="size-5" />
-          </div>
-          <div className="min-w-0">
-            <p className="font-medium text-[11px] text-muted-foreground uppercase tracking-wider">Jaring</p>
-            <p className="font-bold text-emerald-600 text-xl tracking-normal dark:text-emerald-400">
-              {reportingJaringCount}
-            </p>
-            <p className="mt-0.5 truncate font-medium text-muted-foreground text-xs">
-              {jaringFilter === "ALL" ? "Jaring pelapor sesuai laporan" : "Jaring pelapor terpilih"}
-            </p>
-          </div>
-        </div>
       </div>
 
       {/* FILTER & TOOLBAR BAR */}
@@ -962,7 +932,7 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
             attachmentFilter ||
             coordinateSourceFilter ||
             locationFilter ||
-            periodPreset !== "TODAY" ||
+            periodPreset !== DEFAULT_REPORT_PERIOD_PRESET ||
             startDate ||
             endDate
               ? "Filter aktif"

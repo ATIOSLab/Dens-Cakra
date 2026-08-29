@@ -32,9 +32,7 @@ import { cn } from "@/lib/utils";
 import {
   alignJaringReportCategorySummary,
   formatDateTime,
-  isJaringReportCategoryFilterActive,
-  JARING_REPORT_CATEGORY_FILTERS,
-  type JaringReportCategoryKey,
+  formatReportNumber,
   verificationStatusBadgeVariant,
   verificationStatusLabel,
 } from "./laporan-jaring-presentation";
@@ -67,6 +65,8 @@ const EMPTY_SUMMARY = {
   baketReports: 0,
   reportingJaringCount: 0,
 };
+
+const DEFAULT_REPORT_PERIOD_PRESET = "LAST_30_DAYS" as const;
 
 function JaringFilterPopover({
   options,
@@ -342,9 +342,12 @@ export function LaporanJaringClient() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [jaringFilter, setJaringFilter] = useState<string>("ALL");
-  const [periodPreset, setPeriodPreset] = useState<DashboardDetailPeriodPreset>(() =>
-    resolveDashboardDetailPeriodPreset(searchParams, Boolean(initialStartDate || initialEndDate)),
-  );
+  const [periodPreset, setPeriodPreset] = useState<DashboardDetailPeriodPreset>(() => {
+    const hasInitialDateRange = Boolean(initialStartDate || initialEndDate);
+    if (!hasInitialDateRange && !searchParams.get("period")) return DEFAULT_REPORT_PERIOD_PRESET;
+
+    return resolveDashboardDetailPeriodPreset(searchParams, hasInitialDateRange);
+  });
   const [startDate, setStartDate] = useState<string>(() => initialStartDate);
   const [endDate, setEndDate] = useState<string>(() => initialEndDate);
   const [page, setPage] = useState(1);
@@ -369,7 +372,7 @@ export function LaporanJaringClient() {
       try {
         const params = new URLSearchParams({
           registrationStatus: "APPROVED",
-          stage: "JARING_REPORT",
+          stage: "ALL",
           page: String(page),
           limit: String(limit),
           sortBy: "reportedAt",
@@ -455,14 +458,45 @@ export function LaporanJaringClient() {
 
   const paginatedReports = reports;
   const alignedSummary = alignJaringReportCategorySummary(reportSummary);
-  const categoryFilterState = {
-    verificationStatus: "ALL",
-    stage: "JARING_REPORT",
-  };
-
-  function applyCategoryFilter(_category: JaringReportCategoryKey) {
-    setPage(1);
-  }
+  const reportKpiCards = [
+    {
+      key: "TOTAL" as const,
+      label: "Total Laporan Jaring",
+      description: "Seluruh laporan yang masuk sesuai filter aktif",
+      count: alignedSummary.totalJaringReports,
+      icon: DOMAIN_VISUALS.jaringReport.Icon,
+      styles: {
+        card: "border-sky-200/80 dark:border-sky-900/30",
+        icon: "bg-sky-500/10 text-sky-600 dark:text-sky-400",
+        countText: "text-sky-700 dark:text-sky-400",
+      },
+    },
+    {
+      key: "BAKET" as const,
+      label: "Laporan Jaring yang Sudah Menjadi Baket",
+      description: "Laporan Jaring yang sudah dikonversi menjadi Bahan Keterangan (Baket)",
+      count: alignedSummary.baketReports,
+      icon: DOMAIN_VISUALS.baket.Icon,
+      styles: {
+        card: "border-violet-200/80 dark:border-violet-900/30",
+        icon: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
+        countText: "text-violet-700 dark:text-violet-400",
+      },
+    },
+    {
+      key: "JARING" as const,
+      label: "Total Jaring Melaporkan",
+      description:
+        jaringFilter === "ALL" ? "Jaring unik yang mengirim laporan sesuai filter aktif" : "Jaring pelapor terpilih",
+      count: alignedSummary.reportingJaringCount,
+      icon: DOMAIN_VISUALS.jaring.Icon,
+      styles: {
+        card: "border-emerald-200/80 dark:border-emerald-900/30",
+        icon: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+        countText: "text-emerald-600 dark:text-emerald-400",
+      },
+    },
+  ];
 
   return (
     <main className="mx-auto w-full max-w-[1600px] space-y-5 transition-colors duration-150 sm:space-y-6">
@@ -489,27 +523,31 @@ export function LaporanJaringClient() {
       </div>
 
       {/* KPI METRIC SUMMARY CARDS */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <button
-          type="button"
-          onClick={() => applyCategoryFilter("TOTAL")}
-          className={cn(
-            "flex min-h-[104px] cursor-pointer items-center gap-3 rounded-md border bg-card p-3.5 text-left shadow-xs transition-all duration-150 active:scale-[0.98]",
-            isJaringReportCategoryFilterActive("TOTAL", categoryFilterState)
-              ? "border-sky-500 ring-2 ring-sky-500/30 bg-sky-500/5 dark:bg-sky-500/10"
-              : "border-slate-200/80 dark:border-white/10 hover:border-sky-500/40",
-          )}
-        >
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-sky-500/10 text-sky-600 dark:text-sky-400">
-            <DOMAIN_VISUALS.jaringReport.Icon className="size-5" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-              {JARING_REPORT_CATEGORY_FILTERS.TOTAL.label}
-            </p>
-            <p className="font-bold text-foreground text-xl tracking-normal">{alignedSummary.totalJaringReports}</p>
-          </div>
-        </button>
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+        {reportKpiCards.map((item) => {
+          const Icon = item.icon;
+
+          return (
+            <div
+              key={item.key}
+              className={cn(
+                "flex min-h-[112px] items-center gap-3 rounded-md border bg-card p-3.5 text-left shadow-xs",
+                item.styles.card,
+              )}
+            >
+              <div className={cn("flex size-10 shrink-0 items-center justify-center rounded-md", item.styles.icon)}>
+                <Icon className="size-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="font-semibold text-[11px] text-muted-foreground leading-snug">{item.label}</p>
+                <p className={cn("font-bold text-xl tracking-normal", item.styles.countText)}>
+                  {formatReportNumber(item.count)}
+                </p>
+                <p className="mt-0.5 text-muted-foreground text-xs leading-relaxed">{item.description}</p>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* FULL TABLE VIEW CONTAINER */}

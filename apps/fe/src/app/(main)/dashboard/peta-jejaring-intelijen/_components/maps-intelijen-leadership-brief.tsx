@@ -23,7 +23,7 @@ function percentage(value: number, total: number) {
 
 export function MapsIntelijenLeadershipBrief({ features, meta, periodLabel, loading, onFilterChange }: Props) {
   const intelligence = useMemo(() => {
-    const reportTotal = meta.summary.reports.total ?? meta.counts.report ?? 0;
+    const reportTotal = meta.counts.totalReports ?? meta.summary.reports.total ?? meta.counts.report ?? 0;
     const baketTotal = meta.summary.bakets.total ?? 0;
     const total = reportTotal + baketTotal;
     const mappable = (meta.summary.reports.mappable ?? 0) + (meta.summary.bakets.mappable ?? 0);

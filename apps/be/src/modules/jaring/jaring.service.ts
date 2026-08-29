@@ -1053,46 +1053,31 @@ export class JaringService {
   private async summarizeReportSessions(
     where: Prisma.WhatsAppReportSessionWhereInput,
   ) {
-    const jaringReportWhere: Prisma.WhatsAppReportSessionWhereInput = {
-      AND: [
-        where,
-        {
-          submittedMessage: {
-            is: { convertedBaketId: null },
-          },
-        },
-      ],
-    };
-    const [
-      totalSessions,
-      totalJaringReports,
-      baketReports,
-      reportingJaringGroups,
-    ] = await Promise.all([
-      this.prisma.whatsAppReportSession.count({ where }),
-      this.prisma.whatsAppReportSession.count({ where: jaringReportWhere }),
-      this.prisma.whatsAppReportSession.count({
-        where: {
-          AND: [
-            where,
-            {
-              submittedMessage: {
-                is: {
-                  convertedBaketId: { not: null },
+    const [totalJaringReports, baketReports, reportingJaringGroups] =
+      await Promise.all([
+        this.prisma.whatsAppReportSession.count({ where }),
+        this.prisma.whatsAppReportSession.count({
+          where: {
+            AND: [
+              where,
+              {
+                submittedMessage: {
+                  is: {
+                    convertedBaketId: { not: null },
+                  },
                 },
               },
-            },
-          ],
-        },
-      }),
-      this.prisma.whatsAppReportSession.groupBy({
-        by: ['jaringId'],
-        where: jaringReportWhere,
-      }),
-    ]);
+            ],
+          },
+        }),
+        this.prisma.whatsAppReportSession.groupBy({
+          by: ['jaringId'],
+          where,
+        }),
+      ]);
 
     return {
-      totalSessions,
+      totalSessions: totalJaringReports,
       totalJaringReports,
       baketReports,
       reportingJaringCount: reportingJaringGroups.length,
@@ -2928,9 +2913,6 @@ export class JaringService {
             },
       );
     }
-    const summaryWhere: Prisma.WhatsAppReportSessionWhereInput = {
-      AND: [...filters],
-    };
     if (query.stage === 'JARING_REPORT') {
       filters.push({
         submittedMessage: { is: { convertedBaketId: null } },
@@ -2955,6 +2937,9 @@ export class JaringService {
       });
     }
     const where: Prisma.WhatsAppReportSessionWhereInput = { AND: filters };
+    const summaryWhere: Prisma.WhatsAppReportSessionWhereInput = {
+      AND: [...filters],
+    };
 
     const [sessions, total, statusCounts, summary] = await Promise.all([
       this.prisma.whatsAppReportSession.findMany({

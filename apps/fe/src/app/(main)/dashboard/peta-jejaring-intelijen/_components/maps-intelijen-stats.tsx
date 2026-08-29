@@ -19,7 +19,7 @@ export function MapsIntelijenStats({ meta, loading }: MapsIntelijenStatsProps) {
   const cards = [
     {
       key: "verified",
-      label: "Total Jaring",
+      label: "Jaring Terverifikasi",
       value: meta.counts.jaring ?? 0,
       detail: "Jaring terverifikasi dalam cakupan akses.",
       icon: JaringIcon,
@@ -39,7 +39,7 @@ export function MapsIntelijenStats({ meta, loading }: MapsIntelijenStatsProps) {
       key: "inactive",
       label: "Jaring Tidak Aktif",
       value: meta.counts.inactiveJaring ?? 0,
-      detail: "Jaring terverifikasi yang belum pernah melapor.",
+      detail: "Jaring terverifikasi yang tidak melapor dalam 90 hari terakhir.",
       icon: UserMinus,
       iconClass: "text-amber-600 dark:text-amber-400",
       surfaceClass: "border-amber-500/30 bg-amber-500/5",
@@ -47,7 +47,7 @@ export function MapsIntelijenStats({ meta, loading }: MapsIntelijenStatsProps) {
     {
       key: "reports",
       label: "Total Laporan Jaring",
-      value: meta.summary.reports.total ?? meta.counts.totalReports ?? 0,
+      value: meta.counts.totalReports ?? meta.summary.reports.total ?? 0,
       detail: "Laporan Jaring yang masuk sesuai periode terpilih.",
       icon: JaringReportIcon,
       iconClass: DOMAIN_VISUALS.jaringReport.iconClass,

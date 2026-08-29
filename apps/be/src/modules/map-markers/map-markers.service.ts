@@ -154,7 +154,10 @@ export class MapMarkersService {
           totalBakets: baketResult.totalCount,
           jaring: jaringHealth.verified,
           activeJaring: jaringHealth.activeLast90Days,
-          inactiveJaring: jaringHealth.neverReported,
+          inactiveJaring: Math.max(
+            0,
+            jaringHealth.verified - jaringHealth.activeLast90Days,
+          ),
           reportingJaring: reportResult.reportingJaring ?? 0,
           mappableReports: Math.max(
             0,
@@ -236,22 +239,19 @@ export class MapMarkersService {
       areaIds,
     );
     const activeSince = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
-    const [verified, activeLast90Days, neverReported] = await Promise.all([
+    const [verified, activeLast90Days] = await Promise.all([
       this.prisma.jaring.count({ where: verifiedWhere }),
       this.prisma.jaring.count({
         where: {
           ...verifiedWhere,
-          reportSessions: { some: { submittedAt: { gte: activeSince } } },
-        },
-      }),
-      this.prisma.jaring.count({
-        where: {
-          ...verifiedWhere,
-          reportSessions: { none: { submittedAt: { not: null } } },
+          OR: [
+            { messages: { some: { receivedAt: { gte: activeSince } } } },
+            { reportSessions: { some: { submittedAt: { gte: activeSince } } } },
+          ],
         },
       }),
     ]);
-    return { verified, activeLast90Days, neverReported };
+    return { verified, activeLast90Days };
   }
 
   private withAreaFilter(
@@ -283,194 +283,197 @@ export class MapMarkersService {
       ? getIndonesianPhoneSearchVariants(filters.search)
       : [];
     const candidateLimit = this.candidateLimit(query);
-    const candidates = await this.prisma.whatsAppReportSession.findMany({
-      where: {
-        AND: [
-          { jaring: scopedJaringWhere },
-          {
-            submittedMessage: {
-              is: { convertedBaketId: null },
-            },
-          },
-          query.jaringIds?.length ? { jaringId: { in: query.jaringIds } } : {},
-          query.fieldOfficerAssignmentIds?.length
-            ? {
-                OR: [
-                  {
-                    fieldOfficerAssignmentId: {
-                      in: query.fieldOfficerAssignmentIds,
+    const reportScopeFilters: Prisma.WhatsAppReportSessionWhereInput[] = [
+      { jaring: scopedJaringWhere },
+      query.jaringIds?.length ? { jaringId: { in: query.jaringIds } } : {},
+      query.fieldOfficerAssignmentIds?.length
+        ? {
+            OR: [
+              {
+                fieldOfficerAssignmentId: {
+                  in: query.fieldOfficerAssignmentIds,
+                },
+              },
+              {
+                jaring: {
+                  caretakerAssignments: {
+                    some: {
+                      isActive: true,
+                      fieldOfficerAssignmentId: {
+                        in: query.fieldOfficerAssignmentIds,
+                      },
                     },
                   },
-                  {
-                    jaring: {
+                },
+              },
+            ],
+          }
+        : {},
+      this.reportDateWhere(filters.from, filters.to),
+      filters.search
+        ? {
+            OR: [
+              {
+                referenceNumber: {
+                  contains: filters.search,
+                  mode: 'insensitive',
+                },
+              },
+              {
+                content: {
+                  contains: filters.search,
+                  mode: 'insensitive',
+                },
+              },
+              {
+                jaring: {
+                  OR: [
+                    {
+                      aliasName: {
+                        contains: filters.search,
+                        mode: 'insensitive',
+                      },
+                    },
+                    {
+                      fullName: {
+                        contains: filters.search,
+                        mode: 'insensitive',
+                      },
+                    },
+                    ...phoneSearchVariants.map((phone) => ({
+                      whatsappNumber: { contains: phone },
+                    })),
+                    {
                       caretakerAssignments: {
                         some: {
                           isActive: true,
-                          fieldOfficerAssignmentId: {
-                            in: query.fieldOfficerAssignmentIds,
+                          fieldOfficerAssignment: {
+                            userProfile: {
+                              OR: [
+                                {
+                                  fullName: {
+                                    contains: filters.search,
+                                    mode: 'insensitive',
+                                  },
+                                },
+                                {
+                                  username: {
+                                    contains: filters.search,
+                                    mode: 'insensitive',
+                                  },
+                                },
+                              ],
+                            },
                           },
                         },
                       },
                     },
-                  },
-                ],
-              }
-            : {},
-          this.reportDateWhere(filters.from, filters.to),
-          filters.search
-            ? {
-                OR: [
-                  {
-                    referenceNumber: {
-                      contains: filters.search,
-                      mode: 'insensitive',
-                    },
-                  },
-                  {
-                    content: {
-                      contains: filters.search,
-                      mode: 'insensitive',
-                    },
-                  },
-                  {
-                    jaring: {
-                      OR: [
-                        {
-                          aliasName: {
-                            contains: filters.search,
-                            mode: 'insensitive',
-                          },
-                        },
-                        {
-                          fullName: {
-                            contains: filters.search,
-                            mode: 'insensitive',
-                          },
-                        },
-                        ...phoneSearchVariants.map((phone) => ({
-                          whatsappNumber: { contains: phone },
-                        })),
-                        {
-                          caretakerAssignments: {
-                            some: {
-                              isActive: true,
-                              fieldOfficerAssignment: {
-                                userProfile: {
-                                  OR: [
-                                    {
-                                      fullName: {
-                                        contains: filters.search,
-                                        mode: 'insensitive',
-                                      },
-                                    },
-                                    {
-                                      username: {
-                                        contains: filters.search,
-                                        mode: 'insensitive',
-                                      },
-                                    },
-                                  ],
-                                },
-                              },
-                            },
-                          },
-                        },
-                        {
-                          areaCoverages: {
-                            some: {
-                              validUntil: null,
-                              area: {
-                                OR: [
-                                  {
-                                    name: {
-                                      contains: filters.search,
-                                      mode: 'insensitive',
-                                    },
-                                  },
-                                  {
-                                    descendantLinks: {
-                                      some: {
-                                        ancestor: {
-                                          name: {
-                                            contains: filters.search,
-                                            mode: 'insensitive',
-                                          },
-                                        },
-                                      },
-                                    },
-                                  },
-                                ],
-                              },
-                            },
-                          },
-                        },
-                      ],
-                    },
-                  },
-                  {
-                    submittedMessage: {
-                      is: {
-                        OR: [
-                          {
-                            referenceNumber: {
-                              contains: filters.search,
-                              mode: 'insensitive',
-                            },
-                          },
-                          {
-                            resolvedArea: {
-                              is: {
+                    {
+                      areaCoverages: {
+                        some: {
+                          validUntil: null,
+                          area: {
+                            OR: [
+                              {
                                 name: {
                                   contains: filters.search,
                                   mode: 'insensitive',
                                 },
                               },
-                            },
+                              {
+                                descendantLinks: {
+                                  some: {
+                                    ancestor: {
+                                      name: {
+                                        contains: filters.search,
+                                        mode: 'insensitive',
+                                      },
+                                    },
+                                  },
+                                },
+                              },
+                            ],
                           },
-                        ],
+                        },
                       },
                     },
+                  ],
+                },
+              },
+              {
+                submittedMessage: {
+                  is: {
+                    OR: [
+                      {
+                        referenceNumber: {
+                          contains: filters.search,
+                          mode: 'insensitive',
+                        },
+                      },
+                      {
+                        resolvedArea: {
+                          is: {
+                            name: {
+                              contains: filters.search,
+                              mode: 'insensitive',
+                            },
+                          },
+                        },
+                      },
+                    ],
                   },
-                ],
-              }
-            : {},
-        ],
-      },
-      select: {
-        id: true,
-        jaringId: true,
-        fieldOfficerAssignmentId: true,
-        status: true,
-        currentState: true,
-        content: true,
-        latitude: true,
-        longitude: true,
-        locationAccuracyMeters: true,
-        locationCapturedAt: true,
-        locationType: true,
-        referenceNumber: true,
-        submittedAt: true,
-        startedAt: true,
-        createdAt: true,
-        jaring: {
+                },
+              },
+            ],
+          }
+        : {},
+    ];
+    const reportMarkerWhere: Prisma.WhatsAppReportSessionWhereInput = {
+      AND: [
+        ...reportScopeFilters,
+        {
+          submittedMessage: {
+            is: { convertedBaketId: null },
+          },
+        },
+      ],
+    };
+    const reportMetricWhere: Prisma.WhatsAppReportSessionWhereInput = {
+      AND: reportScopeFilters,
+    };
+    const [candidates, totalReports, reportingJaringGroups] = await Promise.all(
+      [
+        this.prisma.whatsAppReportSession.findMany({
+          where: reportMarkerWhere,
           select: {
             id: true,
-            aliasName: true,
-            fullName: true,
-            whatsappNumber: true,
-            profilePhotoFileId: true,
-            areaCoverages: {
-              where: { validUntil: null },
-              orderBy: [{ isPrimary: 'desc' }, { validFrom: 'desc' }],
-              take: 1,
+            jaringId: true,
+            fieldOfficerAssignmentId: true,
+            status: true,
+            currentState: true,
+            content: true,
+            latitude: true,
+            longitude: true,
+            locationAccuracyMeters: true,
+            locationCapturedAt: true,
+            locationType: true,
+            referenceNumber: true,
+            submittedAt: true,
+            startedAt: true,
+            createdAt: true,
+            jaring: {
               select: {
-                area: {
+                id: true,
+                aliasName: true,
+                fullName: true,
+                whatsappNumber: true,
+                profilePhotoFileId: true,
+                areaCoverages: {
+                  where: { validUntil: null },
+                  orderBy: [{ isPrimary: 'desc' }, { validFrom: 'desc' }],
+                  take: 1,
                   select: {
-                    id: true,
-                    code: true,
-                    name: true,
-                    level: true,
-                    parent: {
+                    area: {
                       select: {
                         id: true,
                         code: true,
@@ -488,6 +491,14 @@ export class MapMarkersService {
                                 code: true,
                                 name: true,
                                 level: true,
+                                parent: {
+                                  select: {
+                                    id: true,
+                                    code: true,
+                                    name: true,
+                                    level: true,
+                                  },
+                                },
                               },
                             },
                           },
@@ -496,101 +507,111 @@ export class MapMarkersService {
                     },
                   },
                 },
-              },
-            },
-            caretakerAssignments: {
-              where: { isActive: true },
-              take: 1,
-              select: {
-                fieldOfficerAssignment: {
-                  select: {
-                    id: true,
-                    userProfile: {
-                      select: { id: true, fullName: true },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-        submittedMessage: {
-          select: {
-            id: true,
-            convertedBaketId: true,
-            referenceNumber: true,
-            content: true,
-            senderPhone: true,
-            jaringId: true,
-            latitude: true,
-            longitude: true,
-            resolvedAreaId: true,
-            rawPayload: true,
-            status: true,
-            validationSummary: true,
-            receivedAt: true,
-            gpsAccuracyMeters: true,
-            locationCapturedAt: true,
-            coordinateSource: true,
-            resolvedArea: {
-              select: {
-                id: true,
-                code: true,
-                name: true,
-                level: true,
-                ancestorLinks: {
-                  select: {
-                    ancestor: {
-                      select: { id: true, code: true, name: true, level: true },
-                    },
-                  },
-                },
-              },
-            },
-            convertedBaket: {
-              select: {
-                id: true,
-                status: true,
-                currentVersionNumber: true,
-                reportCategory: {
-                  select: { id: true, code: true, name: true },
-                },
-                versions: {
-                  orderBy: { versionNumber: 'desc' },
+                caretakerAssignments: {
+                  where: { isActive: true },
                   take: 1,
                   select: {
-                    id: true,
-                    urgency: true,
-                    coverageValidationStatus: true,
+                    fieldOfficerAssignment: {
+                      select: {
+                        id: true,
+                        userProfile: {
+                          select: { id: true, fullName: true },
+                        },
+                      },
+                    },
                   },
                 },
               },
             },
-            _count: { select: { media: true } },
-          },
-        },
-        media: {
-          where: { deletedAt: null },
-          orderBy: { orderNo: 'asc' },
-          select: {
-            id: true,
-            fileId: true,
-            mediaType: true,
-            caption: true,
-            orderNo: true,
-            createdAt: true,
-            file: {
+            submittedMessage: {
               select: {
-                originalName: true,
-                mimeType: true,
+                id: true,
+                convertedBaketId: true,
+                referenceNumber: true,
+                content: true,
+                senderPhone: true,
+                jaringId: true,
+                latitude: true,
+                longitude: true,
+                resolvedAreaId: true,
+                rawPayload: true,
+                status: true,
+                validationSummary: true,
+                receivedAt: true,
+                gpsAccuracyMeters: true,
+                locationCapturedAt: true,
+                coordinateSource: true,
+                resolvedArea: {
+                  select: {
+                    id: true,
+                    code: true,
+                    name: true,
+                    level: true,
+                    ancestorLinks: {
+                      select: {
+                        ancestor: {
+                          select: {
+                            id: true,
+                            code: true,
+                            name: true,
+                            level: true,
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+                convertedBaket: {
+                  select: {
+                    id: true,
+                    status: true,
+                    currentVersionNumber: true,
+                    reportCategory: {
+                      select: { id: true, code: true, name: true },
+                    },
+                    versions: {
+                      orderBy: { versionNumber: 'desc' },
+                      take: 1,
+                      select: {
+                        id: true,
+                        urgency: true,
+                        coverageValidationStatus: true,
+                      },
+                    },
+                  },
+                },
+                _count: { select: { media: true } },
+              },
+            },
+            media: {
+              where: { deletedAt: null },
+              orderBy: { orderNo: 'asc' },
+              select: {
+                id: true,
+                fileId: true,
+                mediaType: true,
+                caption: true,
+                orderNo: true,
+                createdAt: true,
+                file: {
+                  select: {
+                    originalName: true,
+                    mimeType: true,
+                  },
+                },
               },
             },
           },
-        },
-      },
-      orderBy: [{ submittedAt: 'desc' }, { createdAt: 'desc' }],
-      take: candidateLimit,
-    });
+          orderBy: [{ submittedAt: 'desc' }, { createdAt: 'desc' }],
+          take: candidateLimit,
+        }),
+        this.prisma.whatsAppReportSession.count({ where: reportMetricWhere }),
+        this.prisma.whatsAppReportSession.groupBy({
+          by: ['jaringId'],
+          where: reportMetricWhere,
+        }),
+      ],
+    );
 
     const reportCoordinates = new Map(
       candidates.map((report) => [report.id, this.reportCoordinate(report)]),
@@ -682,9 +703,7 @@ export class MapMarkersService {
         );
       });
 
-    const reportingJaring = new Set(
-      prepared.map((item) => item.report.jaringId),
-    ).size;
+    const reportingJaring = reportingJaringGroups.length;
     const located = prepared.filter((item) => item.hasCoordinates);
     const visible = located
       .filter(({ coordinate }) =>
@@ -798,11 +817,11 @@ export class MapMarkersService {
 
     return {
       features,
-      totalCount: prepared.length,
-      unlocatedCount: prepared.length - located.length,
+      totalCount: totalReports,
+      unlocatedCount: Math.max(0, totalReports - located.length),
       reportingJaring,
       summary: {
-        total: prepared.length,
+        total: totalReports,
         valid: prepared.filter(
           (item) => item.validity === ReportValidityFilter.VALID,
         ).length,

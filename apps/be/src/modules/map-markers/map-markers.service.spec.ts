@@ -72,6 +72,8 @@ describe('MapMarkersService', () => {
       reportCategory: { findMany: jest.fn().mockResolvedValue([] as never) },
       whatsAppReportSession: {
         findMany: jest.fn().mockResolvedValue([] as never),
+        count: jest.fn().mockResolvedValue(0 as never),
+        groupBy: jest.fn().mockResolvedValue([] as never),
       },
     };
     const scope = { jaringWhere: jest.fn().mockResolvedValue({} as never) };
@@ -131,6 +133,8 @@ describe('MapMarkersService', () => {
       },
       whatsAppReportSession: {
         findMany: jest.fn().mockResolvedValue([] as never),
+        count: jest.fn().mockResolvedValue(0 as never),
+        groupBy: jest.fn().mockResolvedValue([] as never),
       },
       baket: {
         findMany: jest.fn().mockResolvedValue([
@@ -281,6 +285,8 @@ describe('MapMarkersService', () => {
       reportCategory: { findMany: jest.fn().mockResolvedValue([] as never) },
       whatsAppReportSession: {
         findMany: jest.fn().mockResolvedValue([] as never),
+        count: jest.fn().mockResolvedValue(0 as never),
+        groupBy: jest.fn().mockResolvedValue([] as never),
       },
       jaringCaretakerAssignment: {
         findMany: jest.fn().mockResolvedValue([] as never),
@@ -402,6 +408,10 @@ describe('MapMarkersService', () => {
             media: [],
           },
         ] as never),
+        count: jest.fn().mockResolvedValue(2 as never),
+        groupBy: jest
+          .fn()
+          .mockResolvedValue([{ jaringId: 'jaring-1' }] as never),
       },
     };
     const scope = {
@@ -528,6 +538,10 @@ describe('MapMarkersService', () => {
       reportCategory: { findMany: jest.fn().mockResolvedValue([] as never) },
       whatsAppReportSession: {
         findMany: jest.fn().mockResolvedValue([report] as never),
+        count: jest.fn().mockResolvedValue(1 as never),
+        groupBy: jest
+          .fn()
+          .mockResolvedValue([{ jaringId: 'jaring-1' }] as never),
       },
     };
     const scope = {
@@ -592,23 +606,22 @@ describe('MapMarkersService', () => {
     });
   });
 
-  it('computes verified, active (90 days), and never-reported Jaring counts', async () => {
+  it('computes verified, active 90-day, and inactive Jaring counts', async () => {
+    const jaringCount = jest
+      .fn<() => Promise<number>>()
+      .mockResolvedValueOnce(12)
+      .mockResolvedValueOnce(7);
     const prisma = {
       jaring: {
-        count: jest.fn(
-          (args: { where: { reportSessions?: { some?: unknown } } }) => {
-            const sessions = args.where.reportSessions;
-            if (!sessions) return Promise.resolve(12);
-            if ('some' in sessions) return Promise.resolve(7);
-            return Promise.resolve(3);
-          },
-        ),
+        count: jaringCount,
       },
       reportCategory: {
         findMany: jest.fn().mockResolvedValue([] as never),
       },
       whatsAppReportSession: {
         findMany: jest.fn().mockResolvedValue([] as never),
+        count: jest.fn().mockResolvedValue(0 as never),
+        groupBy: jest.fn().mockResolvedValue([] as never),
       },
     };
     const scope = {
@@ -631,16 +644,28 @@ describe('MapMarkersService', () => {
       expect.objectContaining({
         jaring: 12,
         activeJaring: 7,
-        inactiveJaring: 3,
+        inactiveJaring: 5,
         reportingJaring: 0,
       }),
     );
-    expect(prisma.jaring.count).toHaveBeenCalledWith(
+    expect(jaringCount).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
           registrationStatus: JaringRegistrationStatus.APPROVED,
         }),
       }),
     );
+    expect(jaringCount).toHaveBeenNthCalledWith(2, {
+      where: expect.objectContaining({
+        OR: expect.arrayContaining([
+          { messages: { some: { receivedAt: { gte: expect.any(Date) } } } },
+          {
+            reportSessions: {
+              some: { submittedAt: { gte: expect.any(Date) } },
+            },
+          },
+        ]),
+      }),
+    });
   });
 });
