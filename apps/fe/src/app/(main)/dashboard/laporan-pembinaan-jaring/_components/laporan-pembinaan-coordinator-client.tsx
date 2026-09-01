@@ -30,6 +30,10 @@ import { TablePagination } from "@/components/ui/table-pagination";
 import { apiBrowserFetch } from "@/lib/api/browser-client";
 import {
   buildAreaFilterSubtitle,
+  buildDistrictFilterOptions,
+  buildProvinceFilterOptions,
+  buildRegencyFilterOptions,
+  buildVillageFilterOptions,
   findDkiJakartaProvinceFilterId,
   isDistrictLevel,
   isProvinceLevel,
@@ -149,6 +153,17 @@ type GaswilFilterOption = {
   name: string;
   jaringCount: number;
 };
+
+type AreaOption = {
+  id: string;
+  name: string;
+};
+
+function sortedAreaOptions(options: Iterable<AreaOption>) {
+  return Array.from(new Map(Array.from(options).map((option) => [option.id, option])).values()).sort((left, right) =>
+    left.name.localeCompare(right.name, "id-ID"),
+  );
+}
 
 function jaringAreaMatchesSelection(jaring: RawJaringItem, selectedAreaId?: string) {
   if (!selectedAreaId) return true;
@@ -372,23 +387,16 @@ export function LaporanPembinaanCoordinatorClient({ role }: { role?: SystemRole 
 
   // Gabungan opsi filter provinsi, kabupaten/kota, kecamatan, dan kelurahan dari cakupan akses dan Jaring.
   const provinceOptions = useMemo(() => {
-    const map = new Map<string, { id: string; name: string }>();
-
-    for (const area of areaScopes) {
-      if (isProvinceLevel(area.level)) {
-        const id = area.areaId || area.id;
-        map.set(id, { id, name: area.name });
-      }
-    }
+    const options = buildProvinceFilterOptions(areaScopes);
 
     for (const jaring of jaringList) {
       const geo = resolveJaringGeography(jaring);
       if (geo.provinceId && geo.provinceName) {
-        map.set(geo.provinceId, { id: geo.provinceId, name: geo.provinceName });
+        options.push({ id: geo.provinceId, name: geo.provinceName });
       }
     }
 
-    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, "id-ID"));
+    return sortedAreaOptions(options);
   }, [areaScopes, jaringList]);
 
   const defaultProvinceFilter = useMemo(() => findDkiJakartaProvinceFilterId(provinceOptions), [provinceOptions]);
@@ -407,96 +415,59 @@ export function LaporanPembinaanCoordinatorClient({ role }: { role?: SystemRole 
   }, [defaultProvinceFilter, provinceFilter]);
 
   const regencyOptions = useMemo(() => {
-    const map = new Map<string, { id: string; name: string }>();
-    const selectedProvince = areaScopes.find((area) => (area.areaId || area.id) === provinceFilter);
-    const selectedProvinceCode = selectedProvince?.officialCode || selectedProvince?.code;
+    const options = buildRegencyFilterOptions(areaScopes, provinceOptions.length > 0 ? provinceFilter : "ALL");
 
-    // 1. From areaScopes
-    for (const area of areaScopes) {
-      if (isRegencyLevel(area.level)) {
-        const id = area.areaId || area.id;
-        if (provinceFilter !== "ALL") {
-          const belongsToProvince =
-            area.parentAreaId === provinceFilter ||
-            (selectedProvinceCode ? area.code.startsWith(`${selectedProvinceCode}.`) : false);
-          if (!belongsToProvince) continue;
-        }
-        map.set(id, { id, name: area.name });
-      }
-    }
-
-    // 2. Dari cakupan Jaring
     for (const jaring of jaringList) {
       const geo = resolveJaringGeography(jaring);
       if (geo.regencyId && geo.regencyName) {
         if (provinceFilter !== "ALL" && geo.provinceId !== provinceFilter) continue;
-        map.set(geo.regencyId, { id: geo.regencyId, name: geo.regencyName });
+        options.push({ id: geo.regencyId, name: geo.regencyName });
       }
     }
 
-    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, "id-ID"));
-  }, [areaScopes, jaringList, provinceFilter]);
+    return sortedAreaOptions(options);
+  }, [areaScopes, jaringList, provinceFilter, provinceOptions.length]);
 
   const districtOptions = useMemo(() => {
-    const map = new Map<string, { id: string; name: string }>();
-    if (regencyFilter === "ALL") return [];
+    const options = buildDistrictFilterOptions(areaScopes, regencyFilter);
 
-    // 1. From areaScopes
-    const selectedRegency = areaScopes.find((a) => (a.areaId || a.id) === regencyFilter);
-    const selectedCode = selectedRegency?.officialCode || selectedRegency?.code;
-
-    for (const area of areaScopes) {
-      if (isDistrictLevel(area.level)) {
-        const id = area.areaId || area.id;
-        if (area.parentAreaId === regencyFilter || (selectedCode && area.code.startsWith(`${selectedCode}.`))) {
-          map.set(id, { id, name: area.name });
-        }
-      }
-    }
-
-    // 2. Dari cakupan Jaring
     for (const jaring of jaringList) {
       const geo = resolveJaringGeography(jaring);
       if (geo.districtId && geo.districtName) {
         if (regencyFilter === "ALL" || geo.regencyId === regencyFilter) {
-          map.set(geo.districtId, { id: geo.districtId, name: geo.districtName });
+          options.push({
+            id: geo.districtId,
+            name: geo.districtName,
+            regencyId: geo.regencyId ?? null,
+            regencyName: geo.regencyName ?? null,
+          });
         }
       }
     }
 
-    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, "id"));
+    return sortedAreaOptions(options);
   }, [areaScopes, jaringList, regencyFilter]);
 
   const villageOptions = useMemo(() => {
-    const map = new Map<string, { id: string; name: string }>();
-    if (districtFilter === "ALL") return [];
+    const options = buildVillageFilterOptions(areaScopes, districtFilter);
 
-    // 1. From areaScopes
-    const selectedDistrict = areaScopes.find((a) => (a.areaId || a.id) === districtFilter);
-    const selectedCode = selectedDistrict?.officialCode || selectedDistrict?.code;
-
-    for (const area of areaScopes) {
-      if (isVillageLevel(area.level)) {
-        const id = area.areaId || area.id;
-        if (area.parentAreaId === districtFilter || (selectedCode && area.code.startsWith(`${selectedCode}.`))) {
-          map.set(id, { id, name: area.name });
-        }
-      }
-    }
-
-    // 2. Dari cakupan Jaring
     for (const jaring of jaringList) {
       const geo = resolveJaringGeography(jaring);
       if (geo.villageId && geo.villageName) {
         if (districtFilter === "ALL" || geo.districtId === districtFilter) {
           if (regencyFilter === "ALL" || geo.regencyId === regencyFilter) {
-            map.set(geo.villageId, { id: geo.villageId, name: geo.villageName });
+            options.push({
+              id: geo.villageId,
+              name: geo.villageName,
+              districtId: geo.districtId ?? null,
+              districtName: geo.districtName ?? null,
+            });
           }
         }
       }
     }
 
-    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, "id"));
+    return sortedAreaOptions(options);
   }, [areaScopes, jaringList, regencyFilter, districtFilter]);
 
   const selectedJaringAreaId = useMemo(

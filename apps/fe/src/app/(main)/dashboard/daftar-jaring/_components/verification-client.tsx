@@ -68,7 +68,15 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { apiBrowserFetch, apiBrowserMutation } from "@/lib/api/browser-client";
-import { buildAreaFilterSubtitle, findDkiJakartaProvinceFilterId } from "@/lib/domain/area-filter";
+import {
+  type AdministrativeAreaFilterScope,
+  buildAreaFilterSubtitle,
+  buildDistrictFilterOptions,
+  buildProvinceFilterOptions,
+  buildRegencyFilterOptions,
+  buildVillageFilterOptions,
+  findDkiJakartaProvinceFilterId,
+} from "@/lib/domain/area-filter";
 import { DOMAIN_TERMS } from "@/lib/domain/terminology";
 import { DC_CONTROLS, DC_TYPOGRAPHY, DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
@@ -236,13 +244,6 @@ function compareJaringFullName(left: RegistrationJaring, right: RegistrationJari
   return result || jaringDisplayName(left).localeCompare(jaringDisplayName(right), "id", { sensitivity: "base" });
 }
 
-type ScopedArea = {
-  id: string;
-  name: string;
-  level: string;
-  parentId?: string | null;
-};
-
 function getInitials(name?: string | null) {
   if (!name) return "JR";
   const words = name.trim().split(/\s+/);
@@ -276,7 +277,7 @@ export function JaringVerificationListClient() {
   const isFieldCoordinator = activeRole === SYSTEM_ROLES.FIELD_COORDINATOR;
   const isNationalRole = activeRole === SYSTEM_ROLES.EXECUTIVE || activeRole === SYSTEM_ROLES.NATIONAL_LEADER;
   const [items, setItems] = useState<RegistrationJaring[]>([]);
-  const [scopedAreas, setScopedAreas] = useState<ScopedArea[]>([]);
+  const [scopedAreas, setScopedAreas] = useState<AdministrativeAreaFilterScope[]>([]);
   const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
   const [statusFilter, setStatusFilter] = useState<string>(() => {
     const value = searchParams.get("registrationStatus");
@@ -322,16 +323,20 @@ export function JaringVerificationListClient() {
     const controller = new AbortController();
     const loadScopes = async () => {
       try {
-        const areas = await apiBrowserFetch<
-          Array<{ areaId: string; name: string; level: string; parentAreaId?: string | null }>
-        >("/me/area-scopes", { query: { includeDescendants: true }, init: { signal: controller.signal } });
+        const areas = await apiBrowserFetch<AdministrativeAreaFilterScope[]>("/me/area-scopes", {
+          query: { includeDescendants: true },
+          init: { signal: controller.signal },
+        });
         if (!controller.signal.aborted) {
           setScopedAreas(
             areas.map((area) => ({
-              id: area.areaId,
+              areaId: area.areaId ?? area.id,
               name: area.name,
               level: area.level,
-              parentId: area.parentAreaId ?? null,
+              code: area.code ?? null,
+              officialCode: area.officialCode ?? null,
+              parentAreaId: area.parentAreaId ?? null,
+              parentOfficialCode: area.parentOfficialCode ?? null,
             })),
           );
         }
@@ -345,10 +350,7 @@ export function JaringVerificationListClient() {
 
   // Extract unique provinces, cities, districts, villages & officers for filter options
   const uniqueProvinces = useMemo(() => {
-    return scopedAreas
-      .filter((area) => area.level === "PROVINCE")
-      .map((area) => ({ id: area.id, name: area.name }))
-      .sort((left, right) => left.name.localeCompare(right.name, "id-ID"));
+    return buildProvinceFilterOptions(scopedAreas);
   }, [scopedAreas]);
 
   const defaultProvinceFilter = useMemo(() => findDkiJakartaProvinceFilterId(uniqueProvinces), [uniqueProvinces]);
@@ -407,33 +409,16 @@ export function JaringVerificationListClient() {
   ]);
 
   const uniqueCities = useMemo(() => {
-    return scopedAreas
-      .filter(
-        (area) =>
-          (area.level === "CITY" || area.level === "REGENCY") &&
-          (provinceFilter === "ALL" || area.parentId === provinceFilter),
-      )
-      .map((area) => ({ id: area.id, name: area.name }))
-      .sort((left, right) => left.name.localeCompare(right.name, "id-ID"));
-  }, [scopedAreas, provinceFilter]);
+    return buildRegencyFilterOptions(scopedAreas, uniqueProvinces.length > 0 ? provinceFilter : "ALL");
+  }, [provinceFilter, scopedAreas, uniqueProvinces.length]);
 
   const uniqueDistricts = useMemo(() => {
-    return scopedAreas
-      .filter((area) => area.level === "DISTRICT" && (cityFilter === "ALL" || area.parentId === cityFilter))
-      .map((area) => ({ id: area.id, name: area.name }))
-      .sort((left, right) => left.name.localeCompare(right.name, "id-ID"));
-  }, [scopedAreas, cityFilter]);
+    return buildDistrictFilterOptions(scopedAreas, cityFilter);
+  }, [cityFilter, scopedAreas]);
 
   const uniqueVillages = useMemo(() => {
-    return scopedAreas
-      .filter(
-        (area) =>
-          (area.level === "VILLAGE" || area.level === "URBAN_VILLAGE") &&
-          (districtFilter === "ALL" || area.parentId === districtFilter),
-      )
-      .map((area) => ({ id: area.id, name: area.name }))
-      .sort((left, right) => left.name.localeCompare(right.name, "id-ID"));
-  }, [scopedAreas, districtFilter]);
+    return buildVillageFilterOptions(scopedAreas, districtFilter);
+  }, [districtFilter, scopedAreas]);
 
   const uniqueOfficers = useMemo(() => {
     const set = new Set<string>();
@@ -518,9 +503,11 @@ export function JaringVerificationListClient() {
     }
     return buildAreaFilterSubtitle({
       metricLabel: "Jumlah Jaring",
+      provinceFilter,
       regencyFilter: cityFilter,
       districtFilter,
       villageFilter,
+      provinceOptions: uniqueProvinces,
       regencyOptions: uniqueCities,
       districtOptions: uniqueDistricts,
       villageOptions: uniqueVillages,
@@ -834,7 +821,9 @@ export function JaringVerificationListClient() {
                 disabled={isRefreshing || isLoadingItems}
                 className="h-9 gap-1.5 rounded-lg"
               >
-                <RefreshCw className={cn("size-3.5", (isRefreshing || isLoadingItems) && "animate-spin text-primary")} />
+                <RefreshCw
+                  className={cn("size-3.5", (isRefreshing || isLoadingItems) && "animate-spin text-primary")}
+                />
                 <span className="hidden sm:inline">Muat Ulang</span>
               </Button>
             </div>
@@ -925,7 +914,8 @@ export function JaringVerificationListClient() {
               options={[
                 {
                   value: "ALL",
-                  label: !isFieldOfficer && districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan/Desa",
+                  label:
+                    !isFieldOfficer && districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan/Desa",
                   disabled: !isFieldOfficer && districtFilter === "ALL",
                 },
                 ...uniqueVillages.map((vill) => ({ value: vill.id, label: vill.name })),
@@ -935,7 +925,9 @@ export function JaringVerificationListClient() {
                 setPage(1);
               }}
               disabled={!isFieldOfficer && districtFilter === "ALL"}
-              placeholder={!isFieldOfficer && districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan/Desa"}
+              placeholder={
+                !isFieldOfficer && districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan/Desa"
+              }
               searchPlaceholder="Cari kelurahan/desa..."
               emptyText="Kelurahan/Desa tidak ditemukan."
               className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full min-w-0")}
