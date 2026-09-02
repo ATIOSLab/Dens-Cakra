@@ -16,6 +16,7 @@ import type {
   DateRangeOption,
   DistributionEntityMode,
   JaringDistributionCity,
+  JaringDistributionProvince,
   JaringDistributionVillage,
 } from "./sebaran-jaring-types";
 import { DISTRIBUTION_ENTITY_COPY, statusOptionsForMode, statusPresentationForMode } from "./sebaran-jaring-types";
@@ -24,6 +25,8 @@ type Props = {
   isOpen: boolean;
   onClose: () => void;
   cities: JaringDistributionCity[];
+  provinces: JaringDistributionProvince[];
+  selectedProvinceId: string;
   selectedCityId: string;
   selectedDistrictId: string | null;
   selectedVillageId: string | null;
@@ -31,6 +34,7 @@ type Props = {
   adminLevel: AdminLevel;
   allowedAdminLevels?: AdminLevel[];
   onSelectAdminLevel: (level: AdminLevel) => void;
+  onSelectProvince: (provinceId: string) => void;
   onSelectCity: (cityId: string) => void;
   onSelectDistrict: (districtId: string) => void;
   onSelectVillage: (villageId: string) => void;
@@ -56,6 +60,8 @@ export function SebaranJaringLeftPanel({
   isOpen,
   onClose,
   cities,
+  provinces,
+  selectedProvinceId,
   selectedCityId,
   selectedDistrictId,
   selectedVillageId,
@@ -63,6 +69,7 @@ export function SebaranJaringLeftPanel({
   adminLevel,
   allowedAdminLevels = ["PROVINCE", "CITY", "DISTRICT", "VILLAGE"],
   onSelectAdminLevel,
+  onSelectProvince,
   onSelectCity,
   onSelectDistrict,
   onSelectVillage,
@@ -151,6 +158,27 @@ export function SebaranJaringLeftPanel({
 
         {/* CASCADING REGION SELECTORS */}
         <div className="space-y-2 pt-1 border-t border-slate-200 dark:border-slate-800/60">
+          {allowedAdminLevels.includes("PROVINCE") ? (
+            <div className="space-y-1">
+              <span className="text-[10px] text-slate-500 font-mono">PROVINSI</span>
+              <select
+                value={selectedProvinceId}
+                onChange={(e) => onSelectProvince(e.target.value)}
+                className={controlClass}
+              >
+                {provinces.map((province) => (
+                  <option
+                    key={province.id}
+                    value={province.id}
+                    className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
+                  >
+                    {province.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null}
+
           <div className="space-y-1">
             <span className="text-[10px] text-slate-500 font-mono">KOTA/KABUPATEN</span>
             <select value={selectedCityId} onChange={(e) => onSelectCity(e.target.value)} className={controlClass}>

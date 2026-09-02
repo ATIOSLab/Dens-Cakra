@@ -14,12 +14,16 @@ import {
   DISTRIBUTION_ENTITY_COPY,
   type DistributionEntityMode,
   type JaringDistributionCity,
+  type JaringDistributionProvince,
 } from "./sebaran-jaring-types";
 
 type Props = {
   cities: JaringDistributionCity[];
   selectedCityId: string;
+  selectedProvinceId: string;
+  provinces: JaringDistributionProvince[];
   onSelectCity: (cityId: string) => void;
+  onSelectProvince: (provinceId: string) => void;
   totalEntities: number;
   currentTime: string;
   lastSyncedAt: Date;
@@ -34,7 +38,10 @@ type Props = {
 export function SebaranJaringHeader({
   cities,
   selectedCityId,
+  selectedProvinceId,
+  provinces,
   onSelectCity,
+  onSelectProvince,
   totalEntities,
   currentTime,
   lastSyncedAt,
@@ -95,28 +102,39 @@ export function SebaranJaringHeader({
           WILAYAH
         </span>
         <NativeSelect
-          value={selectedCityId}
-          onChange={(e) => onSelectCity(e.target.value)}
+          value={showAllCities && !selectedCityId ? selectedProvinceId : selectedCityId}
+          onChange={(e) => {
+            if (showAllCities && !selectedCityId) {
+              onSelectProvince(e.target.value);
+            } else {
+              onSelectCity(e.target.value);
+            }
+          }}
           className={cn(
             DC_CONTROLS.selectTrigger,
             "h-9 min-w-0 flex-1 border-none bg-transparent py-0 font-semibold text-sm focus:ring-0",
             toneTextClass,
           )}
         >
-          {showAllCities ? (
-            <option value="" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">
-              Cakupan aktif
-            </option>
-          ) : null}
-          {cities.map((city) => (
-            <option
-              key={city.id}
-              value={city.id}
-              className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100"
-            >
-              {city.name}
-            </option>
-          ))}
+          {showAllCities && !selectedCityId
+            ? provinces.map((province) => (
+                <option
+                  key={province.id}
+                  value={province.id}
+                  className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100"
+                >
+                  {province.name}
+                </option>
+              ))
+            : cities.map((city) => (
+                <option
+                  key={city.id}
+                  value={city.id}
+                  className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100"
+                >
+                  {city.name}
+                </option>
+              ))}
         </NativeSelect>
       </div>
 

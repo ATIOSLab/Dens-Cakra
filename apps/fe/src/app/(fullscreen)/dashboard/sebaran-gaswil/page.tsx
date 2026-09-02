@@ -9,7 +9,12 @@ import { requireRole } from "@/lib/auth/server-session";
 import { SYSTEM_ROLES } from "@/navigation/sidebar/system-roles";
 
 import { JaringDistributionClient } from "../sebaran-jaring/_components/sebaran-jaring-client";
-import { allowedLevelsForRole, distributionFromEntries, gaswilEntry } from "./_lib/gaswil-distribution";
+import {
+  allowedLevelsForRole,
+  distributionFromEntries,
+  type GaswilDistributionAreaOption,
+  gaswilEntry,
+} from "./_lib/gaswil-distribution";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +55,26 @@ async function fetchAllPages<T>(path: string, query: QueryParams = {}) {
   return items;
 }
 
+async function fetchAreaOptions(level: string) {
+  return fetchAllPages<GaswilDistributionAreaOption>("/administrative-areas", {
+    level,
+    isActive: true,
+  }).catch(() => []);
+}
+
+async function fetchAreaCatalog() {
+  const [provinces, cityAreas, regencyAreas] = await Promise.all([
+    fetchAreaOptions("PROVINCE"),
+    fetchAreaOptions("CITY"),
+    fetchAreaOptions("REGENCY"),
+  ]);
+
+  return {
+    provinces,
+    cities: [...cityAreas, ...regencyAreas],
+  };
+}
+
 export default async function SebaranGaswilPage() {
   const session = await requireRole(
     SYSTEM_ROLES.NATIONAL_LEADER,
@@ -59,9 +84,10 @@ export default async function SebaranGaswilPage() {
   );
   const apiPath = apiPathForRole(session.role);
 
-  const [personnel, mapPayload] = await Promise.all([
+  const [personnel, mapPayload, areaCatalog] = await Promise.all([
     fetchAllPages<PersonnelListItem>(apiPath),
     apiServerGet<PersonnelMapPayload>(`${apiPath}/map`).catch(() => null),
+    fetchAreaCatalog(),
   ]);
 
   const featuresByUserId = new Map<string, PersonnelMapFeature>();
@@ -75,7 +101,7 @@ export default async function SebaranGaswilPage() {
     const feature =
       featuresByUserId.get(item.id) ??
       (item.assignment?.id ? featuresByAssignmentId.get(item.assignment.id) : undefined);
-    const entry = gaswilEntry(item, feature, session.role);
+    const entry = gaswilEntry(item, feature, session.role, areaCatalog);
     return entry ? [entry] : [];
   });
 

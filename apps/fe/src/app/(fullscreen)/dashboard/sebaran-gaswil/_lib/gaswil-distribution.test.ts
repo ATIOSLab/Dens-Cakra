@@ -1,12 +1,18 @@
 import { describe, expect, it } from "vitest";
 
 import type {
+  PersonnelArea,
   PersonnelListItem,
   PersonnelMapFeature,
 } from "@/app/(main)/dashboard/deputi/personil/_components/executive-personnel-types";
 import { SYSTEM_ROLES } from "@/navigation/sidebar/system-roles";
 
-import { distributionFromEntries, gaswilAreaHierarchy, gaswilEntry } from "./gaswil-distribution";
+import {
+  distributionFromEntries,
+  type GaswilDistributionAreaCatalog,
+  gaswilAreaHierarchy,
+  gaswilEntry,
+} from "./gaswil-distribution";
 
 const jakartaPusat = {
   id: "city-jakarta-pusat",
@@ -15,7 +21,7 @@ const jakartaPusat = {
   level: "CITY",
 };
 
-const joharBaru = {
+const joharBaru: PersonnelArea = {
   id: "district-johar-baru",
   code: "31.71.08",
   name: "Johar Baru",
@@ -32,7 +38,32 @@ const joharBaru = {
   ],
 };
 
-function personnel(area = joharBaru): PersonnelListItem {
+const joharBaruWithoutAncestors: PersonnelArea = {
+  id: "district-johar-baru",
+  code: "31.71.08",
+  name: "Johar Baru",
+  level: "DISTRICT",
+  isPrimary: true,
+};
+
+const areaCatalog: GaswilDistributionAreaCatalog = {
+  provinces: [
+    {
+      id: "province-dki",
+      code: "31",
+      name: "DKI Jakarta",
+      level: "PROVINCE",
+    },
+  ],
+  cities: [
+    {
+      ...jakartaPusat,
+      parentId: "province-dki",
+    },
+  ],
+};
+
+function personnel(area: PersonnelArea = joharBaru): PersonnelListItem {
   return {
     id: "profile-1",
     username: null,
@@ -72,7 +103,7 @@ function personnel(area = joharBaru): PersonnelListItem {
   };
 }
 
-function mapFeature(area = joharBaru): PersonnelMapFeature {
+function mapFeature(area: PersonnelArea = joharBaru): PersonnelMapFeature {
   return {
     type: "Feature",
     id: "feature-1",
@@ -114,6 +145,22 @@ describe("distribusi sebaran Gaswil", () => {
     const distribution = distributionFromEntries(entry ? [entry] : []);
 
     expect(distribution).toHaveLength(1);
+    expect(distribution[0]?.name).toBe("Jakarta Pusat");
+    expect(distribution[0]?.districts.map((district) => district.name)).toEqual(["Johar Baru"]);
+  });
+
+  it("meresolusi provinsi dan Kota/Kabupaten dari master wilayah ketika ancestor payload kosong", () => {
+    const entry = gaswilEntry(
+      personnel(joharBaruWithoutAncestors),
+      mapFeature(joharBaruWithoutAncestors),
+      SYSTEM_ROLES.EXECUTIVE,
+      areaCatalog,
+    );
+    const distribution = distributionFromEntries(entry ? [entry] : []);
+
+    expect(entry?.provinceName).toBe("DKI Jakarta");
+    expect(entry?.cityName).toBe("Jakarta Pusat");
+    expect(distribution[0]?.provinceName).toBe("DKI Jakarta");
     expect(distribution[0]?.name).toBe("Jakarta Pusat");
     expect(distribution[0]?.districts.map((district) => district.name)).toEqual(["Johar Baru"]);
   });

@@ -16,6 +16,20 @@ type GaswilArea = PersonnelArea | NonNullable<PersonnelMapFeature["properties"][
 
 const CITY_LEVELS = new Set(["CITY", "REGENCY"]);
 
+export type GaswilDistributionAreaOption = {
+  id: string;
+  code?: string | null;
+  name: string;
+  level: string;
+  parentId?: string | null;
+  parentAreaId?: string | null;
+};
+
+export type GaswilDistributionAreaCatalog = {
+  provinces: GaswilDistributionAreaOption[];
+  cities: GaswilDistributionAreaOption[];
+};
+
 export function allowedLevelsForRole(role: string): AdminLevel[] {
   if (role === SYSTEM_ROLES.EXECUTIVE) return ["PROVINCE", "CITY", "DISTRICT"];
   if (role === SYSTEM_ROLES.REGIONAL_COMMANDER) return ["CITY", "DISTRICT"];
@@ -40,6 +54,22 @@ function formatRelativeDate(dateStr?: string | null): string {
 
 function areaLevel(area?: Pick<GaswilArea, "level"> | null) {
   return area?.level?.toUpperCase() ?? "";
+}
+
+function areaCode(area?: { code?: string | null } | null) {
+  return area?.code?.trim() ?? "";
+}
+
+function parentAreaId(area?: unknown) {
+  if (!area || typeof area !== "object") return null;
+  const record = area as { parentId?: string | null; parentAreaId?: string | null };
+  return record.parentId ?? record.parentAreaId ?? null;
+}
+
+function isSameArea(left: GaswilArea, right: GaswilDistributionAreaOption) {
+  const leftCode = areaCode(left);
+  const rightCode = areaCode(right);
+  return left.id === right.id || (Boolean(leftCode) && leftCode === rightCode);
 }
 
 function orderedAssignmentAreas(item: PersonnelListItem) {
@@ -76,6 +106,70 @@ export function gaswilAreaHierarchy(item: PersonnelListItem, feature?: Personnel
   return { province, city, district, fallback };
 }
 
+function cityFromDistrict(
+  district: GaswilArea | null,
+  catalog?: GaswilDistributionAreaCatalog,
+): GaswilDistributionAreaOption | null {
+  if (!district || !catalog) return null;
+
+  const districtCode = areaCode(district);
+  return (
+    catalog.cities.find((city) => {
+      const cityCode = areaCode(city);
+      return (
+        parentAreaId(district) === city.id ||
+        (Boolean(districtCode) && Boolean(cityCode) && districtCode.startsWith(`${cityCode}.`))
+      );
+    }) ?? null
+  );
+}
+
+function provinceFromCity(
+  city: GaswilArea | GaswilDistributionAreaOption | null,
+  catalog?: GaswilDistributionAreaCatalog,
+): GaswilDistributionAreaOption | null {
+  if (!city || !catalog) return null;
+
+  const cityCode = areaCode(city);
+  return (
+    catalog.provinces.find((province) => {
+      const provinceCode = areaCode(province);
+      return (
+        parentAreaId(city) === province.id ||
+        (Boolean(cityCode) && Boolean(provinceCode) && cityCode.startsWith(`${provinceCode}.`))
+      );
+    }) ?? null
+  );
+}
+
+function catalogMatch(
+  area: GaswilArea | null,
+  options: GaswilDistributionAreaOption[],
+): GaswilDistributionAreaOption | null {
+  if (!area) return null;
+  return options.find((option) => isSameArea(area, option)) ?? null;
+}
+
+export function resolveGaswilAreaHierarchy(
+  item: PersonnelListItem,
+  feature?: PersonnelMapFeature,
+  catalog?: GaswilDistributionAreaCatalog,
+) {
+  const hierarchy = gaswilAreaHierarchy(item, feature);
+  const district = hierarchy.district;
+  const city =
+    catalogMatch(hierarchy.city, catalog?.cities ?? []) ?? cityFromDistrict(district, catalog) ?? hierarchy.city;
+  const province =
+    catalogMatch(hierarchy.province, catalog?.provinces ?? []) ?? provinceFromCity(city, catalog) ?? hierarchy.province;
+
+  return {
+    province,
+    city,
+    district,
+    fallback: hierarchy.fallback,
+  };
+}
+
 function featureCoordinate(feature?: PersonnelMapFeature): { longitude: number; latitude: number } | null {
   const coordinates = feature?.geometry.coordinates;
   if (!coordinates) return null;
@@ -106,11 +200,12 @@ export function gaswilEntry(
   item: PersonnelListItem,
   feature: PersonnelMapFeature | undefined,
   role: string,
+  areaCatalog?: GaswilDistributionAreaCatalog,
 ): JaringDistributionEntry | null {
   const coordinate = featureCoordinate(feature);
   if (!coordinate) return null;
 
-  const hierarchy = gaswilAreaHierarchy(item, feature);
+  const hierarchy = resolveGaswilAreaHierarchy(item, feature, areaCatalog);
   const lastSignalAt = feature?.properties.capturedAt ?? item.lastLocation?.capturedAt ?? item.lastLoginAt;
 
   return {

@@ -27,6 +27,7 @@ import {
   type JaringDistributionCity,
   type JaringDistributionDistrict,
   type JaringDistributionEntry,
+  type JaringDistributionProvince,
   type MapStyleMode,
 } from "./sebaran-jaring-types";
 
@@ -159,6 +160,28 @@ type Props = {
   mode?: DistributionEntityMode;
 };
 
+function provinceOptionKey(city: JaringDistributionCity) {
+  return city.provinceId ?? city.provinceName ?? "cakupan-aktif";
+}
+
+function provinceOptionsFromCities(cities: JaringDistributionCity[]): JaringDistributionProvince[] {
+  const provinces = new Map<string, JaringDistributionProvince>();
+  for (const city of cities) {
+    const id = provinceOptionKey(city);
+    provinces.set(id, {
+      id,
+      name: city.provinceName ?? "Cakupan aktif",
+    });
+  }
+  return [...provinces.values()].sort((left, right) => left.name.localeCompare(right.name, "id-ID"));
+}
+
+function defaultProvinceId(cities: JaringDistributionCity[]) {
+  const provinces = provinceOptionsFromCities(cities);
+  const dki = provinces.find((province) => province.name.toLocaleLowerCase("id-ID").includes("dki jakarta"));
+  return dki?.id ?? provinces[0]?.id ?? "";
+}
+
 export function JaringDistributionClient({
   cities,
   allowedAdminLevels = ["PROVINCE", "CITY", "DISTRICT", "VILLAGE"],
@@ -166,11 +189,20 @@ export function JaringDistributionClient({
 }: Props) {
   const router = useRouter();
   const isMobile = useIsMobile();
-  const firstCity = cities[0] ?? null;
   const mapRef = useRef<MapLibreMap | null>(null);
   const [isRefreshing, startRefreshTransition] = useTransition();
+  const provinceOptions = useMemo(() => provinceOptionsFromCities(cities), [cities]);
+  const initialProvinceId = useMemo(() => defaultProvinceId(cities), [cities]);
 
   // Core State
+  const [selectedProvinceId, setSelectedProvinceId] = useState<string>(
+    allowedAdminLevels.includes("PROVINCE") ? initialProvinceId : "",
+  );
+  const visibleCities = useMemo(() => {
+    if (!allowedAdminLevels.includes("PROVINCE") || !selectedProvinceId) return cities;
+    return cities.filter((city) => provinceOptionKey(city) === selectedProvinceId);
+  }, [cities, selectedProvinceId, allowedAdminLevels]);
+  const firstCity = visibleCities[0] ?? cities[0] ?? null;
   const [selectedCityId, setSelectedCityId] = useState<string>(
     allowedAdminLevels.includes("PROVINCE") ? "" : (firstCity?.id ?? ""),
   );
@@ -187,6 +219,20 @@ export function JaringDistributionClient({
   const [isClusterMode, setIsClusterMode] = useState<boolean>(true);
   const [coordinateSourceMode, setCoordinateSourceMode] = useState<CoordinateSourceMode>("laporan");
   const effectiveCoordinateSourceMode: CoordinateSourceMode = mode === "gaswil" ? "domisili" : coordinateSourceMode;
+
+  useEffect(() => {
+    if (!allowedAdminLevels.includes("PROVINCE")) return;
+    if (selectedProvinceId || !initialProvinceId) return;
+    setSelectedProvinceId(initialProvinceId);
+  }, [allowedAdminLevels, selectedProvinceId, initialProvinceId]);
+
+  useEffect(() => {
+    if (!selectedCityId) return;
+    if (visibleCities.some((city) => city.id === selectedCityId)) return;
+    setSelectedCityId("");
+    setSelectedDistrictId(null);
+    setSelectedVillageId(null);
+  }, [selectedCityId, visibleCities]);
 
   // Panel Visibilities
   const [isLeftPanelOpen, setIsLeftPanelOpen] = useState<boolean>(true);
@@ -252,8 +298,12 @@ export function JaringDistributionClient({
 
   const selectedCity = useMemo(() => {
     if (!selectedCityId) return null;
-    return cities.find((c) => c.id === selectedCityId) ?? firstCity ?? null;
-  }, [cities, selectedCityId, firstCity]);
+    return visibleCities.find((c) => c.id === selectedCityId) ?? firstCity ?? null;
+  }, [visibleCities, selectedCityId, firstCity]);
+  const selectedProvince = useMemo(() => {
+    if (!selectedProvinceId) return null;
+    return provinceOptions.find((province) => province.id === selectedProvinceId) ?? null;
+  }, [provinceOptions, selectedProvinceId]);
 
   const selectedDistrict = useMemo(() => {
     return selectedCity?.districts.find((d) => d.id === selectedDistrictId) ?? null;
@@ -267,8 +317,8 @@ export function JaringDistributionClient({
   }, [availableVillages, selectedVillageId]);
 
   const allAgents = useMemo(() => {
-    return cities.flatMap((c) => c.jaring);
-  }, [cities]);
+    return visibleCities.flatMap((c) => c.jaring);
+  }, [visibleCities]);
 
   const filteredAgents = useMemo(() => {
     const source = adminLevel === "PROVINCE" ? allAgents : selectedCity ? selectedCity.jaring : allAgents;
@@ -343,7 +393,7 @@ export function JaringDistributionClient({
       : selectedDistrict
         ? selectedDistrict.name
         : adminLevel === "PROVINCE"
-          ? (cities[0]?.provinceName ?? "Cakupan aktif")
+          ? (selectedProvince?.name ?? "Cakupan aktif")
           : (selectedCity?.name ?? "Cakupan aktif");
 
     const levelName = selectedVillage
@@ -357,7 +407,7 @@ export function JaringDistributionClient({
             : "Provinsi";
 
     return { regionName, levelName };
-  }, [selectedVillage, selectedDistrict, adminLevel, cities, selectedCity]);
+  }, [selectedVillage, selectedDistrict, adminLevel, selectedProvince, selectedCity]);
 
   const summaryStats = useMemo(() => {
     const verified = filteredAgents.filter((a) => a.status === "VERIFIED").length;
@@ -377,6 +427,20 @@ export function JaringDistributionClient({
   const mask = useMemo(
     () => (selectedCity && adminLevel !== "PROVINCE" ? outsideCityMask(selectedCity) : null),
     [adminLevel, selectedCity],
+  );
+
+  const handleSelectProvince = useCallback(
+    (provinceId: string) => {
+      setSelectedProvinceId(provinceId);
+      setSelectedCityId("");
+      setSelectedDistrictId(null);
+      setSelectedVillageId(null);
+      setAdminLevel("PROVINCE");
+
+      const provinceCities = provinceId ? cities.filter((city) => provinceOptionKey(city) === provinceId) : cities;
+      if (mapRef.current) fitAllCities(mapRef.current, provinceCities);
+    },
+    [cities],
   );
 
   const handleSelectAgent = useCallback(
@@ -402,18 +466,21 @@ export function JaringDistributionClient({
       setSelectedCityId(cityId);
       setSelectedDistrictId(null);
       setSelectedVillageId(null);
+      const city = cities.find((c) => c.id === cityId);
+      if (city?.provinceId || city?.provinceName) {
+        setSelectedProvinceId(provinceOptionKey(city));
+      }
       setAdminLevel((current) => {
         if (!cityId) return "PROVINCE";
         if (current === "PROVINCE") return "CITY";
         return current;
       });
-      const city = cities.find((c) => c.id === cityId);
       if (mapRef.current) {
         if (city) fitCity(mapRef.current, city, isRightPanelOpen);
-        else fitAllCities(mapRef.current, cities);
+        else fitAllCities(mapRef.current, visibleCities);
       }
     },
-    [cities, isRightPanelOpen],
+    [cities, visibleCities, isRightPanelOpen],
   );
 
   const handleSelectDistrict = useCallback(
@@ -446,9 +513,12 @@ export function JaringDistributionClient({
     <div className="relative flex h-screen w-screen select-none flex-col overflow-hidden bg-slate-950 font-sans text-slate-100">
       {/* 1. Command Center Telemetry Header */}
       <SebaranJaringHeader
-        cities={cities}
+        cities={visibleCities}
         selectedCityId={selectedCityId}
+        selectedProvinceId={selectedProvinceId}
+        provinces={provinceOptions}
         onSelectCity={handleSelectCity}
+        onSelectProvince={handleSelectProvince}
         totalEntities={summaryStats.total}
         currentTime={currentTime}
         lastSyncedAt={lastSyncedAt}
@@ -466,7 +536,9 @@ export function JaringDistributionClient({
         <SebaranJaringLeftPanel
           isOpen={isLeftPanelOpen}
           onClose={() => setIsLeftPanelOpen(false)}
-          cities={cities}
+          cities={visibleCities}
+          provinces={provinceOptions}
+          selectedProvinceId={selectedProvinceId}
           selectedCityId={selectedCityId}
           selectedDistrictId={selectedDistrictId}
           selectedVillageId={selectedVillageId}
@@ -475,9 +547,13 @@ export function JaringDistributionClient({
           allowedAdminLevels={allowedAdminLevels}
           onSelectAdminLevel={(level) => {
             setAdminLevel(level);
-            if (level === "PROVINCE") handleSelectCity("");
-            else if (!selectedCityId && firstCity) handleSelectCity(firstCity.id);
+            if (level === "PROVINCE") {
+              setSelectedCityId("");
+              setSelectedDistrictId(null);
+              setSelectedVillageId(null);
+            } else if (!selectedCityId && firstCity) handleSelectCity(firstCity.id);
           }}
+          onSelectProvince={handleSelectProvince}
           onSelectCity={handleSelectCity}
           onSelectDistrict={handleSelectDistrict}
           onSelectVillage={handleSelectVillage}
@@ -494,6 +570,10 @@ export function JaringDistributionClient({
             setSearchQuery("");
             setStatusFilter({ ALL: true, VERIFIED: true, PENDING: true, REJECTED: true });
             setDateRange("ALL");
+            if (allowedAdminLevels.includes("PROVINCE")) {
+              setSelectedProvinceId(initialProvinceId);
+            }
+            setSelectedCityId("");
             setSelectedDistrictId(null);
             setSelectedVillageId(null);
           }}
@@ -519,7 +599,7 @@ export function JaringDistributionClient({
           />
           <SebaranJaringMapView
             adminLevel={adminLevel}
-            cities={cities}
+            cities={visibleCities}
             selectedCity={selectedCity}
             selectedDistrictId={selectedDistrictId}
             selectedVillageId={selectedVillageId}
@@ -550,7 +630,7 @@ export function JaringDistributionClient({
               if (selectedCity) {
                 fitCity(map, selectedCity, isRightPanelOpen);
               } else {
-                fitAllCities(map, cities);
+                fitAllCities(map, visibleCities);
               }
               const updateTelemetry = () => {
                 const center = map.getCenter();

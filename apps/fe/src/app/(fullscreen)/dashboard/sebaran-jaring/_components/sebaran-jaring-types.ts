@@ -78,6 +78,11 @@ export type JaringDistributionCity = {
   districts: JaringDistributionDistrict[];
 };
 
+export type JaringDistributionProvince = {
+  id: string;
+  name: string;
+};
+
 export type JaringDistributionEntry = {
   id: string;
   aliasName: string | null;
