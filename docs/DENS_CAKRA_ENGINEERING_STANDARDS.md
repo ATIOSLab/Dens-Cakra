@@ -118,6 +118,19 @@ atau database yang sudah berjalan** kecuali diminta eksplisit.
 - Semua state: loading, empty, error, success. Kontrol standar `h-9`; radius 4-6px.
 - Dropdown panjang searchable; filter wilayah berjenjang. Aksesibilitas: label form,
   aria-label untuk tombol ikon, fokus terlihat, heading hierarki.
+- **Antarmuka Layar Penuh / Command HUD Multi-Device**:
+  - Dilarang menyembunyikan panel kontrol atau kartu metrik esensial secara permanen
+    menggunakan breakpoint sempit (`hidden xl:*`).
+  - Tampilan war-room / command HUD (seperti Peta Jejaring Intelijen) wajib mendukung
+    seluruh perangkat (mobile, tablet portrait/landscape, laptop resolusi 1366x768 / scaling display,
+    hingga desktop 4K/TV) melalui pola adaptif:
+    1. Kartu KPI: grid proporsional di desktop/laptop, dan horizontal snap-scroll carousel
+       di layar kecil (`<md`).
+    2. Panel kontrol samping (Filter & Umpan Data): fixed side-panel pada layar lebar (`≥lg`),
+       dan modal/drawer overlay dengan tombol tutup (X) serta backdrop pada layar sempit (`<lg`).
+    3. Navigasi lapisan & mode: scroll horizontal touch-friendly (`overflow-x-auto no-scrollbar`).
+    4. Seluruh tombol aksi header (Filter, Layers, Analytics, Refresh, Minimize) wajib selalu
+       terlihat di semua perangkat dengan indikator aktif yang jelas.
 
 ## 12. Git & Proses
 - Commit conventional: `feat:`, `fix:`, `refactor:`, `docs:`, `chore:`, `test:`.
@@ -141,8 +154,9 @@ atau database yang sudah berjalan** kecuali diminta eksplisit.
 | 2026-08-14 | C4: `.env.example` FE — hapus `NEXT_PUBLIC_BACKEND_URL` (agar URL internal tidak bocor ke bundle browser); gunakan `BACKEND_INTERNAL_URL` (server-only). | Cegah kebocoran hostname internal. |
 | 2026-08-14 | C3: validasi form laporan pembinaan memakai zod (schema bersama `coaching-report-schema.ts`), menggantikan validasi manual duplikat di form & dialog; konsistensi `credentials: include` di session-heartbeat. | Validasi input terpusat & konsisten. |
 | 2026-08-14 | Type safety BE: perbaiki `noImplicitAny` di `authorization.service.ts` & `whatsapp.service.ts`. | Kurangi `any` di module keamanan. |
-| 2026-08-16 | RBAC: hapus role `operational_intelligence_manager` sebagai system role; OIM/Anev menjadi fungsi analis yang melekat pada Kabinda (BINDA) / Ditwil (DIRECTORATE). Endpoint & workspace `/dashboard/oim` kini milik `executive` + `regional_commander`. | Selaraskan role dengan garis komando & supervisi BIN. |
+| 2026-08-14 | RBAC: hapus role `operational_intelligence_manager` sebagai system role; OIM/Anev menjadi fungsi analis yang melekat pada Kabinda (BINDA) / Ditwil (DIRECTORATE). Endpoint & workspace `/dashboard/oim` kini milik `executive` + `regional_commander`. | Selaraskan role dengan garis komando & supervisi BIN. |
 | 2026-08-16 | Migrasi DB `20260816120000_remove_oim_role`: reassign assignment OIM → REGIONAL_COMMANDER, update `User.role`, hapus RoleAreaPolicy/Role OIM, drop nilai enum. | Data aman (backup penuh 214 MB sebelum apply). |
 | 2026-08-16 | Menu sidebar per role dirapikan: hapus duplikat "Beranda" (`oim-home`), bedakan judul "Produk Intelijen" (view/approval) vs "Laporan Intelijen" (workspace). | Audit RBAC 0 issue. |
 | 2026-08-16 | Biome: upgrade 2.5.8 (fix panic), normalisasi format, hapus `any` peta & dashboard, warning 428 → ±295 (sisa nested ternary/ref defensive disengaja). | CI FE & BE hijau. |
 | 2026-08-20 | KPI: menu KPI dijadikan pusat evaluasi Jaring nasional (module `apps/be/src/modules/kpi/` dengan satu sumber kebenaran semantik `kpi-metrics.ts`; 9 tab FE di `apps/fe/src/app/(main)/dashboard/_components/kpi/`). Pemetaan status Jaring: Aktif Terverifikasi = APPROVED+ACTIVE; produktivitas hanya memakai basis Aktif Terverifikasi; Laporan→Baket anti-duplikasi lewat `convertedBaketId`/`BaketVersionSourceMessage`. Ekspor PDF/Word/Excel/Markdown dari backend (`pdfkit`/`docx`/`exceljs`) mengikuti filter + RBAC, dicatat ke `AuditLog`. Endpoint KPI memakai cache `kpi-v1` dengan key scope+filter. | Menu KPI untuk seluruh role kepemimpinan, Korwil, dan Gaswil (scope dibatasi backend via `DomainScopeService`). |
+| 2026-09-02 | Command HUD Fullscreen multi-device: adaptif untuk semua perangkat tanpa menghilangkan elemen data penting (KPI carousel di mobile, drawer overlay untuk filter/feed, layer pills scrollable, tombol aksi header selalu aktif). | Memastikan tampilan full size Peta Jejaring Intelijen dapat diakses sempurna di laptop berskala, tablet, dan smartphone. |

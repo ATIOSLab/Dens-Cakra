@@ -20,6 +20,7 @@ import {
   Search,
   Siren,
   UserMinus,
+  X,
 } from "lucide-react";
 
 import { AppLogo } from "@/components/app-logo";
@@ -41,6 +42,7 @@ import {
   getMapFeatureReference,
   getMapFeatureTimestamp,
   getMapFeatureTitle,
+  type HeatmapWeight,
   type MapAreaFilterOptions,
   type MapEntityFilterOption,
   type MapNetworkFeature,
@@ -67,6 +69,8 @@ type MapsIntelijenCommandHudProps = {
   layerVisibility: LayerVisibility;
   visualization: VisualizationMode;
   mapLayer: BaseMapLayer;
+  heatmapWeight?: HeatmapWeight;
+  onHeatmapWeightChange?: (value: HeatmapWeight) => void;
   onRefresh: () => void;
   onToggleFullscreen: () => void;
   onFilterChange: (patch: Partial<MapNetworkFilters>) => void;
@@ -95,6 +99,13 @@ const visualizationLabels: Record<VisualizationMode, string> = {
   marker: "Marker",
   cluster: "Klaster",
   heatmap: "Peta Panas",
+};
+
+const heatmapWeightLabels: Record<HeatmapWeight, string> = {
+  count: "Bobot: Jumlah Data",
+  urgency: "Bobot: Urgensi",
+  valid: "Bobot: Berkoordinat",
+  baket: "Bobot: Baket",
 };
 
 function formatWibTime(value: Date | null) {
@@ -141,6 +152,8 @@ export function MapsIntelijenCommandHud({
   layerVisibility,
   visualization,
   mapLayer,
+  heatmapWeight,
+  onHeatmapWeightChange,
   onRefresh,
   onToggleFullscreen,
   onFilterChange,
@@ -172,6 +185,14 @@ export function MapsIntelijenCommandHud({
     updateClock();
     const interval = window.setInterval(updateClock, 1_000);
     return () => window.clearInterval(interval);
+  }, [isFullscreen]);
+
+  useEffect(() => {
+    if (!isFullscreen) return;
+    if (typeof window !== "undefined" && window.innerWidth < 1024) {
+      setLeftPanelOpen(false);
+      setRightPanelOpen(false);
+    }
   }, [isFullscreen]);
 
   const intelligence = useMemo(() => {
@@ -330,56 +351,93 @@ export function MapsIntelijenCommandHud({
 
   return (
     <div className="pointer-events-none absolute inset-0 z-30 font-sans text-slate-100">
-      <header className="pointer-events-auto absolute inset-x-3 top-3 flex h-14 items-center justify-between gap-3 rounded-xl border border-cyan-400/25 bg-slate-950/95 px-3 shadow-2xl backdrop-blur-xl">
-        <div className="flex min-w-0 items-center gap-3">
-          <span className="relative">
+      {/* Mobile/Tablet backdrop overlay when either panel is open on screens <lg */}
+      {leftPanelOpen || rightPanelOpen ? (
+        <div
+          onClick={() => {
+            setLeftPanelOpen(false);
+            setRightPanelOpen(false);
+          }}
+          className="pointer-events-auto fixed inset-0 z-35 bg-slate-950/60 backdrop-blur-xs lg:hidden"
+          aria-hidden
+        />
+      ) : null}
+
+      {/* HEADER */}
+      <header className="pointer-events-auto absolute inset-x-3 top-3 flex h-14 items-center justify-between gap-2 sm:gap-3 rounded-xl border border-cyan-400/25 bg-slate-950/95 px-2.5 sm:px-3 shadow-2xl backdrop-blur-xl">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+          <span className="relative shrink-0">
             <AppLogo size="md" className="border-cyan-400/40 bg-cyan-400/10" />
             <span className="absolute -top-0.5 -right-0.5 size-2 animate-pulse rounded-full bg-emerald-400" />
           </span>
           <div className="min-w-0">
-            <p className="truncate font-bold text-sm tracking-[0.08em] sm:text-base">DENS CAKRA</p>
-            <p className="truncate text-[9px] text-slate-400 uppercase tracking-[0.2em]">Peta Jejaring Intelijen</p>
+            <p className="truncate font-bold text-xs sm:text-base tracking-[0.08em]">DENS CAKRA</p>
+            <p className="truncate text-[8px] sm:text-[9px] text-slate-400 uppercase tracking-[0.15em] sm:tracking-[0.2em]">
+              Peta Jejaring Intelijen
+            </p>
           </div>
         </div>
 
-        <div className="hidden items-center gap-2 lg:flex">
+        <div className="hidden items-center gap-1.5 md:flex lg:gap-2">
           <StatusChip icon={Activity} label={loading ? "Sinkronisasi" : "Data aktif"} active={!loading} />
           <StatusChip icon={Filter} label={`${activeFilterCount} filter aktif`} />
           <StatusChip icon={Crosshair} label={`${intelligence.coverage}% terpetakan`} />
           <span className="h-7 w-px bg-slate-800" />
           <div className="text-right">
-            <p className="font-bold font-mono text-sm tabular-nums">UTC+7 / {formatWibTime(now)} WIB</p>
+            <p className="font-bold font-mono text-xs sm:text-sm tabular-nums">UTC+7 / {formatWibTime(now)} WIB</p>
             <p className="text-[9px] text-slate-500">{periodLabel}</p>
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-1.5">
+        {/* Compact time on mobile */}
+        <div className="flex flex-col items-end md:hidden text-right font-mono text-[10px] text-slate-300">
+          <span className="tabular-nums font-semibold">{formatWibTime(now).slice(0, 5)} WIB</span>
+          <span className="text-[8px] text-cyan-400">{intelligence.coverage}% peta</span>
+        </div>
+
+        <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
           <Button
             type="button"
             variant="outline"
             size="icon-sm"
-            onClick={() => setLeftPanelOpen((current) => !current)}
+            onClick={() => {
+              setLeftPanelOpen((current) => !current);
+              if (typeof window !== "undefined" && window.innerWidth < 1024 && !leftPanelOpen) {
+                setRightPanelOpen(false);
+              }
+            }}
             aria-label={leftPanelOpen ? "Tutup panel filter" : "Buka panel filter"}
             aria-pressed={leftPanelOpen}
             title={leftPanelOpen ? "Tutup panel filter" : "Buka panel filter"}
             className={cn(
-              "hidden border-slate-700 bg-slate-900/80 text-slate-200 hover:bg-slate-800 hover:text-white xl:inline-flex",
-              leftPanelOpen && "border-cyan-400/50 text-cyan-300",
+              "relative border-slate-700 bg-slate-900/80 text-slate-200 hover:bg-slate-800 hover:text-white transition-colors",
+              leftPanelOpen && "border-cyan-400/60 bg-cyan-950/60 text-cyan-300 shadow-[0_0_10px_rgba(34,211,238,0.2)]",
             )}
           >
             <Filter className="size-4" />
+            {activeFilterCount > 0 ? (
+              <span className="absolute -top-1 -right-1 flex size-3.5 items-center justify-center rounded-full bg-cyan-500 font-mono text-[8px] font-bold text-slate-950">
+                {activeFilterCount}
+              </span>
+            ) : null}
           </Button>
           <Button
             type="button"
             variant="outline"
             size="icon-sm"
-            onClick={() => setRightPanelOpen((current) => !current)}
+            onClick={() => {
+              setRightPanelOpen((current) => !current);
+              if (typeof window !== "undefined" && window.innerWidth < 1024 && !rightPanelOpen) {
+                setLeftPanelOpen(false);
+              }
+            }}
             aria-label={rightPanelOpen ? "Tutup panel ringkasan dan feed" : "Buka panel ringkasan dan feed"}
             aria-pressed={rightPanelOpen}
             title={rightPanelOpen ? "Tutup panel ringkasan dan feed" : "Buka panel ringkasan dan feed"}
             className={cn(
-              "hidden border-slate-700 bg-slate-900/80 text-slate-200 hover:bg-slate-800 hover:text-white xl:inline-flex",
-              rightPanelOpen && "border-cyan-400/50 text-cyan-300",
+              "border-slate-700 bg-slate-900/80 text-slate-200 hover:bg-slate-800 hover:text-white transition-colors",
+              rightPanelOpen &&
+                "border-cyan-400/60 bg-cyan-950/60 text-cyan-300 shadow-[0_0_10px_rgba(34,211,238,0.2)]",
             )}
           >
             <Layers3 className="size-4" />
@@ -393,8 +451,8 @@ export function MapsIntelijenCommandHud({
             aria-pressed={analyticsOpen}
             title={analyticsOpen ? "Tutup panel analitik" : "Buka panel analitik"}
             className={cn(
-              "hidden border-slate-700 bg-slate-900/80 text-slate-200 hover:bg-slate-800 hover:text-white xl:inline-flex",
-              analyticsOpen && "border-cyan-400/50 text-cyan-300",
+              "border-slate-700 bg-slate-900/80 text-slate-200 hover:bg-slate-800 hover:text-white transition-colors",
+              analyticsOpen && "border-cyan-400/60 bg-cyan-950/60 text-cyan-300 shadow-[0_0_10px_rgba(34,211,238,0.2)]",
             )}
           >
             <Database className="size-4" />
@@ -423,28 +481,49 @@ export function MapsIntelijenCommandHud({
         </div>
       </header>
 
+      {/* TOP KPI ROW: 6 METRICS */}
       <section
-        className="absolute inset-x-3 top-[4.75rem] hidden h-[4.6rem] grid-cols-[repeat(auto-fit,minmax(11rem,1fr))] gap-2 xl:grid"
+        className={cn(
+          "pointer-events-auto absolute inset-x-3 top-[4.75rem] z-20 flex gap-2 overflow-x-auto pb-1 md:grid md:grid-cols-6 md:overflow-visible md:pb-0",
+          styles.noScrollbar,
+        )}
         aria-label="Indikator utama"
       >
         {kpiCards.map(({ key, ...card }) => (
-          <KpiCard key={key} {...card} />
+          <div key={key} className="min-w-[9.5rem] shrink-0 md:min-w-0 md:shrink">
+            <KpiCard {...card} />
+          </div>
         ))}
       </section>
 
+      {/* LEFT PANEL: FILTER DAN PENCARIAN */}
       {leftPanelOpen ? (
-        <aside className="pointer-events-auto absolute bottom-[3.35rem] left-3 top-[9.9rem] hidden w-64 overflow-hidden rounded-xl border border-slate-700/80 bg-slate-950/95 shadow-2xl backdrop-blur-xl xl:flex xl:flex-col">
-          <div className="border-b border-slate-800 p-3">
-            <div className="flex items-center justify-between gap-2">
-              <h3 className="flex items-center gap-2 font-semibold text-xs uppercase tracking-[0.12em]">
-                <Filter className="size-3.5 text-cyan-300" /> Filter dan Pencarian
-              </h3>
+        <aside
+          className={cn(
+            "pointer-events-auto z-40 flex flex-col overflow-hidden rounded-xl border border-slate-700/80 bg-slate-950/98 shadow-2xl backdrop-blur-xl transition-all",
+            "lg:absolute lg:bottom-[3.35rem] lg:left-3 lg:top-[9.75rem] lg:w-60 xl:w-64",
+            "fixed inset-y-3 left-3 w-[calc(100%-1.5rem)] max-w-sm sm:w-80",
+          )}
+        >
+          <div className="flex items-center justify-between gap-2 border-b border-slate-800 p-2.5 sm:p-3">
+            <h3 className="flex items-center gap-2 font-semibold text-xs uppercase tracking-[0.12em]">
+              <Filter className="size-3.5 text-cyan-300" /> Filter dan Pencarian
+            </h3>
+            <div className="flex items-center gap-1.5">
               <span className="rounded bg-cyan-400/10 px-1.5 py-0.5 text-[9px] text-cyan-300">
                 {activeFilterCount} aktif
               </span>
+              <button
+                type="button"
+                onClick={() => setLeftPanelOpen(false)}
+                className="rounded p-1 text-slate-400 hover:bg-slate-800 hover:text-slate-200 lg:hidden"
+                aria-label="Tutup filter"
+              >
+                <X className="size-3.5" />
+              </button>
             </div>
           </div>
-          <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto p-3">
+          <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto p-2.5 sm:p-3">
             <div className="grid gap-1 text-[10px] text-slate-400">
               <span>Pencarian</span>
               <span className="relative">
@@ -571,7 +650,7 @@ export function MapsIntelijenCommandHud({
               options={areaHierarchyOptions.villages}
             />
           </div>
-          <div className="grid grid-cols-2 gap-2 border-t border-slate-800 p-3">
+          <div className="sticky bottom-0 grid grid-cols-2 gap-2 border-t border-slate-800 bg-slate-950/95 p-2.5 sm:p-3">
             <Button
               variant="outline"
               size="sm"
@@ -584,7 +663,7 @@ export function MapsIntelijenCommandHud({
               size="sm"
               onClick={onRefresh}
               disabled={loading}
-              className="bg-cyan-500 text-slate-950 hover:bg-cyan-400"
+              className="bg-cyan-500 font-semibold text-slate-950 hover:bg-cyan-400"
             >
               <RefreshCw className={cn("size-3.5", loading && "animate-spin")} /> Terapkan
             </Button>
@@ -592,67 +671,111 @@ export function MapsIntelijenCommandHud({
         </aside>
       ) : null}
 
+      {/* TOP LAYER NAVIGATION & VISUALIZATION */}
       <nav
         className={cn(
-          "pointer-events-auto absolute top-[9.9rem] hidden h-12 items-center gap-1.5 rounded-xl border border-slate-700/80 bg-slate-950/95 px-2 shadow-2xl backdrop-blur-xl xl:flex",
-          leftPanelOpen ? "left-[17.25rem]" : "left-3",
-          rightPanelOpen ? "right-[19.25rem]" : "right-3",
+          "pointer-events-auto absolute top-[9.75rem] z-20 flex h-11 sm:h-12 items-center gap-1.5 rounded-xl border border-slate-700/80 bg-slate-950/95 px-2 shadow-2xl backdrop-blur-xl transition-all",
+          "left-3 right-3",
+          leftPanelOpen && "lg:left-[15.75rem] xl:left-[17.25rem]",
+          rightPanelOpen && "lg:right-[16.75rem] xl:right-[19.25rem]",
         )}
         aria-label="Lapisan peta"
       >
-        {layerCards.map(({ key, ...rest }) => (
-          <LayerButton key={key} {...rest} active={layerVisibility[key]} onClick={() => onLayerToggle(key)} />
-        ))}
-        <button
-          type="button"
-          onClick={onShowAllLayers}
-          className="ml-auto h-8 rounded-md border border-slate-700 px-2 text-[10px] text-slate-300 hover:bg-slate-800"
-        >
-          Semua Lapisan
-        </button>
-        <select
-          value={visualization}
-          onChange={(event) => onVisualizationChange(event.target.value as VisualizationMode)}
-          aria-label="Mode visualisasi"
-          className="h-8 rounded-md border border-slate-700 bg-slate-900 px-2 text-[10px] text-slate-100"
-        >
-          {Object.entries(visualizationLabels).map(([value, label]) => {
-            const markerUnavailable = value === "marker" && filters.provinceId === "ALL";
-            return (
-              <option key={value} value={value} disabled={markerUnavailable}>
-                {markerUnavailable ? `${label} (pilih provinsi)` : label}
-              </option>
-            );
-          })}
-        </select>
-        <select
-          value={mapLayer}
-          onChange={(event) => onMapLayerChange(event.target.value as BaseMapLayer)}
-          aria-label="Peta dasar"
-          className="h-8 rounded-md border border-slate-700 bg-slate-900 px-2 text-[10px] text-slate-100"
-        >
-          {Object.entries(baseMapLayerLabels).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
+        <div className={cn("flex w-full min-w-0 items-center gap-1.5 overflow-x-auto py-1", styles.noScrollbar)}>
+          {layerCards.map(({ key, ...rest }) => (
+            <LayerButton key={key} {...rest} active={layerVisibility[key]} onClick={() => onLayerToggle(key)} />
           ))}
-        </select>
+          <button
+            type="button"
+            onClick={onShowAllLayers}
+            className="shrink-0 h-8 rounded-md border border-slate-700 px-2 text-[10px] text-slate-300 hover:bg-slate-800"
+          >
+            Semua Lapisan
+          </button>
+          <select
+            value={visualization}
+            onChange={(event) => onVisualizationChange(event.target.value as VisualizationMode)}
+            aria-label="Mode visualisasi"
+            className="shrink-0 h-8 rounded-md border border-slate-700 bg-slate-900 px-2 text-[10px] text-slate-100"
+          >
+            {Object.entries(visualizationLabels).map(([value, label]) => {
+              const markerUnavailable = value === "marker" && filters.provinceId === "ALL";
+              return (
+                <option key={value} value={value} disabled={markerUnavailable}>
+                  {markerUnavailable ? `${label} (pilih provinsi)` : label}
+                </option>
+              );
+            })}
+          </select>
+          {visualization === "heatmap" && onHeatmapWeightChange ? (
+            <select
+              value={heatmapWeight ?? "count"}
+              onChange={(event) => onHeatmapWeightChange(event.target.value as HeatmapWeight)}
+              aria-label="Bobot heatmap"
+              className="shrink-0 h-8 rounded-md border border-slate-700 bg-slate-900 px-2 text-[10px] text-slate-100"
+            >
+              {Object.entries(heatmapWeightLabels).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          ) : null}
+          <select
+            value={mapLayer}
+            onChange={(event) => onMapLayerChange(event.target.value as BaseMapLayer)}
+            aria-label="Peta dasar"
+            className="shrink-0 h-8 rounded-md border border-slate-700 bg-slate-900 px-2 text-[10px] text-slate-100"
+          >
+            {Object.entries(baseMapLayerLabels).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </div>
       </nav>
 
+      {/* MAP FIT & RESET BUTTONS */}
       <div
         className={cn(
-          "pointer-events-auto absolute hidden items-center gap-1.5 xl:flex",
-          leftPanelOpen ? "left-[17.25rem]" : "left-3",
-          analyticsOpen ? "bottom-[12.25rem]" : "bottom-[3.35rem]",
+          "pointer-events-auto absolute z-20 flex items-center gap-1.5 transition-all",
+          "left-3",
+          leftPanelOpen && "lg:left-[15.75rem] xl:left-[17.25rem]",
+          analyticsOpen
+            ? "bottom-[11.5rem] sm:bottom-[12.5rem] lg:bottom-[11.5rem] xl:bottom-[12.25rem]"
+            : "bottom-[3.35rem]",
         )}
       >
         <HudMapButton label="Sesuaikan ke semua titik" icon={Crosshair} onClick={onFitFeatures} />
         <HudMapButton label="Reset posisi peta" icon={RotateCcw} onClick={onResetMap} />
       </div>
 
+      {/* RIGHT PANEL: RINGKASAN & UMPAN DATA */}
       {rightPanelOpen ? (
-        <aside className="pointer-events-auto absolute bottom-[3.35rem] right-3 top-[9.9rem] hidden w-[18rem] flex-col gap-2 xl:flex">
-          <section className="rounded-xl border border-slate-700/80 bg-slate-950/95 p-3 shadow-2xl backdrop-blur-xl">
+        <aside
+          className={cn(
+            "pointer-events-auto z-40 flex flex-col gap-2 overflow-hidden transition-all",
+            "lg:absolute lg:bottom-[3.35rem] lg:right-3 lg:top-[9.75rem] lg:w-64 xl:w-[18rem]",
+            "fixed inset-y-3 right-3 w-[calc(100%-1.5rem)] max-w-sm sm:w-80 rounded-xl border border-slate-700/80 bg-slate-950/98 p-2.5 sm:p-3 shadow-2xl backdrop-blur-xl",
+          )}
+        >
+          {/* Header on mobile */}
+          <div className="flex items-center justify-between border-b border-slate-800 pb-2 lg:hidden">
+            <h3 className="flex items-center gap-2 font-semibold text-xs uppercase tracking-[0.12em]">
+              <Layers3 className="size-3.5 text-cyan-300" /> Ringkasan & Umpan
+            </h3>
+            <button
+              type="button"
+              onClick={() => setRightPanelOpen(false)}
+              className="rounded p-1 text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+              aria-label="Tutup ringkasan dan umpan"
+            >
+              <X className="size-3.5" />
+            </button>
+          </div>
+
+          <section className="rounded-xl border border-slate-700/80 bg-slate-950/95 p-2.5 sm:p-3 shadow-2xl backdrop-blur-xl">
             <h3 className="mb-2 flex items-center justify-between font-semibold text-xs uppercase tracking-[0.12em]">
               <span className="flex items-center gap-2">
                 <Layers3 className="size-3.5 text-cyan-300" /> Ringkasan Lapisan
@@ -684,14 +807,14 @@ export function MapsIntelijenCommandHud({
             </p>
           </section>
 
-          <section className="min-h-0 flex-1 overflow-hidden rounded-xl border border-slate-700/80 bg-slate-950/95 shadow-2xl backdrop-blur-xl">
-            <div className="flex items-center justify-between border-b border-slate-800 p-3">
+          <section className="min-h-0 flex-1 overflow-hidden rounded-xl border border-slate-700/80 bg-slate-950/95 shadow-2xl backdrop-blur-xl flex flex-col">
+            <div className="flex items-center justify-between border-b border-slate-800 p-2.5 sm:p-3 shrink-0">
               <h3 className="flex items-center gap-2 font-semibold text-xs uppercase tracking-[0.12em]">
                 <Activity className="size-3.5 text-cyan-300" /> Umpan Data
               </h3>
               <span className="text-[9px] text-slate-500">Terbaru</span>
             </div>
-            <div className="h-full space-y-3 overflow-y-auto p-2 pb-12">
+            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-2 pb-6">
               <FeedSection
                 title="Laporan Jaring Terbaru"
                 href="/dashboard/laporan-jaring"
@@ -711,58 +834,74 @@ export function MapsIntelijenCommandHud({
         </aside>
       ) : null}
 
+      {/* BOTTOM MINI ANALYTICS */}
       {analyticsOpen ? (
         <section
           className={cn(
-            "pointer-events-auto absolute bottom-[3.35rem] hidden h-[9.25rem] grid-cols-3 gap-2 xl:grid",
-            leftPanelOpen ? "left-[17.25rem]" : "left-3",
-            rightPanelOpen ? "right-[19.25rem]" : "right-3",
+            "pointer-events-auto absolute z-25 flex transition-all",
+            "lg:bottom-[3.35rem] lg:left-3 lg:right-3 lg:grid lg:grid-cols-3 lg:gap-2",
+            leftPanelOpen && "lg:left-[15.75rem] xl:left-[17.25rem]",
+            rightPanelOpen && "lg:right-[16.75rem] xl:right-[19.25rem]",
+            "bottom-[3.35rem] left-3 right-3 gap-2 overflow-x-auto pb-1 max-h-[11rem]",
+            styles.noScrollbar,
           )}
           aria-label="Analitik ringkas"
         >
-          <MiniAnalytics
-            title="Distribusi Jenis Data"
-            icon={Database}
-            items={[
-              [DOMAIN_TERMS.jaringReport, intelligence.layerCounts.report ?? 0, DOMAIN_VISUALS.jaringReport.tone],
-              [DOMAIN_TERMS.baket, intelligence.layerCounts.baket ?? 0, DOMAIN_VISUALS.baket.tone],
-            ]}
-          />
-          <MiniAnalytics
-            title="Distribusi Urgensi"
-            icon={Siren}
-            items={[
-              ["Mendesak", intelligence.urgencyCounts.URGENT ?? 0, "red"],
-              ["Tinggi", intelligence.urgencyCounts.HIGH ?? 0, "amber"],
-              ["Normal", intelligence.urgencyCounts.NORMAL ?? 0, "emerald"],
-              ["Rendah", intelligence.urgencyCounts.LOW ?? 0, "cyan"],
-            ]}
-            showEmpty
-          />
-          <MiniAnalytics
-            title="Top Kategori Baket"
-            icon={Layers3}
-            items={intelligence.categoryCounts
-              .slice(0, 3)
-              .map(([label, count]) => [label, count, "violet"] as [string, number, string])}
-          />
-          <MiniAnalytics
-            title="Wilayah Teratas"
-            icon={MapPin}
-            items={intelligence.areaCounts
-              .slice(0, 3)
-              .map(([label, count]) => [label, count, "cyan"] as [string, number, string])}
-          />
+          <div className="min-w-[15rem] flex-1 lg:min-w-0">
+            <MiniAnalytics
+              title="Distribusi Jenis Data"
+              icon={Database}
+              items={[
+                [DOMAIN_TERMS.jaringReport, intelligence.layerCounts.report ?? 0, DOMAIN_VISUALS.jaringReport.tone],
+                [DOMAIN_TERMS.baket, intelligence.layerCounts.baket ?? 0, DOMAIN_VISUALS.baket.tone],
+              ]}
+            />
+          </div>
+          <div className="min-w-[15rem] flex-1 lg:min-w-0">
+            <MiniAnalytics
+              title="Distribusi Urgensi"
+              icon={Siren}
+              items={[
+                ["Mendesak", intelligence.urgencyCounts.URGENT ?? 0, "red"],
+                ["Tinggi", intelligence.urgencyCounts.HIGH ?? 0, "amber"],
+                ["Normal", intelligence.urgencyCounts.NORMAL ?? 0, "emerald"],
+                ["Rendah", intelligence.urgencyCounts.LOW ?? 0, "cyan"],
+              ]}
+              showEmpty
+            />
+          </div>
+          <div className="min-w-[15rem] flex-1 lg:min-w-0">
+            <MiniAnalytics
+              title="Top Kategori Baket"
+              icon={Layers3}
+              items={intelligence.categoryCounts
+                .slice(0, 3)
+                .map(([label, count]) => [label, count, "violet"] as [string, number, string])}
+            />
+          </div>
+          {intelligence.areaCounts.length > 0 ? (
+            <div className="min-w-[15rem] flex-1 lg:hidden xl:block lg:min-w-0">
+              <MiniAnalytics
+                title="Wilayah Teratas"
+                icon={MapPin}
+                items={intelligence.areaCounts
+                  .slice(0, 3)
+                  .map(([label, count]) => [label, count, "cyan"] as [string, number, string])}
+              />
+            </div>
+          ) : null}
         </section>
       ) : null}
 
+      {/* BOTTOM TICKER: UMPAN LANGSUNG */}
       <section
         aria-label="Umpan data bergerak"
         className="pointer-events-auto absolute inset-x-3 bottom-3 z-50 flex h-8 overflow-hidden rounded-md border border-slate-700/90 bg-slate-100 text-slate-900 shadow-2xl"
       >
-        <div className="relative z-10 flex shrink-0 items-center gap-2 bg-cyan-500 px-3 font-bold font-mono text-[10px] text-slate-950 uppercase tracking-[0.12em] shadow-[8px_0_16px_rgba(34,211,238,0.2)]">
+        <div className="relative z-10 flex shrink-0 items-center gap-1.5 sm:gap-2 bg-cyan-500 px-2 sm:px-3 font-bold font-mono text-[9px] sm:text-[10px] text-slate-950 uppercase tracking-[0.12em] shadow-[8px_0_16px_rgba(34,211,238,0.2)]">
           <span className="size-2 animate-pulse rounded-full bg-slate-950" aria-hidden />
-          Umpan Langsung
+          <span className="hidden xs:inline sm:inline">Umpan Langsung</span>
+          <span className="inline xs:hidden sm:hidden">Umpan</span>
         </div>
         <div className={cn("min-w-0 flex-1 overflow-hidden", styles.tickerViewport)}>
           {intelligence.feed.length > 0 ? (
@@ -1026,13 +1165,16 @@ function MiniAnalytics({
 
   const maximum = Math.max(1, ...visibleItems.map((item) => item[1]));
   return (
-    <article className="flex min-h-[9.25rem] flex-col overflow-hidden rounded-xl border border-slate-700/80 bg-slate-950/95 p-3 shadow-2xl backdrop-blur-xl">
-      <h3 className="mb-2 flex items-center gap-1.5 truncate text-[9px] font-semibold uppercase tracking-[0.1em] text-slate-400">
+    <article className="flex h-full min-h-[7.5rem] flex-col overflow-hidden rounded-xl border border-slate-700/80 bg-slate-950/95 p-2.5 sm:p-3 shadow-2xl backdrop-blur-xl">
+      <h3 className="mb-1.5 sm:mb-2 flex items-center gap-1.5 truncate text-[8.5px] sm:text-[9px] font-semibold uppercase tracking-[0.1em] text-slate-400">
         <Icon className="size-3 text-cyan-300" /> {title}
       </h3>
-      <div className="min-h-0 flex-1 space-y-2">
+      <div className="min-h-0 flex-1 space-y-1.5 sm:space-y-2">
         {visibleItems.map(([label, count, tone]) => (
-          <div key={label} className="grid grid-cols-[minmax(0,1fr)_3.5rem] items-center gap-2 text-[9px]">
+          <div
+            key={label}
+            className="grid grid-cols-[minmax(0,1fr)_3rem] sm:grid-cols-[minmax(0,1fr)_3.5rem] items-center gap-2 text-[8.5px] sm:text-[9px]"
+          >
             <div className="min-w-0">
               <div className="mb-0.5 truncate text-slate-300" title={label}>
                 {label}
@@ -1089,13 +1231,17 @@ function KpiCard({
   tone: string;
 }) {
   return (
-    <article className="rounded-xl border border-slate-700/80 bg-slate-950/95 p-2.5 shadow-2xl backdrop-blur-xl">
-      <div className="flex items-center justify-between gap-2">
-        <p className="truncate text-[9px] uppercase tracking-[0.08em] text-slate-400">{label}</p>
-        <Icon className={cn("size-3.5", toneClasses(tone, "button").split(" ").at(-1))} />
+    <article className="h-full rounded-xl border border-slate-700/80 bg-slate-950/95 p-2 sm:p-2.5 shadow-2xl backdrop-blur-xl transition hover:border-slate-600">
+      <div className="flex items-center justify-between gap-1.5">
+        <p className="truncate text-[8.5px] sm:text-[9px] uppercase tracking-[0.06em] sm:tracking-[0.08em] text-slate-400">
+          {label}
+        </p>
+        <Icon className={cn("size-3 sm:size-3.5 shrink-0", toneClasses(tone, "button").split(" ").at(-1))} />
       </div>
-      <p className="mt-1 font-bold font-mono text-lg leading-none tabular-nums">{value.toLocaleString("id-ID")}</p>
-      <p className="mt-1 truncate text-[8px] text-slate-500">{detail}</p>
+      <p className="mt-0.5 sm:mt-1 font-bold font-mono text-base sm:text-lg leading-none tabular-nums text-slate-100">
+        {value.toLocaleString("id-ID")}
+      </p>
+      <p className="mt-0.5 sm:mt-1 truncate text-[7.5px] sm:text-[8px] text-slate-500">{detail}</p>
     </article>
   );
 }

@@ -360,77 +360,66 @@ export function MapsIntelijenMapView({
         aria-hidden
       />
 
-      <div
-        className={cn(
-          "absolute left-3 z-20 flex max-w-[calc(100%-1.5rem)] flex-wrap gap-2 rounded-md border p-2 shadow-lg backdrop-blur",
-          isFullscreen
-            ? "top-20 border-slate-700/80 bg-slate-950/90 text-slate-100 xl:hidden"
-            : "top-3 bg-background/95",
-        )}
-      >
-        <label className="grid gap-0.5 text-[10px] text-muted-foreground">
-          Peta Dasar
-          <select
-            value={mapLayer}
-            onChange={(event) => onMapLayerChange(event.target.value as BaseMapLayer)}
-            className={cn(
-              "min-h-10 rounded-md border px-2 text-xs",
-              isFullscreen ? "border-slate-700 bg-slate-900 text-slate-100" : "bg-background text-foreground",
-            )}
-          >
-            <option value="dark">Gelap</option>
-            <option value="light">Terang</option>
-            <option value="terrain">Medan</option>
-            <option value="satellite">Satelit</option>
-            <option value="osm">OpenStreetMap</option>
-          </select>
-        </label>
-        {mode === "heatmap" ? (
+      {!isFullscreen ? (
+        <div className="absolute left-3 top-3 z-20 flex max-w-[calc(100%-1.5rem)] flex-wrap gap-2 rounded-md border border-[var(--dc-border-subtle)] bg-background/95 p-2 shadow-lg backdrop-blur">
           <label className="grid gap-0.5 text-[10px] text-muted-foreground">
-            Bobot Heatmap
+            Peta Dasar
             <select
-              value={heatmapWeight}
-              onChange={(event) => onHeatmapWeightChange(event.target.value as HeatmapWeight)}
-              className={cn(
-                "min-h-10 rounded-md border px-2 text-xs",
-                isFullscreen ? "border-slate-700 bg-slate-900 text-slate-100" : "bg-background text-foreground",
-              )}
+              value={mapLayer}
+              onChange={(event) => onMapLayerChange(event.target.value as BaseMapLayer)}
+              className="min-h-10 rounded-md border bg-background px-2 text-xs text-foreground"
             >
-              <option value="count">Jumlah Data</option>
-              <option value="urgency">Urgensi</option>
-              <option value="valid">Titik Berkoordinat</option>
-              <option value="baket">Bahan Keterangan (Baket)</option>
+              <option value="dark">Gelap</option>
+              <option value="light">Terang</option>
+              <option value="terrain">Medan</option>
+              <option value="satellite">Satelit</option>
+              <option value="osm">OpenStreetMap</option>
             </select>
           </label>
-        ) : null}
-        <Button
-          size="icon"
-          variant="outline"
-          className={cn("min-h-11 min-w-11", isFullscreen && "border-slate-700 bg-slate-900 text-slate-100")}
-          onClick={fitVisibleFeatures}
-          aria-label="Sesuaikan peta ke seluruh titik hasil filter"
-        >
-          <Crosshair className="size-4 text-blue-600 dark:text-blue-400" />
-        </Button>
-        <Button
-          size="icon"
-          variant="outline"
-          className={cn("min-h-11 min-w-11", isFullscreen && "border-slate-700 bg-slate-900 text-slate-100")}
-          onClick={resetMap}
-          aria-label="Reset tampilan peta"
-        >
-          <RotateCcw className="size-4 text-slate-600 dark:text-slate-400" />
-        </Button>
-        <Button
-          size="icon"
-          variant="outline"
-          className={cn("min-h-11 min-w-11", isFullscreen && "border-slate-700 bg-slate-900 text-slate-100")}
-          onClick={onToggleFullscreen}
-          aria-label={isFullscreen ? "Keluar layar penuh" : "Tampilkan layar penuh"}
-        >
-          {isFullscreen ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
-        </Button>
-      </div>
+          {mode === "heatmap" ? (
+            <label className="grid gap-0.5 text-[10px] text-muted-foreground">
+              Bobot Heatmap
+              <select
+                value={heatmapWeight}
+                onChange={(event) => onHeatmapWeightChange(event.target.value as HeatmapWeight)}
+                className="min-h-10 rounded-md border bg-background px-2 text-xs text-foreground"
+              >
+                <option value="count">Jumlah Data</option>
+                <option value="urgency">Urgensi</option>
+                <option value="valid">Titik Berkoordinat</option>
+                <option value="baket">Bahan Keterangan (Baket)</option>
+              </select>
+            </label>
+          ) : null}
+          <Button
+            size="icon"
+            variant="outline"
+            className="min-h-11 min-w-11"
+            onClick={fitVisibleFeatures}
+            aria-label="Sesuaikan peta ke seluruh titik hasil filter"
+          >
+            <Crosshair className="size-4 text-blue-600 dark:text-blue-400" />
+          </Button>
+          <Button
+            size="icon"
+            variant="outline"
+            className="min-h-11 min-w-11"
+            onClick={resetMap}
+            aria-label="Reset tampilan peta"
+          >
+            <RotateCcw className="size-4 text-slate-600 dark:text-slate-400" />
+          </Button>
+          <Button
+            size="icon"
+            variant="outline"
+            className="min-h-11 min-w-11"
+            onClick={onToggleFullscreen}
+            aria-label="Tampilkan layar penuh"
+          >
+            <Maximize2 className="size-4" />
+          </Button>
+        </div>
+      ) : null}
 
       <MapsIntelijenCommandHud
         features={features}
@@ -448,6 +437,8 @@ export function MapsIntelijenMapView({
         layerVisibility={layerVisibility}
         visualization={mode}
         mapLayer={mapLayer}
+        heatmapWeight={heatmapWeight}
+        onHeatmapWeightChange={onHeatmapWeightChange}
         onRefresh={onRefresh}
         onToggleFullscreen={onToggleFullscreen}
         onFilterChange={onFilterChange}
