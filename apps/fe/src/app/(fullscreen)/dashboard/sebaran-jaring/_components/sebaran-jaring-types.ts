@@ -1,4 +1,4 @@
-import { DOMAIN_VISUALS, JARING_ACTIVITY_VISUALS, PERSONNEL_LOCATION_VISUALS } from "@/lib/domain/visual-system";
+import { JARING_ACTIVITY_VISUALS, PERSONNEL_LOCATION_VISUALS } from "@/lib/domain/visual-system";
 
 export type AgentOperationalStatus = "VERIFIED" | "PENDING" | "REJECTED";
 
@@ -86,7 +86,9 @@ export type JaringDistributionEntry = {
   gender: string | null;
   address: string | null;
   profilePhotoFileId: string | null;
+  provinceId?: string | null;
   provinceName?: string;
+  cityId?: string | null;
   cityName?: string;
   districtId: string | null;
   districtName: string;
