@@ -28,7 +28,7 @@ export function MapsIntelijenAreaFilter({
       value: filters.provinceId,
       options: toSelectOptions(hierarchy.provinces),
       disabled: areaOptions.loadingLevel === "province",
-      onChange: (provinceId: string) => onChange({ provinceId }),
+      onChange: (provinceId: string) => onChange({ provinceId, regencyId: "ALL", districtId: "ALL", villageId: "ALL" }),
       searchPlaceholder: "Cari provinsi...",
     },
     {
@@ -36,7 +36,7 @@ export function MapsIntelijenAreaFilter({
       value: filters.regencyId,
       options: toSelectOptions(hierarchy.regencies),
       disabled: filters.provinceId === "ALL" || areaOptions.loadingLevel === "regency",
-      onChange: (regencyId: string) => onChange({ regencyId }),
+      onChange: (regencyId: string) => onChange({ regencyId, districtId: "ALL", villageId: "ALL" }),
       searchPlaceholder: "Cari kota/kabupaten...",
     },
     {
@@ -44,7 +44,7 @@ export function MapsIntelijenAreaFilter({
       value: filters.districtId,
       options: toSelectOptions(hierarchy.districts),
       disabled: filters.regencyId === "ALL" || areaOptions.loadingLevel === "district",
-      onChange: (districtId: string) => onChange({ districtId }),
+      onChange: (districtId: string) => onChange({ districtId, villageId: "ALL" }),
       searchPlaceholder: "Cari kecamatan...",
     },
     {

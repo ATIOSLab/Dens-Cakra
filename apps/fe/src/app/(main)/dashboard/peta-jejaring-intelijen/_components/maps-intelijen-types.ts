@@ -267,9 +267,12 @@ export type MapEntityFilterOption = {
 export type MapArea = {
   id: string;
   code: string;
+  officialCode?: string | null;
   name: string;
   level: string;
   parentId?: string | null;
+  parentAreaId?: string | null;
+  parentOfficialCode?: string | null;
   boundaryQualityStatus?: string | null;
   parent?: MapArea | null;
 };

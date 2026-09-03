@@ -160,9 +160,25 @@ export function buildRegencyFilterOptions(areaScopes: AdministrativeAreaFilterSc
   return [...regencies.values()].sort((left, right) => left.name.localeCompare(right.name, "id-ID"));
 }
 
-export function buildDistrictFilterOptions(areaScopes: AdministrativeAreaFilterScope[], regencyFilter: string) {
+export function buildDistrictFilterOptions(
+  areaScopes: AdministrativeAreaFilterScope[],
+  regencyFilter: string,
+  provinceFilter = "ALL",
+) {
+  const provinceScopes = areaScopes.filter((area) => isProvinceLevel(area.level));
   const regencies = areaScopes.filter((area) => isRegencyLevel(area.level));
   const districts = new Map<string, DistrictFilterOption>();
+
+  const allowedRegencyIds = new Set<string>();
+  for (const regency of regencies) {
+    const regId = areaScopeId(regency);
+    if (!regId) continue;
+    if (provinceFilter !== "ALL") {
+      const prov = resolveRegencyProvince(regency, provinceScopes);
+      if ((prov ? areaScopeId(prov) : regency.parentAreaId) !== provinceFilter) continue;
+    }
+    allowedRegencyIds.add(regId);
+  }
 
   for (const area of areaScopes) {
     const id = areaScopeId(area);
@@ -170,7 +186,11 @@ export function buildDistrictFilterOptions(areaScopes: AdministrativeAreaFilterS
 
     const regency = resolveDistrictRegency(area, regencies);
     const regencyId = regency ? areaScopeId(regency) : (area.parentAreaId ?? null);
-    if (regencyFilter !== "ALL" && regencyId !== regencyFilter) continue;
+    if (regencyFilter !== "ALL") {
+      if (regencyId !== regencyFilter) continue;
+    } else if (provinceFilter !== "ALL") {
+      if (!regencyId || !allowedRegencyIds.has(regencyId)) continue;
+    }
 
     districts.set(id, {
       id,
@@ -183,17 +203,54 @@ export function buildDistrictFilterOptions(areaScopes: AdministrativeAreaFilterS
   return [...districts.values()].sort((left, right) => left.name.localeCompare(right.name, "id-ID"));
 }
 
-export function buildVillageFilterOptions(areaScopes: AdministrativeAreaFilterScope[], districtFilter: string) {
-  const districts = areaScopes.filter((area) => isDistrictLevel(area.level));
+export function buildVillageFilterOptions(
+  areaScopes: AdministrativeAreaFilterScope[],
+  districtFilter: string,
+  regencyFilter = "ALL",
+  provinceFilter = "ALL",
+) {
+  const provinceScopes = areaScopes.filter((area) => isProvinceLevel(area.level));
+  const regencies = areaScopes.filter((area) => isRegencyLevel(area.level));
+  const allDistricts = areaScopes.filter((area) => isDistrictLevel(area.level));
   const villages = new Map<string, VillageFilterOption>();
+
+  const allowedRegencyIds = new Set<string>();
+  for (const regency of regencies) {
+    const regId = areaScopeId(regency);
+    if (!regId) continue;
+    if (provinceFilter !== "ALL") {
+      const prov = resolveRegencyProvince(regency, provinceScopes);
+      if ((prov ? areaScopeId(prov) : regency.parentAreaId) !== provinceFilter) continue;
+    }
+    allowedRegencyIds.add(regId);
+  }
+
+  const allowedDistrictIds = new Set<string>();
+  for (const dist of allDistricts) {
+    const distId = areaScopeId(dist);
+    if (!distId) continue;
+    const reg = resolveDistrictRegency(dist, regencies);
+    const regId = reg ? areaScopeId(reg) : dist.parentAreaId;
+
+    if (regencyFilter !== "ALL") {
+      if (regId !== regencyFilter) continue;
+    } else if (provinceFilter !== "ALL") {
+      if (!regId || !allowedRegencyIds.has(regId)) continue;
+    }
+    allowedDistrictIds.add(distId);
+  }
 
   for (const area of areaScopes) {
     const id = areaScopeId(area);
     if (!id || !isVillageLevel(area.level)) continue;
 
-    const district = resolveVillageDistrict(area, districts);
+    const district = resolveVillageDistrict(area, allDistricts);
     const districtId = district ? areaScopeId(district) : (area.parentAreaId ?? null);
-    if (districtFilter !== "ALL" && districtId !== districtFilter) continue;
+    if (districtFilter !== "ALL") {
+      if (districtId !== districtFilter) continue;
+    } else if (regencyFilter !== "ALL" || provinceFilter !== "ALL") {
+      if (!districtId || !allowedDistrictIds.has(districtId)) continue;
+    }
 
     villages.set(id, {
       id,
@@ -294,7 +351,7 @@ export function isDkiAreaScope(area: AdministrativeAreaFilterScope) {
 
 export function isDkiJakartaProvinceOption(area: AreaFilterIdentity) {
   const code = area.officialCode?.trim() || area.code?.trim() || "";
-  const name = String(area.name ?? "").toLocaleLowerCase("id-ID");
+  const name = String(area.name).toLocaleLowerCase("id-ID");
   const level = area.level?.toUpperCase();
 
   return (
@@ -305,7 +362,7 @@ export function isDkiJakartaProvinceOption(area: AreaFilterIdentity) {
 
 function isDkiJakartaAreaOption(area: AreaFilterIdentity) {
   const code = area.officialCode?.trim() || area.code?.trim() || "";
-  const name = String(area.name ?? "").toLocaleLowerCase("id-ID");
+  const name = String(area.name).toLocaleLowerCase("id-ID");
 
   return (
     code === DKI_JAKARTA_PROVINCE_CODE ||

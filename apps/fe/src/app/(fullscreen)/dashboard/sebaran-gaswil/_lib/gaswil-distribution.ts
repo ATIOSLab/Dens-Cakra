@@ -328,7 +328,8 @@ export function distributionFromEntries(
     }
 
     for (const catalogCity of areaCatalog.cities) {
-      const parentProvId = catalogCity.parentId ?? catalogCity.parentAreaId;
+      const parentProv = provinceFromCity(catalogCity, areaCatalog);
+      const parentProvId = parentProv?.id ?? catalogCity.parentId ?? catalogCity.parentAreaId;
       if (parentProvId && relevantProvinceIds.has(parentProvId)) {
         let matchedKey: string | null = null;
         for (const [key, group] of cityGroups.entries()) {
@@ -338,7 +339,7 @@ export function distributionFromEntries(
           }
         }
 
-        const prov = areaCatalog.provinces.find((p) => p.id === parentProvId);
+        const prov = parentProv ?? areaCatalog.provinces.find((p) => p.id === parentProvId);
         const provName = prov?.name ?? "Cakupan hak akses";
 
         if (matchedKey) {
@@ -347,7 +348,7 @@ export function distributionFromEntries(
             cityGroups.delete(matchedKey);
             group.id = catalogCity.id;
             group.name = catalogCity.name;
-            group.provinceId = catalogCity.parentId ?? group.provinceId;
+            group.provinceId = parentProvId ?? catalogCity.parentId ?? group.provinceId;
             group.provinceName = provName;
             cityGroups.set(catalogCity.id, group);
           }
@@ -355,7 +356,7 @@ export function distributionFromEntries(
           cityGroups.set(catalogCity.id, {
             id: catalogCity.id,
             name: catalogCity.name,
-            provinceId: catalogCity.parentId ?? null,
+            provinceId: parentProvId ?? catalogCity.parentId ?? null,
             provinceName: provName,
             entries: [],
           });

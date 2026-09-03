@@ -126,4 +126,14 @@ describe("opsi filter wilayah berjenjang", () => {
   it("membatasi Kelurahan/Desa ke Kecamatan terpilih", () => {
     expect(buildVillageFilterOptions(areas, "d317401").map((item) => item.name)).toEqual(["Selong"]);
   });
+
+  it("membatasi Kecamatan ke Provinsi jika Kota/Kabupaten bernilai ALL", () => {
+    expect(buildDistrictFilterOptions(areas, "ALL", "p31").map((item) => item.name)).toEqual(["Kebayoran Baru"]);
+    expect(buildDistrictFilterOptions(areas, "ALL", "p32").map((item) => item.name)).toEqual(["Coblong"]);
+  });
+
+  it("membatasi Kelurahan/Desa ke Provinsi jika Kecamatan bernilai ALL", () => {
+    expect(buildVillageFilterOptions(areas, "ALL", "ALL", "p31").map((item) => item.name)).toEqual(["Selong"]);
+    expect(buildVillageFilterOptions(areas, "ALL", "ALL", "p32").map((item) => item.name)).toEqual(["Dago"]);
+  });
 });

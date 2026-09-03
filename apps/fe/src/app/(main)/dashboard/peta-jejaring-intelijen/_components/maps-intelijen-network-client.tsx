@@ -11,7 +11,7 @@ import { findDkiJakartaProvinceFilterId } from "@/lib/domain/area-filter";
 import { jakartaBoundaryIso, jakartaDateKey } from "@/lib/domain/date-time";
 
 import { MapsIntelijenAreaFilter } from "./maps-intelijen-area-filter";
-import { normalizeMapAreas } from "./maps-intelijen-area-hierarchy";
+import { isAreaChildOfParent, normalizeMapAreas } from "./maps-intelijen-area-hierarchy";
 import { MapsIntelijenDetailSheet } from "./maps-intelijen-detail-sheet";
 import { MapsIntelijenHeader } from "./maps-intelijen-header";
 import { MapsIntelijenKpiModal } from "./maps-intelijen-kpi-modal";
@@ -40,9 +40,12 @@ function scopeAreaToMapArea(area: AdministrativeAreaScope): MapArea {
   return {
     id: area.areaId,
     code: area.code,
+    officialCode: area.officialCode ?? null,
     name: area.name,
     level: area.level,
     parentId: area.parentAreaId ?? null,
+    parentAreaId: area.parentAreaId ?? null,
+    parentOfficialCode: area.parentOfficialCode ?? null,
   };
 }
 
@@ -215,8 +218,8 @@ function withoutPersonnelMarkers(response: MapNetworkResponse): MapNetworkRespon
   const features = response.features.filter((feature) => feature.properties.markerType !== "agent");
   const reportCount = response.meta.counts.report;
   const baketCount = response.meta.counts.baket;
-  const visibleReports = response.meta.summary.visible.reports ?? reportCount;
-  const visibleBakets = response.meta.summary.visible.bakets ?? baketCount;
+  const visibleReports = response.meta.summary.visible.reports;
+  const visibleBakets = response.meta.summary.visible.bakets;
 
   return {
     ...response,
@@ -278,7 +281,7 @@ export function MapsIntelijenNetworkClient() {
   const [reloadKey, setReloadKey] = useState(0);
   const mapCardRef = useRef<HTMLDivElement>(null);
   const activeMapRequestRef = useRef<AbortController | null>(null);
-  const didApplyDefaultProvinceFilter = useRef(false);
+  const didApplyDefaultProvinceFilter = useRef<boolean>(false);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => setDebouncedSearch(filters.search.trim()), 350);
@@ -347,17 +350,26 @@ export function MapsIntelijenNetworkClient() {
           }
           for (const links of ancestorGroups) {
             for (const link of links ?? []) {
-              hierarchy.set(link.ancestor.id, link.ancestor);
+              hierarchy.set(link.ancestor.id, {
+                id: link.ancestor.id,
+                code: link.ancestor.code,
+                officialCode: link.ancestor.officialCode ?? null,
+                name: link.ancestor.name,
+                level: link.ancestor.level,
+                parentId: link.ancestor.parentId ?? null,
+                parentAreaId: link.ancestor.parentId ?? null,
+                parentOfficialCode: link.ancestor.parentOfficialCode ?? null,
+              });
             }
           }
           const accessibleAreas = [...hierarchy.values()];
 
           setAreaOptions((current) => ({
             ...current,
-            provinces: normalizeMapAreas(accessibleAreas, ["PROVINCE"]),
-            regencies: normalizeMapAreas(accessibleAreas, ["CITY", "REGENCY"]),
-            districts: normalizeMapAreas(accessibleAreas, ["DISTRICT"]),
-            villages: normalizeMapAreas(accessibleAreas, ["VILLAGE", "URBAN_VILLAGE"]),
+            provinces: normalizeMapAreas(accessibleAreas, ["PROVINCE", "PROVINSI"]),
+            regencies: normalizeMapAreas(accessibleAreas, ["CITY", "REGENCY", "KOTA", "KABUPATEN"]),
+            districts: normalizeMapAreas(accessibleAreas, ["DISTRICT", "KECAMATAN"]),
+            villages: normalizeMapAreas(accessibleAreas, ["VILLAGE", "URBAN_VILLAGE", "DESA", "KELURAHAN"]),
             loading: false,
             loadingLevel: null,
           }));
@@ -375,6 +387,232 @@ export function MapsIntelijenNetworkClient() {
     void loadScopedAreaHierarchy();
     return () => controller.abort();
   }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function ensureChildrenLoaded() {
+      if (filters.provinceId !== "ALL") {
+        const selectedProv = areaOptions.provinces.find((p) => p.id === filters.provinceId);
+        if (selectedProv) {
+          const hasRegencies = areaOptions.regencies.some((r) => isAreaChildOfParent(r, selectedProv));
+          if (!hasRegencies) {
+            setAreaOptions((prev) => ({ ...prev, loadingLevel: "regency" }));
+            try {
+              const children = await apiBrowserFetch<
+                Array<{
+                  id: string;
+                  code: string;
+                  officialCode?: string | null;
+                  name: string;
+                  level: string;
+                  parentId?: string | null;
+                }>
+              >(`/administrative-areas/${filters.provinceId}/children`, {
+                init: { signal: controller.signal },
+              });
+              if (!controller.signal.aborted && children && children.length > 0) {
+                const newAreas: MapArea[] = children.map((c) => ({
+                  id: c.id,
+                  code: c.code,
+                  officialCode: c.officialCode ?? null,
+                  name: c.name,
+                  level: c.level,
+                  parentId: c.parentId ?? selectedProv.id,
+                  parentAreaId: c.parentId ?? selectedProv.id,
+                  parentOfficialCode: selectedProv.officialCode ?? selectedProv.code ?? null,
+                }));
+                setAreaOptions((prev) => ({
+                  ...prev,
+                  regencies: normalizeMapAreas(
+                    [...prev.regencies, ...newAreas],
+                    ["CITY", "REGENCY", "KOTA", "KABUPATEN"],
+                  ),
+                  loadingLevel: null,
+                }));
+              } else if (!controller.signal.aborted) {
+                setAreaOptions((prev) => ({ ...prev, loadingLevel: null }));
+              }
+            } catch {
+              if (!controller.signal.aborted) {
+                setAreaOptions((prev) => ({ ...prev, loadingLevel: null }));
+              }
+            }
+          }
+        }
+      }
+
+      if (filters.regencyId !== "ALL") {
+        const selectedReg = areaOptions.regencies.find((r) => r.id === filters.regencyId);
+        if (selectedReg) {
+          const hasDistricts = areaOptions.districts.some((d) => isAreaChildOfParent(d, selectedReg));
+          if (!hasDistricts) {
+            setAreaOptions((prev) => ({ ...prev, loadingLevel: "district" }));
+            try {
+              const children = await apiBrowserFetch<
+                Array<{
+                  id: string;
+                  code: string;
+                  officialCode?: string | null;
+                  name: string;
+                  level: string;
+                  parentId?: string | null;
+                }>
+              >(`/administrative-areas/${filters.regencyId}/children`, {
+                query: { level: "DISTRICT" },
+                init: { signal: controller.signal },
+              });
+              if (!controller.signal.aborted && children && children.length > 0) {
+                const newAreas: MapArea[] = children.map((c) => ({
+                  id: c.id,
+                  code: c.code,
+                  officialCode: c.officialCode ?? null,
+                  name: c.name,
+                  level: c.level,
+                  parentId: c.parentId ?? selectedReg.id,
+                  parentAreaId: c.parentId ?? selectedReg.id,
+                  parentOfficialCode: selectedReg.officialCode ?? selectedReg.code ?? null,
+                }));
+                setAreaOptions((prev) => ({
+                  ...prev,
+                  districts: normalizeMapAreas([...prev.districts, ...newAreas], ["DISTRICT", "KECAMATAN"]),
+                  loadingLevel: null,
+                }));
+              } else if (!controller.signal.aborted) {
+                setAreaOptions((prev) => ({ ...prev, loadingLevel: null }));
+              }
+            } catch {
+              if (!controller.signal.aborted) {
+                setAreaOptions((prev) => ({ ...prev, loadingLevel: null }));
+              }
+            }
+          }
+        }
+      }
+
+      if (filters.districtId !== "ALL") {
+        const selectedDist = areaOptions.districts.find((d) => d.id === filters.districtId);
+        if (selectedDist) {
+          const hasVillages = areaOptions.villages.some((v) => isAreaChildOfParent(v, selectedDist));
+          if (!hasVillages) {
+            setAreaOptions((prev) => ({ ...prev, loadingLevel: "village" }));
+            try {
+              const children = await apiBrowserFetch<
+                Array<{
+                  id: string;
+                  code: string;
+                  officialCode?: string | null;
+                  name: string;
+                  level: string;
+                  parentId?: string | null;
+                }>
+              >(`/administrative-areas/${filters.districtId}/children`, {
+                init: { signal: controller.signal },
+              });
+              if (!controller.signal.aborted && children && children.length > 0) {
+                const newAreas: MapArea[] = children.map((c) => ({
+                  id: c.id,
+                  code: c.code,
+                  officialCode: c.officialCode ?? null,
+                  name: c.name,
+                  level: c.level,
+                  parentId: c.parentId ?? selectedDist.id,
+                  parentAreaId: c.parentId ?? selectedDist.id,
+                  parentOfficialCode: selectedDist.officialCode ?? selectedDist.code ?? null,
+                }));
+                setAreaOptions((prev) => ({
+                  ...prev,
+                  villages: normalizeMapAreas(
+                    [...prev.villages, ...newAreas],
+                    ["VILLAGE", "URBAN_VILLAGE", "DESA", "KELURAHAN"],
+                  ),
+                  loadingLevel: null,
+                }));
+              } else if (!controller.signal.aborted) {
+                setAreaOptions((prev) => ({ ...prev, loadingLevel: null }));
+              }
+            } catch {
+              if (!controller.signal.aborted) {
+                setAreaOptions((prev) => ({ ...prev, loadingLevel: null }));
+              }
+            }
+          }
+        }
+      }
+    }
+
+    void ensureChildrenLoaded();
+    return () => controller.abort();
+  }, [
+    filters.provinceId,
+    filters.regencyId,
+    filters.districtId,
+    areaOptions.provinces,
+    areaOptions.regencies,
+    areaOptions.districts,
+    areaOptions.villages,
+  ]);
+
+  useEffect(() => {
+    if (filters.provinceId === "ALL") {
+      if (filters.regencyId !== "ALL" || filters.districtId !== "ALL" || filters.villageId !== "ALL") {
+        setFilters((current) => ({
+          ...current,
+          regencyId: "ALL",
+          districtId: "ALL",
+          villageId: "ALL",
+        }));
+      }
+      return;
+    }
+
+    const selectedProv = areaOptions.provinces.find((p) => p.id === filters.provinceId);
+    if (selectedProv && filters.regencyId !== "ALL") {
+      const selectedReg = areaOptions.regencies.find((r) => r.id === filters.regencyId);
+      if (selectedReg && !isAreaChildOfParent(selectedReg, selectedProv)) {
+        setFilters((current) => ({
+          ...current,
+          regencyId: "ALL",
+          districtId: "ALL",
+          villageId: "ALL",
+        }));
+        return;
+      }
+    }
+
+    if (filters.regencyId !== "ALL" && filters.districtId !== "ALL") {
+      const selectedReg = areaOptions.regencies.find((r) => r.id === filters.regencyId);
+      const selectedDist = areaOptions.districts.find((d) => d.id === filters.districtId);
+      if (selectedReg && selectedDist && !isAreaChildOfParent(selectedDist, selectedReg)) {
+        setFilters((current) => ({
+          ...current,
+          districtId: "ALL",
+          villageId: "ALL",
+        }));
+        return;
+      }
+    }
+
+    if (filters.districtId !== "ALL" && filters.villageId !== "ALL") {
+      const selectedDist = areaOptions.districts.find((d) => d.id === filters.districtId);
+      const selectedVil = areaOptions.villages.find((v) => v.id === filters.villageId);
+      if (selectedDist && selectedVil && !isAreaChildOfParent(selectedVil, selectedDist)) {
+        setFilters((current) => ({
+          ...current,
+          villageId: "ALL",
+        }));
+      }
+    }
+  }, [
+    filters.provinceId,
+    filters.regencyId,
+    filters.districtId,
+    filters.villageId,
+    areaOptions.provinces,
+    areaOptions.regencies,
+    areaOptions.districts,
+    areaOptions.villages,
+  ]);
 
   useEffect(() => {
     let cancelled = false;
@@ -526,31 +764,24 @@ export function MapsIntelijenNetworkClient() {
     [filters],
   );
 
-  const handleFilterChange = useCallback(
-    (patch: Partial<MapNetworkFilters>) => {
-      setFilters((current) => {
-        const normalizedPatch = {
-          ...patch,
-          ...(patch.provinceId === "ALL" && defaultProvinceFilter ? { provinceId: defaultProvinceFilter } : {}),
-        };
-        const next = { ...current, ...normalizedPatch };
+  const handleFilterChange = useCallback((patch: Partial<MapNetworkFilters>) => {
+    setFilters((current) => {
+      const next = { ...current, ...patch };
 
-        if (normalizedPatch.provinceId !== undefined && normalizedPatch.provinceId !== current.provinceId) {
-          next.regencyId = "ALL";
-          next.districtId = "ALL";
-          next.villageId = "ALL";
-        } else if (normalizedPatch.regencyId !== undefined && normalizedPatch.regencyId !== current.regencyId) {
-          next.districtId = "ALL";
-          next.villageId = "ALL";
-        } else if (normalizedPatch.districtId !== undefined && normalizedPatch.districtId !== current.districtId) {
-          next.villageId = "ALL";
-        }
+      if (patch.provinceId !== undefined && patch.provinceId !== current.provinceId) {
+        next.regencyId = "ALL";
+        next.districtId = "ALL";
+        next.villageId = "ALL";
+      } else if (patch.regencyId !== undefined && patch.regencyId !== current.regencyId) {
+        next.districtId = "ALL";
+        next.villageId = "ALL";
+      } else if (patch.districtId !== undefined && patch.districtId !== current.districtId) {
+        next.villageId = "ALL";
+      }
 
-        return next;
-      });
-    },
-    [defaultProvinceFilter],
-  );
+      return next;
+    });
+  }, []);
 
   const openDetail = useCallback((feature: MapNetworkFeature) => {
     setSelected(feature);

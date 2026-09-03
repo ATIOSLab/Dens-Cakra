@@ -1,14 +1,68 @@
+import {
+  isDistrictLevel,
+  isDkiAreaScope,
+  isDkiJakartaProvinceOption,
+  isProvinceLevel,
+  isRegencyLevel,
+  isVillageLevel,
+} from "@/lib/domain/area-filter";
+
 import type { MapArea, MapAreaFilterOptions, MapNetworkFilters } from "./maps-intelijen-types";
 
 export type MapAreaSelectOption = [value: string, label: string];
 
-export function normalizeMapAreas(areas: MapArea[], levels: string[], parentId?: string) {
-  const acceptedLevels = new Set(levels);
+export function isAreaChildOfParent(child: MapArea, parent: MapArea): boolean {
+  if (!parent.id) return false;
+
+  // 1. Direct parent ID match
+  if (child.parentId && child.parentId === parent.id) return true;
+  if (child.parentAreaId && child.parentAreaId === parent.id) return true;
+  if (child.parent?.id && child.parent.id === parent.id) return true;
+
+  // 2. Parent official code match
+  const parentCode = parent.officialCode?.trim() || parent.code.trim();
+  const childParentCode = child.parentOfficialCode?.trim();
+  if (parentCode && childParentCode && childParentCode === parentCode) return true;
+
+  // 3. Code prefix match (e.g. child "31.71" starts with parent "31." or "31.71.01" starts with "31.71.")
+  const childCode = child.officialCode?.trim() || child.code.trim();
+  if (parentCode && childCode?.startsWith(`${parentCode}.`)) return true;
+
+  // 4. Special DKI Jakarta hierarchy match (DKI province to DKI cities)
+  if (isProvinceLevel(parent.level) && isRegencyLevel(child.level)) {
+    if (isDkiJakartaProvinceOption(parent) && isDkiAreaScope(child)) return true;
+  }
+
+  return false;
+}
+
+function matchesLevel(level: string, levels: string[]) {
+  for (const expected of levels) {
+    if (level === expected) return true;
+    if (isProvinceLevel(expected) && isProvinceLevel(level)) return true;
+    if (isRegencyLevel(expected) && isRegencyLevel(level)) return true;
+    if (isDistrictLevel(expected) && isDistrictLevel(level)) return true;
+    if (isVillageLevel(expected) && isVillageLevel(level)) return true;
+  }
+  return false;
+}
+
+export function normalizeMapAreas(areas: MapArea[], levels: string[], parent?: MapArea | string | null) {
   const uniqueAreas = new Map<string, MapArea>();
+  const parentObj: MapArea | null =
+    typeof parent === "string" ? ({ id: parent, code: "", name: "", level: "" } as MapArea) : (parent ?? null);
 
   for (const area of areas) {
-    if (!acceptedLevels.has(area.level)) continue;
-    if (parentId && area.parentId !== parentId) continue;
+    if (!matchesLevel(area.level, levels)) continue;
+    if (parentObj) {
+      if (!parentObj.code && !parentObj.name) {
+        if (area.parentId !== parentObj.id && area.parentAreaId !== parentObj.id && area.parent?.id !== parentObj.id) {
+          continue;
+        }
+      } else {
+        if (!isAreaChildOfParent(area, parentObj)) continue;
+      }
+    }
     uniqueAreas.set(area.id, area);
   }
 
@@ -32,24 +86,28 @@ function loadingOrAllLabel(
 }
 
 export function buildMapAreaHierarchyOptions(areaOptions: MapAreaFilterOptions, filters: MapNetworkFilters) {
-  const provinces = normalizeMapAreas(areaOptions.provinces, ["PROVINCE"]);
+  const provinces = normalizeMapAreas(areaOptions.provinces, ["PROVINCE", "PROVINSI"]);
   const selectedProvince = provinces.find((area) => area.id === filters.provinceId);
+
   const regencies = selectedProvince
-    ? normalizeMapAreas(areaOptions.regencies, ["REGENCY", "CITY"], selectedProvince.id)
+    ? normalizeMapAreas(areaOptions.regencies, ["REGENCY", "CITY", "KOTA", "KABUPATEN"], selectedProvince)
     : [];
+
   const selectedRegency = regencies.find((area) => area.id === filters.regencyId);
-  const districts = selectedRegency ? normalizeMapAreas(areaOptions.districts, ["DISTRICT"], selectedRegency.id) : [];
+
+  const districts = selectedRegency
+    ? normalizeMapAreas(areaOptions.districts, ["DISTRICT", "KECAMATAN"], selectedRegency)
+    : [];
+
   const selectedDistrict = districts.find((area) => area.id === filters.districtId);
+
   const villages = selectedDistrict
-    ? normalizeMapAreas(areaOptions.villages, ["VILLAGE", "URBAN_VILLAGE"], selectedDistrict.id)
+    ? normalizeMapAreas(areaOptions.villages, ["VILLAGE", "URBAN_VILLAGE", "DESA", "KELURAHAN"], selectedDistrict)
     : [];
 
   return {
     provinces: [
-      [
-        "ALL",
-        areaOptions.loadingLevel === "province" ? "Memuat Provinsi..." : "Semua Provinsi",
-      ],
+      ["ALL", areaOptions.loadingLevel === "province" ? "Memuat Provinsi..." : "Semua Provinsi"],
       ...provinces.map((area) => [area.id, optionLabel(area)] as MapAreaSelectOption),
     ] satisfies MapAreaSelectOption[],
     regencies: [
