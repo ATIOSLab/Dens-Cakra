@@ -714,6 +714,14 @@ export class ExecutivePersonnelService {
             orderBy: { submittedAt: 'desc' },
             select: { submittedAt: true },
           },
+          _count: {
+            select: { coachingReports: true },
+          },
+          coachingReports: {
+            take: 1,
+            orderBy: { reportedAt: 'desc' },
+            select: { id: true, title: true, reportedAt: true },
+          },
         },
         orderBy: [{ registeredAt: 'desc' }, { id: 'desc' }],
       }),
@@ -1004,6 +1012,14 @@ export class ExecutivePersonnelService {
                   orderBy: { submittedAt: 'desc' },
                   select: { submittedAt: true },
                 },
+                _count: {
+                  select: { coachingReports: true },
+                },
+                coachingReports: {
+                  take: 1,
+                  orderBy: { reportedAt: 'desc' },
+                  select: { id: true, title: true, reportedAt: true },
+                },
               },
             },
           },
@@ -1152,15 +1168,27 @@ export class ExecutivePersonnelService {
     const hasRecentActivity =
       lastReportAt !== null &&
       lastReportAt.getTime() >= threeMonthsAgo.getTime();
+    const coachingCount =
+      (item as any)._count?.coachingReports ??
+      (item as any).coachingReports?.length ??
+      0;
+    const latestCoaching = (item as any).coachingReports?.[0] ?? null;
     const {
       messages: _messages,
       reportSessions: _reportSessions,
+      coachingReports: _coachingReports,
+      _count: _count,
       ...payload
-    } = item;
+    } = item as any;
 
     return {
       ...payload,
       lastReportAt: lastReportAt ? lastReportAt.toISOString() : null,
+      coachingCount,
+      latestCoachingAt: latestCoaching?.reportedAt
+        ? new Date(latestCoaching.reportedAt).toISOString()
+        : null,
+      latestCoachingTitle: latestCoaching?.title ?? null,
       status:
         isApproved && hasRecentActivity
           ? JaringStatus.ACTIVE

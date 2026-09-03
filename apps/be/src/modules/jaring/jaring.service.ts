@@ -1535,6 +1535,22 @@ export class JaringService {
             status: true,
           },
         },
+        coachingReports: {
+          take: 1,
+          orderBy: { reportedAt: 'desc' },
+          select: {
+            id: true,
+            title: true,
+            reportedAt: true,
+            fieldOfficerAssignment: {
+              select: {
+                userProfile: {
+                  select: { fullName: true },
+                },
+              },
+            },
+          },
+        },
       },
     });
 

@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   ExternalLink,
   Eye,
+  FileText,
   MapPin,
   Phone,
   Search,
@@ -374,13 +375,14 @@ export function PersonnelKpiModal({
                     <TableHead className="text-center text-xs font-mono uppercase text-slate-500">
                       Laporan Terakhir
                     </TableHead>
+                    <TableHead className="text-xs font-mono uppercase text-slate-500">Riwayat Pembinaan</TableHead>
                     <TableHead className="w-24 text-center text-xs font-mono uppercase text-slate-500">Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {paginatedJarings.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="py-12 text-center text-slate-500 dark:text-slate-400">
+                      <TableCell colSpan={9} className="py-12 text-center text-slate-500 dark:text-slate-400">
                         <Users className="mx-auto size-8 opacity-30 mb-2" />
                         <p className="font-semibold text-sm">Tidak ada data Jaring yang sesuai kriteria</p>
                         <p className="text-xs text-slate-400 mt-1">
@@ -457,6 +459,30 @@ export function PersonnelKpiModal({
                           </TableCell>
                           <TableCell className="text-center font-mono text-xs text-slate-500">
                             {formatRelativeDate(jaring.lastReportAt)}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-col gap-1 min-w-[130px]">
+                              {(jaring.coachingCount ?? 0) > 0 ? (
+                                <Badge
+                                  variant="outline"
+                                  className="w-fit border-sky-500/40 bg-sky-500/10 font-semibold text-[10px] text-sky-600 dark:text-sky-400"
+                                >
+                                  {jaring.coachingCount} Pembinaan
+                                </Badge>
+                              ) : (
+                                <span className="text-[11px] text-slate-400">Belum ada</span>
+                              )}
+                              <Link
+                                href={`/dashboard/laporan-pembinaan-jaring?search=${encodeURIComponent(jaring.aliasName ?? jaring.fullName ?? "")}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1 text-[11px] font-medium text-sky-600 hover:text-sky-700 hover:underline dark:text-sky-400"
+                                title="Buka Riwayat Pembinaan Jaring di tab baru"
+                              >
+                                <FileText className="size-3" />
+                                <span>Lihat Riwayat</span>
+                              </Link>
+                            </div>
                           </TableCell>
                           <TableCell className="text-center">
                             <Button asChild size="sm" variant="ghost" className="size-8 p-0">

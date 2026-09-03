@@ -70,6 +70,17 @@ type ServerJaringItem = {
   occupation?: {
     name?: string | null;
   } | null;
+  _count?: {
+    coachingReports?: number;
+  };
+  coachingReports?: Array<{
+    id: string;
+    title: string;
+    reportedAt: string;
+    fieldOfficerAssignment?: {
+      userProfile?: { fullName?: string | null } | null;
+    } | null;
+  }>;
 };
 
 type ReportRow = {
@@ -96,6 +107,10 @@ type ReportingJaringRow = {
   placementAreaName: string;
   reportCount: number;
   latestReportAt: string | null;
+  coachingCount: number;
+  latestCoachingAt: string | null;
+  latestCoachingTitle: string | null;
+  latestCoachingOfficerName: string | null;
 };
 
 function formatDateTime(value?: string | null) {
@@ -305,6 +320,10 @@ export function MapsIntelijenKpiModal({
         whatsappNumber?: string | null;
         gaswilName?: string | null;
         placementArea?: { name?: string | null } | null;
+        coachingCount?: number;
+        latestCoachingAt?: string | null;
+        latestCoachingTitle?: string | null;
+        latestCoachingOfficerName?: string | null;
       } | null,
       fieldOfficerName?: string | null,
       reportedAt?: string | null,
@@ -317,6 +336,17 @@ export function MapsIntelijenKpiModal({
         if (reportedAt && (!existing.latestReportAt || new Date(reportedAt) > new Date(existing.latestReportAt))) {
           existing.latestReportAt = reportedAt;
         }
+        if (jaring.coachingCount !== undefined && jaring.coachingCount > existing.coachingCount) {
+          existing.coachingCount = jaring.coachingCount;
+        }
+        if (
+          jaring.latestCoachingAt &&
+          (!existing.latestCoachingAt || new Date(jaring.latestCoachingAt) > new Date(existing.latestCoachingAt))
+        ) {
+          existing.latestCoachingAt = jaring.latestCoachingAt;
+          existing.latestCoachingTitle = jaring.latestCoachingTitle ?? existing.latestCoachingTitle;
+          existing.latestCoachingOfficerName = jaring.latestCoachingOfficerName ?? existing.latestCoachingOfficerName;
+        }
       } else {
         jaringMap.set(jaring.id, {
           id: jaring.id,
@@ -327,6 +357,10 @@ export function MapsIntelijenKpiModal({
           placementAreaName: jaring.placementArea?.name ?? "-",
           reportCount: 1,
           latestReportAt: reportedAt ?? null,
+          coachingCount: jaring.coachingCount ?? 0,
+          latestCoachingAt: jaring.latestCoachingAt ?? null,
+          latestCoachingTitle: jaring.latestCoachingTitle ?? null,
+          latestCoachingOfficerName: jaring.latestCoachingOfficerName ?? null,
         });
       }
     };
@@ -604,7 +638,7 @@ export function MapsIntelijenKpiModal({
           )}
 
           {kpiKey === "reporting" && (
-            <Table className="min-w-[850px]">
+            <Table className="min-w-[950px]">
               <TableHeader className="sticky top-0 z-10 bg-muted/60 backdrop-blur-xs">
                 <TableRow>
                   <TableHead className="w-12 text-center text-xs">No</TableHead>
@@ -614,12 +648,13 @@ export function MapsIntelijenKpiModal({
                   <TableHead className="text-xs">Wilayah Penempatan</TableHead>
                   <TableHead className="text-center text-xs">Jumlah Laporan</TableHead>
                   <TableHead className="text-xs">Laporan Terakhir</TableHead>
+                  <TableHead className="text-xs">Riwayat Pembinaan Jaring</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {paginatedReportingJarings.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="py-12 text-center text-muted-foreground">
+                    <TableCell colSpan={8} className="py-12 text-center text-muted-foreground">
                       <div className="flex flex-col items-center justify-center gap-2">
                         <Users className="size-8 text-muted-foreground/50" />
                         <p className="font-medium text-sm">Tidak ada data Jaring melapor</p>
@@ -650,6 +685,40 @@ export function MapsIntelijenKpiModal({
                       </TableCell>
                       <TableCell className="whitespace-nowrap text-muted-foreground text-xs tabular-nums">
                         {formatDateTime(row.latestReportAt)}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-1 min-w-[150px]">
+                          <div className="flex items-center gap-1.5">
+                            {row.coachingCount > 0 ? (
+                              <Badge
+                                variant="outline"
+                                className="border-sky-500/40 bg-sky-500/10 font-semibold text-[10px] text-sky-600 dark:text-sky-400"
+                              >
+                                {row.coachingCount} Pembinaan
+                              </Badge>
+                            ) : (
+                              <span className="text-[11px] text-muted-foreground">Belum ada pembinaan</span>
+                            )}
+                          </div>
+                          {row.latestCoachingAt ? (
+                            <div className="text-[10px] text-muted-foreground">
+                              <span>Terakhir: </span>
+                              <span className="font-medium text-foreground">
+                                {formatDateTime(row.latestCoachingAt)}
+                              </span>
+                            </div>
+                          ) : null}
+                          <Link
+                            href={`/dashboard/laporan-pembinaan-jaring?search=${encodeURIComponent(row.code !== "-" ? row.code : row.name)}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 text-[11px] font-medium text-sky-600 hover:text-sky-700 hover:underline dark:text-sky-400"
+                            title="Buka Riwayat Pembinaan Jaring di tab baru"
+                          >
+                            <FileText className="size-3" />
+                            <span>Lihat Riwayat</span>
+                          </Link>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
@@ -686,12 +755,13 @@ export function MapsIntelijenKpiModal({
                       <TableHead className="text-xs">Pekerjaan</TableHead>
                       <TableHead className="text-center text-xs">Keaktifan (90 Hari)</TableHead>
                       <TableHead className="text-xs">Laporan Terakhir</TableHead>
+                      <TableHead className="text-xs">Riwayat Pembinaan Jaring</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {paginatedServerJarings.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={8} className="py-12 text-center text-muted-foreground">
+                        <TableCell colSpan={9} className="py-12 text-center text-muted-foreground">
                           <div className="flex flex-col items-center justify-center gap-2">
                             <Users className="size-8 text-muted-foreground/50" />
                             <p className="font-medium text-sm">Tidak ada data Jaring yang sesuai</p>
@@ -746,6 +816,41 @@ export function MapsIntelijenKpiModal({
                             </TableCell>
                             <TableCell className="whitespace-nowrap text-muted-foreground text-xs tabular-nums">
                               {formatDateTime(row.lastReportAt)}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex flex-col gap-1 min-w-[150px]">
+                                <div className="flex items-center gap-1.5">
+                                  {(row._count?.coachingReports ??
+                                    (row.coachingReports?.length ? row.coachingReports.length : 0)) > 0 ? (
+                                    <Badge
+                                      variant="outline"
+                                      className="border-sky-500/40 bg-sky-500/10 font-semibold text-[10px] text-sky-600 dark:text-sky-400"
+                                    >
+                                      {row._count?.coachingReports ?? row.coachingReports?.length} Pembinaan
+                                    </Badge>
+                                  ) : (
+                                    <span className="text-[11px] text-muted-foreground">Belum ada pembinaan</span>
+                                  )}
+                                </div>
+                                {row.coachingReports?.[0]?.reportedAt ? (
+                                  <div className="text-[10px] text-muted-foreground">
+                                    <span>Terakhir: </span>
+                                    <span className="font-medium text-foreground">
+                                      {formatDateTime(row.coachingReports[0].reportedAt)}
+                                    </span>
+                                  </div>
+                                ) : null}
+                                <Link
+                                  href={`/dashboard/laporan-pembinaan-jaring?search=${encodeURIComponent(code !== "-" ? code : name)}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="inline-flex items-center gap-1 text-[11px] font-medium text-sky-600 hover:text-sky-700 hover:underline dark:text-sky-400"
+                                  title="Buka Riwayat Pembinaan Jaring di tab baru"
+                                >
+                                  <FileText className="size-3" />
+                                  <span>Lihat Riwayat</span>
+                                </Link>
+                              </div>
                             </TableCell>
                           </TableRow>
                         );

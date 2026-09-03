@@ -137,6 +137,9 @@ export type PersonnelJaringItem = {
       userProfile?: { id?: string; fullName: string | null } | null;
     } | null;
   }>;
+  coachingCount?: number;
+  latestCoachingAt?: string | null;
+  latestCoachingTitle?: string | null;
 };
 
 export type PersonnelDetail = {

@@ -298,6 +298,10 @@ export type MapJaringIdentity = {
   gaswilName?: string | null;
   gaswilAssignmentId?: string | null;
   gaswilUserProfileId?: string | null;
+  coachingCount?: number;
+  latestCoachingAt?: string | null;
+  latestCoachingTitle?: string | null;
+  latestCoachingOfficerName?: string | null;
 };
 
 export type MapReportAttachment = {
@@ -464,17 +468,7 @@ export type MapNetworkResponse = {
       referenceNumber: string;
       title: string;
       reportedAt: string;
-      jaring: {
-        id: string;
-        name: string;
-        code?: string | null;
-        whatsappNumber?: string | null;
-        profilePhotoFileId?: string | null;
-        placementArea?: MapArea | null;
-        gaswilName?: string | null;
-        gaswilAssignmentId?: string | null;
-        gaswilUserProfileId?: string | null;
-      };
+      jaring: MapJaringIdentity;
     }>;
     security: { stealthLocationsExcluded: boolean };
   };

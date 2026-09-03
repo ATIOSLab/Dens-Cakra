@@ -521,6 +521,27 @@ export class MapMarkersService {
                     },
                   },
                 },
+                _count: {
+                  select: {
+                    coachingReports: true,
+                  },
+                },
+                coachingReports: {
+                  orderBy: { reportedAt: 'desc' },
+                  take: 1,
+                  select: {
+                    id: true,
+                    title: true,
+                    reportedAt: true,
+                    fieldOfficerAssignment: {
+                      select: {
+                        userProfile: {
+                          select: { fullName: true },
+                        },
+                      },
+                    },
+                  },
+                },
               },
             },
             submittedMessage: {
@@ -780,6 +801,14 @@ export class MapMarkersService {
             whatsappNumber: report.jaring.whatsappNumber,
             profilePhotoFileId: report.jaring.profilePhotoFileId,
             placementArea: report.jaring.areaCoverages?.[0]?.area ?? null,
+            coachingCount: (report.jaring as any)._count?.coachingReports ?? 0,
+            latestCoachingAt:
+              (report.jaring as any).coachingReports?.[0]?.reportedAt ?? null,
+            latestCoachingTitle:
+              (report.jaring as any).coachingReports?.[0]?.title ?? null,
+            latestCoachingOfficerName:
+              (report.jaring as any).coachingReports?.[0]?.fieldOfficerAssignment
+                ?.userProfile?.fullName ?? null,
           },
           fieldOfficer: caretaker
             ? {
@@ -849,6 +878,14 @@ export class MapMarkersService {
             whatsappNumber: report.jaring.whatsappNumber,
             profilePhotoFileId: report.jaring.profilePhotoFileId,
             placementArea: report.jaring.areaCoverages?.[0]?.area ?? null,
+            coachingCount: (report.jaring as any)._count?.coachingReports ?? 0,
+            latestCoachingAt:
+              (report.jaring as any).coachingReports?.[0]?.reportedAt ?? null,
+            latestCoachingTitle:
+              (report.jaring as any).coachingReports?.[0]?.title ?? null,
+            latestCoachingOfficerName:
+              (report.jaring as any).coachingReports?.[0]?.fieldOfficerAssignment
+                ?.userProfile?.fullName ?? null,
             gaswilName:
               report.jaring.caretakerAssignments?.[0]?.fieldOfficerAssignment
                 ?.userProfile.fullName ?? null,
