@@ -320,13 +320,13 @@ export function MapsIntelijenKpiModal({
       } else {
         jaringMap.set(jaring.id, {
           id: jaring.id,
-          name: jaring.name || "Jaring tanpa nama",
-          code: jaring.code || "-",
-          whatsappNumber: jaring.whatsappNumber || "-",
-          gaswilName: fieldOfficerName || jaring.gaswilName || "-",
-          placementAreaName: jaring.placementArea?.name || "-",
+          name: jaring.name ?? "Jaring tanpa nama",
+          code: jaring.code ?? "-",
+          whatsappNumber: jaring.whatsappNumber ?? "-",
+          gaswilName: fieldOfficerName ?? jaring.gaswilName ?? "-",
+          placementAreaName: jaring.placementArea?.name ?? "-",
           reportCount: 1,
-          latestReportAt: reportedAt || null,
+          latestReportAt: reportedAt ?? null,
         });
       }
     };
@@ -336,7 +336,7 @@ export function MapsIntelijenKpiModal({
         processItem(
           feature.properties.jaring,
           feature.properties.fieldOfficer?.name,
-          feature.properties.reportedAt || feature.properties.receivedAt,
+          feature.properties.reportedAt ?? feature.properties.receivedAt,
         );
       }
     }
@@ -438,7 +438,7 @@ export function MapsIntelijenKpiModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="flex max-h-[88vh] w-full max-w-5xl flex-col gap-0 p-0 sm:max-h-[85vh]"
+        className="flex h-[88vh] max-h-[92vh] w-[96vw] max-w-[96vw] flex-col gap-0 overflow-hidden p-0 sm:max-w-[96vw] sm:p-0 md:max-w-5xl lg:max-w-6xl xl:max-w-7xl"
         aria-describedby="kpi-modal-description"
       >
         {/* Header */}
@@ -454,10 +454,10 @@ export function MapsIntelijenKpiModal({
                 <HeaderIcon className="size-5" aria-hidden />
               </span>
               <div>
-                <DialogTitle className="font-bold text-lg text-foreground sm:text-xl">{modalMeta.title}</DialogTitle>
+                <DialogTitle className="font-bold text-foreground text-lg sm:text-xl">{modalMeta.title}</DialogTitle>
                 <DialogDescription
                   id="kpi-modal-description"
-                  className="mt-0.5 text-xs text-muted-foreground sm:text-sm"
+                  className="mt-0.5 text-muted-foreground text-xs sm:text-sm"
                 >
                   {modalMeta.subtitle}
                 </DialogDescription>
@@ -486,7 +486,7 @@ export function MapsIntelijenKpiModal({
                     ? "Cari nomor referensi, judul, nama jaring, petugas wilayah, atau wilayah..."
                     : "Cari nama jaring, kode alias, nomor WhatsApp, petugas wilayah, atau wilayah..."
                 }
-                className="pl-9 pr-8 text-xs sm:text-sm"
+                className="pr-8 pl-9 text-xs sm:text-sm"
               />
               {search && (
                 <button
@@ -505,9 +505,9 @@ export function MapsIntelijenKpiModal({
         </DialogHeader>
 
         {/* Modal Body: Responsive Table List */}
-        <div className="flex-1 overflow-y-auto p-0">
+        <div className="flex-1 overflow-auto p-0">
           {kpiKey === "reports" && (
-            <Table>
+            <Table className="min-w-[900px]">
               <TableHeader className="sticky top-0 z-10 bg-muted/60 backdrop-blur-xs">
                 <TableRow>
                   <TableHead className="w-12 text-center text-xs">No</TableHead>
@@ -539,22 +539,22 @@ export function MapsIntelijenKpiModal({
                         {(page - 1) * limit + idx + 1}
                       </TableCell>
                       <TableCell className="max-w-[240px]">
-                        <div className="font-semibold text-foreground text-xs truncate">{row.displayTitle}</div>
+                        <div className="truncate font-semibold text-foreground text-xs">{row.displayTitle}</div>
                         <div className="font-mono text-[11px] text-muted-foreground">{row.referenceNumber}</div>
                       </TableCell>
                       <TableCell>
                         <div className="font-medium text-xs">{row.jaringName}</div>
                         <div className="font-mono text-[11px] text-muted-foreground">{row.jaringCode}</div>
                       </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{row.gaswilName}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{row.areaName}</TableCell>
-                      <TableCell className="whitespace-nowrap text-xs text-muted-foreground tabular-nums">
+                      <TableCell className="text-muted-foreground text-xs">{row.gaswilName}</TableCell>
+                      <TableCell className="text-muted-foreground text-xs">{row.areaName}</TableCell>
+                      <TableCell className="whitespace-nowrap text-muted-foreground text-xs tabular-nums">
                         {formatDateTime(row.reportedAt)}
                       </TableCell>
                       <TableCell className="text-center">
                         <Badge
                           variant="outline"
-                          className={cn("text-[10px] uppercase font-bold", getUrgencyBadgeClass(row.urgency))}
+                          className={cn("font-bold text-[10px] uppercase", getUrgencyBadgeClass(row.urgency))}
                         >
                           {row.urgency}
                         </Badge>
@@ -563,7 +563,7 @@ export function MapsIntelijenKpiModal({
                         <Badge
                           variant="outline"
                           className={cn(
-                            "text-[10px] font-medium",
+                            "font-medium text-[10px]",
                             getVerificationStatusBadgeClass(row.verificationStatus),
                           )}
                         >
@@ -579,7 +579,7 @@ export function MapsIntelijenKpiModal({
                             className="h-7 px-2 text-xs"
                             title="Buka Lembar Detail"
                           >
-                            <Eye className="size-3.5 mr-1" />
+                            <Eye className="mr-1 size-3.5" />
                             Lihat
                           </Button>
                         ) : (
@@ -604,7 +604,7 @@ export function MapsIntelijenKpiModal({
           )}
 
           {kpiKey === "reporting" && (
-            <Table>
+            <Table className="min-w-[850px]">
               <TableHeader className="sticky top-0 z-10 bg-muted/60 backdrop-blur-xs">
                 <TableRow>
                   <TableHead className="w-12 text-center text-xs">No</TableHead>
@@ -634,21 +634,21 @@ export function MapsIntelijenKpiModal({
                         {(page - 1) * limit + idx + 1}
                       </TableCell>
                       <TableCell>
-                        <div className="font-semibold text-xs text-foreground">{row.name}</div>
+                        <div className="font-semibold text-foreground text-xs">{row.name}</div>
                         <div className="font-mono text-[11px] text-muted-foreground">{row.code}</div>
                       </TableCell>
-                      <TableCell className="font-mono text-xs text-muted-foreground">{row.whatsappNumber}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{row.gaswilName}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{row.placementAreaName}</TableCell>
+                      <TableCell className="font-mono text-muted-foreground text-xs">{row.whatsappNumber}</TableCell>
+                      <TableCell className="text-muted-foreground text-xs">{row.gaswilName}</TableCell>
+                      <TableCell className="text-muted-foreground text-xs">{row.placementAreaName}</TableCell>
                       <TableCell className="text-center">
                         <Badge
                           variant="secondary"
-                          className="bg-violet-500/10 text-violet-700 dark:text-violet-300 font-semibold text-xs tabular-nums"
+                          className="bg-violet-500/10 font-semibold text-violet-700 text-xs tabular-nums dark:text-violet-300"
                         >
                           {row.reportCount} Laporan
                         </Badge>
                       </TableCell>
-                      <TableCell className="whitespace-nowrap text-xs text-muted-foreground tabular-nums">
+                      <TableCell className="whitespace-nowrap text-muted-foreground text-xs tabular-nums">
                         {formatDateTime(row.latestReportAt)}
                       </TableCell>
                     </TableRow>
@@ -660,20 +660,22 @@ export function MapsIntelijenKpiModal({
 
           {["verified", "active", "inactive"].includes(kpiKey ?? "") && (
             <div>
-              {loadingServer ? (
+              {loadingServer && (
                 <div className="py-16 text-center text-muted-foreground">
                   <div className="flex flex-col items-center justify-center gap-3">
                     <div className="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                    <p className="text-xs font-medium">Memuat data Jaring dari server...</p>
+                    <p className="font-medium text-xs">Memuat data Jaring dari server...</p>
                   </div>
                 </div>
-              ) : serverError ? (
-                <div className="flex items-center gap-2 border border-red-500/30 bg-red-500/10 p-4 m-4 rounded-lg text-red-700 dark:text-red-300 text-xs">
+              )}
+              {!loadingServer && serverError && (
+                <div className="m-4 flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-red-700 text-xs dark:text-red-300">
                   <AlertCircle className="size-4 shrink-0" />
                   <span>{serverError}</span>
                 </div>
-              ) : (
-                <Table>
+              )}
+              {!loadingServer && !serverError && (
+                <Table className="min-w-[850px]">
                   <TableHeader className="sticky top-0 z-10 bg-muted/60 backdrop-blur-xs">
                     <TableRow>
                       <TableHead className="w-12 text-center text-xs">No</TableHead>
@@ -716,33 +718,33 @@ export function MapsIntelijenKpiModal({
                               {(page - 1) * limit + idx + 1}
                             </TableCell>
                             <TableCell>
-                              <div className="font-semibold text-xs text-foreground">{name}</div>
+                              <div className="font-semibold text-foreground text-xs">{name}</div>
                               <div className="font-mono text-[11px] text-muted-foreground">{code}</div>
                             </TableCell>
-                            <TableCell className="font-mono text-xs text-muted-foreground">
+                            <TableCell className="font-mono text-muted-foreground text-xs">
                               {row.whatsappNumber || "-"}
                             </TableCell>
-                            <TableCell className="text-xs text-muted-foreground">{officer}</TableCell>
-                            <TableCell className="text-xs text-muted-foreground">{areaName}</TableCell>
-                            <TableCell className="text-xs text-muted-foreground">{occupation}</TableCell>
+                            <TableCell className="text-muted-foreground text-xs">{officer}</TableCell>
+                            <TableCell className="text-muted-foreground text-xs">{areaName}</TableCell>
+                            <TableCell className="text-muted-foreground text-xs">{occupation}</TableCell>
                             <TableCell className="text-center">
                               {isActive ? (
                                 <Badge
                                   variant="outline"
-                                  className="border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-semibold"
+                                  className="border-emerald-500/40 bg-emerald-500/10 font-semibold text-[10px] text-emerald-600 dark:text-emerald-400"
                                 >
                                   Aktif
                                 </Badge>
                               ) : (
                                 <Badge
                                   variant="outline"
-                                  className="border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-semibold"
+                                  className="border-amber-500/40 bg-amber-500/10 font-semibold text-[10px] text-amber-600 dark:text-amber-400"
                                 >
                                   Tidak Aktif
                                 </Badge>
                               )}
                             </TableCell>
-                            <TableCell className="whitespace-nowrap text-xs text-muted-foreground tabular-nums">
+                            <TableCell className="whitespace-nowrap text-muted-foreground text-xs tabular-nums">
                               {formatDateTime(row.lastReportAt)}
                             </TableCell>
                           </TableRow>
