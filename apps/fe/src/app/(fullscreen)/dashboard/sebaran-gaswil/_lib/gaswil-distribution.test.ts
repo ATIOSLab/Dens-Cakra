@@ -164,4 +164,59 @@ describe("distribusi sebaran Gaswil", () => {
     expect(distribution[0]?.name).toBe("Jakarta Pusat");
     expect(distribution[0]?.districts.map((district) => district.name)).toEqual(["Johar Baru"]);
   });
+
+  it("menampilkan semua kecamatan dari hierarki Kota/Kabupaten meskipun belum ada personel bertugas", () => {
+    const gambirDistrict = {
+      id: "district-gambir",
+      code: "31.71.01",
+      name: "Gambir",
+      level: "DISTRICT",
+      parentId: "city-jakarta-pusat",
+      centroidLatitude: -6.1714,
+      centroidLongitude: 106.8181,
+    };
+    const mentengDistrict = {
+      id: "district-menteng",
+      code: "31.71.06",
+      name: "Menteng",
+      level: "DISTRICT",
+      parentId: "city-jakarta-pusat",
+      centroidLatitude: -6.1958,
+      centroidLongitude: 106.8352,
+    };
+    const joharBaruDistrict = {
+      id: "district-johar-baru",
+      code: "31.71.08",
+      name: "Johar Baru",
+      level: "DISTRICT",
+      parentId: "city-jakarta-pusat",
+      centroidLatitude: -6.1821,
+      centroidLongitude: 106.8545,
+    };
+
+    const catalogWithDistricts: GaswilDistributionAreaCatalog = {
+      ...areaCatalog,
+      districts: [joharBaruDistrict, gambirDistrict, mentengDistrict],
+    };
+
+    const entry = gaswilEntry(personnel(), mapFeature(), SYSTEM_ROLES.EXECUTIVE, catalogWithDistricts);
+    const distribution = distributionFromEntries(entry ? [entry] : [], catalogWithDistricts);
+
+    expect(distribution).toHaveLength(1);
+    expect(distribution[0]?.name).toBe("Jakarta Pusat");
+    const districts = distribution[0]?.districts ?? [];
+    expect(districts.map((d) => d.name)).toEqual(["Gambir", "Johar Baru", "Menteng"]);
+
+    const gambir = districts.find((d) => d.name === "Gambir");
+    expect(gambir?.total).toBe(0);
+    expect(gambir?.centroidLatitude).toBe(-6.1714);
+
+    const joharBaru = districts.find((d) => d.name === "Johar Baru");
+    expect(joharBaru?.total).toBe(1);
+    expect(joharBaru?.pending).toBe(1);
+    expect(joharBaru?.fieldOfficerCount).toBe(1);
+
+    const menteng = districts.find((d) => d.name === "Menteng");
+    expect(menteng?.total).toBe(0);
+  });
 });

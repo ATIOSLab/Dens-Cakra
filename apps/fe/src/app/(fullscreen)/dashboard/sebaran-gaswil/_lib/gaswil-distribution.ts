@@ -9,6 +9,7 @@ import type {
   AdminLevel,
   AgentOperationalStatus,
   JaringDistributionCity,
+  JaringDistributionDistrict,
   JaringDistributionEntry,
 } from "../../sebaran-jaring/_components/sebaran-jaring-types";
 
@@ -19,15 +20,19 @@ const CITY_LEVELS = new Set(["CITY", "REGENCY"]);
 export type GaswilDistributionAreaOption = {
   id: string;
   code?: string | null;
+  officialCode?: string | null;
   name: string;
   level: string;
   parentId?: string | null;
   parentAreaId?: string | null;
+  centroidLatitude?: number | string | null;
+  centroidLongitude?: number | string | null;
 };
 
 export type GaswilDistributionAreaCatalog = {
   provinces: GaswilDistributionAreaOption[];
   cities: GaswilDistributionAreaOption[];
+  districts?: GaswilDistributionAreaOption[];
 };
 
 export function allowedLevelsForRole(role: string): AdminLevel[] {
@@ -56,8 +61,8 @@ function areaLevel(area?: Pick<GaswilArea, "level"> | null) {
   return area?.level?.toUpperCase() ?? "";
 }
 
-function areaCode(area?: { code?: string | null } | null) {
-  return area?.code?.trim() ?? "";
+function areaCode(area?: { code?: string | null; officialCode?: string | null } | null) {
+  return area?.officialCode?.trim() || area?.code?.trim() || "";
 }
 
 function parentAreaId(area?: unknown) {
@@ -66,10 +71,20 @@ function parentAreaId(area?: unknown) {
   return record.parentId ?? record.parentAreaId ?? null;
 }
 
-function isSameArea(left: GaswilArea, right: GaswilDistributionAreaOption) {
+function isSameArea(
+  left: { id?: string; code?: string | null; officialCode?: string | null; name?: string },
+  right: { id?: string; code?: string | null; officialCode?: string | null; name?: string },
+) {
+  if (left.id && right.id && left.id === right.id) return true;
   const leftCode = areaCode(left);
   const rightCode = areaCode(right);
-  return left.id === right.id || (Boolean(leftCode) && leftCode === rightCode);
+  if (leftCode && rightCode && leftCode === rightCode) return true;
+  if (left.name && right.name) {
+    const leftName = left.name.trim().toLocaleLowerCase("id-ID");
+    const rightName = right.name.trim().toLocaleLowerCase("id-ID");
+    if (leftName === rightName) return true;
+  }
+  return false;
 }
 
 function orderedAssignmentAreas(item: PersonnelListItem) {
@@ -107,17 +122,18 @@ export function gaswilAreaHierarchy(item: PersonnelListItem, feature?: Personnel
 }
 
 function cityFromDistrict(
-  district: GaswilArea | null,
+  district: GaswilArea | GaswilDistributionAreaOption | null,
   catalog?: GaswilDistributionAreaCatalog,
 ): GaswilDistributionAreaOption | null {
   if (!district || !catalog) return null;
 
   const districtCode = areaCode(district);
+  const pId = parentAreaId(district);
   return (
     catalog.cities.find((city) => {
       const cityCode = areaCode(city);
       return (
-        parentAreaId(district) === city.id ||
+        (Boolean(pId) && (pId === city.id || pId === city.parentId || pId === city.parentAreaId)) ||
         (Boolean(districtCode) && Boolean(cityCode) && districtCode.startsWith(`${cityCode}.`))
       );
     }) ?? null
@@ -131,11 +147,12 @@ function provinceFromCity(
   if (!city || !catalog) return null;
 
   const cityCode = areaCode(city);
+  const pId = parentAreaId(city);
   return (
     catalog.provinces.find((province) => {
       const provinceCode = areaCode(province);
       return (
-        parentAreaId(city) === province.id ||
+        (Boolean(pId) && (pId === province.id || pId === province.parentId || pId === province.parentAreaId)) ||
         (Boolean(cityCode) && Boolean(provinceCode) && cityCode.startsWith(`${provinceCode}.`))
       );
     }) ?? null
@@ -156,7 +173,7 @@ export function resolveGaswilAreaHierarchy(
   catalog?: GaswilDistributionAreaCatalog,
 ) {
   const hierarchy = gaswilAreaHierarchy(item, feature);
-  const district = hierarchy.district;
+  const district = catalogMatch(hierarchy.district, catalog?.districts ?? []) ?? hierarchy.district;
   const city =
     catalogMatch(hierarchy.city, catalog?.cities ?? []) ?? cityFromDistrict(district, catalog) ?? hierarchy.city;
   const province =
@@ -260,7 +277,13 @@ function areaNameKey(name: string) {
   return name.toLocaleLowerCase("id-ID").replace(/[^a-z0-9]+/g, "-") || "belum-tercatat";
 }
 
-export function distributionFromEntries(entries: JaringDistributionEntry[]): JaringDistributionCity[] {
+export function distributionFromEntries(
+  entries: JaringDistributionEntry[],
+  areaCatalog?: GaswilDistributionAreaCatalog,
+  explicitDistricts?: GaswilDistributionAreaOption[],
+): JaringDistributionCity[] {
+  const allDistricts = [...(areaCatalog?.districts ?? []), ...(explicitDistricts ?? [])];
+
   const cityGroups = new Map<
     string,
     {
@@ -291,42 +314,193 @@ export function distributionFromEntries(entries: JaringDistributionEntry[]): Jar
     }
   }
 
-  return [...cityGroups.values()]
-    .map((city) => {
-      const districtGroups = new Map<string, { id: string; name: string; entries: JaringDistributionEntry[] }>();
-      for (const entry of city.entries) {
-        const districtName = entry.districtName?.trim() || "Kecamatan belum tercatat";
-        const districtId = entry.districtId?.trim() || `district-${areaNameKey(districtName)}`;
-        const existing = districtGroups.get(districtId);
+  // Populate any relevant cities from areaCatalog that belong to active/relevant provinces
+  if (areaCatalog?.cities && areaCatalog.cities.length > 0) {
+    const relevantProvinceIds = new Set<string>();
+    for (const city of cityGroups.values()) {
+      if (city.provinceId) relevantProvinceIds.add(city.provinceId);
+    }
+    const dkiProvince = areaCatalog.provinces.find((p) => p.name.toLocaleLowerCase("id-ID").includes("dki jakarta"));
+    if (dkiProvince) {
+      relevantProvinceIds.add(dkiProvince.id);
+    } else if (relevantProvinceIds.size === 0 && areaCatalog.provinces[0]) {
+      relevantProvinceIds.add(areaCatalog.provinces[0].id);
+    }
 
-        if (existing) {
-          existing.entries.push(entry);
+    for (const catalogCity of areaCatalog.cities) {
+      const parentProvId = catalogCity.parentId ?? catalogCity.parentAreaId;
+      if (parentProvId && relevantProvinceIds.has(parentProvId)) {
+        let matchedKey: string | null = null;
+        for (const [key, group] of cityGroups.entries()) {
+          if (isSameArea(group, catalogCity)) {
+            matchedKey = key;
+            break;
+          }
+        }
+
+        const prov = areaCatalog.provinces.find((p) => p.id === parentProvId);
+        const provName = prov?.name ?? "Cakupan hak akses";
+
+        if (matchedKey) {
+          const group = cityGroups.get(matchedKey);
+          if (group && group.id !== catalogCity.id) {
+            cityGroups.delete(matchedKey);
+            group.id = catalogCity.id;
+            group.name = catalogCity.name;
+            group.provinceId = catalogCity.parentId ?? group.provinceId;
+            group.provinceName = provName;
+            cityGroups.set(catalogCity.id, group);
+          }
         } else {
-          districtGroups.set(districtId, {
-            id: districtId,
-            name: districtName,
-            entries: [entry],
+          cityGroups.set(catalogCity.id, {
+            id: catalogCity.id,
+            name: catalogCity.name,
+            provinceId: catalogCity.parentId ?? null,
+            provinceName: provName,
+            entries: [],
           });
         }
       }
+    }
+  }
 
-      const districts = [...districtGroups.values()]
-        .map((district) => ({
-          id: district.id,
-          name: district.name,
-          total: district.entries.length,
-          approved: statusCount(district.entries, "VERIFIED"),
-          pending: statusCount(district.entries, "PENDING"),
-          rejected: statusCount(district.entries, "REJECTED"),
-          villageCount: 0,
-          fieldOfficerCount: district.entries.length,
-          fieldOfficerNames: district.entries.flatMap((entry) => (entry.fullName ? [entry.fullName] : [])),
-          centroidLatitude: average(district.entries.map((entry) => entry.latitude)),
-          centroidLongitude: average(district.entries.map((entry) => entry.longitude)),
-          geometry: null,
-          villages: [],
-        }))
-        .sort((left, right) => left.name.localeCompare(right.name, "id-ID"));
+  return [...cityGroups.values()]
+    .map((city) => {
+      const cityCatalogItem = areaCatalog?.cities.find((c) => isSameArea(c, city));
+      const cCode = cityCatalogItem ? areaCode(cityCatalogItem) : "";
+
+      const officialDistricts = allDistricts.filter((district) => {
+        if (
+          district.parentId &&
+          (district.parentId === city.id || (cityCatalogItem && district.parentId === cityCatalogItem.id))
+        ) {
+          return true;
+        }
+        if (
+          district.parentAreaId &&
+          (district.parentAreaId === city.id || (cityCatalogItem && district.parentAreaId === cityCatalogItem.id))
+        ) {
+          return true;
+        }
+        const dCode = areaCode(district);
+        if (cCode && dCode?.startsWith(`${cCode}.`)) {
+          return true;
+        }
+        return false;
+      });
+
+      let districts: JaringDistributionDistrict[] = [];
+
+      if (officialDistricts.length > 0) {
+        const assignedEntries = new Set<string>();
+
+        districts = officialDistricts.map((officialDistrict) => {
+          const matchingEntries = city.entries.filter((entry) => {
+            if (entry.districtId && entry.districtId === officialDistrict.id) return true;
+            const dName = officialDistrict.name.trim().toLocaleLowerCase("id-ID");
+            const entryDName = entry.districtName?.trim().toLocaleLowerCase("id-ID");
+            if (entryDName && entryDName === dName) return true;
+            return false;
+          });
+
+          for (const match of matchingEntries) {
+            assignedEntries.add(match.id);
+            match.districtId = officialDistrict.id;
+            match.districtName = officialDistrict.name;
+          }
+
+          const cLat =
+            officialDistrict.centroidLatitude !== null && officialDistrict.centroidLatitude !== undefined
+              ? Number(officialDistrict.centroidLatitude)
+              : average(matchingEntries.map((e) => e.latitude));
+          const cLng =
+            officialDistrict.centroidLongitude !== null && officialDistrict.centroidLongitude !== undefined
+              ? Number(officialDistrict.centroidLongitude)
+              : average(matchingEntries.map((e) => e.longitude));
+
+          return {
+            id: officialDistrict.id,
+            name: officialDistrict.name,
+            total: matchingEntries.length,
+            approved: statusCount(matchingEntries, "VERIFIED"),
+            pending: statusCount(matchingEntries, "PENDING"),
+            rejected: statusCount(matchingEntries, "REJECTED"),
+            villageCount: 0,
+            fieldOfficerCount: matchingEntries.length,
+            fieldOfficerNames: matchingEntries.flatMap((e) => (e.fullName ? [e.fullName] : [])),
+            centroidLatitude: cLat,
+            centroidLongitude: cLng,
+            geometry: null,
+            villages: [],
+          };
+        });
+
+        const unassigned = city.entries.filter((e) => !assignedEntries.has(e.id));
+        if (unassigned.length > 0) {
+          const unassignedGroups = new Map<string, JaringDistributionEntry[]>();
+          for (const entry of unassigned) {
+            const dName = entry.districtName?.trim() || "Kecamatan belum tercatat";
+            const existing = unassignedGroups.get(dName);
+            if (existing) existing.push(entry);
+            else unassignedGroups.set(dName, [entry]);
+          }
+
+          for (const [name, uEntries] of unassignedGroups.entries()) {
+            districts.push({
+              id: uEntries[0]?.districtId || `district-${areaNameKey(name)}`,
+              name,
+              total: uEntries.length,
+              approved: statusCount(uEntries, "VERIFIED"),
+              pending: statusCount(uEntries, "PENDING"),
+              rejected: statusCount(uEntries, "REJECTED"),
+              villageCount: 0,
+              fieldOfficerCount: uEntries.length,
+              fieldOfficerNames: uEntries.flatMap((e) => (e.fullName ? [e.fullName] : [])),
+              centroidLatitude: average(uEntries.map((e) => e.latitude)),
+              centroidLongitude: average(uEntries.map((e) => e.longitude)),
+              geometry: null,
+              villages: [],
+            });
+          }
+        }
+
+        districts.sort((left, right) => left.name.localeCompare(right.name, "id-ID"));
+      } else {
+        const districtGroups = new Map<string, { id: string; name: string; entries: JaringDistributionEntry[] }>();
+        for (const entry of city.entries) {
+          const districtName = entry.districtName?.trim() || "Kecamatan belum tercatat";
+          const districtId = entry.districtId?.trim() || `district-${areaNameKey(districtName)}`;
+          const existing = districtGroups.get(districtId);
+
+          if (existing) {
+            existing.entries.push(entry);
+          } else {
+            districtGroups.set(districtId, {
+              id: districtId,
+              name: districtName,
+              entries: [entry],
+            });
+          }
+        }
+
+        districts = [...districtGroups.values()]
+          .map((district) => ({
+            id: district.id,
+            name: district.name,
+            total: district.entries.length,
+            approved: statusCount(district.entries, "VERIFIED"),
+            pending: statusCount(district.entries, "PENDING"),
+            rejected: statusCount(district.entries, "REJECTED"),
+            villageCount: 0,
+            fieldOfficerCount: district.entries.length,
+            fieldOfficerNames: district.entries.flatMap((entry) => (entry.fullName ? [entry.fullName] : [])),
+            centroidLatitude: average(district.entries.map((entry) => entry.latitude)),
+            centroidLongitude: average(district.entries.map((entry) => entry.longitude)),
+            geometry: null,
+            villages: [],
+          }))
+          .sort((left, right) => left.name.localeCompare(right.name, "id-ID"));
+      }
 
       return {
         id: city.id,

@@ -75,6 +75,23 @@ async function fetchAreaCatalog() {
   };
 }
 
+async function fetchDistrictsForCities(
+  cities: GaswilDistributionAreaOption[],
+): Promise<GaswilDistributionAreaOption[]> {
+  const batches = await Promise.all(
+    cities.map(async (city) => {
+      try {
+        return await apiServerGet<GaswilDistributionAreaOption[]>(`/administrative-areas/${city.id}/children`, {
+          level: "DISTRICT",
+        });
+      } catch {
+        return [];
+      }
+    }),
+  );
+  return batches.flat();
+}
+
 export default async function SebaranGaswilPage() {
   const session = await requireRole(
     SYSTEM_ROLES.NATIONAL_LEADER,
@@ -105,9 +122,33 @@ export default async function SebaranGaswilPage() {
     return entry ? [entry] : [];
   });
 
+  const entryCityIds = new Set(entries.map((e) => e.cityId).filter(Boolean));
+  const relevantProvinceIds = new Set<string>();
+  for (const entry of entries) {
+    if (entry.provinceId) relevantProvinceIds.add(entry.provinceId);
+  }
+
+  const dkiProvince = areaCatalog.provinces.find((p) => p.name.toLocaleLowerCase("id-ID").includes("dki jakarta"));
+  if (dkiProvince) {
+    relevantProvinceIds.add(dkiProvince.id);
+  } else if (relevantProvinceIds.size === 0 && areaCatalog.provinces[0]) {
+    relevantProvinceIds.add(areaCatalog.provinces[0].id);
+  }
+
+  const targetCities = areaCatalog.cities.filter(
+    (city) => entryCityIds.has(city.id) || (city.parentId && relevantProvinceIds.has(city.parentId)),
+  );
+
+  const districts = await fetchDistrictsForCities(targetCities);
+
+  const fullAreaCatalog = {
+    ...areaCatalog,
+    districts,
+  };
+
   return (
     <JaringDistributionClient
-      cities={distributionFromEntries(entries)}
+      cities={distributionFromEntries(entries, fullAreaCatalog)}
       allowedAdminLevels={allowedLevelsForRole(session.role)}
       mode="gaswil"
     />
