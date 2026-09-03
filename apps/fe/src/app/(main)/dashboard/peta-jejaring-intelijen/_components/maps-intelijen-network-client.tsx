@@ -14,9 +14,10 @@ import { MapsIntelijenAreaFilter } from "./maps-intelijen-area-filter";
 import { normalizeMapAreas } from "./maps-intelijen-area-hierarchy";
 import { MapsIntelijenDetailSheet } from "./maps-intelijen-detail-sheet";
 import { MapsIntelijenHeader } from "./maps-intelijen-header";
+import { MapsIntelijenKpiModal } from "./maps-intelijen-kpi-modal";
 import { MapsIntelijenMapView } from "./maps-intelijen-map-view";
 import { MapsIntelijenPeriodFilter } from "./maps-intelijen-period-filter";
-import { MapsIntelijenStats } from "./maps-intelijen-stats";
+import { type KpiCardKey, MapsIntelijenStats } from "./maps-intelijen-stats";
 import {
   type AdministrativeAreaScope,
   EMPTY_MAP_RESPONSE,
@@ -272,6 +273,7 @@ export function MapsIntelijenNetworkClient() {
   const [visibleCount, setVisibleCount] = useState(0);
   const [selected, setSelected] = useState<MapNetworkFeature | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [activeKpiModal, setActiveKpiModal] = useState<KpiCardKey | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const mapCardRef = useRef<HTMLDivElement>(null);
@@ -598,7 +600,7 @@ export function MapsIntelijenNetworkClient() {
       ) : null}
       <MapsIntelijenPeriodFilter filters={filters} onChange={handleFilterChange} />
       <MapsIntelijenAreaFilter areaOptions={areaOptions} filters={filters} onChange={handleFilterChange} />
-      <MapsIntelijenStats meta={response.meta} loading={loading} />
+      <MapsIntelijenStats meta={response.meta} loading={loading} onCardClick={setActiveKpiModal} />
       <MapsIntelijenMapView
         mapCardRef={mapCardRef}
         isFullscreen={isFullscreen}
@@ -634,6 +636,19 @@ export function MapsIntelijenNetworkClient() {
         </p>
       </div>
       <MapsIntelijenDetailSheet feature={selected} open={detailOpen} onOpenChange={setDetailOpen} />
+      <MapsIntelijenKpiModal
+        open={Boolean(activeKpiModal)}
+        onOpenChange={(open) => {
+          if (!open) setActiveKpiModal(null);
+        }}
+        kpiKey={activeKpiModal}
+        meta={response.meta}
+        features={response.features}
+        filters={filters}
+        periodLabel={activePeriodLabel}
+        scopeLabel={activeAreaSubtitle}
+        onOpenDetail={openDetail}
+      />
     </main>
   );
 }
