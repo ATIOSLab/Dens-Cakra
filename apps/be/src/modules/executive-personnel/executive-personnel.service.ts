@@ -448,6 +448,7 @@ export class ExecutivePersonnelService {
                         validUntil: null,
                         jaring: {
                           deletedAt: null,
+                          registrationStatus: JaringRegistrationStatus.APPROVED,
                           OR: [
                             {
                               aliasName: {
@@ -674,6 +675,7 @@ export class ExecutivePersonnelService {
       this.prisma.jaring.findMany({
         where: {
           deletedAt: null,
+          registrationStatus: JaringRegistrationStatus.APPROVED,
           caretakerAssignments: {
             some: {
               fieldOfficerAssignmentId: { in: relatedAssignmentIds },
@@ -897,6 +899,8 @@ export class ExecutivePersonnelService {
                             validUntil: null,
                             jaring: {
                               deletedAt: null,
+                              registrationStatus:
+                                JaringRegistrationStatus.APPROVED,
                               OR: [
                                 {
                                   aliasName: {
@@ -963,7 +967,10 @@ export class ExecutivePersonnelService {
           where: {
             isActive: true,
             validUntil: null,
-            jaring: { deletedAt: null },
+            jaring: {
+              deletedAt: null,
+              registrationStatus: JaringRegistrationStatus.APPROVED,
+            },
           },
           orderBy: { validFrom: 'desc' },
           select: {
@@ -975,12 +982,16 @@ export class ExecutivePersonnelService {
                 whatsappNumber: true,
                 status: true,
                 registrationStatus: true,
+                registeredAt: true,
+                createdAt: true,
+                profilePhotoFileId: true,
+                occupation: { select: { id: true, name: true } },
                 areaCoverages: {
                   where: { validUntil: null },
                   orderBy: [{ isPrimary: 'desc' }, { validFrom: 'desc' }],
                   take: 1,
                   select: {
-                    area: { select: { id: true, name: true } },
+                    area: { select: { id: true, name: true, level: true } },
                   },
                 },
                 messages: {

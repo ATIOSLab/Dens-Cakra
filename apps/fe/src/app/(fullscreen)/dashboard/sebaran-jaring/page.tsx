@@ -8,6 +8,14 @@ import {
 import type { AccessContextResource } from "@/features/directives/types";
 import { apiServerGet } from "@/lib/api/server-client";
 import { requireRole } from "@/lib/auth/server-session";
+import {
+  type AdministrativeAreaFilterScope,
+  areaScopeId,
+  isDkiAreaScope,
+  isDkiJakartaProvinceOption,
+  isProvinceLevel,
+  resolveRegencyProvince,
+} from "@/lib/domain/area-filter";
 import { SYSTEM_ROLES } from "@/navigation/sidebar/system-roles";
 
 import {
@@ -124,11 +132,48 @@ function formatRelativeDate(dateStr?: string | null): string {
   return new Intl.DateTimeFormat("id-ID", { day: "2-digit", month: "short", year: "numeric" }).format(date);
 }
 
+function resolveCityProvince(
+  city: JaringAdministrativeArea,
+  provinces: JaringAdministrativeArea[],
+  dkiProvince?: JaringAdministrativeArea | null,
+): { id: string; name: string } {
+  if (isDkiAreaScope(city)) {
+    return {
+      id: dkiProvince?.id ?? "prov-dki",
+      name: dkiProvince?.name ?? "DKI Jakarta",
+    };
+  }
+
+  if (city.parent && isProvinceLevel(city.parent.level)) {
+    return { id: city.parent.id, name: city.parent.name };
+  }
+
+  if (city.parentId) {
+    const parentProv = provinces.find((p) => p.id === city.parentId);
+    if (parentProv) {
+      return { id: parentProv.id, name: parentProv.name };
+    }
+  }
+
+  const resolved = resolveRegencyProvince(
+    city as unknown as AdministrativeAreaFilterScope,
+    provinces as unknown as AdministrativeAreaFilterScope[],
+  );
+  if (resolved) {
+    const pId = areaScopeId(resolved);
+    return { id: pId, name: resolved.name };
+  }
+
+  return { id: dkiProvince?.id ?? "prov-dki", name: dkiProvince?.name ?? "DKI Jakarta" };
+}
+
 function distributionEntry(
   item: RegistrationJaring,
   index: number,
   districtLat: number,
   districtLng: number,
+  province: { id: string; name: string },
+  city: JaringAdministrativeArea,
 ): JaringDistributionEntry {
   const district = jaringDistrict(item);
   const village = jaringVillage(item);
@@ -187,8 +232,10 @@ function distributionEntry(
     gender: item.gender,
     address: item.address,
     profilePhotoFileId,
-    provinceName: "DKI Jakarta",
-    cityName: jaringCity(item)?.name ?? "Jakarta",
+    provinceId: province.id,
+    provinceName: province.name,
+    cityId: city.id,
+    cityName: city.name,
     districtId: district ? district.id : null,
     districtName: district ? district.name : "-",
     villageName: village ? village.name : "-",
@@ -217,15 +264,24 @@ function distributionEntry(
 }
 
 async function getScopedRegionData(sessionRole: string) {
-  const access = await apiServerGet<AccessContextResource>("/access/me").catch(() => null);
+  const [access, allProvinces] = await Promise.all([
+    apiServerGet<AccessContextResource>("/access/me").catch(() => null),
+    apiServerGet<JaringAdministrativeArea[]>("/administrative-areas", {
+      level: "PROVINCE",
+      isActive: true,
+      limit: 100,
+    }).catch(() => []),
+  ]);
   const userAreaScopes = access?.authorizationContext?.areaScopes ?? [];
   const userRoleCode = access?.authorizationContext?.roleCode ?? sessionRole;
 
   const isExecutiveOrAdmin = userRoleCode === SYSTEM_ROLES.EXECUTIVE || userRoleCode === SYSTEM_ROLES.ADMIN_SYSTEM;
 
-  let scopedCities: JaringAdministrativeArea[] = [];
+  const scopedCities: JaringAdministrativeArea[] = [];
   let allowedDistrictIds: Set<string> | null = null;
   let allowedAdminLevels: AdminLevel[] = ["PROVINCE", "CITY", "DISTRICT", "VILLAGE"];
+
+  const dkiProvince = allProvinces.find(isDkiJakartaProvinceOption) ?? null;
 
   if (userAreaScopes.length > 0 && !isExecutiveOrAdmin) {
     const levelsInScope = new Set(userAreaScopes.map((s) => s.level));
@@ -288,21 +344,38 @@ async function getScopedRegionData(sessionRole: string) {
       }
     }
 
-    try {
-      scopedCities = await apiServerGet<JaringAdministrativeArea[]>("/administrative-areas", {
-        level: "CITY",
-        limit: 20,
-      });
-    } catch {
-      scopedCities = [];
+    if (dkiProvince) {
+      try {
+        const [cities, regencies] = await Promise.all([
+          apiServerGet<JaringAdministrativeArea[]>(`/administrative-areas/${dkiProvince.id}/children`, {
+            level: "CITY",
+            limit: 50,
+          }).catch(() => []),
+          apiServerGet<JaringAdministrativeArea[]>(`/administrative-areas/${dkiProvince.id}/children`, {
+            level: "REGENCY",
+            limit: 50,
+          }).catch(() => []),
+        ]);
+        const dkiChildren = [...cities, ...regencies];
+        for (const city of dkiChildren) {
+          scopedCities.push({
+            ...city,
+            parent: dkiProvince,
+            parentId: dkiProvince.id,
+          });
+        }
+      } catch {
+        // ignore
+      }
     }
   }
 
-  return { scopedCities, allowedDistrictIds, allowedAdminLevels };
+  return { scopedCities, allowedDistrictIds, allowedAdminLevels, provinces: allProvinces, dkiProvince };
 }
 
 async function buildCityDistribution(
   city: JaringAdministrativeArea,
+  province: { id: string; name: string },
   items: RegistrationJaring[],
   allowedDistrictIds: Set<string> | null = null,
 ): Promise<JaringDistributionCity> {
@@ -402,14 +475,14 @@ async function buildCityDistribution(
     const d = districtRows.find((row) => row.id === jaringDistrict(item)?.id);
     const dLat = d?.centroidLatitude ?? -6.2;
     const dLng = d?.centroidLongitude ?? 106.8166;
-    return distributionEntry(item, index, dLat, dLng);
+    return distributionEntry(item, index, dLat, dLng, province, city);
   });
 
   return {
     id: city.id,
     name: city.name,
-    provinceId: "prov-dki",
-    provinceName: "DKI Jakarta",
+    provinceId: province.id,
+    provinceName: province.name,
     total: cityItems.length,
     approved: verifiedCityItems.length,
     pending: cityItems.filter((item) => item.registrationStatus === "PENDING").length,
@@ -435,11 +508,24 @@ export default async function SebaranJaringPage() {
   ]);
 
   const allItems = approvedItems;
-  const { scopedCities, allowedDistrictIds, allowedAdminLevels } = scopedData;
+  const { scopedCities, allowedDistrictIds, allowedAdminLevels, provinces, dkiProvince } = scopedData;
 
-  const citiesDistribution = await Promise.all(
-    scopedCities.map((city) => buildCityDistribution(city, allItems, allowedDistrictIds)),
-  );
+  const cityMap = new Map<string, JaringAdministrativeArea>();
+  for (const c of scopedCities) {
+    cityMap.set(c.id, c);
+  }
+  for (const item of allItems) {
+    const c = jaringCity(item);
+    if (c && !cityMap.has(c.id)) {
+      cityMap.set(c.id, c);
+    }
+  }
+  const effectiveCities = Array.from(cityMap.values());
+
+  const citiesDistribution = await mapWithConcurrency(effectiveCities, 4, async (city) => {
+    const province = resolveCityProvince(city, provinces, dkiProvince);
+    return buildCityDistribution(city, province, allItems, allowedDistrictIds);
+  });
 
   return <JaringDistributionClient cities={citiesDistribution} allowedAdminLevels={allowedAdminLevels} />;
 }

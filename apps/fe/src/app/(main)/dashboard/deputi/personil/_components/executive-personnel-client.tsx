@@ -36,12 +36,14 @@ import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 
 import type {
+  PersonnelJaringItem,
   PersonnelListItem,
   PersonnelListProps,
   PersonnelListQueryState,
   PersonnelMapFeature,
   PersonnelMapPayload,
 } from "./executive-personnel-types";
+import { PersonnelKpiModal, type PersonnelKpiModalType } from "./personnel-kpi-modal";
 
 type PersonnelPageConfig = NonNullable<PersonnelListProps["pageConfig"]>;
 type PersonnelSortColumn = "personnel" | "area" | "jaring" | "status" | "access";
@@ -411,12 +413,14 @@ function KpiCard({
   trend,
   progress,
   variant = "cyan",
+  onClick,
 }: {
   label: string;
   value: number;
   trend?: string;
   progress?: number;
   variant?: "cyan" | "emerald" | "amber";
+  onClick?: () => void;
 }) {
   const ACCENT_COLORS: Record<string, string> = {
     emerald: "text-[var(--dc-success)]",
@@ -443,13 +447,8 @@ function KpiCard({
   const barColor = BAR_COLORS[variant] || BAR_COLORS.cyan;
   const safeProgress = progress === undefined ? undefined : Math.max(0, Math.min(100, progress));
 
-  return (
-    <div
-      className={cn(
-        "group relative select-none overflow-hidden rounded-none border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/80 p-4 text-foreground shadow-[0_0_15px_rgba(34,211,238,0.01)] transition-all duration-250 hover:-translate-y-0.5 dark:border-slate-800 dark:bg-[#080d14]/80",
-        hoverStyle,
-      )}
-    >
+  const content = (
+    <>
       {/* Tactical Corner Wireframes */}
       <div className="absolute top-0 left-0 h-2 w-2 border-[var(--dc-border-subtle)] border-t-2 border-l-2 transition-colors group-hover:border-[var(--dc-primary)]/60 dark:border-slate-700" />
       <div className="absolute top-0 right-0 h-2 w-2 border-[var(--dc-border-subtle)] border-t-2 border-r-2 transition-colors group-hover:border-[var(--dc-primary)]/60 dark:border-slate-700" />
@@ -490,8 +489,24 @@ function KpiCard({
           </div>
         </div>
       )}
-    </div>
+    </>
   );
+
+  const containerClasses = cn(
+    "group relative select-none overflow-hidden rounded-none border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/80 p-4 text-foreground shadow-[0_0_15px_rgba(34,211,238,0.01)] transition-all duration-250 hover:-translate-y-0.5 dark:border-slate-800 dark:bg-[#080d14]/80 text-left w-full",
+    onClick && "cursor-pointer hover:border-cyan-500/60",
+    hoverStyle,
+  );
+
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} className={containerClasses}>
+        {content}
+      </button>
+    );
+  }
+
+  return <div className={containerClasses}>{content}</div>;
 }
 
 function DirectorySummaryCard({
@@ -500,12 +515,14 @@ function DirectorySummaryCard({
   percentageLabel,
   icon: Icon,
   tone = "sky",
+  onClick,
 }: {
   label: string;
   value: number;
   percentageLabel?: string;
   icon: LucideIcon;
   tone?: "sky" | "emerald" | "amber" | "slate";
+  onClick?: () => void;
 }) {
   const toneClass = {
     sky: "bg-sky-500/10 text-sky-600 dark:text-sky-400",
@@ -514,8 +531,8 @@ function DirectorySummaryCard({
     slate: "bg-slate-500/10 text-slate-600 dark:text-slate-300",
   }[tone];
 
-  return (
-    <div className="flex min-w-[150px] items-center gap-3 rounded-xl border border-slate-200/80 bg-card p-3.5 text-left shadow-xs dark:border-white/10">
+  const content = (
+    <>
       <div className={cn("flex size-10 shrink-0 items-center justify-center rounded-lg", toneClass)}>
         <Icon className="size-5" />
       </div>
@@ -530,8 +547,23 @@ function DirectorySummaryCard({
           </p>
         ) : null}
       </div>
-    </div>
+    </>
   );
+
+  const containerClasses = cn(
+    "flex min-w-[150px] items-center gap-3 rounded-xl border border-slate-200/80 bg-card p-3.5 text-left shadow-xs dark:border-white/10 select-none w-full",
+    onClick && "cursor-pointer hover:border-cyan-500/60 hover:shadow-md hover:-translate-y-0.5 transition-all",
+  );
+
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} className={containerClasses}>
+        {content}
+      </button>
+    );
+  }
+
+  return <div className={containerClasses}>{content}</div>;
 }
 
 function TableSkeleton({ config }: { config: ResolvedPersonnelPageConfig }) {
@@ -770,6 +802,7 @@ function PersonnelTable({
   queryState,
   sort,
   onSortChange,
+  onOpenOfficerJaring,
 }: {
   items: PersonnelListItem[];
   isPending: boolean;
@@ -779,6 +812,7 @@ function PersonnelTable({
   queryState: PersonnelListQueryState;
   sort: PersonnelSortState | null;
   onSortChange: (sort: PersonnelSortState) => void;
+  onOpenOfficerJaring?: (officer: PersonnelListItem) => void;
 }) {
   const isDirectoryLayout = config.layoutVariant === "directory";
 
@@ -933,14 +967,28 @@ function PersonnelTable({
                   )}
                 </TableCell>
                 <TableCell className={cn(isDirectoryLayout ? "text-left" : "text-center")}>
-                  <span
-                    className={cn(
-                      "inline-flex min-w-8 items-center justify-center border border-cyan-500/30 bg-cyan-500/10 px-2.5 py-1 font-semibold text-cyan-600 dark:text-cyan-300",
-                      isDirectoryLayout ? "rounded-full text-xs" : "font-mono text-xs",
-                    )}
-                  >
-                    {item.jaringCount ?? 0}
-                  </span>
+                  {onOpenOfficerJaring ? (
+                    <button
+                      type="button"
+                      onClick={() => onOpenOfficerJaring(item)}
+                      className={cn(
+                        "inline-flex min-w-8 items-center justify-center border border-cyan-500/30 bg-cyan-500/10 px-2.5 py-1 font-semibold text-cyan-600 hover:bg-cyan-500/20 hover:border-cyan-500/50 transition-colors cursor-pointer dark:text-cyan-300",
+                        isDirectoryLayout ? "rounded-full text-xs" : "font-mono text-xs",
+                      )}
+                      title={`Lihat daftar Jaring binaan ${personnelDisplayName(item)}`}
+                    >
+                      {item.jaringCount ?? 0}
+                    </button>
+                  ) : (
+                    <span
+                      className={cn(
+                        "inline-flex min-w-8 items-center justify-center border border-cyan-500/30 bg-cyan-500/10 px-2.5 py-1 font-semibold text-cyan-600 dark:text-cyan-300",
+                        isDirectoryLayout ? "rounded-full text-xs" : "font-mono text-xs",
+                      )}
+                    >
+                      {item.jaringCount ?? 0}
+                    </span>
+                  )}
                 </TableCell>
                 <TableCell className={cn(isDirectoryLayout ? "text-left" : "text-center")}>
                   {(() => {
@@ -1141,12 +1189,46 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
     [areaFilters.provinces, config.showProvinceFilter],
   );
 
+  const [kpiModalType, setKpiModalType] = useState<PersonnelKpiModalType | null>(null);
+  const [selectedOfficerForModal, setSelectedOfficerForModal] = useState<PersonnelListItem | null>(null);
+
+  const allVerifiedJarings = useMemo(() => {
+    const jaringsMap = new globalThis.Map<string, PersonnelJaringItem & { officerName?: string }>();
+    for (const item of items) {
+      const officerName = item.fullName ?? item.username ?? "-";
+      for (const jaring of item.jaringPreview ?? []) {
+        if (!jaring.id) continue;
+        if (jaring.registrationStatus && jaring.registrationStatus !== "APPROVED") continue;
+        if (!jaringsMap.has(jaring.id)) {
+          jaringsMap.set(jaring.id, {
+            ...jaring,
+            officerName,
+          });
+        }
+      }
+    }
+    return Array.from(jaringsMap.values());
+  }, [items]);
+
   const totalPersonnel = items.length;
-  const totalJaring = items.reduce((total, item) => total + (item.jaringCount ?? 0), 0);
+  const totalJaring =
+    allVerifiedJarings.length > 0
+      ? allVerifiedJarings.length
+      : items.reduce((total, item) => total + (item.jaringCount ?? 0), 0);
   const onlineCount = (map.meta.counts.byStatus.LIVE ?? 0) + (map.meta.counts.byStatus.RECENT ?? 0);
   const offlineCount = (map.meta.counts.byStatus.STALE ?? 0) + (map.meta.counts.byStatus.NO_SIGNAL ?? 0);
   const totalPages = Math.max(1, Math.ceil(totalPersonnel / rowsPerPage));
   const safePage = Math.min(page, totalPages);
+
+  const handleOpenJaringModalForOfficer = (officer: PersonnelListItem) => {
+    setSelectedOfficerForModal(officer);
+    setKpiModalType("jaring");
+  };
+
+  const handleOpenKpiModal = (type: PersonnelKpiModalType) => {
+    setSelectedOfficerForModal(null);
+    setKpiModalType(type);
+  };
 
   const sortedItems = useMemo(() => {
     if (!sort) return items;
@@ -1272,12 +1354,14 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
                 label={config.totalPersonnelLabel}
                 value={totalPersonnel}
                 icon={DOMAIN_VISUALS.gaswil.Icon}
+                onClick={() => handleOpenKpiModal("personnel")}
               />
               <DirectorySummaryCard
                 label={config.jaringKpiLabel}
                 value={totalJaring}
                 icon={DOMAIN_VISUALS.jaring.Icon}
                 tone="sky"
+                onClick={() => handleOpenKpiModal("jaring")}
               />
               <DirectorySummaryCard
                 label={config.onlineKpiLabel}
@@ -1285,6 +1369,7 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
                 percentageLabel={`${formatPercent(percentOf(onlineCount, totalPersonnel))}% dari personel`}
                 icon={Signal}
                 tone="emerald"
+                onClick={() => handleOpenKpiModal("online")}
               />
               <DirectorySummaryCard
                 label={config.offlineKpiLabel}
@@ -1292,6 +1377,7 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
                 percentageLabel={`${formatPercent(percentOf(offlineCount, totalPersonnel))}% dari personel`}
                 icon={ShieldAlert}
                 tone="amber"
+                onClick={() => handleOpenKpiModal("offline")}
               />
             </div>
           </header>
@@ -1500,19 +1586,31 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
             {/* Redesigned statistics indicators */}
             {!isDirectoryLayout && (
               <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                <KpiCard label={config.totalPersonnelLabel} value={totalPersonnel} variant="cyan" />
-                <KpiCard label={config.jaringKpiLabel} value={totalJaring} variant="cyan" />
+                <KpiCard
+                  label={config.totalPersonnelLabel}
+                  value={totalPersonnel}
+                  variant="cyan"
+                  onClick={() => handleOpenKpiModal("personnel")}
+                />
+                <KpiCard
+                  label={config.jaringKpiLabel}
+                  value={totalJaring}
+                  variant="cyan"
+                  onClick={() => handleOpenKpiModal("jaring")}
+                />
                 <KpiCard
                   label={config.onlineKpiLabel}
                   value={onlineCount}
                   progress={onlinePercentage}
                   variant="emerald"
+                  onClick={() => handleOpenKpiModal("online")}
                 />
                 <KpiCard
                   label={config.offlineKpiLabel}
                   value={offlineCount}
                   progress={offlinePercentage}
                   variant="amber"
+                  onClick={() => handleOpenKpiModal("offline")}
                 />
               </section>
             )}
@@ -1543,6 +1641,7 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
                 queryState={queryState}
                 sort={sort}
                 onSortChange={handleSortChange}
+                onOpenOfficerJaring={handleOpenJaringModalForOfficer}
               />
             ) : (
               <PersonnelCardGrid
@@ -1710,6 +1809,22 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
           )}
         </Tabs>
       </div>
+
+      <PersonnelKpiModal
+        open={Boolean(kpiModalType)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setKpiModalType(null);
+            setSelectedOfficerForModal(null);
+          }
+        }}
+        kpiType={kpiModalType}
+        selectedOfficer={selectedOfficerForModal}
+        items={items}
+        allVerifiedJarings={allVerifiedJarings}
+        freshness={map.meta.freshness}
+        scopeLabel={scopeDescription}
+      />
     </main>
   );
 }
