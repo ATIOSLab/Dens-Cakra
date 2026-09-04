@@ -11,6 +11,7 @@ import {
   ClipboardList,
   Clock3,
   DatabaseZap,
+  FileText,
   FileX2,
   Gauge,
   type LucideIcon,
@@ -180,6 +181,8 @@ type JaringRankingItem = {
   draftBakets: number;
   lastReportAt: string | null;
   drilldown: string;
+  coachingCount?: number;
+  latestCoachingAt?: string | null;
 };
 
 function entityMeta(items: Array<string | null | undefined>) {
@@ -271,12 +274,19 @@ function RankingTables({
                     { label: DOMAIN_TERMS.jaringReport, value: formatDashboardNumber(item.reports) },
                     { label: "Laporan Jadi Baket", value: formatDashboardNumber(item.verified) },
                     { label: DOMAIN_TERMS.draftBaket, value: formatDashboardNumber(item.draftBakets) },
+                    {
+                      label: DOMAIN_TERMS.jaringCoachingHistory,
+                      value:
+                        (item.coachingCount ?? 0) > 0
+                          ? `${formatDashboardNumber(item.coachingCount ?? 0)} Pembinaan`
+                          : "Belum ada pembinaan",
+                    },
                   ]}
                 />
               ))}
             </div>
             <div className="hidden md:block">
-              <Table className="min-w-[1040px] text-xs">
+              <Table className="min-w-[1200px] text-xs">
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-12 text-center">#</TableHead>
@@ -287,6 +297,7 @@ function RankingTables({
                     <TableHead className="text-right">Laporan Jadi Baket</TableHead>
                     <TableHead className="text-right">{DOMAIN_TERMS.draftBaket}</TableHead>
                     <TableHead>Aktivitas Terakhir</TableHead>
+                    <TableHead>{DOMAIN_TERMS.jaringCoachingHistory}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -302,6 +313,40 @@ function RankingTables({
                       <NumericCell>{formatDashboardNumber(item.verified)}</NumericCell>
                       <NumericCell>{formatDashboardNumber(item.draftBakets)}</NumericCell>
                       <TableCell className="whitespace-nowrap">{formatDashboardDate(item.lastReportAt)}</TableCell>
+                      <TableCell>
+                        <div className="flex min-w-[150px] flex-col gap-1">
+                          <div className="flex items-center gap-1.5">
+                            {(item.coachingCount ?? 0) > 0 ? (
+                              <Badge
+                                variant="outline"
+                                className="border-sky-500/40 bg-sky-500/10 font-semibold text-[10px] text-sky-600 dark:text-sky-400"
+                              >
+                                {item.coachingCount} Pembinaan
+                              </Badge>
+                            ) : (
+                              <span className="text-[11px] text-muted-foreground">Belum ada pembinaan</span>
+                            )}
+                          </div>
+                          {item.latestCoachingAt ? (
+                            <div className="text-[10px] text-muted-foreground">
+                              <span>Terakhir: </span>
+                              <span className="font-medium text-foreground">
+                                {formatDashboardDate(item.latestCoachingAt)}
+                              </span>
+                            </div>
+                          ) : null}
+                          <Link
+                            href={`/dashboard/laporan-pembinaan-jaring?search=${encodeURIComponent(item.code || item.name)}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 text-[11px] font-medium text-sky-600 hover:text-sky-700 hover:underline dark:text-sky-400"
+                            title="Buka Riwayat Pembinaan Jaring di tab baru"
+                          >
+                            <FileText className="size-3" />
+                            <span>Lihat Riwayat</span>
+                          </Link>
+                        </div>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

@@ -156,6 +156,8 @@ export type ExecutiveDashboardData = {
       draftBakets: number;
       lastReportAt: string | null;
       drilldown: string;
+      coachingCount?: number;
+      latestCoachingAt?: string | null;
     }>;
     fieldOfficerRanking: Array<{
       id: string;

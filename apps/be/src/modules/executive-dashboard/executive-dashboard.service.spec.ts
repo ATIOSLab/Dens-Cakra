@@ -267,6 +267,7 @@ describe('ExecutiveDashboardService', () => {
       code: 'W01001',
       name: 'Jaring Alpha',
       reports: 1,
+      coachingCount: 0,
     });
     expect(result.operations.fieldOfficerRanking[0]).toMatchObject({
       userProfileId: 'profile-field-officer-1',

@@ -127,6 +127,16 @@ const dashboardReportSelect = {
         take: 1,
         select: { area: { select: { id: true, name: true, level: true } } },
       },
+      _count: {
+        select: {
+          coachingReports: true,
+        },
+      },
+      coachingReports: {
+        take: 1,
+        orderBy: { reportedAt: 'desc' as const },
+        select: { id: true, title: true, reportedAt: true },
+      },
     },
   },
   media: {
@@ -225,6 +235,16 @@ const dashboardJaringSelect = {
     orderBy: [{ isPrimary: 'desc' as const }, { validFrom: 'desc' as const }],
     take: 1,
     select: { area: { select: dashboardAreaWithParentsSelect } },
+  },
+  _count: {
+    select: {
+      coachingReports: true,
+    },
+  },
+  coachingReports: {
+    take: 1,
+    orderBy: { reportedAt: 'desc' as const },
+    select: { id: true, title: true, reportedAt: true },
   },
 } satisfies Prisma.JaringSelect;
 
@@ -1412,11 +1432,18 @@ export class ExecutiveDashboardService {
         verified: number;
         draftBakets: number;
         lastReportAt: string | null;
+        coachingCount: number;
+        latestCoachingAt: string | null;
       }
     >();
     for (const network of jaring) {
       const caretaker =
         network.caretakerAssignments[0]?.fieldOfficerAssignment ?? null;
+      const coachingCount =
+        (network as any)._count?.coachingReports ??
+        (network as any).coachingReports?.length ??
+        0;
+      const latestCoaching = (network as any).coachingReports?.[0] ?? null;
       values.set(network.id, {
         id: network.id,
         code: this.jaringCode(network),
@@ -1434,6 +1461,10 @@ export class ExecutiveDashboardService {
         verified: 0,
         draftBakets: 0,
         lastReportAt: null,
+        coachingCount,
+        latestCoachingAt: latestCoaching?.reportedAt
+          ? new Date(latestCoaching.reportedAt).toISOString()
+          : null,
       });
     }
     for (const report of reports) {
@@ -1441,6 +1472,12 @@ export class ExecutiveDashboardService {
       const reportedAt = (report.submittedAt ?? report.startedAt).toISOString();
       const caretaker =
         report.jaring.caretakerAssignments[0]?.fieldOfficerAssignment ?? null;
+      const reportCoachingCount =
+        (report.jaring as any)._count?.coachingReports ??
+        (report.jaring as any).coachingReports?.length ??
+        0;
+      const reportLatestCoaching =
+        (report.jaring as any).coachingReports?.[0] ?? null;
       const item = values.get(id) ?? {
         id,
         code: this.jaringCode(report.jaring),
@@ -1456,6 +1493,10 @@ export class ExecutiveDashboardService {
         verified: 0,
         draftBakets: 0,
         lastReportAt: null,
+        coachingCount: reportCoachingCount,
+        latestCoachingAt: reportLatestCoaching?.reportedAt
+          ? new Date(reportLatestCoaching.reportedAt).toISOString()
+          : null,
       };
       item.reports += 1;
       if (this.reportStage(report) === 'BAKET_CREATED') item.verified += 1;
@@ -1465,6 +1506,14 @@ export class ExecutiveDashboardService {
       }
       if (!item.lastReportAt || reportedAt > item.lastReportAt) {
         item.lastReportAt = reportedAt;
+      }
+      if (item.coachingCount === 0 && reportCoachingCount > 0) {
+        item.coachingCount = reportCoachingCount;
+      }
+      if (!item.latestCoachingAt && reportLatestCoaching?.reportedAt) {
+        item.latestCoachingAt = new Date(
+          reportLatestCoaching.reportedAt,
+        ).toISOString();
       }
       values.set(id, item);
     }
