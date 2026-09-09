@@ -240,8 +240,41 @@ export class WhatsAppReportFlowService
     if (session && session.integrationChannelId !== channel.id) return;
 
     if (!session) {
-      if (media || text !== REPORT_TRIGGER) return;
-      await this.startSession(channel, message, payload, eligibleJaring, reply);
+      if (media) return;
+
+      const isTrigger = text === REPORT_TRIGGER;
+      if (isTrigger) {
+        await this.startSession(
+          channel,
+          message,
+          payload,
+          eligibleJaring,
+          reply,
+          'SESSION_STARTED_WITH_GLOBAL_TRIGGER',
+        );
+        return;
+      }
+
+      const isNewChat = await this.isFirstTimeChat(
+        payload.senderPhone,
+        eligibleJaring.id,
+        channel.id,
+        payload.externalMessageId,
+      );
+
+      if (isNewChat) {
+        await this.startSession(
+          channel,
+          message,
+          payload,
+          eligibleJaring,
+          reply,
+          'SESSION_STARTED_FIRST_CONTACT',
+        );
+        return;
+      }
+
+      // Untuk chat selanjutnya, tetap hanya merespons apabila sudah mengetik 1945
       return;
     }
 
@@ -302,6 +335,7 @@ export class WhatsAppReportFlowService
       ReturnType<WhatsAppReportFlowService['findEligibleJaring']>
     >,
     reply: ReplySender,
+    action = 'SESSION_STARTED_WITH_GLOBAL_TRIGGER',
   ) {
     if (!jaring) return;
     const remoteJid = message.key.remoteJid;
@@ -326,7 +360,7 @@ export class WhatsAppReportFlowService
         await tx.whatsAppReportHistory.create({
           data: {
             reportSessionId: session.id,
-            action: 'SESSION_STARTED_WITH_GLOBAL_TRIGGER',
+            action,
             newState: WhatsAppReportSessionState.CONTENT,
             externalMessageId: payload.externalMessageId,
           },
@@ -902,6 +936,50 @@ export class WhatsAppReportFlowService
       jaring.areaCoverages.map((coverage) => coverage.areaId),
     );
     return allowed ? jaring : null;
+  }
+
+  private async isFirstTimeChat(
+    senderPhone: string,
+    jaringId: string,
+    channelId: string,
+    currentExternalMessageId: string,
+  ): Promise<boolean> {
+    const raw = senderPhone.replace(/\D+/g, '');
+    const candidates = Array.from(
+      new Set([
+        senderPhone,
+        raw,
+        `+${raw}`,
+        raw.startsWith('62') ? `0${raw.slice(2)}` : raw,
+        raw.startsWith('62') ? raw.slice(2) : raw,
+      ]),
+    );
+
+    const [previousReport, previousSession, previousEvent] = await Promise.all([
+      this.prisma.whatsAppMessage.findFirst({
+        where: {
+          OR: [{ jaringId }, { senderPhone: { in: candidates } }],
+        },
+        select: { id: true },
+      }),
+      this.prisma.whatsAppReportSession.findFirst({
+        where: {
+          OR: [{ jaringId }, { senderPhone: { in: candidates } }],
+        },
+        select: { id: true },
+      }),
+      this.prisma.integrationWebhookEvent.findFirst({
+        where: {
+          channelId,
+          senderPhone: { in: candidates },
+          externalEventId: { not: currentExternalMessageId },
+          processedAt: { not: null },
+        },
+        select: { id: true },
+      }),
+    ]);
+
+    return !previousReport && !previousSession && !previousEvent;
   }
 
   private extractLiveLocation(message: WAMessage) {

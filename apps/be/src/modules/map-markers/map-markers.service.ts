@@ -807,8 +807,8 @@ export class MapMarkersService {
             latestCoachingTitle:
               (report.jaring as any).coachingReports?.[0]?.title ?? null,
             latestCoachingOfficerName:
-              (report.jaring as any).coachingReports?.[0]?.fieldOfficerAssignment
-                ?.userProfile?.fullName ?? null,
+              (report.jaring as any).coachingReports?.[0]
+                ?.fieldOfficerAssignment?.userProfile?.fullName ?? null,
           },
           fieldOfficer: caretaker
             ? {
@@ -884,8 +884,8 @@ export class MapMarkersService {
             latestCoachingTitle:
               (report.jaring as any).coachingReports?.[0]?.title ?? null,
             latestCoachingOfficerName:
-              (report.jaring as any).coachingReports?.[0]?.fieldOfficerAssignment
-                ?.userProfile?.fullName ?? null,
+              (report.jaring as any).coachingReports?.[0]
+                ?.fieldOfficerAssignment?.userProfile?.fullName ?? null,
             gaswilName:
               report.jaring.caretakerAssignments?.[0]?.fieldOfficerAssignment
                 ?.userProfile.fullName ?? null,

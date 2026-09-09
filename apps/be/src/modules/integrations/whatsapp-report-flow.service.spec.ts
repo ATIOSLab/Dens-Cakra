@@ -87,6 +87,7 @@ function createFixture() {
     whatsAppReportSession: {
       findUnique: jest.fn().mockResolvedValue(null),
       findMany: jest.fn().mockResolvedValue([]),
+      findFirst: jest.fn().mockResolvedValue(null),
       update: jest.fn().mockResolvedValue({}),
       delete: jest.fn().mockResolvedValue({}),
     },
@@ -94,6 +95,7 @@ function createFixture() {
     whatsAppReportMedia: { create: jest.fn().mockResolvedValue({}) },
     whatsAppReportHistory: { create: jest.fn().mockResolvedValue({}) },
     whatsAppMessage: { findFirst: jest.fn().mockResolvedValue(null) },
+    integrationWebhookEvent: { findFirst: jest.fn().mockResolvedValue(null) },
     fileAsset: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
   };
   const storage = { remove: jest.fn().mockResolvedValue(undefined) };
@@ -147,10 +149,10 @@ describe('WhatsAppReportFlowService simplified collector', () => {
     jest.useRealTimers();
   });
 
-  it('keeps unknown or unverified senders completely silent', async () => {
+  it('keeps unknown or unverified senders completely silent even on empty message', async () => {
     const { service, prisma } = createFixture();
     prisma.jaring.findFirst.mockResolvedValue(null);
-    const input = inbound('1945');
+    const input = inbound('');
 
     await service.handle(input);
 
@@ -175,18 +177,66 @@ describe('WhatsAppReportFlowService simplified collector', () => {
     expect(input.reply).toHaveBeenCalled();
   });
 
-  it('ignores any first message other than the global trigger', async () => {
+  it('starts a CONTENT draft for a first-time chat from an eligible jaring even if message is empty', async () => {
+    const { service, prisma } = createFixture();
+    const input = inbound('');
+
+    await service.handle(input);
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(input.reply).toHaveBeenCalledWith([
+      expect.stringContaining(
+        '*KANAL INFORMASI*\n\nSilakan sampaikan informasi dengan urutan berikut:',
+      ),
+    ]);
+  });
+
+  it('starts a CONTENT draft for a first-time chat from an eligible jaring if message is a greeting', async () => {
     const { service, prisma } = createFixture();
     const input = inbound('halo');
 
     await service.handle(input);
 
-    expect(input.reply).not.toHaveBeenCalled();
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(input.reply).toHaveBeenCalledWith([
+      expect.stringContaining('*KANAL INFORMASI*'),
+    ]);
+  });
+
+  it('ignores any message other than 1945 for a returning sender who already submitted a report', async () => {
+    const { service, prisma } = createFixture();
+    prisma.whatsAppMessage.findFirst.mockResolvedValue({
+      id: 'prev-report-123',
+    });
+    const emptyInput = inbound('');
+    const greetingInput = inbound('halo');
+
+    await service.handle(emptyInput);
+    await service.handle(greetingInput);
+
+    expect(emptyInput.reply).not.toHaveBeenCalled();
+    expect(greetingInput.reply).not.toHaveBeenCalled();
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
-  it('starts one CONTENT draft with 1945 and sends the exact opening copy', async () => {
+  it('ignores any message other than 1945 for a returning sender with prior processed webhook event', async () => {
     const { service, prisma } = createFixture();
+    prisma.integrationWebhookEvent.findFirst.mockResolvedValue({
+      id: 'prev-event-123',
+    });
+    const emptyInput = inbound('');
+
+    await service.handle(emptyInput);
+
+    expect(emptyInput.reply).not.toHaveBeenCalled();
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('starts one CONTENT draft with 1945 for a returning sender and sends the exact opening copy', async () => {
+    const { service, prisma } = createFixture();
+    prisma.whatsAppMessage.findFirst.mockResolvedValue({
+      id: 'prev-report-123',
+    });
     const input = inbound('1945');
 
     await service.handle(input);

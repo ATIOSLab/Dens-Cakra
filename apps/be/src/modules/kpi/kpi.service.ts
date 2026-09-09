@@ -2078,7 +2078,9 @@ export class KpiService {
       .filter((row) => row.binaan > 0 || row.baketDibuat > 0)
       .sort(
         (a, b) =>
-          b.melapor - a.melapor || b.baketBinaan - a.baketBinaan || b.binaan - a.binaan,
+          b.melapor - a.melapor ||
+          b.baketBinaan - a.baketBinaan ||
+          b.binaan - a.binaan,
       );
   }
 
@@ -2149,7 +2151,9 @@ export class KpiService {
   private personName(
     profile?: { fullName?: string | null; username?: string | null } | null,
   ): string {
-    return profile?.fullName?.trim() || profile?.username?.trim() || 'Tanpa Nama';
+    return (
+      profile?.fullName?.trim() || profile?.username?.trim() || 'Tanpa Nama'
+    );
   }
 
   /**
