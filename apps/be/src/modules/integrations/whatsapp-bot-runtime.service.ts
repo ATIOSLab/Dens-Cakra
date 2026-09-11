@@ -36,6 +36,8 @@ import {
   WhatsAppBotConnectionStatus,
   WhatsAppDeviceEventType,
   WhatsAppMessageStatus,
+  WhatsAppReportSessionState,
+  WhatsAppReportSessionStatus,
   WhatsAppValidationSummary,
 } from '../../generated/prisma/client.js';
 import { ApiException } from '../../common/api/api-exception.js';
@@ -49,10 +51,12 @@ import { LocalStorageService } from '../infrastructure/local-storage.service.js'
 import { MailSettingsService } from '../infrastructure/mail-settings.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AsyncJobService } from '../runtime/async-job.service.js';
+import { JobHandlerRegistry } from '../runtime/job-handler.registry.js';
 import { SpatialRepository } from '../spatial/spatial.repository.js';
 import { WhatsAppChannelScopeService } from '../whatsapp/whatsapp-channel-scope.service.js';
 import {
   WhatsAppReportFlowService,
+  WELCOME_MESSAGE,
   type WhatsAppReportReply,
 } from './whatsapp-report-flow.service.js';
 
@@ -102,6 +106,11 @@ type ResolvedSender = {
   source: 'JID' | 'LID_REVERSE' | null;
 };
 
+type WhatsAppWelcomeJobPayload = {
+  channelId: string;
+  jaringId: string;
+};
+
 type ReportSessionStep =
   | 'AWAITING_LIVE_LOCATION'
   | 'AWAITING_TITLE'
@@ -139,6 +148,9 @@ type ReportSession = {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const LEGACY_WHATSAPP_AUTH_ROOT = 'wa_auth';
+export const WHATSAPP_WELCOME_JOB_TYPE = 'WHATSAPP_SEND_WELCOME';
+const WELCOME_SESSION_STARTED_ACTION = 'SESSION_STARTED_DATABASE_TRIGGER';
+const WELCOME_SENT_ACTION = 'DATABASE_TRIGGER_WELCOME_SENT';
 
 const REPORT_REPLIES = {
   cancelled: [
@@ -260,6 +272,7 @@ export class WhatsappBotRuntimeService
     private readonly prisma: PrismaService,
     private readonly vault: SecretVaultService,
     private readonly jobs: AsyncJobService,
+    private readonly jobHandlers: JobHandlerRegistry,
     private readonly storage: LocalStorageService,
     private readonly mailSettings: MailSettingsService,
     private readonly spatial: SpatialRepository,
@@ -268,6 +281,10 @@ export class WhatsappBotRuntimeService
   ) {}
 
   async onModuleInit() {
+    this.jobHandlers.register(WHATSAPP_WELCOME_JOB_TYPE, (payload) =>
+      this.processWelcomeJob(payload),
+    );
+
     const channels = await this.prisma.integrationChannel.findMany({
       where: {
         deletedAt: null,
@@ -306,6 +323,218 @@ export class WhatsappBotRuntimeService
         );
       });
     }
+  }
+
+  private async processWelcomeJob(payload: unknown) {
+    const input = this.parseWelcomeJobPayload(payload);
+    const channel = await this.getChannel(input.channelId);
+    const runtime = this.runtimes.get(channel.id);
+    if (!runtime?.socket) {
+      throw new Error(`WhatsApp channel ${channel.code} is not connected.`);
+    }
+
+    const jaring = await this.prisma.jaring.findFirst({
+      where: {
+        id: input.jaringId,
+        registrationStatus: 'APPROVED',
+        status: 'ACTIVE',
+        deletedAt: null,
+      },
+      include: {
+        areaCoverages: {
+          where: { validUntil: null },
+          select: { areaId: true },
+        },
+        caretakerAssignments: {
+          where: {
+            isActive: true,
+            validUntil: null,
+            fieldOfficerAssignment: {
+              isActive: true,
+              validUntil: null,
+              userProfile: { isActive: true, deletedAt: null },
+            },
+          },
+          take: 1,
+        },
+      },
+    });
+    if (!jaring) {
+      return { sent: false, reason: 'JARING_NOT_ELIGIBLE' };
+    }
+
+    const fieldOfficerAssignmentId =
+      jaring.caretakerAssignments[0]?.fieldOfficerAssignmentId;
+    if (!fieldOfficerAssignmentId) {
+      return { sent: false, reason: 'ACTIVE_CARETAKER_NOT_FOUND' };
+    }
+
+    const isAllowed = await this.channelScope.isJaringAllowed(
+      channel,
+      jaring.areaCoverages.map((coverage) => coverage.areaId),
+    );
+    if (!isAllowed) {
+      return { sent: false, reason: 'CHANNEL_SCOPE_MISMATCH' };
+    }
+
+    const senderPhone = normalizeIndonesianPhoneNumber(jaring.whatsappNumber);
+    const phoneCandidates = this.phoneCandidates(senderPhone);
+    const existingSession = await this.prisma.whatsAppReportSession.findFirst({
+      where: {
+        OR: [{ jaringId: jaring.id }, { senderPhone: { in: phoneCandidates } }],
+      },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        history: {
+          where: {
+            action: {
+              in: [WELCOME_SESSION_STARTED_ACTION, WELCOME_SENT_ACTION],
+            },
+          },
+          select: { action: true },
+        },
+      },
+    });
+
+    if (
+      existingSession?.history.some(
+        (history) => history.action === WELCOME_SENT_ACTION,
+      )
+    ) {
+      return { sent: false, reason: 'WELCOME_ALREADY_SENT' };
+    }
+
+    const isPendingTriggeredSession =
+      existingSession?.status === WhatsAppReportSessionStatus.ACTIVE &&
+      existingSession.history.some(
+        (history) => history.action === WELCOME_SESSION_STARTED_ACTION,
+      );
+    if (existingSession && !isPendingTriggeredSession) {
+      return { sent: false, reason: 'SESSION_ALREADY_EXISTS' };
+    }
+
+    let session: { id: string; remoteJid: string } | null = existingSession;
+    if (!session) {
+      const remoteJid = await this.resolveWelcomeRemoteJid(
+        channel.id,
+        phoneCandidates,
+        senderPhone,
+      );
+      session = await this.prisma.$transaction(async (tx) => {
+        const created = await tx.whatsAppReportSession.create({
+          data: {
+            integrationChannelId: channel.id,
+            senderPhone,
+            remoteJid,
+            activeSenderKey: senderPhone,
+            jaringId: jaring.id,
+            fieldOfficerAssignmentId,
+            currentState: WhatsAppReportSessionState.CONTENT,
+            expiresAt: this.nextWibDayStart(new Date()),
+          },
+        });
+        await tx.whatsAppReportHistory.create({
+          data: {
+            reportSessionId: created.id,
+            action: WELCOME_SESSION_STARTED_ACTION,
+            newState: WhatsAppReportSessionState.CONTENT,
+          },
+        });
+        return created;
+      });
+    }
+
+    if (!session) {
+      throw new Error('Failed to prepare WhatsApp welcome session.');
+    }
+
+    await this.sendHumanLikeReplies(
+      runtime.socket,
+      session.remoteJid,
+      [],
+      [WELCOME_MESSAGE],
+    );
+    await this.prisma.whatsAppReportHistory.create({
+      data: {
+        reportSessionId: session.id,
+        action: WELCOME_SENT_ACTION,
+        previousState: WhatsAppReportSessionState.CONTENT,
+        newState: WhatsAppReportSessionState.CONTENT,
+      },
+    });
+
+    return {
+      sent: true,
+      jaringId: jaring.id,
+      sessionId: session.id,
+      channelId: channel.id,
+    };
+  }
+
+  private parseWelcomeJobPayload(payload: unknown): WhatsAppWelcomeJobPayload {
+    if (!payload || typeof payload !== 'object') {
+      throw new Error('Invalid WhatsApp welcome job payload.');
+    }
+    const candidate = payload as Record<string, unknown>;
+    if (
+      typeof candidate.channelId !== 'string' ||
+      typeof candidate.jaringId !== 'string'
+    ) {
+      throw new Error('WhatsApp welcome job requires channelId and jaringId.');
+    }
+    return {
+      channelId: candidate.channelId,
+      jaringId: candidate.jaringId,
+    };
+  }
+
+  private phoneCandidates(senderPhone: string) {
+    const raw = senderPhone.replace(/\D+/g, '');
+    return Array.from(
+      new Set([
+        senderPhone,
+        raw,
+        `+${raw}`,
+        raw.startsWith('62') ? `0${raw.slice(2)}` : raw,
+        raw.startsWith('62') ? raw.slice(2) : raw,
+      ]),
+    );
+  }
+
+  private async resolveWelcomeRemoteJid(
+    channelId: string,
+    phoneCandidates: string[],
+    senderPhone: string,
+  ) {
+    const event = await this.prisma.integrationWebhookEvent.findFirst({
+      where: {
+        channelId,
+        eventType: 'WHATSAPP_BAILEYS_MESSAGE',
+        senderPhone: { in: phoneCandidates },
+      },
+      orderBy: { receivedAt: 'desc' },
+      select: { payload: true },
+    });
+    const eventPayload =
+      event?.payload && typeof event.payload === 'object'
+        ? (event.payload as Record<string, unknown>)
+        : null;
+    const senderJid = eventPayload?.senderJid;
+    if (
+      typeof senderJid === 'string' &&
+      (senderJid.endsWith('@s.whatsapp.net') || senderJid.endsWith('@lid'))
+    ) {
+      return senderJid;
+    }
+    return `${senderPhone.replace(/\D+/g, '')}@s.whatsapp.net`;
+  }
+
+  private nextWibDayStart(now: Date) {
+    const wib = new Date(now.getTime() + 7 * 60 * 60_000);
+    return new Date(
+      Date.UTC(wib.getUTCFullYear(), wib.getUTCMonth(), wib.getUTCDate() + 1) -
+        7 * 60 * 60_000,
+    );
   }
 
   onModuleDestroy() {
@@ -2099,12 +2328,14 @@ export class WhatsappBotRuntimeService
   ) {
     await sleep(1200 + Math.floor(Math.random() * 700));
 
-    try {
-      await socket.readMessages(messageKeys);
-    } catch (error: unknown) {
-      this.logger.warn(
-        `Failed to mark WhatsApp message as read: ${this.messageOf(error)}`,
-      );
+    if (messageKeys.length > 0) {
+      try {
+        await socket.readMessages(messageKeys);
+      } catch (error: unknown) {
+        this.logger.warn(
+          `Failed to mark WhatsApp message as read: ${this.messageOf(error)}`,
+        );
+      }
     }
 
     for (const [index, reply] of replies.entries()) {

@@ -104,7 +104,7 @@ const ADMINISTRATIVE_NAME_WORDS = new Set([
   'IBUKOTA',
 ]);
 
-const WELCOME_MESSAGE = `*KANAL INFORMASI*
+export const WELCOME_MESSAGE = `*KANAL INFORMASI*
 
 Silakan sampaikan informasi dengan urutan berikut:
 

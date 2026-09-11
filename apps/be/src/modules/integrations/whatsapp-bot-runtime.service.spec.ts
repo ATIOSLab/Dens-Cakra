@@ -1,7 +1,11 @@
 import { jest } from '@jest/globals';
 import { AreaResolutionMethod } from '../../generated/prisma/client.js';
 import { env } from '../../lib/env.js';
-import { WhatsappBotRuntimeService } from './whatsapp-bot-runtime.service.js';
+import {
+  WHATSAPP_WELCOME_JOB_TYPE,
+  WhatsappBotRuntimeService,
+} from './whatsapp-bot-runtime.service.js';
+import { WELCOME_MESSAGE } from './whatsapp-report-flow.service.js';
 
 describe('WhatsappBotRuntimeService report intake', () => {
   function createRuntimeService(
@@ -16,6 +20,7 @@ describe('WhatsappBotRuntimeService report intake', () => {
       prisma as never,
       {} as never,
       {} as never,
+      { register: jest.fn() } as never,
       {} as never,
       {} as never,
       (deps.spatial ?? {}) as never,
@@ -869,6 +874,134 @@ describe('WhatsappBotRuntimeService report intake', () => {
       areaResolutionMethod: AreaResolutionMethod.POLYGON_MATCH,
       areaResolutionConfidence: 100,
       areaResolvedAt: resolvedAt,
+    });
+  });
+
+  it('mendaftarkan handler trigger sambutan database saat runtime dimulai', async () => {
+    const register = jest.fn();
+    const service = new WhatsappBotRuntimeService(
+      {
+        integrationChannel: { findMany: jest.fn(() => Promise.resolve([])) },
+      } as never,
+      {} as never,
+      {} as never,
+      { register } as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+
+    await service.onModuleInit();
+
+    expect(register).toHaveBeenCalledWith(
+      WHATSAPP_WELCOME_JOB_TYPE,
+      expect.any(Function),
+    );
+  });
+
+  it('mengirim format sambutan yang sama untuk jaring terverifikasi dari job database', async () => {
+    const sessionCreate = jest.fn(() =>
+      Promise.resolve({
+        id: 'session-id',
+        remoteJid: '6281234567890@s.whatsapp.net',
+      }),
+    );
+    const transactionHistoryCreate = jest.fn(() => Promise.resolve({}));
+    const sentHistoryCreate = jest.fn(() => Promise.resolve({}));
+    const prisma = {
+      integrationChannel: {
+        findFirstOrThrow: jest.fn(() =>
+          Promise.resolve({
+            id: 'channel-id',
+            code: 'WHATSAPP-UTAMA',
+            channelType: 'WHATSAPP',
+            status: 'ACTIVE',
+            config: {},
+          }),
+        ),
+      },
+      jaring: {
+        findFirst: jest.fn(() =>
+          Promise.resolve({
+            id: 'jaring-id',
+            whatsappNumber: '081234567890',
+            areaCoverages: [{ areaId: 'area-id' }],
+            caretakerAssignments: [
+              { fieldOfficerAssignmentId: 'field-officer-id' },
+            ],
+          }),
+        ),
+      },
+      whatsAppReportSession: {
+        findFirst: jest.fn(() => Promise.resolve(null)),
+      },
+      integrationWebhookEvent: {
+        findFirst: jest.fn(() =>
+          Promise.resolve({
+            payload: { senderJid: '6281234567890@s.whatsapp.net' },
+          }),
+        ),
+      },
+      whatsAppReportHistory: { create: sentHistoryCreate },
+      $transaction: jest.fn(
+        async (
+          callback: (tx: {
+            whatsAppReportSession: { create: typeof sessionCreate };
+            whatsAppReportHistory: {
+              create: typeof transactionHistoryCreate;
+            };
+          }) => Promise<unknown>,
+        ) =>
+          callback({
+            whatsAppReportSession: { create: sessionCreate },
+            whatsAppReportHistory: { create: transactionHistoryCreate },
+          }),
+      ),
+    };
+    const channelScope = {
+      isJaringAllowed: jest.fn(() => Promise.resolve(true)),
+    };
+    const service = createRuntimeService(prisma, { channelScope });
+    const sendHumanLikeReplies = jest.fn(() => Promise.resolve());
+    const privateService = service as unknown as {
+      processWelcomeJob: (payload: unknown) => Promise<unknown>;
+      runtimes: Map<string, { socket: unknown }>;
+      sendHumanLikeReplies: typeof sendHumanLikeReplies;
+    };
+    privateService.runtimes.set('channel-id', { socket: {} });
+    privateService.sendHumanLikeReplies = sendHumanLikeReplies;
+
+    await expect(
+      privateService.processWelcomeJob({
+        channelId: 'channel-id',
+        jaringId: 'jaring-id',
+      }),
+    ).resolves.toMatchObject({ sent: true, sessionId: 'session-id' });
+
+    expect(sendHumanLikeReplies).toHaveBeenCalledWith(
+      {},
+      '6281234567890@s.whatsapp.net',
+      [],
+      [WELCOME_MESSAGE],
+    );
+    expect(sessionCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        senderPhone: '6281234567890',
+        jaringId: 'jaring-id',
+        activeSenderKey: '6281234567890',
+      }),
+    });
+    expect(transactionHistoryCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        action: 'SESSION_STARTED_DATABASE_TRIGGER',
+      }),
+    });
+    expect(sentHistoryCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        action: 'DATABASE_TRIGGER_WELCOME_SENT',
+      }),
     });
   });
 });
