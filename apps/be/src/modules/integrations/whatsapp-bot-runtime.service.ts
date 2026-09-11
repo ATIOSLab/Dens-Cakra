@@ -1182,17 +1182,30 @@ export class WhatsappBotRuntimeService
     };
   }
 
-  private unwrapMessage(message?: WAMessage['message']) {
+  private unwrapMessage(message?: WAMessage['message']): WAMessage['message'] {
     if (!message) {
       return undefined;
     }
 
-    return (
-      message.ephemeralMessage?.message ??
-      message.viewOnceMessage?.message ??
-      message.viewOnceMessageV2?.message ??
-      message
-    );
+    let current = message as Record<string, any> | undefined;
+    for (let depth = 0; depth < 5 && current; depth++) {
+      if (current.ephemeralMessage?.message) {
+        current = current.ephemeralMessage.message;
+      } else if (current.viewOnceMessage?.message) {
+        current = current.viewOnceMessage.message;
+      } else if (current.viewOnceMessageV2?.message) {
+        current = current.viewOnceMessageV2.message;
+      } else if (current.documentWithCaptionMessage?.message) {
+        current = current.documentWithCaptionMessage.message;
+      } else if (
+        current.editedMessage?.message?.protocolMessage?.editedMessage
+      ) {
+        current = current.editedMessage.message.protocolMessage.editedMessage;
+      } else {
+        break;
+      }
+    }
+    return current as WAMessage['message'];
   }
 
   private extractText(message: ReturnType<typeof this.unwrapMessage>) {
@@ -1214,6 +1227,20 @@ export class WhatsappBotRuntimeService
       message.imageMessage?.caption ||
       message.videoMessage?.caption ||
       message.documentMessage?.caption ||
+      (message as { interactiveMessage?: { body?: { text?: string } } })
+        .interactiveMessage?.body?.text ||
+      (
+        message as {
+          buttonsResponseMessage?: { selectedDisplayText?: string };
+        }
+      ).buttonsResponseMessage?.selectedDisplayText ||
+      (
+        message as {
+          templateButtonReplyMessage?: { selectedId?: string };
+        }
+      ).templateButtonReplyMessage?.selectedId ||
+      (message as { listResponseMessage?: { title?: string } })
+        .listResponseMessage?.title ||
       ''
     ).trim();
   }

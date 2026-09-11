@@ -240,41 +240,26 @@ export class WhatsAppReportFlowService
     if (session && session.integrationChannelId !== channel.id) return;
 
     if (!session) {
-      if (media) return;
-
       const isTrigger = text === REPORT_TRIGGER;
-      if (isTrigger) {
-        await this.startSession(
-          channel,
-          message,
-          payload,
-          eligibleJaring,
-          reply,
-          'SESSION_STARTED_WITH_GLOBAL_TRIGGER',
-        );
-        return;
-      }
-
       const isNewChat = await this.isFirstTimeChat(
         payload.senderPhone,
         eligibleJaring.id,
-        channel.id,
-        payload.externalMessageId,
       );
 
-      if (isNewChat) {
-        await this.startSession(
-          channel,
-          message,
-          payload,
-          eligibleJaring,
-          reply,
-          'SESSION_STARTED_FIRST_CONTACT',
-        );
-        return;
-      }
+      const action = isTrigger
+        ? 'SESSION_STARTED_WITH_GLOBAL_TRIGGER'
+        : isNewChat
+          ? 'SESSION_STARTED_FIRST_CONTACT'
+          : 'SESSION_STARTED_DIRECT_CONTACT';
 
-      // Untuk chat selanjutnya, tetap hanya merespons apabila sudah mengetik 1945
+      await this.startSession(
+        channel,
+        message,
+        payload,
+        eligibleJaring,
+        reply,
+        action,
+      );
       return;
     }
 
@@ -941,8 +926,6 @@ export class WhatsAppReportFlowService
   private async isFirstTimeChat(
     senderPhone: string,
     jaringId: string,
-    channelId: string,
-    currentExternalMessageId: string,
   ): Promise<boolean> {
     const raw = senderPhone.replace(/\D+/g, '');
     const candidates = Array.from(
@@ -955,7 +938,7 @@ export class WhatsAppReportFlowService
       ]),
     );
 
-    const [previousReport, previousSession, previousEvent] = await Promise.all([
+    const [previousReport, previousSession] = await Promise.all([
       this.prisma.whatsAppMessage.findFirst({
         where: {
           OR: [{ jaringId }, { senderPhone: { in: candidates } }],
@@ -968,18 +951,9 @@ export class WhatsAppReportFlowService
         },
         select: { id: true },
       }),
-      this.prisma.integrationWebhookEvent.findFirst({
-        where: {
-          channelId,
-          senderPhone: { in: candidates },
-          externalEventId: { not: currentExternalMessageId },
-          processedAt: { not: null },
-        },
-        select: { id: true },
-      }),
     ]);
 
-    return !previousReport && !previousSession && !previousEvent;
+    return !previousReport && !previousSession;
   }
 
   private extractLiveLocation(message: WAMessage) {
@@ -1084,14 +1058,27 @@ export class WhatsAppReportFlowService
     await this.storage.remove(storageKey).catch(() => undefined);
   }
 
-  private unwrapMessage(message?: WAMessage['message']) {
+  private unwrapMessage(message?: WAMessage['message']): WAMessage['message'] {
     if (!message) return undefined;
-    return (
-      message.ephemeralMessage?.message ??
-      message.viewOnceMessage?.message ??
-      message.viewOnceMessageV2?.message ??
-      message
-    );
+    let current = message as Record<string, any> | undefined;
+    for (let depth = 0; depth < 5 && current; depth++) {
+      if (current.ephemeralMessage?.message) {
+        current = current.ephemeralMessage.message;
+      } else if (current.viewOnceMessage?.message) {
+        current = current.viewOnceMessage.message;
+      } else if (current.viewOnceMessageV2?.message) {
+        current = current.viewOnceMessageV2.message;
+      } else if (current.documentWithCaptionMessage?.message) {
+        current = current.documentWithCaptionMessage.message;
+      } else if (
+        current.editedMessage?.message?.protocolMessage?.editedMessage
+      ) {
+        current = current.editedMessage.message.protocolMessage.editedMessage;
+      } else {
+        break;
+      }
+    }
+    return current as WAMessage['message'];
   }
 
   private appendContent(current: string | null, next: string) {

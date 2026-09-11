@@ -203,33 +203,34 @@ describe('WhatsAppReportFlowService simplified collector', () => {
     ]);
   });
 
-  it('ignores any message other than 1945 for a returning sender who already submitted a report', async () => {
+  it('starts a CONTENT draft for a returning sender who already submitted a report even on empty message', async () => {
     const { service, prisma } = createFixture();
     prisma.whatsAppMessage.findFirst.mockResolvedValue({
       id: 'prev-report-123',
     });
     const emptyInput = inbound('');
-    const greetingInput = inbound('halo');
 
     await service.handle(emptyInput);
-    await service.handle(greetingInput);
 
-    expect(emptyInput.reply).not.toHaveBeenCalled();
-    expect(greetingInput.reply).not.toHaveBeenCalled();
-    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(emptyInput.reply).toHaveBeenCalledWith([
+      expect.stringContaining('*KANAL INFORMASI*'),
+    ]);
   });
 
-  it('ignores any message other than 1945 for a returning sender with prior processed webhook event', async () => {
+  it('starts a CONTENT draft for a returning sender who sends a greeting', async () => {
     const { service, prisma } = createFixture();
-    prisma.integrationWebhookEvent.findFirst.mockResolvedValue({
-      id: 'prev-event-123',
+    prisma.whatsAppMessage.findFirst.mockResolvedValue({
+      id: 'prev-report-123',
     });
-    const emptyInput = inbound('');
+    const greetingInput = inbound('halo');
 
-    await service.handle(emptyInput);
+    await service.handle(greetingInput);
 
-    expect(emptyInput.reply).not.toHaveBeenCalled();
-    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(greetingInput.reply).toHaveBeenCalledWith([
+      expect.stringContaining('*KANAL INFORMASI*'),
+    ]);
   });
 
   it('starts one CONTENT draft with 1945 for a returning sender and sends the exact opening copy', async () => {
