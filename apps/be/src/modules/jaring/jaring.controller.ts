@@ -28,6 +28,8 @@ import {
   ReportCategoryQuery,
   ReasonDto,
   RejectJaringDto,
+  SuspendJaringDto,
+  UnsuspendJaringDto,
   UpdateJaringOccupationDto,
   UpdateJaringReportMetadataDto,
   UpdateReportCategoryDto,
@@ -266,6 +268,38 @@ export class JaringController {
     return apiResult(
       await this.jaringService.rejectRegistration(id, body, context),
     );
+  }
+
+  @Post(':jaringId/suspend')
+  @ApiContract({
+    operationId: 'apiJarSuspend001',
+    contractId: 'API-JAR-SUSPEND-001',
+    summary: 'Tangguhkan (suspend) Jaring',
+    roles: ['executive'],
+    idempotent: true,
+  })
+  async suspend(
+    @Param('jaringId', ParseUUIDPipe) id: string,
+    @Body() body: SuspendJaringDto,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.jaringService.suspend(id, body, context));
+  }
+
+  @Post(':jaringId/unsuspend')
+  @ApiContract({
+    operationId: 'apiJarUnsuspend001',
+    contractId: 'API-JAR-UNSUSPEND-001',
+    summary: 'Batalkan penangguhan (unsuspend) Jaring',
+    roles: ['executive'],
+    idempotent: true,
+  })
+  async unsuspend(
+    @Param('jaringId', ParseUUIDPipe) id: string,
+    @Body() body: UnsuspendJaringDto,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.jaringService.unsuspend(id, body, context));
   }
 
   @Patch(':jaringId')

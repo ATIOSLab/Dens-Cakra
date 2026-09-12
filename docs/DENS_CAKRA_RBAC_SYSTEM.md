@@ -125,6 +125,17 @@ Manajer Intelijen Operasional (OIM/Anev) bukan role tersendiri. Fungsi analis ev
 
 Filter wilayah harus berjenjang dan tidak boleh menampilkan pilihan di luar scope pengguna.
 
+## Kewenangan Khusus Penangguhan Jaring (Suspend / Unsuspend)
+
+- **Hak Akses Eksklusif**: Hanya role **Deputi II (`executive`)** yang berwenang melakukan tindakan penangguhan (`suspend`) dan pemulihan (`unsuspend`) pada entitas Jaring.
+- Role lain (Korwil, Gaswil, Kabinda, Admin) **tidak memiliki akses** dan backend menolak dengan `403 Forbidden`.
+- **Dampak Penangguhan**:
+  - `registrationStatus` berubah menjadi `SUSPENDED`.
+  - `status` operasional berubah menjadi `INACTIVE`.
+  - Jaring **tidak lagi dihitung sebagai terverifikasi** dalam seluruh metrik: kartu ringkasan Daftar Jaring, KPI Produktivitas nasional/wilayah, dan penanda peta (hanya Jaring `APPROVED` yang dihitung terverifikasi).
+  - Jaring yang ditangguhkan tidak dapat mengirim laporan intelijen valid melalui WhatsApp intake.
+- **Pemulihan**: Deputi II dapat membatalkan penangguhan (`unsuspend`), mengembalikan `registrationStatus` ke `APPROVED` dan `status` ke `ACTIVE`.
+
 ## Larangan
 
 - Jangan hardcode `Direktorat 21 -> Jakarta Selatan` atau mapping serupa di source code.

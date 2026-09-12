@@ -258,3 +258,18 @@ export class ReasonDto {
 export class RejectJaringDto {
   @IsOptional() @IsString() @MaxLength(1000) reason?: string;
 }
+
+export class SuspendJaringDto {
+  @IsString({ message: 'Alasan penangguhan harus berupa teks.' })
+  @MinLength(2, { message: 'Alasan penangguhan minimal 2 karakter.' })
+  @MaxLength(1000, { message: 'Alasan penangguhan maksimal 1000 karakter.' })
+  reason!: string;
+}
+
+export class UnsuspendJaringDto {
+  @IsOptional()
+  @IsString({ message: 'Alasan pemulihan harus berupa teks.' })
+  @MaxLength(1000, { message: 'Alasan pemulihan maksimal 1000 karakter.' })
+  reason?: string;
+}
+

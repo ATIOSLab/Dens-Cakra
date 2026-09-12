@@ -154,6 +154,7 @@ enum JaringRegistrationStatus {
   PENDING
   APPROVED
   REJECTED
+  SUSPENDED
 }
 
 enum JaringGender {

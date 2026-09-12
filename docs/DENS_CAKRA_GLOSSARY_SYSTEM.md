@@ -370,6 +370,9 @@ Setiap arahan harus memiliki:
 | Diproses | Diproses | Processing |
 | Selesai | Selesai | Done/Completed |
 | Ditolak | Ditolak | Rejected |
+| Ditangguhkan | Ditangguhkan | Suspended |
+| Tangguhkan | Tangguhkan (Suspend) | Wewenang khusus Deputi II (`executive`) untuk menonaktifkan Jaring dari status terverifikasi |
+| Pulihkan | Pulihkan (Unsuspend) | Wewenang khusus Deputi II (`executive`) untuk membatalkan penangguhan Jaring |
 | Disetujui | Disetujui | Approved |
 | Dibatalkan | Dibatalkan | Cancelled |
 | Memuat data | Memuat data | Loading data |
@@ -414,6 +417,7 @@ Menu KPI menjadi pusat evaluasi kinerja Jaring nasional. Istilah berikut mengiku
 | Terverifikasi tetapi Nonaktif | Terverifikasi tetapi Nonaktif | `registrationStatus=APPROVED` AND `status∈{INACTIVE,TRANSFERRED,ARCHIVED}` | Tidak masuk basis produktivitas. |
 | Menunggu Persetujuan | Menunggu Persetujuan | `registrationStatus=PENDING` | Tidak masuk basis produktivitas. |
 | Ditolak | Ditolak | `registrationStatus=REJECTED` | Tidak masuk basis produktivitas. |
+| Ditangguhkan | Ditangguhkan | `registrationStatus=SUSPENDED` | Ditangguhkan khusus oleh Deputi II (`executive`). Tidak dihitung sebagai terverifikasi dan tidak masuk basis produktivitas. |
 | Belum Terverifikasi | Belum Terverifikasi | alias `registrationStatus=PENDING` | Pada model data saat ini setara dengan Menunggu Persetujuan. |
 | Status Lainnya | Status Lainnya | kombinasi `(status, registrationStatus)` yang belum terpetakan | Indikator kualitas data; tidak masuk basis produktivitas. |
 | Jaring Produktif | Jaring Produktif | Jaring Aktif Terverifikasi dengan ≥1 Laporan Jaring valid pada periode | Dihitung dari ID Jaring unik. |

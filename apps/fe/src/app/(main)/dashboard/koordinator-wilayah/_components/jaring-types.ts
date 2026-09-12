@@ -40,7 +40,7 @@ export type RegistrationJaring = {
   notes: string | null;
   status?: "ACTIVE" | "INACTIVE";
   lastReportAt?: string | null;
-  registrationStatus: "PENDING" | "APPROVED" | "REJECTED";
+  registrationStatus: "PENDING" | "APPROVED" | "REJECTED" | "SUSPENDED";
   registeredAt: string;
   createdAt?: string;
   rejectionReason?: string | null;

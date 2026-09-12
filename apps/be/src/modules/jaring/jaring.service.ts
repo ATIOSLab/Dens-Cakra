@@ -35,6 +35,8 @@ import type {
   ReportCategoryQuery,
   ReasonDto,
   RejectJaringDto,
+  SuspendJaringDto,
+  UnsuspendJaringDto,
   UpdateJaringOccupationDto,
   UpdateJaringReportMetadataDto,
   UpdateReportCategoryDto,
@@ -1567,9 +1569,11 @@ export class JaringService {
 
     const summaryWhere: Prisma.JaringWhereInput = {
       ...baseWhere,
-      ...(isFieldOfficer
-        ? {}
-        : { registrationStatus: JaringRegistrationStatus.APPROVED }),
+      ...(query.registrationStatus
+        ? { registrationStatus: query.registrationStatus }
+        : isFieldOfficer
+          ? {}
+          : { registrationStatus: JaringRegistrationStatus.APPROVED }),
     };
     const [total, registrationGroups] = await Promise.all([
       this.prisma.jaring.count({ where }),
@@ -1605,6 +1609,8 @@ export class JaringService {
           registrationCounts.get(JaringRegistrationStatus.APPROVED) ?? 0,
         rejected:
           registrationCounts.get(JaringRegistrationStatus.REJECTED) ?? 0,
+        suspended:
+          registrationCounts.get(JaringRegistrationStatus.SUSPENDED) ?? 0,
       },
     };
   }
@@ -1836,6 +1842,107 @@ export class JaringService {
       },
     });
     await this.audit(context, 'JARING.REGISTRATION.REJECT', id, {
+      reason,
+    });
+    return this.detail(id);
+  }
+
+  async suspend(
+    id: string,
+    body: SuspendJaringDto,
+    context: AuthorizationContext,
+  ) {
+    if (context.authRole !== 'executive') {
+      throw new ApiException(
+        'FORBIDDEN',
+        'Hanya role Deputi II yang memiliki kewenangan untuk menangguhkan Jaring.',
+        403,
+      );
+    }
+    await this.domainScope.assertJaring(context, id);
+    const existing = await this.prisma.jaring.findUniqueOrThrow({
+      where: { id },
+      select: {
+        id: true,
+        registrationStatus: true,
+        status: true,
+      },
+    });
+    if (existing.registrationStatus === JaringRegistrationStatus.SUSPENDED) {
+      throw new ApiException(
+        'JARING_ALREADY_SUSPENDED',
+        'Jaring ini sudah dalam status ditangguhkan.',
+        409,
+      );
+    }
+    const reason = body.reason.trim();
+    await this.prisma.jaring.update({
+      where: { id },
+      data: {
+        registrationStatus: JaringRegistrationStatus.SUSPENDED,
+        status: JaringStatus.INACTIVE,
+        deactivatedAt: new Date(),
+        rejectionReason: reason,
+        reviewedAt: new Date(),
+        reviewedByAssignmentId: context.primaryAssignmentId,
+      },
+    });
+    await this.audit(context, 'JARING.SUSPEND', id, {
+      reason,
+      previousRegistrationStatus: existing.registrationStatus,
+      previousStatus: existing.status,
+    });
+    return this.detail(id);
+  }
+
+  async unsuspend(
+    id: string,
+    body: UnsuspendJaringDto,
+    context: AuthorizationContext,
+  ) {
+    if (context.authRole !== 'executive') {
+      throw new ApiException(
+        'FORBIDDEN',
+        'Hanya role Deputi II yang memiliki kewenangan untuk membatalkan penangguhan Jaring.',
+        403,
+      );
+    }
+    await this.domainScope.assertJaring(context, id);
+    const existing = await this.prisma.jaring.findUniqueOrThrow({
+      where: { id },
+      select: {
+        id: true,
+        registrationStatus: true,
+        whatsappNumber: true,
+        nationalIdNumber: true,
+      },
+    });
+    if (existing.registrationStatus !== JaringRegistrationStatus.SUSPENDED) {
+      throw new ApiException(
+        'JARING_NOT_SUSPENDED',
+        'Jaring ini tidak dalam status ditangguhkan.',
+        409,
+      );
+    }
+    this.assertNoActiveWhatsappConflict(
+      await this.findActiveWhatsappConflict(existing.whatsappNumber, id),
+    );
+    this.assertNoNationalIdConflict(
+      await this.findNationalIdConflict(existing.nationalIdNumber, id),
+    );
+    const reason = body.reason?.trim() || null;
+    await this.prisma.jaring.update({
+      where: { id },
+      data: {
+        registrationStatus: JaringRegistrationStatus.APPROVED,
+        status: JaringStatus.ACTIVE,
+        deactivatedAt: null,
+        rejectionReason: null,
+        reviewedAt: new Date(),
+        reviewedByAssignmentId: context.primaryAssignmentId,
+      },
+    });
+    await this.audit(context, 'JARING.UNSUSPEND', id, {
       reason,
     });
     return this.detail(id);

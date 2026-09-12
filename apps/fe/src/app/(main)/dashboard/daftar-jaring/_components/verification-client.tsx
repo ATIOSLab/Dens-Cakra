@@ -7,6 +7,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import {
   ArrowLeft,
+  Ban,
   BriefcaseBusiness,
   CheckCircle2,
   ChevronDown,
@@ -22,6 +23,7 @@ import {
   RefreshCw,
   RotateCcw,
   Search,
+  ShieldAlert,
   ShieldCheck,
   Trash2,
   UserRound,
@@ -254,6 +256,7 @@ function getInitials(name?: string | null) {
 function statusLabel(status: RegistrationJaring["registrationStatus"]) {
   if (status === "APPROVED") return "Disetujui";
   if (status === "REJECTED") return "Ditolak";
+  if (status === "SUSPENDED") return "Ditangguhkan";
   return "Menunggu Tinjauan";
 }
 
@@ -263,6 +266,9 @@ function statusBadgeVariant(status: RegistrationJaring["registrationStatus"]) {
   }
   if (status === "REJECTED") {
     return "border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-400";
+  }
+  if (status === "SUSPENDED") {
+    return "border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-400";
   }
   return "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400";
 }
@@ -276,12 +282,13 @@ export function JaringVerificationListClient() {
   const isFieldOfficer = activeRole === SYSTEM_ROLES.FIELD_OFFICER;
   const isFieldCoordinator = activeRole === SYSTEM_ROLES.FIELD_COORDINATOR;
   const isNationalRole = activeRole === SYSTEM_ROLES.EXECUTIVE || activeRole === SYSTEM_ROLES.NATIONAL_LEADER;
+  const isDeputyRole = activeRole === SYSTEM_ROLES.EXECUTIVE;
   const [items, setItems] = useState<RegistrationJaring[]>([]);
   const [scopedAreas, setScopedAreas] = useState<AdministrativeAreaFilterScope[]>([]);
   const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
   const [statusFilter, setStatusFilter] = useState<string>(() => {
     const value = searchParams.get("registrationStatus");
-    return value === "PENDING" || value === "APPROVED" || value === "REJECTED" ? value : "ALL";
+    return value === "PENDING" || value === "APPROVED" || value === "REJECTED" || value === "SUSPENDED" ? value : "ALL";
   });
   const [activeStatusFilter, setActiveStatusFilter] = useState<string>(() => {
     const value = searchParams.get("activityStatus");
@@ -313,7 +320,7 @@ export function JaringVerificationListClient() {
   // Quick Action Modal State
   const [selectedItemForAction, setSelectedItemForAction] = useState<{
     item: RegistrationJaring;
-    action: "approve" | "reject";
+    action: "approve" | "reject" | "suspend" | "unsuspend";
   } | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
   const [isSubmittingAction, setIsSubmittingAction] = useState(false);
@@ -460,7 +467,7 @@ export function JaringVerificationListClient() {
         } while (batch.length === 500);
         return results;
       };
-      const lists = await Promise.all((["PENDING", "APPROVED", "REJECTED"] as const).map(fetchStatus));
+      const lists = await Promise.all((["PENDING", "APPROVED", "REJECTED", "SUSPENDED"] as const).map(fetchStatus));
       if (requestId !== loadRequestRef.current) return;
       setItems(lists.flat());
       setPage(1);
@@ -490,10 +497,11 @@ export function JaringVerificationListClient() {
     const pending = baseFilteredItems.filter((i) => i.registrationStatus === "PENDING").length;
     const approved = baseFilteredItems.filter((i) => i.registrationStatus === "APPROVED").length;
     const rejected = baseFilteredItems.filter((i) => i.registrationStatus === "REJECTED").length;
+    const suspended = baseFilteredItems.filter((i) => i.registrationStatus === "SUSPENDED").length;
     const verifiedItems = baseFilteredItems.filter((i) => i.registrationStatus === "APPROVED");
     const active = verifiedItems.filter(isJaringActive).length;
     const inactive = verifiedItems.length - active;
-    return { total, pending, approved, rejected, active, inactive };
+    return { total, pending, approved, rejected, suspended, active, inactive };
   }, [baseFilteredItems]);
 
   const areaSubtitle = useMemo(() => {
@@ -618,36 +626,66 @@ export function JaringVerificationListClient() {
     );
   }
 
-  async function handleQuickDecision(item: RegistrationJaring, action: "approve" | "reject", reason?: string) {
+  async function handleQuickDecision(
+    item: RegistrationJaring,
+    action: "approve" | "reject" | "suspend" | "unsuspend",
+    reason?: string,
+  ) {
     setIsSubmittingAction(true);
     try {
-      await apiBrowserMutation<void>(
-        "POST",
-        `/jaring/${item.id}/${action === "approve" ? "approve-registration" : "reject-registration"}`,
-        action === "reject" ? { reason: reason?.trim() || undefined } : undefined,
-        { idempotent: true },
-      );
+      let endpoint = "";
+      let payload: unknown = undefined;
+      if (action === "approve") {
+        endpoint = `/jaring/${item.id}/approve-registration`;
+      } else if (action === "reject") {
+        endpoint = `/jaring/${item.id}/reject-registration`;
+        payload = { reason: reason?.trim() || undefined };
+      } else if (action === "suspend") {
+        endpoint = `/jaring/${item.id}/suspend`;
+        payload = { reason: reason?.trim() || "Ditangguhkan oleh Deputi II" };
+      } else if (action === "unsuspend") {
+        endpoint = `/jaring/${item.id}/unsuspend`;
+        payload = { reason: reason?.trim() || undefined };
+      }
+
+      await apiBrowserMutation<void>("POST", endpoint, payload, { idempotent: true });
+
+      const newRegistrationStatus =
+        action === "approve" || action === "unsuspend"
+          ? "APPROVED"
+          : action === "reject"
+            ? "REJECTED"
+            : "SUSPENDED";
 
       setItems((prevItems) =>
         prevItems.map((prev) =>
           prev.id === item.id
             ? {
                 ...prev,
-                registrationStatus: action === "approve" ? "APPROVED" : "REJECTED",
-                rejectionReason: action === "reject" ? reason?.trim() || null : prev.rejectionReason,
+                registrationStatus: newRegistrationStatus,
+                status: action === "suspend" ? "INACTIVE" : action === "unsuspend" ? "ACTIVE" : prev.status,
+                rejectionReason:
+                  action === "reject" || action === "suspend"
+                    ? reason?.trim() || null
+                    : action === "unsuspend"
+                      ? null
+                      : prev.rejectionReason,
               }
             : prev,
         ),
       );
 
-      toast.success(
-        action === "approve"
-          ? `Pengajuan ${jaringDisplayName(item)} disetujui.`
-          : `Pengajuan ${jaringDisplayName(item)} ditolak.`,
-      );
+      const actionLabels = {
+        approve: `Pengajuan ${jaringDisplayName(item)} disetujui.`,
+        reject: `Pengajuan ${jaringDisplayName(item)} ditolak.`,
+        suspend: `Jaring ${jaringDisplayName(item)} berhasil ditangguhkan.`,
+        unsuspend: `Penangguhan Jaring ${jaringDisplayName(item)} berhasil dibatalkan.`,
+      };
+
+      toast.success(actionLabels[action]);
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Gagal memproses keputusan registrasi.");
+      toast.error(error instanceof Error ? error.message : "Gagal memproses tindakan Jaring.");
     } finally {
       setIsSubmittingAction(false);
       setSelectedItemForAction(null);
@@ -680,7 +718,7 @@ export function JaringVerificationListClient() {
         </div>
 
         {/* SUMMARY CARDS */}
-        <div className="grid w-full grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+        <div className="grid w-full grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-7">
           <SummaryCard
             label="Total Jaring yang Diajukan"
             value={summary.total}
@@ -733,6 +771,20 @@ export function JaringVerificationListClient() {
             selectedClass="border-amber-500 ring-2 ring-amber-500/30 bg-amber-500/5 dark:bg-amber-500/10"
             onClick={() => {
               setStatusFilter("PENDING");
+              setActiveStatusFilter("ALL");
+              setPage(1);
+            }}
+          />
+          <SummaryCard
+            label="Total Jaring Ditangguhkan"
+            value={summary.suspended}
+            icon={Ban}
+            iconClass="bg-rose-500/10 text-rose-700 dark:text-rose-400"
+            valueClass="text-rose-700 dark:text-rose-400"
+            selected={statusFilter === "SUSPENDED" && activeStatusFilter === "ALL"}
+            selectedClass="border-rose-700 ring-2 ring-rose-700/30 bg-rose-500/5 dark:bg-rose-500/10"
+            onClick={() => {
+              setStatusFilter("SUSPENDED");
               setActiveStatusFilter("ALL");
               setPage(1);
             }}
@@ -947,6 +999,7 @@ export function JaringVerificationListClient() {
               <option value="PENDING">Menunggu Tinjauan</option>
               <option value="APPROVED">Disetujui</option>
               <option value="REJECTED">Ditolak</option>
+              <option value="SUSPENDED">Ditangguhkan</option>
             </NativeSelect>
 
             {/* 6. Filter Aktivitas Laporan 90 Hari */}
@@ -1407,6 +1460,32 @@ export function JaringVerificationListClient() {
                               </Button>
                             </>
                           )}
+
+                          {isDeputyRole && item.registrationStatus === "APPROVED" && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setSelectedItemForAction({ item, action: "suspend" })}
+                              className="h-8 border-rose-600/30 bg-rose-600/10 text-rose-700 dark:text-rose-400 hover:bg-rose-600/20 hover:text-rose-800 dark:hover:text-rose-300 font-medium text-xs rounded-lg px-2.5"
+                              title="Tangguhkan Jaring (Suspend)"
+                            >
+                              <Ban className="size-3.5" />
+                              <span className="hidden xl:inline">Suspend</span>
+                            </Button>
+                          )}
+
+                          {isDeputyRole && item.registrationStatus === "SUSPENDED" && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setSelectedItemForAction({ item, action: "unsuspend" })}
+                              className="h-8 border-emerald-600/30 bg-emerald-600/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-600/20 hover:text-emerald-800 dark:hover:text-emerald-300 font-medium text-xs rounded-lg px-2.5"
+                              title="Pulihkan Jaring (Batalkan Penangguhan)"
+                            >
+                              <CheckCircle2 className="size-3.5" />
+                              <span className="hidden xl:inline">Pulihkan</span>
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -1458,7 +1537,7 @@ export function JaringVerificationListClient() {
         </CardContent>
       </Card>
 
-      {/* QUICK VERIFICATION ACTION DIALOG */}
+      {/* QUICK VERIFICATION / SUSPENSION ACTION DIALOG */}
       <AlertDialog
         open={selectedItemForAction !== null}
         onOpenChange={(open) => {
@@ -1476,6 +1555,16 @@ export function JaringVerificationListClient() {
                   <CheckCircle2 className="size-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                   <span>Setujui Pengajuan Jaring?</span>
                 </>
+              ) : selectedItemForAction?.action === "suspend" ? (
+                <>
+                  <Ban className="size-5 text-rose-600 dark:text-rose-400 shrink-0" />
+                  <span>Tangguhkan Jaring (Suspend)?</span>
+                </>
+              ) : selectedItemForAction?.action === "unsuspend" ? (
+                <>
+                  <CheckCircle2 className="size-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <span>Pulihkan Jaring (Unsuspend)?</span>
+                </>
               ) : (
                 <>
                   <XCircle className="size-5 text-rose-600 dark:text-rose-400 shrink-0" />
@@ -1486,7 +1575,11 @@ export function JaringVerificationListClient() {
             <AlertDialogDescription className="text-xs text-muted-foreground leading-relaxed">
               {selectedItemForAction?.action === "approve"
                 ? `Pengajuan "${jaringDisplayName(selectedItemForAction.item)}" akan disetujui dan masuk ke jaringan operasional.`
-                : `Pengajuan "${selectedItemForAction ? jaringDisplayName(selectedItemForAction.item) : "Jaring"}" akan ditolak dan alasan penolakan akan dicatat.`}
+                : selectedItemForAction?.action === "suspend"
+                  ? `Jaring "${selectedItemForAction ? jaringDisplayName(selectedItemForAction.item) : "Jaring"}" akan ditangguhkan oleh Deputi II. Jaring yang ditangguhkan tidak akan dihitung sebagai terverifikasi dan tidak dapat mengirim laporan intelijen.`
+                  : selectedItemForAction?.action === "unsuspend"
+                    ? `Penangguhan Jaring "${selectedItemForAction ? jaringDisplayName(selectedItemForAction.item) : "Jaring"}" akan dibatalkan dan statusnya dikembalikan ke Disetujui/Aktif.`
+                    : `Pengajuan "${selectedItemForAction ? jaringDisplayName(selectedItemForAction.item) : "Jaring"}" akan ditolak dan alasan penolakan akan dicatat.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
 
@@ -1506,12 +1599,28 @@ export function JaringVerificationListClient() {
             </div>
           )}
 
+          {selectedItemForAction?.action === "suspend" && (
+            <div className="space-y-2 py-2">
+              <label htmlFor="quick-suspend-reason" className="text-xs font-medium text-foreground">
+                Alasan Penangguhan <span className="text-rose-500">*</span>
+              </label>
+              <Input
+                id="quick-suspend-reason"
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                placeholder="Contoh: Terindikasi kompromi keamanan atau pelanggaran SOP..."
+                maxLength={1000}
+                className="rounded-lg text-xs"
+              />
+            </div>
+          )}
+
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isSubmittingAction} className="rounded-lg text-xs">
               Batal
             </AlertDialogCancel>
             <AlertDialogAction
-              disabled={isSubmittingAction}
+              disabled={isSubmittingAction || (selectedItemForAction?.action === "suspend" && !rejectionReason.trim())}
               onClick={(e) => {
                 e.preventDefault();
                 if (selectedItemForAction) {
@@ -1520,7 +1629,7 @@ export function JaringVerificationListClient() {
               }}
               className={cn(
                 "rounded-lg text-xs font-semibold",
-                selectedItemForAction?.action === "reject"
+                selectedItemForAction?.action === "reject" || selectedItemForAction?.action === "suspend"
                   ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
                   : "bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-500",
               )}
@@ -1529,7 +1638,11 @@ export function JaringVerificationListClient() {
                 ? "Memproses..."
                 : selectedItemForAction?.action === "approve"
                   ? "Ya, Setujui"
-                  : "Ya, Tolak"}
+                  : selectedItemForAction?.action === "suspend"
+                    ? "Ya, Tangguhkan"
+                    : selectedItemForAction?.action === "unsuspend"
+                      ? "Ya, Pulihkan"
+                      : "Ya, Tolak"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1754,9 +1867,10 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
   const router = useRouter();
   const { activeRole } = useRoleWorkspace();
   const canPerformAction = activeRole === SYSTEM_ROLES.FIELD_COORDINATOR;
+  const isDeputyRole = activeRole === SYSTEM_ROLES.EXECUTIVE;
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
-  const [pendingAction, setPendingAction] = useState<"approve" | "reject" | null>(null);
+  const [pendingAction, setPendingAction] = useState<"approve" | "reject" | "suspend" | "unsuspend" | null>(null);
   const [photoPreviewOpen, setPhotoPreviewOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"information" | "reports" | "coaching">("information");
 
@@ -1856,16 +1970,34 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
   const districtName = jaringDistrict(item)?.name ?? "-";
   const canDecide = item.registrationStatus === "PENDING" && canPerformAction;
 
-  async function decide(action: "approve" | "reject") {
+  async function decide(action: "approve" | "reject" | "suspend" | "unsuspend") {
     setBusy(true);
     try {
-      await apiBrowserMutation<void>(
-        "POST",
-        `/jaring/${item.id}/${action === "approve" ? "approve-registration" : "reject-registration"}`,
-        action === "reject" ? { reason: reason.trim() || undefined } : undefined,
-        { idempotent: true },
-      );
-      toast.success(action === "approve" ? "Pengajuan Jaring disetujui." : "Pengajuan Jaring ditolak.");
+      if (action === "suspend") {
+        await apiBrowserMutation<void>(
+          "POST",
+          `/jaring/${item.id}/suspend`,
+          { reason: reason.trim() || "Ditangguhkan oleh Deputi II" },
+          { idempotent: true },
+        );
+        toast.success("Jaring berhasil ditangguhkan oleh Deputi II.");
+      } else if (action === "unsuspend") {
+        await apiBrowserMutation<void>(
+          "POST",
+          `/jaring/${item.id}/unsuspend`,
+          { reason: reason.trim() || undefined },
+          { idempotent: true },
+        );
+        toast.success("Penangguhan Jaring berhasil dibatalkan.");
+      } else {
+        await apiBrowserMutation<void>(
+          "POST",
+          `/jaring/${item.id}/${action === "approve" ? "approve-registration" : "reject-registration"}`,
+          action === "reject" ? { reason: reason.trim() || undefined } : undefined,
+          { idempotent: true },
+        );
+        toast.success(action === "approve" ? "Pengajuan Jaring disetujui." : "Pengajuan Jaring ditolak.");
+      }
       router.push("/dashboard/daftar-jaring");
       router.refresh();
     } catch (error) {
@@ -1879,6 +2011,8 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
   function decisionLabel() {
     if (busy) return "Menyimpan...";
     if (pendingAction === "approve") return "Ya, Setujui";
+    if (pendingAction === "suspend") return "Ya, Tangguhkan";
+    if (pendingAction === "unsuspend") return "Ya, Pulihkan";
     return "Ya, Tolak";
   }
 
@@ -1909,9 +2043,32 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
           {item.registrationStatus === "APPROVED" && <CheckCircle2 className="size-3.5" />}
           {item.registrationStatus === "REJECTED" && <XCircle className="size-3.5" />}
           {item.registrationStatus === "PENDING" && <Clock className="size-3.5" />}
+          {item.registrationStatus === "SUSPENDED" && <Ban className="size-3.5" />}
           {detailRegistrationStatusLabel(item.registrationStatus)}
         </StatusPill>
       </div>
+
+      {item.registrationStatus === "SUSPENDED" && (
+        <div className="mx-auto max-w-3xl rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-red-800 dark:text-red-300">
+          <div className="flex items-start gap-3">
+            <ShieldAlert className="size-5 shrink-0 text-red-600 dark:text-red-400 mt-0.5" />
+            <div className="space-y-1 text-xs">
+              <p className="font-semibold text-sm text-red-900 dark:text-red-200">
+                Jaring Ditangguhkan (Suspended)
+              </p>
+              <p className="leading-relaxed">
+                Jaring ini sedang dalam status penangguhan oleh Deputi II. Jaring tidak dihitung sebagai terverifikasi,
+                dinonaktifkan dari pelaporan intelijen, dan disembunyikan dari metrik operasional terverifikasi.
+              </p>
+              {item.rejectionReason && (
+                <p className="mt-2 font-medium">
+                  Alasan Penangguhan: <span className="font-normal italic">{item.rejectionReason}</span>
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="flex gap-1 overflow-x-auto whitespace-nowrap border-b border-slate-200 font-mono text-[11px] dark:border-blue-400/12">
         <DetailTabButton active={activeTab === "information"} onClick={() => setActiveTab("information")}>
@@ -2005,6 +2162,13 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
               </DetailRow>
               {item.registrationStatus === "REJECTED" && item.rejectionReason ? (
                 <DetailRow label="Alasan Penolakan">
+                  <p className="rounded border border-red-200 bg-red-50 px-3 py-2 text-red-700 text-sm dark:border-red-500/20 dark:bg-red-950/30 dark:text-red-300">
+                    {item.rejectionReason}
+                  </p>
+                </DetailRow>
+              ) : null}
+              {item.registrationStatus === "SUSPENDED" && item.rejectionReason ? (
+                <DetailRow label="Alasan Penangguhan">
                   <p className="rounded border border-red-200 bg-red-50 px-3 py-2 text-red-700 text-sm dark:border-red-500/20 dark:bg-red-950/30 dark:text-red-300">
                     {item.rejectionReason}
                   </p>
@@ -2235,6 +2399,92 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
         </Card>
       ) : null}
 
+      {isDeputyRole && item.registrationStatus === "APPROVED" && (
+        <Card className="mx-auto max-w-3xl overflow-hidden rounded-[10px] border border-rose-200 bg-white shadow-sm transition-all duration-150 ease-out dark:border-rose-500/20 dark:bg-[#111827]">
+          <CardHeader className="px-5 pt-4 pb-3">
+            <div className="flex w-full items-center gap-3 border-b border-rose-200 pb-2.5 dark:border-rose-500/20">
+              <Ban className="size-4.5 shrink-0 stroke-[1.5] text-rose-600 dark:text-rose-400" />
+              <h2 className="shrink-0 font-bold text-[14px] text-rose-800 uppercase tracking-[0.08em] dark:text-rose-400">
+                Otoritas Deputi II: Penangguhan Jaring
+              </h2>
+              <div className="h-px flex-1 bg-gradient-to-r from-rose-200 to-transparent dark:from-rose-500/20 dark:to-transparent" />
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4 px-5 pt-1 pb-4">
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Sebagai Deputi II, Anda memiliki wewenang khusus untuk menangguhkan Jaring terverifikasi jika terdapat
+              indikasi pelanggaran SOP, kompromi keamanan, atau kebutuhan evaluasi operasional. Jaring yang ditangguhkan
+              tidak akan lagi dihitung sebagai terverifikasi.
+            </p>
+            <div className="space-y-2">
+              <label htmlFor="deputy-suspend-reason" className="font-medium text-sm text-foreground">
+                Alasan Penangguhan <span className="text-rose-500">*</span>
+              </label>
+              <Input
+                id="deputy-suspend-reason"
+                value={reason}
+                onChange={(event) => setReason(event.target.value)}
+                placeholder="Tuliskan alasan penangguhan..."
+                maxLength={1000}
+                className="rounded-[6px] bg-background"
+              />
+            </div>
+            <div className="flex justify-end gap-3 pt-2">
+              <Button
+                variant="destructive"
+                disabled={busy || !reason.trim()}
+                onClick={() => setPendingAction("suspend")}
+                className="h-9 gap-1.5 rounded-[6px]"
+              >
+                <Ban className="size-4" /> Tangguhkan Jaring
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {isDeputyRole && item.registrationStatus === "SUSPENDED" && (
+        <Card className="mx-auto max-w-3xl overflow-hidden rounded-[10px] border border-emerald-200 bg-white shadow-sm transition-all duration-150 ease-out dark:border-emerald-500/20 dark:bg-[#111827]">
+          <CardHeader className="px-5 pt-4 pb-3">
+            <div className="flex w-full items-center gap-3 border-b border-emerald-200 pb-2.5 dark:border-emerald-500/20">
+              <CheckCircle2 className="size-4.5 shrink-0 stroke-[1.5] text-emerald-600 dark:text-emerald-400" />
+              <h2 className="shrink-0 font-bold text-[14px] text-emerald-800 uppercase tracking-[0.08em] dark:text-emerald-400">
+                Otoritas Deputi II: Pemulihan Jaring
+              </h2>
+              <div className="h-px flex-1 bg-gradient-to-r from-emerald-200 to-transparent dark:from-emerald-500/20 dark:to-transparent" />
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4 px-5 pt-1 pb-4">
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Jaring ini saat ini ditangguhkan. Sebagai Deputi II, Anda dapat memulihkan status Jaring agar kembali
+              menjadi terverifikasi dan aktif dalam operasional.
+            </p>
+            <div className="space-y-2">
+              <label htmlFor="deputy-unsuspend-reason" className="font-medium text-sm text-foreground">
+                Catatan Pemulihan (opsional)
+              </label>
+              <Input
+                id="deputy-unsuspend-reason"
+                value={reason}
+                onChange={(event) => setReason(event.target.value)}
+                placeholder="Tuliskan catatan pemulihan..."
+                maxLength={1000}
+                className="rounded-[6px] bg-background"
+              />
+            </div>
+            <div className="flex justify-end gap-3 pt-2">
+              <Button
+                disabled={busy}
+                onClick={() => setPendingAction("unsuspend")}
+                className="h-9 gap-1.5 rounded-[6px] bg-emerald-600 hover:bg-emerald-700 text-white dark:bg-emerald-600 dark:hover:bg-emerald-500"
+              >
+                <CheckCircle2 className="size-4" /> Pulihkan Jaring
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {selectedPhotoUrl ? (
         <Dialog open={photoPreviewOpen} onOpenChange={setPhotoPreviewOpen}>
           <DialogContent className="grid h-[88vh] w-[94vw] max-w-[94vw] grid-rows-[auto_1fr] overflow-hidden bg-[#080b11] p-3 text-white sm:max-w-[920px]">
@@ -2265,12 +2515,22 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
         <AlertDialogContent className="rounded-2xl">
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {pendingAction === "approve" ? "Setujui pengajuan Jaring?" : "Tolak pengajuan Jaring?"}
+              {pendingAction === "approve"
+                ? "Setujui pengajuan Jaring?"
+                : pendingAction === "suspend"
+                  ? "Tangguhkan Jaring (Suspend)?"
+                  : pendingAction === "unsuspend"
+                    ? "Pulihkan Jaring (Unsuspend)?"
+                    : "Tolak pengajuan Jaring?"}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {pendingAction === "approve"
                 ? "Pengajuan akan disetujui dan Jaring masuk ke jaringan operasional."
-                : "Status pengajuan akan berubah menjadi ditolak. Alasan penolakan akan dicatat."}
+                : pendingAction === "suspend"
+                  ? "Jaring akan ditangguhkan oleh Deputi II. Jaring tidak akan lagi dihitung sebagai terverifikasi dan dinonaktifkan dari pelaporan intelijen."
+                  : pendingAction === "unsuspend"
+                    ? "Penangguhan Jaring akan dibatalkan. Status Jaring akan dipulihkan menjadi Disetujui/Aktif kembali."
+                    : "Status pengajuan akan berubah menjadi ditolak. Alasan penolakan akan dicatat."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -2278,16 +2538,16 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
               Batal
             </AlertDialogCancel>
             <AlertDialogAction
-              disabled={busy || pendingAction === null}
+              disabled={busy || pendingAction === null || (pendingAction === "suspend" && !reason.trim())}
               onClick={(event) => {
                 event.preventDefault();
                 if (pendingAction) void decide(pendingAction);
               }}
               className={cn(
                 "rounded-lg",
-                pendingAction === "reject"
+                pendingAction === "reject" || pendingAction === "suspend"
                   ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  : undefined,
+                  : "bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-500",
               )}
             >
               {decisionLabel()}
@@ -2302,6 +2562,7 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
 function detailRegistrationStatusLabel(status: RegistrationJaring["registrationStatus"]) {
   if (status === "PENDING") return "MENUNGGU TINJAUAN";
   if (status === "REJECTED") return "DITOLAK / REVISI";
+  if (status === "SUSPENDED") return "DITANGGUHKAN";
   return "DISETUJUI";
 }
 

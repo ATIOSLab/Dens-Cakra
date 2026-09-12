@@ -807,6 +807,157 @@ describe('JaringService registration security', () => {
     });
   });
 
+  it('mengizinkan role Deputi II (executive) menangguhkan (suspend) Jaring dan menolak role lain', async () => {
+    const update = jest.fn(() => Promise.resolve({}));
+    const findUniqueOrThrow = jest.fn(() =>
+      Promise.resolve({
+        id: 'jaring-id',
+        registrationStatus: 'APPROVED',
+        status: 'ACTIVE',
+      }),
+    );
+    const findFirstOrThrow = jest.fn(() =>
+      Promise.resolve({
+        id: 'jaring-id',
+        registrationStatus: 'SUSPENDED',
+        status: 'INACTIVE',
+      }),
+    );
+    const auditCreate = jest.fn(() => Promise.resolve({}));
+    const assertJaring = jest.fn(() => Promise.resolve());
+    const service = createService(
+      {
+        jaring: { update, findUniqueOrThrow, findFirstOrThrow },
+        auditLog: { create: auditCreate },
+      },
+      { assertJaring },
+    );
+
+    // 1. Role selain executive (misal field_coordinator) harus ditolak
+    await expect(
+      service.suspend(
+        'jaring-id',
+        { reason: 'Penangguhan operasional sementara' },
+        {
+          authRole: 'field_coordinator',
+          primaryAssignmentId: 'fc-assignment-id',
+        } as never,
+      ),
+    ).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    });
+
+    // 2. Role executive berhasil menangguhkan Jaring
+    await service.suspend(
+      'jaring-id',
+      { reason: 'Penangguhan operasional oleh Deputi' },
+      {
+        authRole: 'executive',
+        primaryAssignmentId: 'deputy-assignment-id',
+      } as never,
+    );
+
+    expect(update).toHaveBeenCalledWith({
+      where: { id: 'jaring-id' },
+      data: {
+        registrationStatus: 'SUSPENDED',
+        status: 'INACTIVE',
+        deactivatedAt: expect.any(Date),
+        rejectionReason: 'Penangguhan operasional oleh Deputi',
+        reviewedAt: expect.any(Date),
+        reviewedByAssignmentId: 'deputy-assignment-id',
+      },
+    });
+    expect(auditCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        action: 'JARING.SUSPEND',
+        entityType: 'Jaring',
+        entityId: 'jaring-id',
+        metadata: expect.objectContaining({
+          reason: 'Penangguhan operasional oleh Deputi',
+          previousRegistrationStatus: 'APPROVED',
+          previousStatus: 'ACTIVE',
+        }),
+      }),
+    });
+  });
+
+  it('mengizinkan role Deputi II memulihkan (unsuspend) Jaring yang berstatus SUSPENDED', async () => {
+    const update = jest.fn(() => Promise.resolve({}));
+    const findUniqueOrThrow = jest.fn(() =>
+      Promise.resolve({
+        id: 'jaring-id',
+        registrationStatus: 'SUSPENDED',
+        whatsappNumber: '081234567890',
+        nationalIdNumber: '3171000000000001',
+      }),
+    );
+    const findFirstOrThrow = jest.fn(() =>
+      Promise.resolve({
+        id: 'jaring-id',
+        registrationStatus: 'APPROVED',
+        status: 'ACTIVE',
+      }),
+    );
+    const auditCreate = jest.fn(() => Promise.resolve({}));
+    const assertJaring = jest.fn(() => Promise.resolve());
+    const service = createService(
+      {
+        jaring: {
+          update,
+          findUniqueOrThrow,
+          findFirstOrThrow,
+          findFirst: jest.fn(() => Promise.resolve(null)),
+        },
+        auditLog: { create: auditCreate },
+      },
+      { assertJaring },
+    );
+
+    // 1. Role selain executive ditolak
+    await expect(
+      service.unsuspend(
+        'jaring-id',
+        { reason: 'Pemulihan oleh Korwil' },
+        {
+          authRole: 'field_coordinator',
+          primaryAssignmentId: 'fc-assignment-id',
+        } as never,
+      ),
+    ).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    });
+
+    // 2. Role executive berhasil memulihkan
+    await service.unsuspend(
+      'jaring-id',
+      { reason: 'Pemulihan operasional Jaring' },
+      {
+        authRole: 'executive',
+        primaryAssignmentId: 'deputy-assignment-id',
+      } as never,
+    );
+
+    expect(update).toHaveBeenCalledWith({
+      where: { id: 'jaring-id' },
+      data: {
+        registrationStatus: 'APPROVED',
+        status: 'ACTIVE',
+        deactivatedAt: null,
+        rejectionReason: null,
+        reviewedAt: expect.any(Date),
+        reviewedByAssignmentId: 'deputy-assignment-id',
+      },
+    });
+    expect(auditCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        action: 'JARING.UNSUSPEND',
+        entityType: 'Jaring',
+        entityId: 'jaring-id',
+      }),
+    });
+  });
+
   it('menampilkan laporan yang pernah dibuat oleh Jaring dengan pagination', async () => {
     const assertJaring = jest.fn(() => Promise.resolve());
     const findMany = jest.fn(() =>

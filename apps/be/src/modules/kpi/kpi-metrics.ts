@@ -22,6 +22,7 @@ export const JARING_STATUS_GROUP = {
   VERIFIED_INACTIVE: 'VERIFIED_INACTIVE',
   PENDING_APPROVAL: 'PENDING_APPROVAL',
   REJECTED: 'REJECTED',
+  SUSPENDED: 'SUSPENDED',
   UNVERIFIED: 'UNVERIFIED',
   OTHER: 'OTHER',
 } as const;
@@ -34,6 +35,7 @@ export const JARING_STATUS_GROUP_LABELS: Record<JaringStatusGroup, string> = {
   [JARING_STATUS_GROUP.VERIFIED_INACTIVE]: 'Terverifikasi tetapi Nonaktif',
   [JARING_STATUS_GROUP.PENDING_APPROVAL]: 'Menunggu Persetujuan',
   [JARING_STATUS_GROUP.REJECTED]: 'Ditolak',
+  [JARING_STATUS_GROUP.SUSPENDED]: 'Ditangguhkan',
   [JARING_STATUS_GROUP.UNVERIFIED]: 'Belum Terverifikasi',
   [JARING_STATUS_GROUP.OTHER]: 'Status Lainnya',
 };
@@ -50,6 +52,8 @@ export const JARING_STATUS_GROUP_DESCRIPTIONS: Record<
     'Registrasi masuk dan belum disetujui (PENDING). Tidak masuk basis produktivitas.',
   [JARING_STATUS_GROUP.REJECTED]:
     'Registrasi atau verifikasinya ditolak (REJECTED). Tidak masuk basis produktivitas.',
+  [JARING_STATUS_GROUP.SUSPENDED]:
+    'Status Jaring ditangguhkan oleh Deputi II (SUSPENDED). Tidak masuk basis perhitungan Jaring terverifikasi maupun produktivitas.',
   [JARING_STATUS_GROUP.UNVERIFIED]:
     'Belum menyelesaikan proses verifikasi. Pada model data saat ini setara dengan Menunggu Persetujuan (PENDING).',
   [JARING_STATUS_GROUP.OTHER]:
@@ -110,6 +114,9 @@ export function classifyJaringStatus(
   }
   if (registrationStatus === JaringRegistrationStatus.REJECTED) {
     return JARING_STATUS_GROUP.REJECTED;
+  }
+  if (registrationStatus === JaringRegistrationStatus.SUSPENDED) {
+    return JARING_STATUS_GROUP.SUSPENDED;
   }
   return JARING_STATUS_GROUP.OTHER;
 }

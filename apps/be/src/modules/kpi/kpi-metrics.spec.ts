@@ -64,6 +64,21 @@ describe('KPI pemetaan status Jaring', () => {
     ).toBe(JARING_STATUS_GROUP.REJECTED);
   });
 
+  it('memetakan SUSPENDED menjadi Ditangguhkan', () => {
+    expect(
+      classifyJaringStatus(
+        JaringStatus.INACTIVE,
+        JaringRegistrationStatus.SUSPENDED,
+      ),
+    ).toBe(JARING_STATUS_GROUP.SUSPENDED);
+    expect(
+      classifyJaringStatus(
+        JaringStatus.ACTIVE,
+        JaringRegistrationStatus.SUSPENDED,
+      ),
+    ).toBe(JARING_STATUS_GROUP.SUSPENDED);
+  });
+
   it('memetakan PENDING dan REJECTED berdasarkan status registrasi (apa pun status aktif)', () => {
     expect(
       classifyJaringStatus(
