@@ -39,6 +39,7 @@ import {
   jaringVillage,
   type RegistrationJaring,
 } from "@/app/(main)/dashboard/koordinator-wilayah/_components/jaring-types";
+import type { CoachingReportItem } from "@/app/(main)/dashboard/laporan-pembinaan-jaring/_components/laporan-pembinaan-types";
 import { GaswilEntityLink } from "@/components/domain/gaswil-entity-link";
 import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";
 import {
@@ -1863,6 +1864,169 @@ export function JaringReportCardItem({
   );
 }
 
+function JaringCoachingCardItem({
+  item,
+  isExpanded,
+  onToggleExpand,
+}: {
+  item: CoachingReportItem;
+  isExpanded: boolean;
+  onToggleExpand: () => void;
+}) {
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
+  const attachments = item.attachments ?? [];
+  const reportedDate = formatDateTime(item.reportedAt ?? item.createdAt);
+  const gaswil = item.fieldOfficer?.userProfile;
+
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white transition-all duration-150 dark:border-blue-400/12 dark:bg-[#111827] overflow-hidden">
+      {/* Header / Summary Bar */}
+      <button
+        type="button"
+        onClick={onToggleExpand}
+        aria-expanded={isExpanded}
+        className="flex w-full cursor-pointer select-none items-start justify-between gap-3 p-4 text-left transition-colors hover:bg-slate-50/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring dark:hover:bg-slate-900/50"
+      >
+        <div className="min-w-0 flex-1 space-y-1.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1 text-[11px] font-mono text-muted-foreground bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">
+              <Clock className="size-3 text-sky-500" />
+              {reportedDate}
+            </span>
+            {gaswil?.fullName && (
+              <span className="inline-flex items-center gap-1 text-[11px] font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-500/20">
+                <UserRound className="size-3" />
+                Gaswil: {gaswil.fullName}
+              </span>
+            )}
+            {attachments.length > 0 && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-mono text-muted-foreground bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                <ImageIcon className="size-3 text-sky-500" />
+                {attachments.length} foto
+              </span>
+            )}
+          </div>
+          <h4 className="font-semibold text-sm text-foreground">{item.title}</h4>
+          {!isExpanded && item.content && (
+            <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{item.content}</p>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0 pt-0.5">
+          <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-md">
+            {isExpanded ? (
+              <ChevronUp className="size-4 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="size-4 text-muted-foreground" />
+            )}
+          </span>
+        </div>
+      </button>
+
+      {/* Expanded Content */}
+      {isExpanded && (
+        <div className="px-4 pb-4 pt-2 space-y-4 border-t border-slate-100 dark:border-blue-400/8 bg-slate-50/40 dark:bg-slate-950/20">
+          {item.content && (
+            <div className="text-xs text-foreground/90 whitespace-pre-wrap leading-relaxed bg-white dark:bg-slate-900/60 p-3.5 rounded border border-slate-200/60 dark:border-slate-800">
+              {item.content}
+            </div>
+          )}
+
+          {/* Photo Previews */}
+          {attachments.length > 0 && (
+            <div className="space-y-1.5">
+              <div className="text-[11px] font-medium text-muted-foreground flex items-center gap-1.5">
+                <ImageIcon className="size-3.5 text-sky-600 dark:text-sky-400" />
+                Lampiran Foto ({attachments.length})
+              </div>
+              <div className="flex flex-wrap gap-2 pt-1">
+                {attachments.map((att, idx) => {
+                  const photoUrl = `/api/files/${att.fileId}`;
+                  return (
+                    <button
+                      key={att.fileId}
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedImage(photoUrl);
+                      }}
+                      className="group relative size-20 rounded-md overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 hover:ring-2 hover:ring-sky-500/50 transition-all cursor-zoom-in"
+                      title={att.caption || att.fileName || `Foto ${idx + 1}`}
+                    >
+                      {/* biome-ignore lint/performance/noImgElement: native img thumbnail */}
+                      <img
+                        src={`${photoUrl}?thumbnail=1`}
+                        alt={att.caption || `Foto ${idx + 1}`}
+                        width={80}
+                        height={80}
+                        loading="lazy"
+                        decoding="async"
+                        className="size-full object-cover group-hover:scale-105 transition-transform"
+                      />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors grid place-items-center">
+                        <Eye className="size-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Metadata & Detail Link */}
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-2 text-[11px] text-muted-foreground border-t border-slate-200/60 dark:border-slate-800">
+            <div className="flex flex-wrap items-center gap-3">
+              {gaswil && (
+                <span>
+                  Petugas Wilayah (Gaswil):{" "}
+                  <GaswilEntityLink
+                    userProfileId={gaswil.id}
+                    assignmentId={item.fieldOfficer?.assignmentId}
+                    name={gaswil.fullName}
+                    className="font-medium text-foreground hover:underline"
+                  />
+                </span>
+              )}
+              <span>Waktu Pembinaan: {reportedDate}</span>
+            </div>
+
+            <Button
+              asChild
+              size="sm"
+              variant="outline"
+              className="h-8 gap-1.5 text-xs font-medium border-sky-500/30 text-sky-600 hover:bg-sky-500/10 dark:text-sky-400 shrink-0"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Link href={`/dashboard/laporan-pembinaan-jaring/${item.id}?jaringId=${item.jaringId}`}>
+                <Eye className="size-3.5" />
+                Detail Laporan
+                <ChevronRight className="size-3.5" />
+              </Link>
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Lightbox Modal */}
+      {selectedImage && (
+        <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
+          <DialogContent className="max-w-3xl p-2 bg-slate-950/95 border-slate-800">
+            <div className="relative flex justify-center items-center max-h-[80vh] overflow-hidden rounded">
+              {/* biome-ignore lint/performance/noImgElement: native img preview */}
+              <img
+                src={selectedImage}
+                alt="Preview foto pembinaan"
+                className="max-h-[78vh] w-auto object-contain rounded"
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
+  );
+}
+
 export function JaringVerificationDetailClient({ item }: { item: RegistrationJaring }) {
   const router = useRouter();
   const { activeRole } = useRoleWorkspace();
@@ -1964,6 +2128,104 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
       };
     }
   }, [activeTab, item.id, reportsLoaded]);
+
+  // Coaching reports state
+  const [coachingReports, setCoachingReports] = useState<CoachingReportItem[]>([]);
+  const [coachingLoading, setCoachingLoading] = useState(false);
+  const [coachingLoaded, setCoachingLoaded] = useState(false);
+  const [expandedCoachingIds, setExpandedCoachingIds] = useState<Set<string>>(new Set());
+  const [coachingPage, setCoachingPage] = useState(1);
+  const [coachingLimit, setCoachingLimit] = useState(10);
+  const [coachingPeriodPreset, setCoachingPeriodPreset] = useState<
+    "ALL" | "TODAY" | "LAST_7_DAYS" | "LAST_30_DAYS" | "CUSTOM"
+  >("ALL");
+  const [coachingStartDate, setCoachingStartDate] = useState<string>("");
+  const [coachingEndDate, setCoachingEndDate] = useState<string>("");
+  const [coachingSearch, setCoachingSearch] = useState<string>("");
+
+  const filteredCoachingReports = useMemo(() => {
+    return coachingReports.filter((rep) => {
+      if (coachingSearch.trim()) {
+        const query = coachingSearch.toLowerCase();
+        const titleMatch = rep.title?.toLowerCase().includes(query);
+        const contentMatch = rep.content?.toLowerCase().includes(query);
+        const gaswilMatch = rep.fieldOfficer?.userProfile?.fullName?.toLowerCase().includes(query);
+        if (!titleMatch && !contentMatch && !gaswilMatch) return false;
+      }
+
+      const reportDateStr = rep.reportedAt || rep.createdAt;
+      if (reportDateStr) {
+        const itemTime = new Date(reportDateStr).getTime();
+        const now = new Date();
+
+        if (coachingPeriodPreset === "TODAY") {
+          const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+          if (itemTime < startOfDay) return false;
+        } else if (coachingPeriodPreset === "LAST_7_DAYS") {
+          const sevenDaysAgo = now.getTime() - 7 * 24 * 3600 * 1000;
+          if (itemTime < sevenDaysAgo) return false;
+        } else if (coachingPeriodPreset === "LAST_30_DAYS") {
+          const thirtyDaysAgo = now.getTime() - 30 * 24 * 3600 * 1000;
+          if (itemTime < thirtyDaysAgo) return false;
+        } else if (coachingPeriodPreset === "CUSTOM") {
+          if (coachingStartDate && coachingStartDate.length === 10) {
+            const start = new Date(`${coachingStartDate}T00:00:00`).getTime();
+            if (itemTime < start) return false;
+          }
+          if (coachingEndDate && coachingEndDate.length === 10) {
+            const end = new Date(`${coachingEndDate}T23:59:59.999`).getTime();
+            if (itemTime > end) return false;
+          }
+        }
+      }
+      return true;
+    });
+  }, [coachingReports, coachingSearch, coachingPeriodPreset, coachingStartDate, coachingEndDate]);
+
+  const coachingTotalPages = Math.ceil(filteredCoachingReports.length / coachingLimit) || 1;
+  const paginatedCoachingReports = useMemo(() => {
+    const start = (coachingPage - 1) * coachingLimit;
+    return filteredCoachingReports.slice(start, start + coachingLimit);
+  }, [filteredCoachingReports, coachingPage, coachingLimit]);
+
+  const toggleCoachingExpand = (id: string) => {
+    setExpandedCoachingIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    if (activeTab === "coaching" && !coachingLoaded) {
+      let cancelled = false;
+      async function loadCoachingReports() {
+        setCoachingLoading(true);
+        try {
+          const res = await apiBrowserFetch<{ items?: CoachingReportItem[] } | CoachingReportItem[]>(
+            `/jaring/${item.id}/coaching-reports?limit=100`,
+          );
+          if (!cancelled) {
+            const itemsList = Array.isArray(res) ? res : res?.items || [];
+            setCoachingReports(itemsList);
+            setCoachingLoaded(true);
+          }
+        } catch (err) {
+          console.error("Gagal memuat laporan pembinaan jaring:", err);
+        } finally {
+          if (!cancelled) setCoachingLoading(false);
+        }
+      }
+      void loadCoachingReports();
+      return () => {
+        cancelled = true;
+      };
+    }
+  }, [activeTab, item.id, coachingLoaded]);
 
   const selectedPhotoUrl = profilePhotoUrl(item);
   const villageName = jaringVillage(item)?.name ?? "-";
@@ -2075,10 +2337,10 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
           PROFIL
         </DetailTabButton>
         <DetailTabButton active={activeTab === "reports"} onClick={() => setActiveTab("reports")}>
-          LAPORAN JARING
+          LAPORAN JARING {reportsLoaded && reports.length > 0 ? `(${reports.length})` : ""}
         </DetailTabButton>
         <DetailTabButton active={activeTab === "coaching"} onClick={() => setActiveTab("coaching")}>
-          Riwayat Pembinaan
+          RIWAYAT PEMBINAAN {coachingLoaded && coachingReports.length > 0 ? `(${coachingReports.length})` : ""}
         </DetailTabButton>
       </div>
 
@@ -2347,12 +2609,186 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
         )}
 
         {activeTab === "coaching" && (
-          <div className="rounded-lg border border-dashed border-slate-200 dark:border-blue-400/12 p-8 text-center space-y-2">
-            <DOMAIN_VISUALS.jaring.Icon className="mx-auto size-8 text-muted-foreground" />
-            <div className="font-semibold text-sm text-foreground">Belum Ada Laporan Pembinaan</div>
-            <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-              Histori laporan pembinaan Jaring belum tersedia.
-            </p>
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b dark:border-blue-400/12 border-slate-200 pb-3">
+              <h3 className="font-semibold text-sm text-foreground flex items-center gap-2">
+                <DOMAIN_VISUALS.briefing.Icon className={`size-4 ${DOMAIN_VISUALS.briefing.iconClass}`} />
+                Riwayat Pembinaan Jaring ({filteredCoachingReports.length})
+              </h3>
+
+              <div className="flex flex-wrap items-center gap-3">
+                {/* Search */}
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+                  <Input
+                    type="search"
+                    placeholder="Cari pembinaan..."
+                    value={coachingSearch}
+                    onChange={(e) => {
+                      setCoachingSearch(e.target.value);
+                      setCoachingPage(1);
+                    }}
+                    className="h-8 pl-8 text-xs bg-background w-[160px] sm:w-[200px]"
+                  />
+                </div>
+
+                {/* Periode Filter Dropdown */}
+                <div className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground">
+                  <span>Periode:</span>
+                  <NativeSelect
+                    value={coachingPeriodPreset}
+                    onChange={(e) => {
+                      setCoachingPeriodPreset(e.target.value as typeof coachingPeriodPreset);
+                      setCoachingPage(1);
+                    }}
+                    className="h-8 text-xs bg-background min-w-[140px]"
+                  >
+                    <option value="ALL">Semua Periode</option>
+                    <option value="TODAY">Hari Ini</option>
+                    <option value="LAST_7_DAYS">7 Hari Terakhir</option>
+                    <option value="LAST_30_DAYS">30 Hari Terakhir</option>
+                    <option value="CUSTOM">Kustom (Pilih Tanggal)</option>
+                  </NativeSelect>
+                </div>
+
+                {/* Date Range Picker (Only shown when coachingPeriodPreset === "CUSTOM") */}
+                {coachingPeriodPreset === "CUSTOM" && (
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground">
+                      <span>Dari:</span>
+                      <Input
+                        type="date"
+                        value={coachingStartDate}
+                        onChange={(e) => {
+                          setCoachingStartDate(e.target.value);
+                          setCoachingPage(1);
+                        }}
+                        className="h-8 text-xs bg-background w-[130px]"
+                        title="Dari Tanggal"
+                      />
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground">
+                      <span>s.d:</span>
+                      <Input
+                        type="date"
+                        value={coachingEndDate}
+                        onChange={(e) => {
+                          setCoachingEndDate(e.target.value);
+                          setCoachingPage(1);
+                        }}
+                        className="h-8 text-xs bg-background w-[130px]"
+                        title="Sampai Tanggal"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Reset Filter Button */}
+                {(coachingPeriodPreset !== "ALL" || coachingStartDate || coachingEndDate || coachingSearch) && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setCoachingPeriodPreset("ALL");
+                      setCoachingStartDate("");
+                      setCoachingEndDate("");
+                      setCoachingSearch("");
+                      setCoachingPage(1);
+                    }}
+                    className="h-8 text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    <RotateCcw className="size-3.5 mr-1" />
+                    Reset
+                  </Button>
+                )}
+
+                {/* Tombol buat laporan pembinaan untuk Petugas Wilayah (Gaswil) */}
+                {activeRole === SYSTEM_ROLES.FIELD_OFFICER && (
+                  <Button
+                    asChild
+                    size="sm"
+                    className="h-8 gap-1.5 text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white"
+                  >
+                    <Link href={`/dashboard/laporan-pembinaan-jaring/baru?jaringId=${item.id}`}>
+                      <Plus className="size-3.5" />
+                      Buat Pembinaan
+                    </Link>
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {coachingLoading ? (
+              <div className="flex py-12 justify-center items-center gap-2 text-xs text-muted-foreground font-mono">
+                <RefreshCw className="size-4 animate-spin text-sky-600 dark:text-sky-400" />
+                Memuat riwayat pembinaan jaring...
+              </div>
+            ) : filteredCoachingReports.length > 0 ? (
+              <div className="space-y-4">
+                <div className="space-y-3">
+                  {paginatedCoachingReports.map((report) => (
+                    <JaringCoachingCardItem
+                      key={report.id}
+                      item={report}
+                      isExpanded={expandedCoachingIds.has(report.id)}
+                      onToggleExpand={() => toggleCoachingExpand(report.id)}
+                    />
+                  ))}
+                </div>
+
+                {coachingTotalPages > 1 && (
+                  <TablePagination
+                    page={coachingPage}
+                    limit={coachingLimit}
+                    total={filteredCoachingReports.length}
+                    onPageChange={setCoachingPage}
+                    onLimitChange={(limit) => {
+                      setCoachingLimit(limit);
+                      setCoachingPage(1);
+                    }}
+                  />
+                )}
+              </div>
+            ) : coachingReports.length > 0 ? (
+              <div className="rounded-lg border border-dashed border-slate-200 dark:border-blue-400/12 p-8 text-center space-y-2">
+                <DOMAIN_VISUALS.briefing.Icon className="mx-auto size-8 text-muted-foreground" />
+                <div className="font-semibold text-sm text-foreground">Tidak ada laporan pembinaan ditemukan</div>
+                <p className="text-xs text-muted-foreground">
+                  Tidak ada laporan pembinaan yang sesuai dengan kata kunci atau filter tanggal yang dipilih.
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setCoachingPeriodPreset("ALL");
+                    setCoachingStartDate("");
+                    setCoachingEndDate("");
+                    setCoachingSearch("");
+                    setCoachingPage(1);
+                  }}
+                  className="mt-2 text-xs"
+                >
+                  <RotateCcw className="size-3.5 mr-1" />
+                  Reset Filter
+                </Button>
+              </div>
+            ) : (
+              <div className="rounded-lg border border-dashed border-slate-200 dark:border-blue-400/12 p-8 text-center space-y-3">
+                <DOMAIN_VISUALS.briefing.Icon className="mx-auto size-8 text-muted-foreground" />
+                <div className="font-semibold text-sm text-foreground">Belum Ada Laporan Pembinaan</div>
+                <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                  Jaring ini belum memiliki riwayat pembinaan di sistem.
+                </p>
+                {activeRole === SYSTEM_ROLES.FIELD_OFFICER && (
+                  <Button asChild size="sm" variant="outline" className="mt-2 text-xs gap-1.5">
+                    <Link href={`/dashboard/laporan-pembinaan-jaring/baru?jaringId=${item.id}`}>
+                      <Plus className="size-3.5" />
+                      Buat Laporan Pembinaan Pertama
+                    </Link>
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
