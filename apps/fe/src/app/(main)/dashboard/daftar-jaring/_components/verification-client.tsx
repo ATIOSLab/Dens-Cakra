@@ -16,6 +16,7 @@ import {
   Clock,
   Columns3,
   Eye,
+  FileDown,
   ImageIcon,
   MapPin,
   Pencil,
@@ -25,7 +26,6 @@ import {
   Search,
   ShieldAlert,
   ShieldCheck,
-  Trash2,
   UserRound,
   X,
   XCircle,
@@ -84,6 +84,8 @@ import { DOMAIN_TERMS } from "@/lib/domain/terminology";
 import { DC_CONTROLS, DC_TYPOGRAPHY, DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 import { SYSTEM_ROLES } from "@/navigation/sidebar/system-roles";
+
+import { JaringExportPdfDialog } from "./jaring-export-pdf-dialog";
 
 export type { RegistrationJaring } from "@/app/(main)/dashboard/koordinator-wilayah/_components/jaring-types";
 
@@ -325,6 +327,7 @@ export function JaringVerificationListClient() {
   } | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
   const [isSubmittingAction, setIsSubmittingAction] = useState(false);
+  const [exportPdfOpen, setExportPdfOpen] = useState(false);
 
   // Load scoped administrative areas (province/city/district/village) for the area filter.
   useEffect(() => {
@@ -635,7 +638,7 @@ export function JaringVerificationListClient() {
     setIsSubmittingAction(true);
     try {
       let endpoint = "";
-      let payload: unknown = undefined;
+      let payload: unknown;
       if (action === "approve") {
         endpoint = `/jaring/${item.id}/approve-registration`;
       } else if (action === "reject") {
@@ -652,11 +655,7 @@ export function JaringVerificationListClient() {
       await apiBrowserMutation<void>("POST", endpoint, payload, { idempotent: true });
 
       const newRegistrationStatus =
-        action === "approve" || action === "unsuspend"
-          ? "APPROVED"
-          : action === "reject"
-            ? "REJECTED"
-            : "SUSPENDED";
+        action === "approve" || action === "unsuspend" ? "APPROVED" : action === "reject" ? "REJECTED" : "SUSPENDED";
 
       setItems((prevItems) =>
         prevItems.map((prev) =>
@@ -705,7 +704,7 @@ export function JaringVerificationListClient() {
               Kelola data Jaring, wilayah penempatan, Petugas Wilayah (Gaswil), status registrasi, dan aktivitas
               pelaporan 90 hari.
             </p>
-            <p className="mt-2 text-sm font-medium text-foreground">{areaSubtitle}</p>
+            <p className="mt-2 font-medium text-foreground text-sm">{areaSubtitle}</p>
           </div>
 
           {isFieldOfficer ? (
@@ -822,8 +821,8 @@ export function JaringVerificationListClient() {
       </div>
 
       {/* FILTER & TOOLBAR CARD */}
-      <div className="flex flex-col gap-3 rounded-md border border-slate-200/80 dark:border-white/10 bg-card p-4 shadow-xs">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/70 pb-3">
+      <div className="flex flex-col gap-3 rounded-md border border-slate-200/80 bg-card p-4 shadow-xs dark:border-white/10">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-border/70 border-b pb-3">
           <div>
             <p className={cn(DC_TYPOGRAPHY.cardTitle, "flex items-center gap-2")}>
               <Search className="size-4 text-primary" />
@@ -840,9 +839,9 @@ export function JaringVerificationListClient() {
 
         <div className="space-y-3.5">
           {/* TOP ROW: Search input + Actions */}
-          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
-            <div className="relative flex-1 min-w-[240px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+          <div className="flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center">
+            <div className="relative min-w-[240px] flex-1">
+              <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={search}
                 onChange={(e) => {
@@ -859,14 +858,24 @@ export function JaringVerificationListClient() {
                     setSearch("");
                     setPage(1);
                   }}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  className="absolute top-1/2 right-2.5 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
                   <X className="size-3.5" />
                 </button>
               )}
             </div>
 
-            <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+            <div className="flex shrink-0 items-center gap-2 self-end sm:self-auto">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setExportPdfOpen(true)}
+                disabled={isLoadingItems}
+                className="h-9 gap-1.5 rounded-lg border-sky-500/30 text-sky-600 hover:bg-sky-500/10 dark:text-sky-400"
+              >
+                <FileDown className="size-3.5" />
+                <span>Ekspor PDF</span>
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -1069,7 +1078,7 @@ export function JaringVerificationListClient() {
 
           {/* CUSTOM PERIOD DATE RANGE */}
           {periodFilter === "CUSTOM" && (
-            <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-2 pt-1 text-muted-foreground text-xs">
               <span>Dari:</span>
               <Input
                 aria-label="Periode mulai"
@@ -1102,7 +1111,7 @@ export function JaringVerificationListClient() {
                 variant="ghost"
                 size="sm"
                 onClick={handleResetFilters}
-                className="h-8 text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 font-medium"
+                className="h-8 font-medium text-rose-600 text-xs hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/30"
               >
                 Reset Filter
               </Button>
@@ -1112,17 +1121,17 @@ export function JaringVerificationListClient() {
       </div>
 
       {/* MAIN CARD CONTAINER */}
-      <Card className="overflow-hidden rounded-md border border-slate-200/80 dark:border-white/10 shadow-xs">
+      <Card className="overflow-hidden rounded-md border border-slate-200/80 shadow-xs dark:border-white/10">
         {/* CARD HEADER */}
-        <CardHeader className="border-b border-border/80 bg-slate-50/80 dark:bg-white/[0.02] p-5 md:p-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <CardHeader className="border-border/80 border-b bg-slate-50/80 p-5 md:p-6 dark:bg-white/[0.02]">
+          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
             <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-md bg-primary/10 text-primary border border-primary/20 shrink-0">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-md border border-primary/20 bg-primary/10 text-primary">
                 <DOMAIN_VISUALS.jaring.Icon className="size-5" />
               </div>
               <div>
                 <CardTitle className="font-semibold text-foreground text-lg tracking-normal">Daftar Jaring</CardTitle>
-                <CardDescription className="mt-0.5 text-xs text-muted-foreground">
+                <CardDescription className="mt-0.5 text-muted-foreground text-xs">
                   {filteredItems.length} Jaring dalam cakupan. {summary.pending} menunggu tinjauan registrasi.
                 </CardDescription>
               </div>
@@ -1151,7 +1160,7 @@ export function JaringVerificationListClient() {
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Badge variant="outline" className="h-7 px-3 text-xs rounded-full border-border bg-background">
+              <Badge variant="outline" className="h-7 rounded-full border-border bg-background px-3 text-xs">
                 {filteredItems.length} Jaring
               </Badge>
             </div>
@@ -1162,9 +1171,9 @@ export function JaringVerificationListClient() {
           <div className="overflow-x-auto">
             <Table className="w-full min-w-[1180px]">
               <TableHeader className="bg-slate-50 dark:bg-white/5">
-                <TableRow className="border-b border-slate-200 dark:border-slate-800">
+                <TableRow className="border-slate-200 border-b dark:border-slate-800">
                   {isColumnVisible("registeredAt") ? (
-                    <TableHead className={cn(DC_TYPOGRAPHY.tableHeader, "py-3.5 whitespace-nowrap")}>
+                    <TableHead className={cn(DC_TYPOGRAPHY.tableHeader, "whitespace-nowrap py-3.5")}>
                       Waktu Terdaftar
                     </TableHead>
                   ) : null}
@@ -1237,21 +1246,21 @@ export function JaringVerificationListClient() {
                   return (
                     <TableRow
                       key={item.id}
-                      className="border-b border-slate-100 transition-colors duration-180 hover:bg-slate-50/50 dark:border-slate-800 dark:hover:bg-white/5"
+                      className="border-slate-100 border-b transition-colors duration-180 hover:bg-slate-50/50 dark:border-slate-800 dark:hover:bg-white/5"
                     >
                       {isColumnVisible("registeredAt") ? (
-                        <TableCell className="align-middle py-3 text-xs font-mono text-muted-foreground whitespace-nowrap">
+                        <TableCell className="whitespace-nowrap py-3 align-middle font-mono text-muted-foreground text-xs">
                           {formatDateTime(item.registeredAt ?? item.createdAt)}
                         </TableCell>
                       ) : null}
 
                       {isColumnVisible("photo") ? (
-                        <TableCell className="align-middle py-3">
-                          <div className="size-8 overflow-hidden border border-slate-300 bg-slate-100 dark:border-slate-700 dark:bg-slate-900 flex items-center justify-center">
+                        <TableCell className="py-3 align-middle">
+                          <div className="flex size-8 items-center justify-center overflow-hidden border border-slate-300 bg-slate-100 dark:border-slate-700 dark:bg-slate-900">
                             {photo ? (
                               <Avatar className="size-full rounded-none">
                                 <AvatarImage src={photo} alt={jaringDisplayName(item)} />
-                                <AvatarFallback className="rounded-none bg-primary/10 text-primary font-semibold text-[10px]">
+                                <AvatarFallback className="rounded-none bg-primary/10 font-semibold text-[10px] text-primary">
                                   {getInitials(jaringDisplayName(item))}
                                 </AvatarFallback>
                               </Avatar>
@@ -1263,7 +1272,7 @@ export function JaringVerificationListClient() {
                       ) : null}
 
                       {isColumnVisible("name") ? (
-                        <TableCell className="align-middle py-3 font-mono font-bold text-xs text-foreground">
+                        <TableCell className="py-3 align-middle font-bold font-mono text-foreground text-xs">
                           <div className="min-w-0 max-w-[220px]">
                             <p className="truncate">{jaringDisplayName(item)}</p>
                             {identityNote ? (
@@ -1276,32 +1285,32 @@ export function JaringVerificationListClient() {
                       ) : null}
 
                       {isColumnVisible("whatsapp") ? (
-                        <TableCell className="align-middle py-3 font-mono text-xs">
+                        <TableCell className="py-3 align-middle font-mono text-xs">
                           {item.whatsappNumber ? (
                             <a
                               href={`https://wa.me/${item.whatsappNumber.replace(/\D/g, "")}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="font-mono text-xs font-semibold text-emerald-700 hover:underline dark:text-emerald-400"
+                              className="font-mono font-semibold text-emerald-700 text-xs hover:underline dark:text-emerald-400"
                             >
                               {maskedWhatsappNumber(item.whatsappNumber)}
                             </a>
                           ) : (
-                            <span className="text-xs text-muted-foreground">Belum tersedia</span>
+                            <span className="text-muted-foreground text-xs">Belum tersedia</span>
                           )}
                         </TableCell>
                       ) : null}
 
                       {isColumnVisible("alias") ? (
-                        <TableCell className="align-middle py-3 font-mono text-xs font-semibold text-violet-700 dark:text-violet-400">
+                        <TableCell className="py-3 align-middle font-mono font-semibold text-violet-700 text-xs dark:text-violet-400">
                           {item.aliasName || item.id}
                         </TableCell>
                       ) : null}
 
                       {isColumnVisible("fieldOfficer") ? (
-                        <TableCell className="align-middle py-3 font-mono text-xs">
-                          <div className="flex items-center gap-2.5 max-w-[220px]">
-                            <div className="flex size-7 items-center justify-center rounded-full bg-amber-500/10 text-amber-700 text-[10px] font-semibold shrink-0 dark:text-amber-400">
+                        <TableCell className="py-3 align-middle font-mono text-xs">
+                          <div className="flex max-w-[220px] items-center gap-2.5">
+                            <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-amber-500/10 font-semibold text-[10px] text-amber-700 dark:text-amber-400">
                               {getInitials(foName)}
                             </div>
                             <GaswilEntityLink
@@ -1318,14 +1327,14 @@ export function JaringVerificationListClient() {
                       ) : null}
 
                       {isColumnVisible("village") ? (
-                        <TableCell className="align-middle py-3 text-xs font-mono text-foreground">
-                          <div className="flex items-start gap-1.5 max-w-[320px]">
+                        <TableCell className="py-3 align-middle font-mono text-foreground text-xs">
+                          <div className="flex max-w-[320px] items-start gap-1.5">
                             <MapPin className="mt-0.5 size-3.5 shrink-0 text-rose-600 dark:text-rose-400" />
                             {placementRows.length > 0 ? (
                               <div className="space-y-0.5">
                                 {placementRows.map((row) => (
                                   <div key={`${row.label}-${row.value}`} className="flex flex-wrap gap-x-1.5">
-                                    <span className="text-[11px] uppercase tracking-[0.08em] text-muted-foreground">
+                                    <span className="text-[11px] text-muted-foreground uppercase tracking-[0.08em]">
                                       {row.label}
                                     </span>
                                     <span className="font-medium text-foreground">{row.value}</span>
@@ -1340,15 +1349,15 @@ export function JaringVerificationListClient() {
                       ) : null}
 
                       {isColumnVisible("gender") ? (
-                        <TableCell className="align-middle py-3 text-sm text-foreground">
+                        <TableCell className="py-3 align-middle text-foreground text-sm">
                           {formatGender(item.gender)}
                         </TableCell>
                       ) : null}
 
                       {isColumnVisible("address") ? (
-                        <TableCell className="align-middle py-3">
+                        <TableCell className="py-3 align-middle">
                           <div
-                            className="max-w-[260px] truncate text-sm text-foreground"
+                            className="max-w-[260px] truncate text-foreground text-sm"
                             title={item.address ?? undefined}
                           >
                             {item.address ?? "-"}
@@ -1357,30 +1366,30 @@ export function JaringVerificationListClient() {
                       ) : null}
 
                       {isColumnVisible("district") ? (
-                        <TableCell className="align-middle py-3">
-                          <span className="text-sm font-medium text-foreground">{districtName}</span>
+                        <TableCell className="py-3 align-middle">
+                          <span className="font-medium text-foreground text-sm">{districtName}</span>
                         </TableCell>
                       ) : null}
 
                       {isColumnVisible("occupation") ? (
-                        <TableCell className="align-middle py-3">
-                          <div className="flex flex-col min-w-0 max-w-[200px]">
-                            <span className="font-medium text-sm text-foreground truncate">
+                        <TableCell className="py-3 align-middle">
+                          <div className="flex min-w-0 max-w-[200px] flex-col">
+                            <span className="truncate font-medium text-foreground text-sm">
                               {item.occupation?.name ?? "-"}
                             </span>
                             {item.workplace || item.jobTitle ? (
-                              <span className="text-xs text-muted-foreground truncate">
+                              <span className="truncate text-muted-foreground text-xs">
                                 {[item.jobTitle, item.workplace].filter(Boolean).join(" - ")}
                               </span>
                             ) : (
-                              <span className="text-xs text-muted-foreground">-</span>
+                              <span className="text-muted-foreground text-xs">-</span>
                             )}
                           </div>
                         </TableCell>
                       ) : null}
 
                       {isColumnVisible("status") ? (
-                        <TableCell className="align-middle py-3 text-center">
+                        <TableCell className="py-3 text-center align-middle">
                           <span
                             className={cn(
                               "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 font-semibold text-[11px] uppercase tracking-[0.08em]",
@@ -1396,7 +1405,7 @@ export function JaringVerificationListClient() {
                       ) : null}
 
                       {isColumnVisible("kinerja") ? (
-                        <TableCell className="align-middle py-3">
+                        <TableCell className="py-3 align-middle">
                           <span
                             className={cn(
                               "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-semibold text-[10px] uppercase tracking-[0.06em]",
@@ -1408,13 +1417,13 @@ export function JaringVerificationListClient() {
                         </TableCell>
                       ) : null}
 
-                      <TableCell className="align-middle pr-6 py-3 text-right">
+                      <TableCell className="py-3 pr-6 text-right align-middle">
                         <div className="flex items-center justify-end gap-1.5">
                           <Button
                             asChild
                             size="sm"
                             variant="outline"
-                            className="h-8 gap-1.5 text-xs rounded-lg border-border hover:border-primary hover:text-primary hover:bg-primary/5"
+                            className="h-8 gap-1.5 rounded-lg border-border text-xs hover:border-primary hover:bg-primary/5 hover:text-primary"
                           >
                             <Link href={`/dashboard/daftar-jaring/${item.id}`}>
                               <Eye className="size-3.5" />
@@ -1427,7 +1436,7 @@ export function JaringVerificationListClient() {
                               asChild
                               size="sm"
                               variant="outline"
-                              className="h-8 gap-1.5 text-xs rounded-lg border-border hover:border-sky-500 hover:text-sky-600 hover:bg-sky-500/5"
+                              className="h-8 gap-1.5 rounded-lg border-border text-xs hover:border-sky-500 hover:bg-sky-500/5 hover:text-sky-600"
                             >
                               <Link href={`/dashboard/daftar-jaring/${item.id}/edit`}>
                                 <Pencil className="size-3.5" />
@@ -1442,7 +1451,7 @@ export function JaringVerificationListClient() {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => setSelectedItemForAction({ item, action: "reject" })}
-                                className="h-8 border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-400 hover:bg-rose-500/20 hover:text-rose-800 dark:hover:text-rose-300 font-medium text-xs rounded-lg px-2.5"
+                                className="h-8 rounded-lg border-rose-500/30 bg-rose-500/10 px-2.5 font-medium text-rose-700 text-xs hover:bg-rose-500/20 hover:text-rose-800 dark:text-rose-400 dark:hover:text-rose-300"
                                 title="Tolak Pengajuan"
                               >
                                 <XCircle className="size-3.5" />
@@ -1453,7 +1462,7 @@ export function JaringVerificationListClient() {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => setSelectedItemForAction({ item, action: "approve" })}
-                                className="h-8 border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/20 hover:text-emerald-800 dark:hover:text-emerald-300 font-medium text-xs rounded-lg px-2.5"
+                                className="h-8 rounded-lg border-emerald-500/30 bg-emerald-500/10 px-2.5 font-medium text-emerald-700 text-xs hover:bg-emerald-500/20 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300"
                                 title="Setujui Pengajuan"
                               >
                                 <CheckCircle2 className="size-3.5" />
@@ -1467,7 +1476,7 @@ export function JaringVerificationListClient() {
                               size="sm"
                               variant="outline"
                               onClick={() => setSelectedItemForAction({ item, action: "suspend" })}
-                              className="h-8 border-rose-600/30 bg-rose-600/10 text-rose-700 dark:text-rose-400 hover:bg-rose-600/20 hover:text-rose-800 dark:hover:text-rose-300 font-medium text-xs rounded-lg px-2.5"
+                              className="h-8 rounded-lg border-rose-600/30 bg-rose-600/10 px-2.5 font-medium text-rose-700 text-xs hover:bg-rose-600/20 hover:text-rose-800 dark:text-rose-400 dark:hover:text-rose-300"
                               title="Tangguhkan Jaring (Suspend)"
                             >
                               <Ban className="size-3.5" />
@@ -1480,7 +1489,7 @@ export function JaringVerificationListClient() {
                               size="sm"
                               variant="outline"
                               onClick={() => setSelectedItemForAction({ item, action: "unsuspend" })}
-                              className="h-8 border-emerald-600/30 bg-emerald-600/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-600/20 hover:text-emerald-800 dark:hover:text-emerald-300 font-medium text-xs rounded-lg px-2.5"
+                              className="h-8 rounded-lg border-emerald-600/30 bg-emerald-600/10 px-2.5 font-medium text-emerald-700 text-xs hover:bg-emerald-600/20 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300"
                               title="Pulihkan Jaring (Batalkan Penangguhan)"
                             >
                               <CheckCircle2 className="size-3.5" />
@@ -1498,13 +1507,13 @@ export function JaringVerificationListClient() {
 
           {/* EMPTY STATE */}
           {!paginatedItems.length ? (
-            <div className="flex flex-col items-center justify-center p-12 text-center my-6 space-y-4">
-              <div className="flex size-16 items-center justify-center rounded-2xl bg-muted/60 text-muted-foreground border border-border/50 shadow-xs">
+            <div className="my-6 flex flex-col items-center justify-center space-y-4 p-12 text-center">
+              <div className="flex size-16 items-center justify-center rounded-2xl border border-border/50 bg-muted/60 text-muted-foreground shadow-xs">
                 <DOMAIN_VISUALS.jaring.Icon className="size-8 stroke-[1.5]" />
               </div>
               <div className="max-w-md space-y-1.5">
                 <h3 className="font-semibold text-base text-foreground">Belum ada pengajuan Jaring</h3>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-muted-foreground text-xs">
                   {hasActiveFilters
                     ? "Tidak ada data pengajuan yang cocok dengan filter pencarian Anda."
                     : "Pengajuan baru akan muncul setelah Petugas Wilayah (Gaswil) mengirim data."}
@@ -1523,7 +1532,7 @@ export function JaringVerificationListClient() {
           ) : null}
 
           {/* PAGINATION */}
-          <div className="border-t border-border/80 p-4">
+          <div className="border-border/80 border-t p-4">
             <TablePagination
               page={page}
               limit={limit}
@@ -1548,32 +1557,32 @@ export function JaringVerificationListClient() {
           }
         }}
       >
-        <AlertDialogContent className="rounded-2xl max-w-md">
+        <AlertDialogContent className="max-w-md rounded-2xl">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2 text-base">
               {selectedItemForAction?.action === "approve" ? (
                 <>
-                  <CheckCircle2 className="size-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <CheckCircle2 className="size-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
                   <span>Setujui Pengajuan Jaring?</span>
                 </>
               ) : selectedItemForAction?.action === "suspend" ? (
                 <>
-                  <Ban className="size-5 text-rose-600 dark:text-rose-400 shrink-0" />
+                  <Ban className="size-5 shrink-0 text-rose-600 dark:text-rose-400" />
                   <span>Tangguhkan Jaring (Suspend)?</span>
                 </>
               ) : selectedItemForAction?.action === "unsuspend" ? (
                 <>
-                  <CheckCircle2 className="size-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <CheckCircle2 className="size-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
                   <span>Pulihkan Jaring (Unsuspend)?</span>
                 </>
               ) : (
                 <>
-                  <XCircle className="size-5 text-rose-600 dark:text-rose-400 shrink-0" />
+                  <XCircle className="size-5 shrink-0 text-rose-600 dark:text-rose-400" />
                   <span>Tolak Pengajuan Jaring?</span>
                 </>
               )}
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-xs text-muted-foreground leading-relaxed">
+            <AlertDialogDescription className="text-muted-foreground text-xs leading-relaxed">
               {selectedItemForAction?.action === "approve"
                 ? `Pengajuan "${jaringDisplayName(selectedItemForAction.item)}" akan disetujui dan masuk ke jaringan operasional.`
                 : selectedItemForAction?.action === "suspend"
@@ -1586,7 +1595,7 @@ export function JaringVerificationListClient() {
 
           {selectedItemForAction?.action === "reject" && (
             <div className="space-y-2 py-2">
-              <label htmlFor="quick-rejection-reason" className="text-xs font-medium text-foreground">
+              <label htmlFor="quick-rejection-reason" className="font-medium text-foreground text-xs">
                 Alasan Penolakan (opsional)
               </label>
               <Input
@@ -1602,7 +1611,7 @@ export function JaringVerificationListClient() {
 
           {selectedItemForAction?.action === "suspend" && (
             <div className="space-y-2 py-2">
-              <label htmlFor="quick-suspend-reason" className="text-xs font-medium text-foreground">
+              <label htmlFor="quick-suspend-reason" className="font-medium text-foreground text-xs">
                 Alasan Penangguhan <span className="text-rose-500">*</span>
               </label>
               <Input
@@ -1629,7 +1638,7 @@ export function JaringVerificationListClient() {
                 }
               }}
               className={cn(
-                "rounded-lg text-xs font-semibold",
+                "rounded-lg font-semibold text-xs",
                 selectedItemForAction?.action === "reject" || selectedItemForAction?.action === "suspend"
                   ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
                   : "bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-500",
@@ -1648,6 +1657,22 @@ export function JaringVerificationListClient() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <JaringExportPdfDialog
+        open={exportPdfOpen}
+        onOpenChange={setExportPdfOpen}
+        filteredCount={filteredItems.length}
+        totalApprovedCount={summary.approved}
+        currentFilters={{
+          search,
+          statusFilter,
+          activeStatusFilter,
+          serverAreaId,
+          officerFilter,
+          areaSubtitle,
+        }}
+        filteredItemIds={filteredItems.map((item) => item.id)}
+      />
     </main>
   );
 }
@@ -1732,33 +1757,33 @@ export function JaringReportCardItem({
   const targetHref = detailHref ?? `/dashboard/laporan-jaring/${rep.id}`;
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white transition-all duration-150 dark:border-blue-400/12 dark:bg-[#111827] overflow-hidden">
+    <div className="overflow-hidden rounded-lg border border-slate-200 bg-white transition-all duration-150 dark:border-blue-400/12 dark:bg-[#111827]">
       {/* Mail Header / Summary Bar */}
       <button
         type="button"
         onClick={onToggleExpand}
         aria-expanded={isExpanded}
-        className="flex w-full cursor-pointer select-none items-start justify-between gap-3 p-4 text-left transition-colors hover:bg-slate-50/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring dark:hover:bg-slate-900/50"
+        className="flex w-full cursor-pointer select-none items-start justify-between gap-3 p-4 text-left transition-colors hover:bg-slate-50/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset dark:hover:bg-slate-900/50"
       >
         <div className="min-w-0 flex-1 space-y-1">
           <div className="flex items-center gap-2">
-            <span className="font-mono text-xs text-sky-600 dark:text-sky-400 font-bold shrink-0">{refNum}</span>
-            <Badge variant="outline" className="text-[10px] font-mono shrink-0">
+            <span className="shrink-0 font-bold font-mono text-sky-600 text-xs dark:text-sky-400">{refNum}</span>
+            <Badge variant="outline" className="shrink-0 font-mono text-[10px]">
               {rep.status ?? rep.currentState ?? "SUBMITTED"}
             </Badge>
             {photos.length > 0 && (
-              <span className="inline-flex items-center gap-1 text-[10px] font-mono text-muted-foreground bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+              <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground dark:bg-slate-800">
                 <ImageIcon className="size-3 text-sky-500" />
                 {photos.length} foto
               </span>
             )}
           </div>
-          <h4 className="font-semibold text-sm text-foreground truncate">{displayTitle}</h4>
-          {!isExpanded && content && <p className="text-xs text-muted-foreground line-clamp-1">{content}</p>}
+          <h4 className="truncate font-semibold text-foreground text-sm">{displayTitle}</h4>
+          {!isExpanded && content && <p className="line-clamp-1 text-muted-foreground text-xs">{content}</p>}
         </div>
 
-        <div className="flex items-center gap-3 shrink-0">
-          <span className="text-[11px] text-muted-foreground font-mono hidden sm:inline-block">
+        <div className="flex shrink-0 items-center gap-3">
+          <span className="hidden font-mono text-[11px] text-muted-foreground sm:inline-block">
             {formatDateTime(rep.reportedAt ?? rep.submittedAt ?? rep.createdAt)}
           </span>
           <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-md">
@@ -1773,9 +1798,9 @@ export function JaringReportCardItem({
 
       {/* Expanded Mail Content Body */}
       {isExpanded && (
-        <div className="px-4 pb-4 pt-1 space-y-4 border-t border-slate-100 dark:border-blue-400/8 bg-slate-50/40 dark:bg-slate-950/20">
+        <div className="space-y-4 border-slate-100 border-t bg-slate-50/40 px-4 pt-1 pb-4 dark:border-blue-400/8 dark:bg-slate-950/20">
           {content && (
-            <div className="text-xs text-foreground/90 whitespace-pre-wrap leading-relaxed bg-white dark:bg-slate-900/60 p-3 rounded border border-slate-200/60 dark:border-slate-800">
+            <div className="whitespace-pre-wrap rounded border border-slate-200/60 bg-white p-3 text-foreground/90 text-xs leading-relaxed dark:border-slate-800 dark:bg-slate-900/60">
               {content}
             </div>
           )}
@@ -1783,7 +1808,7 @@ export function JaringReportCardItem({
           {/* Photo Previews */}
           {photos.length > 0 && (
             <div className="space-y-1.5">
-              <div className="text-[11px] font-medium text-muted-foreground flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 font-medium text-[11px] text-muted-foreground">
                 <ImageIcon className="size-3.5 text-sky-600 dark:text-sky-400" />
                 Lampiran Foto ({photos.length})
               </div>
@@ -1796,7 +1821,7 @@ export function JaringReportCardItem({
                       e.stopPropagation();
                       setSelectedImage(photoUrl);
                     }}
-                    className="group relative size-20 rounded-md overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 hover:ring-2 hover:ring-sky-500/50 transition-all cursor-zoom-in"
+                    className="group relative size-20 cursor-zoom-in overflow-hidden rounded-md border border-slate-200 bg-slate-100 transition-all hover:ring-2 hover:ring-sky-500/50 dark:border-slate-800 dark:bg-slate-900"
                   >
                     {/* biome-ignore lint/performance/noImgElement: native img (avatar/thumbnail) with fixed sizing. */}
                     <img
@@ -1806,10 +1831,10 @@ export function JaringReportCardItem({
                       height={80}
                       loading="lazy"
                       decoding="async"
-                      className="size-full object-cover group-hover:scale-105 transition-transform"
+                      className="size-full object-cover transition-transform group-hover:scale-105"
                     />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors grid place-items-center">
-                      <Eye className="size-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="absolute inset-0 grid place-items-center bg-black/0 transition-colors group-hover:bg-black/20">
+                      <Eye className="size-4 text-white opacity-0 transition-opacity group-hover:opacity-100" />
                     </div>
                   </button>
                 ))}
@@ -1818,7 +1843,7 @@ export function JaringReportCardItem({
           )}
 
           {/* Metadata info & Detail Link */}
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-2 text-[11px] text-muted-foreground border-t border-slate-200/60 dark:border-slate-800">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-slate-200/60 border-t pt-2 text-[11px] text-muted-foreground dark:border-slate-800">
             <div className="flex flex-wrap items-center gap-3">
               {categoryName && (
                 <span>
@@ -1832,7 +1857,7 @@ export function JaringReportCardItem({
               asChild
               size="sm"
               variant="outline"
-              className="h-8 gap-1.5 text-xs font-medium border-sky-500/30 text-sky-600 hover:bg-sky-500/10 dark:text-sky-400 shrink-0"
+              className="h-8 shrink-0 gap-1.5 border-sky-500/30 font-medium text-sky-600 text-xs hover:bg-sky-500/10 dark:text-sky-400"
               onClick={(e) => e.stopPropagation()}
             >
               <Link href={targetHref}>
@@ -1848,13 +1873,13 @@ export function JaringReportCardItem({
       {/* Image Preview Lightbox */}
       {selectedImage && (
         <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
-          <DialogContent className="max-w-3xl p-2 bg-slate-950/95 border-slate-800">
-            <div className="relative flex justify-center items-center max-h-[80vh] overflow-hidden rounded">
+          <DialogContent className="max-w-3xl border-slate-800 bg-slate-950/95 p-2">
+            <div className="relative flex max-h-[80vh] items-center justify-center overflow-hidden rounded">
               {/* biome-ignore lint/performance/noImgElement: native img (avatar/thumbnail) with fixed sizing. */}
               <img
                 src={selectedImage}
                 alt="Preview foto laporan"
-                className="max-h-[78vh] w-auto object-contain rounded"
+                className="max-h-[78vh] w-auto rounded object-contain"
               />
             </div>
           </DialogContent>
@@ -1880,40 +1905,40 @@ function JaringCoachingCardItem({
   const gaswil = item.fieldOfficer?.userProfile;
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white transition-all duration-150 dark:border-blue-400/12 dark:bg-[#111827] overflow-hidden">
+    <div className="overflow-hidden rounded-lg border border-slate-200 bg-white transition-all duration-150 dark:border-blue-400/12 dark:bg-[#111827]">
       {/* Header / Summary Bar */}
       <button
         type="button"
         onClick={onToggleExpand}
         aria-expanded={isExpanded}
-        className="flex w-full cursor-pointer select-none items-start justify-between gap-3 p-4 text-left transition-colors hover:bg-slate-50/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring dark:hover:bg-slate-900/50"
+        className="flex w-full cursor-pointer select-none items-start justify-between gap-3 p-4 text-left transition-colors hover:bg-slate-50/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset dark:hover:bg-slate-900/50"
       >
         <div className="min-w-0 flex-1 space-y-1.5">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1 text-[11px] font-mono text-muted-foreground bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">
+            <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-0.5 font-mono text-[11px] text-muted-foreground dark:bg-slate-800">
               <Clock className="size-3 text-sky-500" />
               {reportedDate}
             </span>
             {gaswil?.fullName && (
-              <span className="inline-flex items-center gap-1 text-[11px] font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-500/20">
+              <span className="inline-flex items-center gap-1 rounded border border-emerald-500/20 bg-emerald-50 px-2 py-0.5 font-mono text-[11px] text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400">
                 <UserRound className="size-3" />
                 Gaswil: {gaswil.fullName}
               </span>
             )}
             {attachments.length > 0 && (
-              <span className="inline-flex items-center gap-1 text-[10px] font-mono text-muted-foreground bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+              <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground dark:bg-slate-800">
                 <ImageIcon className="size-3 text-sky-500" />
                 {attachments.length} foto
               </span>
             )}
           </div>
-          <h4 className="font-semibold text-sm text-foreground">{item.title}</h4>
+          <h4 className="font-semibold text-foreground text-sm">{item.title}</h4>
           {!isExpanded && item.content && (
-            <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{item.content}</p>
+            <p className="line-clamp-2 text-muted-foreground text-xs leading-relaxed">{item.content}</p>
           )}
         </div>
 
-        <div className="flex items-center gap-2 shrink-0 pt-0.5">
+        <div className="flex shrink-0 items-center gap-2 pt-0.5">
           <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-md">
             {isExpanded ? (
               <ChevronUp className="size-4 text-muted-foreground" />
@@ -1926,9 +1951,9 @@ function JaringCoachingCardItem({
 
       {/* Expanded Content */}
       {isExpanded && (
-        <div className="px-4 pb-4 pt-2 space-y-4 border-t border-slate-100 dark:border-blue-400/8 bg-slate-50/40 dark:bg-slate-950/20">
+        <div className="space-y-4 border-slate-100 border-t bg-slate-50/40 px-4 pt-2 pb-4 dark:border-blue-400/8 dark:bg-slate-950/20">
           {item.content && (
-            <div className="text-xs text-foreground/90 whitespace-pre-wrap leading-relaxed bg-white dark:bg-slate-900/60 p-3.5 rounded border border-slate-200/60 dark:border-slate-800">
+            <div className="whitespace-pre-wrap rounded border border-slate-200/60 bg-white p-3.5 text-foreground/90 text-xs leading-relaxed dark:border-slate-800 dark:bg-slate-900/60">
               {item.content}
             </div>
           )}
@@ -1936,7 +1961,7 @@ function JaringCoachingCardItem({
           {/* Photo Previews */}
           {attachments.length > 0 && (
             <div className="space-y-1.5">
-              <div className="text-[11px] font-medium text-muted-foreground flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 font-medium text-[11px] text-muted-foreground">
                 <ImageIcon className="size-3.5 text-sky-600 dark:text-sky-400" />
                 Lampiran Foto ({attachments.length})
               </div>
@@ -1951,7 +1976,7 @@ function JaringCoachingCardItem({
                         e.stopPropagation();
                         setSelectedImage(photoUrl);
                       }}
-                      className="group relative size-20 rounded-md overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 hover:ring-2 hover:ring-sky-500/50 transition-all cursor-zoom-in"
+                      className="group relative size-20 cursor-zoom-in overflow-hidden rounded-md border border-slate-200 bg-slate-100 transition-all hover:ring-2 hover:ring-sky-500/50 dark:border-slate-800 dark:bg-slate-900"
                       title={att.caption || att.fileName || `Foto ${idx + 1}`}
                     >
                       {/* biome-ignore lint/performance/noImgElement: native img thumbnail */}
@@ -1962,10 +1987,10 @@ function JaringCoachingCardItem({
                         height={80}
                         loading="lazy"
                         decoding="async"
-                        className="size-full object-cover group-hover:scale-105 transition-transform"
+                        className="size-full object-cover transition-transform group-hover:scale-105"
                       />
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors grid place-items-center">
-                        <Eye className="size-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <div className="absolute inset-0 grid place-items-center bg-black/0 transition-colors group-hover:bg-black/20">
+                        <Eye className="size-4 text-white opacity-0 transition-opacity group-hover:opacity-100" />
                       </div>
                     </button>
                   );
@@ -1975,7 +2000,7 @@ function JaringCoachingCardItem({
           )}
 
           {/* Metadata & Detail Link */}
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-2 text-[11px] text-muted-foreground border-t border-slate-200/60 dark:border-slate-800">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-slate-200/60 border-t pt-2 text-[11px] text-muted-foreground dark:border-slate-800">
             <div className="flex flex-wrap items-center gap-3">
               {gaswil && (
                 <span>
@@ -1995,7 +2020,7 @@ function JaringCoachingCardItem({
               asChild
               size="sm"
               variant="outline"
-              className="h-8 gap-1.5 text-xs font-medium border-sky-500/30 text-sky-600 hover:bg-sky-500/10 dark:text-sky-400 shrink-0"
+              className="h-8 shrink-0 gap-1.5 border-sky-500/30 font-medium text-sky-600 text-xs hover:bg-sky-500/10 dark:text-sky-400"
               onClick={(e) => e.stopPropagation()}
             >
               <Link href={`/dashboard/laporan-pembinaan-jaring/${item.id}?jaringId=${item.jaringId}`}>
@@ -2011,13 +2036,13 @@ function JaringCoachingCardItem({
       {/* Lightbox Modal */}
       {selectedImage && (
         <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
-          <DialogContent className="max-w-3xl p-2 bg-slate-950/95 border-slate-800">
-            <div className="relative flex justify-center items-center max-h-[80vh] overflow-hidden rounded">
+          <DialogContent className="max-w-3xl border-slate-800 bg-slate-950/95 p-2">
+            <div className="relative flex max-h-[80vh] items-center justify-center overflow-hidden rounded">
               {/* biome-ignore lint/performance/noImgElement: native img preview */}
               <img
                 src={selectedImage}
                 alt="Preview foto pembinaan"
-                className="max-h-[78vh] w-auto object-contain rounded"
+                className="max-h-[78vh] w-auto rounded object-contain"
               />
             </div>
           </DialogContent>
@@ -2280,7 +2305,7 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
 
   return (
     <main className="mx-auto w-full max-w-4xl space-y-5 transition-colors duration-150 sm:space-y-6">
-      <div className="flex flex-col gap-4 border-b border-slate-200 pb-4 dark:border-blue-400/12 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 border-slate-200 border-b pb-4 sm:flex-row sm:items-center sm:justify-between dark:border-blue-400/12">
         <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center">
           <Button
             asChild
@@ -2293,8 +2318,8 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
               Kembali
             </Link>
           </Button>
-          <div className="hidden h-4 w-px bg-slate-200 dark:bg-blue-400/12 sm:block" />
-          <h1 className="flex min-w-0 items-center gap-2 font-heading font-bold text-slate-900 text-xl tracking-normal dark:text-[#F8FAFC]">
+          <div className="hidden h-4 w-px bg-slate-200 sm:block dark:bg-blue-400/12" />
+          <h1 className="flex min-w-0 items-center gap-2 font-bold font-heading text-slate-900 text-xl tracking-normal dark:text-[#F8FAFC]">
             <DOMAIN_VISUALS.jaring.Icon className={`size-5 shrink-0 stroke-[1.5] ${DOMAIN_VISUALS.jaring.iconClass}`} />
             <span className="shrink-0">DETAIL JARING:</span>
             <span className="min-w-0 truncate font-mono tracking-wide">{jaringDisplayName(item)}</span>
@@ -2313,11 +2338,9 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
       {item.registrationStatus === "SUSPENDED" && (
         <div className="mx-auto max-w-3xl rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-red-800 dark:text-red-300">
           <div className="flex items-start gap-3">
-            <ShieldAlert className="size-5 shrink-0 text-red-600 dark:text-red-400 mt-0.5" />
+            <ShieldAlert className="mt-0.5 size-5 shrink-0 text-red-600 dark:text-red-400" />
             <div className="space-y-1 text-xs">
-              <p className="font-semibold text-sm text-red-900 dark:text-red-200">
-                Jaring Ditangguhkan (Suspended)
-              </p>
+              <p className="font-semibold text-red-900 text-sm dark:text-red-200">Jaring Ditangguhkan (Suspended)</p>
               <p className="leading-relaxed">
                 Jaring ini sedang dalam status penangguhan oleh Deputi II. Jaring tidak dihitung sebagai terverifikasi,
                 dinonaktifkan dari pelaporan intelijen, dan disembunyikan dari metrik operasional terverifikasi.
@@ -2332,7 +2355,7 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
         </div>
       )}
 
-      <div className="flex gap-1 overflow-x-auto whitespace-nowrap border-b border-slate-200 font-mono text-[11px] dark:border-blue-400/12">
+      <div className="flex gap-1 overflow-x-auto whitespace-nowrap border-slate-200 border-b font-mono text-[11px] dark:border-blue-400/12">
         <DetailTabButton active={activeTab === "information"} onClick={() => setActiveTab("information")}>
           PROFIL
         </DetailTabButton>
@@ -2413,7 +2436,7 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
                 <StatusPill tone={operationalStatusTone(item)}>{operationalStatusLabel(item)}</StatusPill>
               </DetailRow>
               <DetailRow label="Terakhir Melapor">
-                <span className="font-mono font-medium">
+                <span className="font-medium font-mono">
                   {item.lastReportAt ? formatDateTime(item.lastReportAt) : "Belum pernah melapor"}
                 </span>
               </DetailRow>
@@ -2466,15 +2489,15 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
 
         {activeTab === "reports" && (
           <div className="space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b dark:border-blue-400/12 border-slate-200 pb-3">
-              <h3 className="font-semibold text-sm text-foreground flex items-center gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-slate-200 border-b pb-3 dark:border-blue-400/12">
+              <h3 className="flex items-center gap-2 font-semibold text-foreground text-sm">
                 <DOMAIN_VISUALS.jaringReport.Icon className={`size-4 ${DOMAIN_VISUALS.jaringReport.iconClass}`} />
                 Daftar Laporan Jaring ({filteredReports.length})
               </h3>
 
               <div className="flex flex-wrap items-center gap-3">
                 {/* Periode Filter Dropdown */}
-                <div className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground">
+                <div className="flex items-center gap-1.5 font-mono text-muted-foreground text-xs">
                   <span>Periode:</span>
                   <NativeSelect
                     value={periodPreset}
@@ -2482,7 +2505,7 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
                       setPeriodPreset(e.target.value as typeof periodPreset);
                       setReportsPage(1);
                     }}
-                    className="h-8 text-xs bg-background min-w-[150px]"
+                    className="h-8 min-w-[150px] bg-background text-xs"
                   >
                     <option value="TODAY">Hari Ini</option>
                     <option value="LAST_7_DAYS">7 Hari Terakhir</option>
@@ -2494,7 +2517,7 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
                 {/* Date Range Picker (Only shown when periodPreset === "CUSTOM") */}
                 {periodPreset === "CUSTOM" && (
                   <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground">
+                    <div className="flex items-center gap-1.5 font-mono text-muted-foreground text-xs">
                       <span>Dari:</span>
                       <Input
                         type="date"
@@ -2503,11 +2526,11 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
                           setStartDate(e.target.value);
                           setReportsPage(1);
                         }}
-                        className="h-8 text-xs bg-background w-[130px]"
+                        className="h-8 w-[130px] bg-background text-xs"
                         title="Dari Tanggal"
                       />
                     </div>
-                    <div className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground">
+                    <div className="flex items-center gap-1.5 font-mono text-muted-foreground text-xs">
                       <span>s.d:</span>
                       <Input
                         type="date"
@@ -2516,7 +2539,7 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
                           setEndDate(e.target.value);
                           setReportsPage(1);
                         }}
-                        className="h-8 text-xs bg-background w-[130px]"
+                        className="h-8 w-[130px] bg-background text-xs"
                         title="Sampai Tanggal"
                       />
                     </div>
@@ -2534,9 +2557,9 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
                       setEndDate("");
                       setReportsPage(1);
                     }}
-                    className="h-8 text-xs text-muted-foreground hover:text-foreground"
+                    className="h-8 text-muted-foreground text-xs hover:text-foreground"
                   >
-                    <RotateCcw className="size-3.5 mr-1" />
+                    <RotateCcw className="mr-1 size-3.5" />
                     Reset
                   </Button>
                 )}
@@ -2544,7 +2567,7 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
             </div>
 
             {reportsLoading ? (
-              <div className="flex py-12 justify-center items-center gap-2 text-xs text-muted-foreground font-mono">
+              <div className="flex items-center justify-center gap-2 py-12 font-mono text-muted-foreground text-xs">
                 <RefreshCw className="size-4 animate-spin text-sky-600 dark:text-sky-400" />
                 Memuat laporan jaring...
               </div>
@@ -2577,10 +2600,10 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
                 )}
               </div>
             ) : reports.length > 0 ? (
-              <div className="rounded-lg border border-dashed border-slate-200 dark:border-blue-400/12 p-8 text-center space-y-2">
+              <div className="space-y-2 rounded-lg border border-slate-200 border-dashed p-8 text-center dark:border-blue-400/12">
                 <DOMAIN_VISUALS.jaringReport.Icon className="mx-auto size-8 text-muted-foreground" />
-                <div className="font-semibold text-sm text-foreground">Tidak ada laporan ditemukan</div>
-                <p className="text-xs text-muted-foreground">
+                <div className="font-semibold text-foreground text-sm">Tidak ada laporan ditemukan</div>
+                <p className="text-muted-foreground text-xs">
                   Tidak ada laporan yang sesuai dengan filter tanggal yang dipilih.
                 </p>
                 <Button
@@ -2594,15 +2617,15 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
                   }}
                   className="mt-2 text-xs"
                 >
-                  <RotateCcw className="size-3.5 mr-1" />
+                  <RotateCcw className="mr-1 size-3.5" />
                   Reset Filter Tanggal
                 </Button>
               </div>
             ) : (
-              <div className="rounded-lg border border-dashed border-slate-200 dark:border-blue-400/12 p-8 text-center space-y-2">
+              <div className="space-y-2 rounded-lg border border-slate-200 border-dashed p-8 text-center dark:border-blue-400/12">
                 <DOMAIN_VISUALS.jaringReport.Icon className="mx-auto size-8 text-muted-foreground" />
-                <div className="font-semibold text-sm text-foreground">Belum Ada Laporan</div>
-                <p className="text-xs text-muted-foreground">Jaring ini belum membuat laporan di sistem.</p>
+                <div className="font-semibold text-foreground text-sm">Belum Ada Laporan</div>
+                <p className="text-muted-foreground text-xs">Jaring ini belum membuat laporan di sistem.</p>
               </div>
             )}
           </div>
@@ -2610,8 +2633,8 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
 
         {activeTab === "coaching" && (
           <div className="space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b dark:border-blue-400/12 border-slate-200 pb-3">
-              <h3 className="font-semibold text-sm text-foreground flex items-center gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-slate-200 border-b pb-3 dark:border-blue-400/12">
+              <h3 className="flex items-center gap-2 font-semibold text-foreground text-sm">
                 <DOMAIN_VISUALS.briefing.Icon className={`size-4 ${DOMAIN_VISUALS.briefing.iconClass}`} />
                 Riwayat Pembinaan Jaring ({filteredCoachingReports.length})
               </h3>
@@ -2619,7 +2642,7 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
               <div className="flex flex-wrap items-center gap-3">
                 {/* Search */}
                 <div className="relative">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+                  <Search className="absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     type="search"
                     placeholder="Cari pembinaan..."
@@ -2628,12 +2651,12 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
                       setCoachingSearch(e.target.value);
                       setCoachingPage(1);
                     }}
-                    className="h-8 pl-8 text-xs bg-background w-[160px] sm:w-[200px]"
+                    className="h-8 w-[160px] bg-background pl-8 text-xs sm:w-[200px]"
                   />
                 </div>
 
                 {/* Periode Filter Dropdown */}
-                <div className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground">
+                <div className="flex items-center gap-1.5 font-mono text-muted-foreground text-xs">
                   <span>Periode:</span>
                   <NativeSelect
                     value={coachingPeriodPreset}
@@ -2641,7 +2664,7 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
                       setCoachingPeriodPreset(e.target.value as typeof coachingPeriodPreset);
                       setCoachingPage(1);
                     }}
-                    className="h-8 text-xs bg-background min-w-[140px]"
+                    className="h-8 min-w-[140px] bg-background text-xs"
                   >
                     <option value="ALL">Semua Periode</option>
                     <option value="TODAY">Hari Ini</option>
@@ -2654,7 +2677,7 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
                 {/* Date Range Picker (Only shown when coachingPeriodPreset === "CUSTOM") */}
                 {coachingPeriodPreset === "CUSTOM" && (
                   <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground">
+                    <div className="flex items-center gap-1.5 font-mono text-muted-foreground text-xs">
                       <span>Dari:</span>
                       <Input
                         type="date"
@@ -2663,11 +2686,11 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
                           setCoachingStartDate(e.target.value);
                           setCoachingPage(1);
                         }}
-                        className="h-8 text-xs bg-background w-[130px]"
+                        className="h-8 w-[130px] bg-background text-xs"
                         title="Dari Tanggal"
                       />
                     </div>
-                    <div className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground">
+                    <div className="flex items-center gap-1.5 font-mono text-muted-foreground text-xs">
                       <span>s.d:</span>
                       <Input
                         type="date"
@@ -2676,7 +2699,7 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
                           setCoachingEndDate(e.target.value);
                           setCoachingPage(1);
                         }}
-                        className="h-8 text-xs bg-background w-[130px]"
+                        className="h-8 w-[130px] bg-background text-xs"
                         title="Sampai Tanggal"
                       />
                     </div>
@@ -2695,9 +2718,9 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
                       setCoachingSearch("");
                       setCoachingPage(1);
                     }}
-                    className="h-8 text-xs text-muted-foreground hover:text-foreground"
+                    className="h-8 text-muted-foreground text-xs hover:text-foreground"
                   >
-                    <RotateCcw className="size-3.5 mr-1" />
+                    <RotateCcw className="mr-1 size-3.5" />
                     Reset
                   </Button>
                 )}
@@ -2707,7 +2730,7 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
                   <Button
                     asChild
                     size="sm"
-                    className="h-8 gap-1.5 text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white"
+                    className="h-8 gap-1.5 bg-emerald-600 font-medium text-white text-xs hover:bg-emerald-700"
                   >
                     <Link href={`/dashboard/laporan-pembinaan-jaring/baru?jaringId=${item.id}`}>
                       <Plus className="size-3.5" />
@@ -2719,7 +2742,7 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
             </div>
 
             {coachingLoading ? (
-              <div className="flex py-12 justify-center items-center gap-2 text-xs text-muted-foreground font-mono">
+              <div className="flex items-center justify-center gap-2 py-12 font-mono text-muted-foreground text-xs">
                 <RefreshCw className="size-4 animate-spin text-sky-600 dark:text-sky-400" />
                 Memuat riwayat pembinaan jaring...
               </div>
@@ -2750,10 +2773,10 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
                 )}
               </div>
             ) : coachingReports.length > 0 ? (
-              <div className="rounded-lg border border-dashed border-slate-200 dark:border-blue-400/12 p-8 text-center space-y-2">
+              <div className="space-y-2 rounded-lg border border-slate-200 border-dashed p-8 text-center dark:border-blue-400/12">
                 <DOMAIN_VISUALS.briefing.Icon className="mx-auto size-8 text-muted-foreground" />
-                <div className="font-semibold text-sm text-foreground">Tidak ada laporan pembinaan ditemukan</div>
-                <p className="text-xs text-muted-foreground">
+                <div className="font-semibold text-foreground text-sm">Tidak ada laporan pembinaan ditemukan</div>
+                <p className="text-muted-foreground text-xs">
                   Tidak ada laporan pembinaan yang sesuai dengan kata kunci atau filter tanggal yang dipilih.
                 </p>
                 <Button
@@ -2768,19 +2791,19 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
                   }}
                   className="mt-2 text-xs"
                 >
-                  <RotateCcw className="size-3.5 mr-1" />
+                  <RotateCcw className="mr-1 size-3.5" />
                   Reset Filter
                 </Button>
               </div>
             ) : (
-              <div className="rounded-lg border border-dashed border-slate-200 dark:border-blue-400/12 p-8 text-center space-y-3">
+              <div className="space-y-3 rounded-lg border border-slate-200 border-dashed p-8 text-center dark:border-blue-400/12">
                 <DOMAIN_VISUALS.briefing.Icon className="mx-auto size-8 text-muted-foreground" />
-                <div className="font-semibold text-sm text-foreground">Belum Ada Laporan Pembinaan</div>
-                <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                <div className="font-semibold text-foreground text-sm">Belum Ada Laporan Pembinaan</div>
+                <p className="mx-auto max-w-sm text-muted-foreground text-xs">
                   Jaring ini belum memiliki riwayat pembinaan di sistem.
                 </p>
                 {activeRole === SYSTEM_ROLES.FIELD_OFFICER && (
-                  <Button asChild size="sm" variant="outline" className="mt-2 text-xs gap-1.5">
+                  <Button asChild size="sm" variant="outline" className="mt-2 gap-1.5 text-xs">
                     <Link href={`/dashboard/laporan-pembinaan-jaring/baru?jaringId=${item.id}`}>
                       <Plus className="size-3.5" />
                       Buat Laporan Pembinaan Pertama
@@ -2796,7 +2819,7 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
       {canDecide ? (
         <Card className="mx-auto max-w-3xl overflow-hidden rounded-[10px] border border-slate-200 bg-white shadow-sm transition-all duration-150 ease-out dark:border-blue-400/12 dark:bg-[#111827]">
           <CardHeader className="px-5 pt-4 pb-3">
-            <div className="flex w-full items-center gap-3 border-b border-slate-200 pb-2.5 dark:border-blue-400/12">
+            <div className="flex w-full items-center gap-3 border-slate-200 border-b pb-2.5 dark:border-blue-400/12">
               <ShieldCheck className="size-4.5 shrink-0 stroke-[1.5] text-sky-600 dark:text-sky-400" />
               <h2 className="shrink-0 font-bold text-[14px] text-slate-800 uppercase tracking-[0.08em] dark:text-[#F8FAFC]">
                 Keputusan Registrasi
@@ -2806,7 +2829,7 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
           </CardHeader>
           <CardContent className="space-y-4 px-5 pt-1 pb-4">
             <div className="space-y-2">
-              <label htmlFor="rejection-reason" className="font-medium text-sm text-foreground">
+              <label htmlFor="rejection-reason" className="font-medium text-foreground text-sm">
                 Alasan Penolakan (opsional)
               </label>
               <Input
@@ -2838,7 +2861,7 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
       {isDeputyRole && item.registrationStatus === "APPROVED" && (
         <Card className="mx-auto max-w-3xl overflow-hidden rounded-[10px] border border-rose-200 bg-white shadow-sm transition-all duration-150 ease-out dark:border-rose-500/20 dark:bg-[#111827]">
           <CardHeader className="px-5 pt-4 pb-3">
-            <div className="flex w-full items-center gap-3 border-b border-rose-200 pb-2.5 dark:border-rose-500/20">
+            <div className="flex w-full items-center gap-3 border-rose-200 border-b pb-2.5 dark:border-rose-500/20">
               <Ban className="size-4.5 shrink-0 stroke-[1.5] text-rose-600 dark:text-rose-400" />
               <h2 className="shrink-0 font-bold text-[14px] text-rose-800 uppercase tracking-[0.08em] dark:text-rose-400">
                 Otoritas Deputi II: Penangguhan Jaring
@@ -2847,13 +2870,13 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
             </div>
           </CardHeader>
           <CardContent className="space-y-4 px-5 pt-1 pb-4">
-            <p className="text-xs text-muted-foreground leading-relaxed">
+            <p className="text-muted-foreground text-xs leading-relaxed">
               Sebagai Deputi II, Anda memiliki wewenang khusus untuk menangguhkan Jaring terverifikasi jika terdapat
               indikasi pelanggaran SOP, kompromi keamanan, atau kebutuhan evaluasi operasional. Jaring yang ditangguhkan
               tidak akan lagi dihitung sebagai terverifikasi.
             </p>
             <div className="space-y-2">
-              <label htmlFor="deputy-suspend-reason" className="font-medium text-sm text-foreground">
+              <label htmlFor="deputy-suspend-reason" className="font-medium text-foreground text-sm">
                 Alasan Penangguhan <span className="text-rose-500">*</span>
               </label>
               <Input
@@ -2882,7 +2905,7 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
       {isDeputyRole && item.registrationStatus === "SUSPENDED" && (
         <Card className="mx-auto max-w-3xl overflow-hidden rounded-[10px] border border-emerald-200 bg-white shadow-sm transition-all duration-150 ease-out dark:border-emerald-500/20 dark:bg-[#111827]">
           <CardHeader className="px-5 pt-4 pb-3">
-            <div className="flex w-full items-center gap-3 border-b border-emerald-200 pb-2.5 dark:border-emerald-500/20">
+            <div className="flex w-full items-center gap-3 border-emerald-200 border-b pb-2.5 dark:border-emerald-500/20">
               <CheckCircle2 className="size-4.5 shrink-0 stroke-[1.5] text-emerald-600 dark:text-emerald-400" />
               <h2 className="shrink-0 font-bold text-[14px] text-emerald-800 uppercase tracking-[0.08em] dark:text-emerald-400">
                 Otoritas Deputi II: Pemulihan Jaring
@@ -2891,12 +2914,12 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
             </div>
           </CardHeader>
           <CardContent className="space-y-4 px-5 pt-1 pb-4">
-            <p className="text-xs text-muted-foreground leading-relaxed">
+            <p className="text-muted-foreground text-xs leading-relaxed">
               Jaring ini saat ini ditangguhkan. Sebagai Deputi II, Anda dapat memulihkan status Jaring agar kembali
               menjadi terverifikasi dan aktif dalam operasional.
             </p>
             <div className="space-y-2">
-              <label htmlFor="deputy-unsuspend-reason" className="font-medium text-sm text-foreground">
+              <label htmlFor="deputy-unsuspend-reason" className="font-medium text-foreground text-sm">
                 Catatan Pemulihan (opsional)
               </label>
               <Input
@@ -2912,7 +2935,7 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
               <Button
                 disabled={busy}
                 onClick={() => setPendingAction("unsuspend")}
-                className="h-9 gap-1.5 rounded-[6px] bg-emerald-600 hover:bg-emerald-700 text-white dark:bg-emerald-600 dark:hover:bg-emerald-500"
+                className="h-9 gap-1.5 rounded-[6px] bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-500"
               >
                 <CheckCircle2 className="size-4" /> Pulihkan Jaring
               </Button>
@@ -3040,7 +3063,7 @@ function DetailSection({ icon, title, children }: { icon: ReactNode; title: stri
   return (
     <Card className="overflow-hidden rounded-[10px] border border-slate-200 border-t-2 border-t-sky-500/40 bg-white shadow-sm transition-all duration-150 ease-out hover:-translate-y-[2px] hover:shadow-md dark:border-blue-400/12 dark:border-t-sky-400/40 dark:bg-[#111827] dark:hover:shadow-[0_4px_20px_rgba(0,0,0,0.4)]">
       <CardHeader className="px-5 pt-4 pb-3">
-        <div className="flex w-full items-center gap-3 border-b border-slate-200 pb-2.5 dark:border-blue-400/12">
+        <div className="flex w-full items-center gap-3 border-slate-200 border-b pb-2.5 dark:border-blue-400/12">
           {icon}
           <h2 className="shrink-0 font-bold text-[14px] text-slate-800 uppercase tracking-[0.08em] dark:text-[#F8FAFC]">
             {title}
@@ -3064,7 +3087,7 @@ function DetailRow({ label, children }: { label: string; children: ReactNode }) 
 
 function NotesBox({ children }: { children: ReactNode }) {
   return (
-    <p className="max-h-[120px] overflow-y-auto whitespace-pre-wrap rounded border border-border bg-slate-50 p-3 text-xs leading-relaxed text-slate-700 dark:border-blue-400/8 dark:bg-slate-950/40 dark:text-slate-300">
+    <p className="max-h-[120px] overflow-y-auto whitespace-pre-wrap rounded border border-border bg-slate-50 p-3 text-slate-700 text-xs leading-relaxed dark:border-blue-400/8 dark:bg-slate-950/40 dark:text-slate-300">
       {children}
     </p>
   );
@@ -3117,7 +3140,7 @@ function SummaryCard({
         <Icon className="size-5" />
       </div>
       <div className="min-w-0">
-        <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
+        <p className="font-medium text-[11px] text-muted-foreground uppercase tracking-wider">{label}</p>
         <p className={cn("font-bold text-xl tracking-normal", valueClass)}>{value}</p>
       </div>
     </button>

@@ -7,8 +7,11 @@ import {
   Patch,
   Post,
   Query,
+  Res,
+  StreamableFile,
   UseGuards,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { ApiTags } from '@nestjs/swagger';
 import { apiResult } from '../../common/api/api-response.js';
 import { ApiContract } from '../../common/decorators/api-contract.decorator.js';
@@ -23,6 +26,7 @@ import {
   CreateJaringDto,
   JaringCoachingReportQuery,
   JaringOccupationQuery,
+  JaringExportPdfQueryDto,
   JaringQuery,
   JaringReportQuery,
   ReportCategoryQuery,
@@ -36,12 +40,42 @@ import {
   UpdateJaringDto,
 } from './jaring.dto.js';
 import { JaringService } from './jaring.service.js';
+import { JaringExportService } from './jaring-export.service.js';
 
 @ApiTags('11. Jaring Management')
 @UseGuards(SessionGuard, DomainAccessGuard)
 @Controller('jaring')
 export class JaringController {
-  constructor(private readonly jaringService: JaringService) {}
+  constructor(
+    private readonly jaringService: JaringService,
+    private readonly exportService: JaringExportService,
+  ) {}
+
+  @Get('export/pdf')
+  @ApiContract({
+    operationId: 'apiJarExportPdf',
+    contractId: 'API-JAR-EXPORT-PDF',
+    summary: 'Ekspor berkas PDF profiling Jaring',
+    roles: [
+      'executive',
+      'regional_commander',
+      'field_coordinator',
+      'field_officer',
+    ],
+  })
+  async exportPdf(
+    @Query() query: JaringExportPdfQueryDto,
+    @CurrentAccessContext() context: AuthorizationContext,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const file = await this.exportService.exportPdf(query, context);
+    response.setHeader('Content-Type', file.contentType);
+    response.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${file.filename}"`,
+    );
+    return new StreamableFile(file.buffer);
+  }
 
   @Get()
   @ApiContract({

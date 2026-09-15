@@ -273,3 +273,51 @@ export class UnsuspendJaringDto {
   reason?: string;
 }
 
+export class JaringExportPdfQueryDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  title?: string;
+
+  @IsOptional()
+  @IsEnum(JaringRegistrationStatus)
+  registrationStatus?: JaringRegistrationStatus;
+
+  @IsOptional()
+  @IsEnum(JaringStatus)
+  status?: JaringStatus;
+
+  @IsOptional()
+  @IsUUID()
+  areaId?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  search?: string;
+
+  @IsOptional()
+  @IsUUID()
+  fieldOfficerAssignmentId?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  @Type(() => Boolean)
+  includeCover?: boolean = true;
+
+  @IsOptional()
+  @IsBoolean()
+  @Type(() => Boolean)
+  includeToc?: boolean = true;
+
+  @IsOptional()
+  @IsBoolean()
+  @Type(() => Boolean)
+  includeRecap?: boolean = true;
+
+  @IsOptional()
+  @IsString()
+  jaringIds?: string;
+}
+
+
