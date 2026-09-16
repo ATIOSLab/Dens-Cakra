@@ -147,7 +147,10 @@ export class JaringExportService {
           provFirstPage = currentCityPage;
           provincePageMap.set(group.provinceName, provFirstPage);
         }
-        cityPageMap.set(`${group.provinceName}::${city.cityName}`, currentCityPage);
+        cityPageMap.set(
+          `${group.provinceName}::${city.cityName}`,
+          currentCityPage,
+        );
 
         globalProfilingIndex = await this.renderCityProfiling(
           doc,
@@ -223,7 +226,9 @@ export class JaringExportService {
       deletedAt: null,
       // Syarat mutlak: Hanya ekspor data Jaring yang berstatus TERVERIFIKASI (APPROVED)
       registrationStatus: JaringRegistrationStatus.APPROVED,
-      ...(specificIds && specificIds.length > 0 ? { id: { in: specificIds } } : {}),
+      ...(specificIds && specificIds.length > 0
+        ? { id: { in: specificIds } }
+        : {}),
       caretakerAssignments: {
         some: {
           ...(isFieldCoordinator
@@ -339,7 +344,8 @@ export class JaringExportService {
 
       return {
         id: item.id,
-        fullName: item.fullName?.trim() || item.aliasName?.trim() || 'Tanpa Nama',
+        fullName:
+          item.fullName?.trim() || item.aliasName?.trim() || 'Tanpa Nama',
         aliasName: item.aliasName?.trim() || null,
         nationalIdNumber: item.nationalIdNumber?.trim() || null,
         address: item.address?.trim() || null,
@@ -403,9 +409,9 @@ export class JaringExportService {
           occMap.set(occ, (occMap.get(occ) || 0) + 1);
         }
 
-        const occupations: CityOccupationStat[] = Array.from(occMap.entries()).map(
-          ([name, count]) => ({ name, count }),
-        );
+        const occupations: CityOccupationStat[] = Array.from(
+          occMap.entries(),
+        ).map(([name, count]) => ({ name, count }));
         occupations.sort((a, b) => {
           if (b.count !== a.count) return b.count - a.count;
           return a.name.localeCompare(b.name, 'id');
@@ -476,7 +482,9 @@ export class JaringExportService {
       .fontSize(12)
       .font('Helvetica-Bold')
       .fillColor('#334155')
-      .text('KEDEPUTIAN BIDANG INTELIJEN DALAM NEGERI', 0, 104, { align: 'center' });
+      .text('KEDEPUTIAN BIDANG INTELIJEN DALAM NEGERI', 0, 104, {
+        align: 'center',
+      });
     doc
       .fontSize(10)
       .font('Helvetica')
@@ -525,17 +533,27 @@ export class JaringExportService {
       .fontSize(10)
       .font('Helvetica')
       .fillColor('#64748b')
-      .text('Kompilasi Data Jaring Intelijen Operasional Terverifikasi (APPROVED)', 0, 330, {
-        align: 'center',
-      });
+      .text(
+        'Kompilasi Data Jaring Intelijen Operasional Terverifikasi (APPROVED)',
+        0,
+        330,
+        {
+          align: 'center',
+        },
+      );
 
     doc
       .fontSize(10.5)
       .font('Helvetica-Bold')
       .fillColor('#0ea5e9')
-      .text(`Total Jaring Terdata: ${items.length.toLocaleString('id-ID')} Orang`, 0, 350, {
-        align: 'center',
-      });
+      .text(
+        `Total Jaring Terdata: ${items.length.toLocaleString('id-ID')} Orang`,
+        0,
+        350,
+        {
+          align: 'center',
+        },
+      );
 
     // Keterangan Pengantar Resmi di Bagian Bawah
     doc
@@ -591,7 +609,8 @@ export class JaringExportService {
       });
 
       for (const city of group.cities) {
-        const cPage = cityPageMap.get(`${group.provinceName}::${city.cityName}`) || pPage;
+        const cPage =
+          cityPageMap.get(`${group.provinceName}::${city.cityName}`) || pPage;
         entries.push({
           label: `• ${city.cityName} (${city.totalJaring.toLocaleString('id-ID')} Jaring)`,
           page: cPage,
@@ -627,7 +646,10 @@ export class JaringExportService {
         .strokeColor('#e2e8f0')
         .stroke();
 
-      const pageEntries = entries.slice(entryIndex, entryIndex + maxEntriesPerPage);
+      const pageEntries = entries.slice(
+        entryIndex,
+        entryIndex + maxEntriesPerPage,
+      );
       entryIndex += maxEntriesPerPage;
 
       const startY = 120;
@@ -706,10 +728,7 @@ export class JaringExportService {
    * - Tanpa estimasi massa (menampilkan angka riil data lapangan)
    * - Paginasi per-baris tanpa overflow atau halaman kosong
    */
-  private renderRecapPages(
-    doc: PDFKit.PDFDocument,
-    groups: ProvinceGroup[],
-  ) {
+  private renderRecapPages(doc: PDFKit.PDFDocument, groups: ProvinceGroup[]) {
     const startX = 36;
     const colWidths = [35, 140, 185, 279, 130]; // Total = 769 pt
     const colHeaders = [
@@ -737,10 +756,7 @@ export class JaringExportService {
       currentY += 22;
 
       // Header row background
-      doc
-        .rect(startX, currentY, 769, 25)
-        .fillColor('#e2e8f0')
-        .fill();
+      doc.rect(startX, currentY, 769, 25).fillColor('#e2e8f0').fill();
 
       // Border header
       doc
@@ -779,9 +795,10 @@ export class JaringExportService {
     for (const prov of groups) {
       for (const city of prov.cities) {
         let occIndex = 0;
-        const occList = city.occupations.length > 0
-          ? city.occupations
-          : [{ name: 'Belum Terklasifikasi', count: city.totalJaring }];
+        const occList =
+          city.occupations.length > 0
+            ? city.occupations
+            : [{ name: 'Belum Terklasifikasi', count: city.totalJaring }];
 
         while (occIndex < occList.length) {
           const remainingSpace = 540 - currentY;
@@ -835,11 +852,16 @@ export class JaringExportService {
               .fontSize(8.5)
               .font('Helvetica-Bold')
               .fillColor('#0f172a')
-              .text(`${occ.count.toLocaleString('id-ID')} Orang`, countX, rowY + 5, {
-                width: colWidths[4],
-                align: 'center',
-                lineBreak: false,
-              });
+              .text(
+                `${occ.count.toLocaleString('id-ID')} Orang`,
+                countX,
+                rowY + 5,
+                {
+                  width: colWidths[4],
+                  align: 'center',
+                  lineBreak: false,
+                },
+              );
 
             currentY += rowHeight;
           }
@@ -870,12 +892,11 @@ export class JaringExportService {
               .fontSize(9)
               .font('Helvetica-Bold')
               .fillColor('#0f172a')
-              .text(
-                `${provNo}.`,
-                startX,
-                blockTopY + chunkHeight / 2 - 5,
-                { width: colWidths[0], align: 'center', lineBreak: false },
-              );
+              .text(`${provNo}.`, startX, blockTopY + chunkHeight / 2 - 5, {
+                width: colWidths[0],
+                align: 'center',
+                lineBreak: false,
+              });
           }
 
           // Kolom 2: PROVINSI (Tingkat Provinsi beserta total jumlahnya)
@@ -938,10 +959,7 @@ export class JaringExportService {
     let currentIndex = startIndex;
 
     const drawHeader = () => {
-      doc
-        .rect(startX, currentY, 769, 22)
-        .fillColor('#0f172a')
-        .fill();
+      doc.rect(startX, currentY, 769, 22).fillColor('#0f172a').fill();
 
       doc
         .fontSize(10.5)
@@ -955,10 +973,7 @@ export class JaringExportService {
 
       currentY += 22;
 
-      doc
-        .rect(startX, currentY, 769, 24)
-        .fillColor('#f1f5f9')
-        .fill();
+      doc.rect(startX, currentY, 769, 24).fillColor('#f1f5f9').fill();
 
       doc
         .rect(startX, currentY, 769, 24)
@@ -1000,10 +1015,7 @@ export class JaringExportService {
       const rowTop = currentY;
 
       if (currentIndex % 2 === 0) {
-        doc
-          .rect(startX, rowTop, 769, cardHeight)
-          .fillColor('#f8fafc')
-          .fill();
+        doc.rect(startX, rowTop, 769, cardHeight).fillColor('#f8fafc').fill();
       }
 
       doc
@@ -1132,7 +1144,9 @@ export class JaringExportService {
       let imageRendered = false;
       if (item.profilePhotoStorageKey) {
         try {
-          const rawBuf = await this.readStorageFile(item.profilePhotoStorageKey);
+          const rawBuf = await this.readStorageFile(
+            item.profilePhotoStorageKey,
+          );
           if (rawBuf && rawBuf.length > 0) {
             const jpegBuf = await sharp(rawBuf)
               .resize(220, 220, { fit: 'cover' })

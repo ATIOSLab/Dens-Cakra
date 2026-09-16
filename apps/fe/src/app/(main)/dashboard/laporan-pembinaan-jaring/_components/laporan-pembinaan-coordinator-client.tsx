@@ -385,24 +385,22 @@ export function LaporanPembinaanCoordinatorClient({ role }: { role?: SystemRole 
     return map;
   }, [jaringList]);
 
-  // Gabungan opsi filter provinsi, kabupaten/kota, kecamatan, dan kelurahan dari cakupan akses dan Jaring.
+  // Opsi filter wilayah murni dari cakupan akses (areaScopes) milik pengguna.
   const provinceOptions = useMemo(() => {
-    const options = buildProvinceFilterOptions(areaScopes);
-
-    for (const jaring of jaringList) {
-      const geo = resolveJaringGeography(jaring);
-      if (geo.provinceId && geo.provinceName) {
-        options.push({ id: geo.provinceId, name: geo.provinceName });
-      }
-    }
-
-    return sortedAreaOptions(options);
-  }, [areaScopes, jaringList]);
+    return buildProvinceFilterOptions(areaScopes);
+  }, [areaScopes]);
 
   const defaultProvinceFilter = useMemo(() => findDkiJakartaProvinceFilterId(provinceOptions), [provinceOptions]);
 
   useEffect(() => {
-    if (didApplyDefaultProvinceFilter.current || !defaultProvinceFilter || provinceFilter !== "ALL") return;
+    if (
+      !isNationalRole ||
+      didApplyDefaultProvinceFilter.current ||
+      !defaultProvinceFilter ||
+      provinceFilter !== "ALL"
+    ) {
+      return;
+    }
 
     setProvinceFilter(defaultProvinceFilter);
     setRegencyFilter("ALL");
@@ -412,63 +410,19 @@ export function LaporanPembinaanCoordinatorClient({ role }: { role?: SystemRole 
     setJaringFilter("ALL");
     setPage(1);
     didApplyDefaultProvinceFilter.current = true;
-  }, [defaultProvinceFilter, provinceFilter]);
+  }, [defaultProvinceFilter, isNationalRole, provinceFilter]);
 
   const regencyOptions = useMemo(() => {
-    const options = buildRegencyFilterOptions(areaScopes, provinceOptions.length > 0 ? provinceFilter : "ALL");
-
-    for (const jaring of jaringList) {
-      const geo = resolveJaringGeography(jaring);
-      if (geo.regencyId && geo.regencyName) {
-        if (provinceFilter !== "ALL" && geo.provinceId !== provinceFilter) continue;
-        options.push({ id: geo.regencyId, name: geo.regencyName });
-      }
-    }
-
-    return sortedAreaOptions(options);
-  }, [areaScopes, jaringList, provinceFilter, provinceOptions.length]);
+    return buildRegencyFilterOptions(areaScopes, provinceOptions.length > 0 ? provinceFilter : "ALL");
+  }, [areaScopes, provinceFilter, provinceOptions.length]);
 
   const districtOptions = useMemo(() => {
-    const options = buildDistrictFilterOptions(areaScopes, regencyFilter);
-
-    for (const jaring of jaringList) {
-      const geo = resolveJaringGeography(jaring);
-      if (geo.districtId && geo.districtName) {
-        if (regencyFilter === "ALL" || geo.regencyId === regencyFilter) {
-          options.push({
-            id: geo.districtId,
-            name: geo.districtName,
-            regencyId: geo.regencyId ?? null,
-            regencyName: geo.regencyName ?? null,
-          });
-        }
-      }
-    }
-
-    return sortedAreaOptions(options);
-  }, [areaScopes, jaringList, regencyFilter]);
+    return buildDistrictFilterOptions(areaScopes, regencyFilter);
+  }, [areaScopes, regencyFilter]);
 
   const villageOptions = useMemo(() => {
-    const options = buildVillageFilterOptions(areaScopes, districtFilter);
-
-    for (const jaring of jaringList) {
-      const geo = resolveJaringGeography(jaring);
-      if (geo.villageId && geo.villageName) {
-        if (districtFilter === "ALL" || geo.districtId === districtFilter) {
-          if (regencyFilter === "ALL" || geo.regencyId === regencyFilter) {
-            options.push({
-              id: geo.villageId,
-              name: geo.villageName,
-              districtId: geo.districtId ?? null,
-              districtName: geo.districtName ?? null,
-            });
-          }
-        }
-      }
-    }
-
-    return sortedAreaOptions(options);
-  }, [areaScopes, jaringList, regencyFilter, districtFilter]);
+    return buildVillageFilterOptions(areaScopes, districtFilter);
+  }, [areaScopes, districtFilter]);
 
   const selectedJaringAreaId = useMemo(
     () => selectedAreaFilterId({ provinceFilter, regencyFilter, districtFilter, villageFilter }),
@@ -868,8 +822,9 @@ export function LaporanPembinaanCoordinatorClient({ role }: { role?: SystemRole 
               options={[
                 {
                   value: "ALL",
-                  label: regencyFilter === "ALL" ? "Pilih Kota/Kabupaten dahulu" : "Semua Kecamatan",
-                  disabled: regencyFilter === "ALL",
+                  label:
+                    !isFieldCoordinator && regencyFilter === "ALL" ? "Pilih Kota/Kabupaten dahulu" : "Semua Kecamatan",
+                  disabled: !isFieldCoordinator && regencyFilter === "ALL",
                 },
                 ...districtOptions.map((district) => ({ value: district.id, label: district.name })),
               ]}
@@ -881,7 +836,9 @@ export function LaporanPembinaanCoordinatorClient({ role }: { role?: SystemRole 
                 setPage(1);
               }}
               disabled={!isFieldCoordinator && regencyFilter === "ALL"}
-              placeholder={regencyFilter === "ALL" ? "Pilih Kota/Kabupaten dahulu" : "Semua Kecamatan"}
+              placeholder={
+                !isFieldCoordinator && regencyFilter === "ALL" ? "Pilih Kota/Kabupaten dahulu" : "Semua Kecamatan"
+              }
               searchPlaceholder="Cari kecamatan..."
               emptyText="Kecamatan tidak ditemukan."
               className={cn(DC_CONTROLS.selectTrigger, "w-full")}

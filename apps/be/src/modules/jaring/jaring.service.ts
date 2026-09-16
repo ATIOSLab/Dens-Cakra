@@ -14,6 +14,7 @@ import {
   WhatsAppMessageStatus,
 } from '../../generated/prisma/client.js';
 import { ApiException } from '../../common/api/api-exception.js';
+import { SYSTEM_ROLES } from '../../common/constants/system-role.js';
 import { sortReportCategories } from '../../common/report-category-order.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
 import {
@@ -2438,7 +2439,11 @@ export class JaringService {
       : [];
     const sortOrder = query.sortOrder ?? 'desc';
     const sortBy = query.sortBy ?? 'reportedAt';
+    if (query.areaId) {
+      await this.domainScope.assertArea(context, query.areaId);
+    }
     const scopedJaringWhere = await this.domainScope.jaringWhere(context);
+    const isFieldOfficer = context.authRole === SYSTEM_ROLES.FIELD_OFFICER;
 
     const areaWhere: Prisma.AdministrativeAreaWhereInput | undefined =
       query.areaId
@@ -2450,21 +2455,27 @@ export class JaringService {
           }
         : undefined;
     const jaringWhere: Prisma.JaringWhereInput = {
-      ...scopedJaringWhere,
-      ...(query.jaringId ? { id: query.jaringId } : {}),
-      ...(areaWhere
-        ? {
-            areaCoverages: {
-              some: { validUntil: null, area: areaWhere },
-            },
-          }
-        : {}),
+      AND: [
+        scopedJaringWhere,
+        ...(query.jaringId ? [{ id: query.jaringId }] : []),
+        ...(areaWhere
+          ? [
+              {
+                areaCoverages: {
+                  some: { validUntil: null, area: areaWhere },
+                },
+              },
+            ]
+          : []),
+      ],
     };
     const where: Prisma.JaringCoachingReportWhereInput = {
       jaring: jaringWhere,
-      ...(query.fieldOfficerAssignmentId
-        ? { fieldOfficerAssignmentId: query.fieldOfficerAssignmentId }
-        : {}),
+      ...(isFieldOfficer
+        ? { fieldOfficerAssignmentId: context.primaryAssignmentId }
+        : query.fieldOfficerAssignmentId
+          ? { fieldOfficerAssignmentId: query.fieldOfficerAssignmentId }
+          : {}),
       ...(search
         ? {
             OR: [

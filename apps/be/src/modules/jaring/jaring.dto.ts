@@ -319,5 +319,3 @@ export class JaringExportPdfQueryDto {
   @IsString()
   jaringIds?: string;
 }
-
-

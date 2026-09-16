@@ -916,14 +916,10 @@ describe('JaringService registration security', () => {
 
     // 1. Role selain executive ditolak
     await expect(
-      service.unsuspend(
-        'jaring-id',
-        { reason: 'Pemulihan oleh Korwil' },
-        {
-          authRole: 'field_coordinator',
-          primaryAssignmentId: 'fc-assignment-id',
-        } as never,
-      ),
+      service.unsuspend('jaring-id', { reason: 'Pemulihan oleh Korwil' }, {
+        authRole: 'field_coordinator',
+        primaryAssignmentId: 'fc-assignment-id',
+      } as never),
     ).rejects.toMatchObject({
       code: 'FORBIDDEN',
     });
@@ -1249,12 +1245,13 @@ describe('JaringService registration security', () => {
     const jaringWhere = jest.fn(() =>
       Promise.resolve({ id: { in: ['jaring-id'] } }),
     );
+    const assertArea = jest.fn(() => Promise.resolve(undefined));
     const service = createService(
       {
         jaringCoachingReport: { findMany, count, groupBy },
         jaring: { findMany: jaringFindMany },
       },
-      { jaringWhere },
+      { jaringWhere, assertArea },
       {},
     );
 
@@ -1270,6 +1267,10 @@ describe('JaringService registration security', () => {
       { authRole: 'field_coordinator' } as never,
     );
 
+    expect(assertArea).toHaveBeenCalledWith(
+      expect.anything(),
+      '247c7732-44df-4f4a-bf50-f80c81245205',
+    );
     expect(jaringWhere).toHaveBeenCalledTimes(1);
     expect(findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -1282,10 +1283,12 @@ describe('JaringService registration security', () => {
           { id: 'desc' },
         ],
         where: expect.objectContaining({
-          jaring: expect.objectContaining({
-            id: { in: ['jaring-id'] },
-            areaCoverages: expect.any(Object),
-          }),
+          jaring: {
+            AND: [
+              { id: { in: ['jaring-id'] } },
+              { areaCoverages: expect.any(Object) },
+            ],
+          },
           OR: expect.any(Array),
         }),
       }),
