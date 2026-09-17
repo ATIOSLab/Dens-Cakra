@@ -111,6 +111,15 @@ type WhatsAppWelcomeJobPayload = {
   jaringId: string;
 };
 
+export type WhatsAppInboundInterceptorContext = {
+  channel: WhatsAppChannelRecord;
+  socket: WASocket;
+  message: WAMessage;
+  payload: InboundMessagePayload;
+  senderPhone: string;
+  reply: (textOrReplies: string | string[]) => Promise<void>;
+};
+
 type ReportSessionStep =
   | 'AWAITING_LIVE_LOCATION'
   | 'AWAITING_TITLE'
@@ -266,6 +275,9 @@ export class WhatsappBotRuntimeService
   private readonly logger = new Logger(WhatsappBotRuntimeService.name);
   private readonly runtimes = new Map<string, RuntimeState>();
   private readonly reportSessions = new Map<string, ReportSession>();
+  private readonly inboundInterceptors: Array<
+    (context: WhatsAppInboundInterceptorContext) => Promise<boolean>
+  > = [];
   private shuttingDown = false;
 
   constructor(
@@ -646,6 +658,54 @@ export class WhatsappBotRuntimeService
 
     if (!runtime?.socket && channel.status !== IntegrationStatus.INACTIVE) {
       await this.connectChannel(channel, { force: true });
+    }
+  }
+
+  registerInboundInterceptor(
+    interceptor: (context: WhatsAppInboundInterceptorContext) => Promise<boolean>,
+  ) {
+    this.inboundInterceptors.push(interceptor);
+  }
+
+  isChannelConnected(channelId: string): boolean {
+    const runtime = this.runtimes.get(channelId);
+    return Boolean(runtime?.socket);
+  }
+
+  async sendDirectTextMessage(
+    channelId: string,
+    recipientPhone: string,
+    text: string,
+    options?: { simulateTypingMs?: number },
+  ): Promise<{ success: boolean; externalMessageId?: string; error?: string }> {
+    const runtime = this.runtimes.get(channelId);
+    if (!runtime?.socket) {
+      return { success: false, error: 'CHANNEL_NOT_CONNECTED' };
+    }
+    const digits = recipientPhone.replace(/\D+/g, '');
+    const cleanPhone = digits.startsWith('0')
+      ? `62${digits.slice(1)}`
+      : digits;
+    const remoteJid = cleanPhone.endsWith('@s.whatsapp.net')
+      ? cleanPhone
+      : `${cleanPhone}@s.whatsapp.net`;
+    const typingMs =
+      options?.simulateTypingMs ??
+      Math.min(Math.max(text.length * 25, 1200), 3500);
+
+    try {
+      try {
+        await runtime.socket.sendPresenceUpdate('composing', remoteJid);
+      } catch {}
+      await sleep(typingMs);
+      try {
+        await runtime.socket.sendPresenceUpdate('paused', remoteJid);
+      } catch {}
+
+      const sent = await runtime.socket.sendMessage(remoteJid, { text });
+      return { success: true, externalMessageId: sent?.key?.id ?? undefined };
+    } catch (error: unknown) {
+      return { success: false, error: this.messageOf(error) };
     }
   }
 
@@ -1083,6 +1143,52 @@ export class WhatsappBotRuntimeService
         }),
       ]);
       return;
+    }
+
+    if (this.inboundInterceptors.length > 0) {
+      for (const interceptor of this.inboundInterceptors) {
+        try {
+          const interceptorHandled = await interceptor({
+            channel,
+            socket,
+            message,
+            payload,
+            senderPhone: sender.phone,
+            reply: async (textOrReplies) => {
+              const replies = Array.isArray(textOrReplies)
+                ? textOrReplies
+                : [textOrReplies];
+              await this.sendHumanLikeReplies(
+                socket,
+                remoteJid,
+                [message.key],
+                replies,
+              );
+            },
+          });
+          if (interceptorHandled) {
+            await this.prisma.$transaction([
+              this.prisma.integrationWebhookEvent.update({
+                where: { id: event.id },
+                data: {
+                  processedAt: new Date(),
+                  success: true,
+                  errorMessage: null,
+                },
+              }),
+              this.prisma.integrationChannel.update({
+                where: { id: channel.id },
+                data: { lastHealthAt: new Date() },
+              }),
+            ]);
+            return;
+          }
+        } catch (interceptorError: unknown) {
+          this.logger.error(
+            `Inbound interceptor error on ${channel.code}: ${this.messageOf(interceptorError)}`,
+          );
+        }
+      }
     }
 
     const handled = await this.reportFlow
@@ -2323,10 +2429,21 @@ export class WhatsappBotRuntimeService
   }
 
   private findVerifiedJaring(senderPhone: string) {
+    const raw = senderPhone.replace(/\D+/g, '');
+    const candidates = Array.from(
+      new Set([
+        senderPhone,
+        raw,
+        `+${raw}`,
+        raw.startsWith('62') ? `0${raw.slice(2)}` : raw,
+        raw.startsWith('0') ? `62${raw.slice(1)}` : raw,
+      ]),
+    );
     return this.prisma.jaring.findFirst({
       where: {
-        whatsappNumber: senderPhone,
+        whatsappNumber: { in: candidates },
         registrationStatus: 'APPROVED',
+        status: 'ACTIVE',
         deletedAt: null,
       },
       include: {

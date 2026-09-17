@@ -32,10 +32,8 @@ apps/be/src/generated/prisma/
 .env.*
 !.env.example
 
-# Local/runtime import assets
-apps/be/storage/jaring/
-apps/be/storage/jaring-profile-photo/
-apps/be/storage/whatsapp-evidence/
+# Local/runtime import assets and credentials
+apps/be/storage/
 
 # Local diagnostic scripts (may contain environment-specific credentials)
 apps/be/src/scripts/check-fo-list.ts

@@ -139,6 +139,8 @@ Anev adalah fungsi analisis dan evaluasi, bukan tingkat wilayah. Fungsi Anev dap
 | Konsep | Label UI kanonis | Catatan |
 | --- | --- | --- |
 | Integrasi WhatsApp | Integrasi WhatsApp | Menu Admin Sistem untuk koneksi WhatsApp Center dan nomor pengirim. |
+| Pengaturan Apel & Absensi | Pengaturan Apel & Absensi | Menu Admin Sistem untuk konfigurasi bot blasting per wilayah, template spintax, jadwal apel, deadline absensi, dan mitigasi blokir WA. |
+| Peta Apel Jaring | Peta Apel Jaring | Menu Deputi II untuk pemantauan spasial real-time sebaran jaring yang sudah membalas hadir vs belum membalas pada sesi apel. |
 | Konektivitas WhatsApp | Konektivitas WhatsApp | Halaman Deputi II untuk status koneksi perangkat WhatsApp Center dan wilayah pelaporannya. Identifier teknis route/API tetap `whatsapp-connectivity`. |
 | Log Aktivitas WhatsApp | Log Aktivitas WhatsApp | Menu Admin Sistem untuk riwayat status login, logout, terputus, dan error sesi WhatsApp. |
 | Notifikasi WhatsApp | Notifikasi WhatsApp | Menu Admin Sistem untuk penerima email notifikasi status WhatsApp. |

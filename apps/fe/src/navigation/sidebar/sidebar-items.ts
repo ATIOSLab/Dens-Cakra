@@ -97,6 +97,13 @@ export const sidebarItems: NavGroup[] = [
         roles: EXECUTIVE_AND_REGIONAL_ROLES,
       },
       {
+        id: "executive-apel-map",
+        title: DOMAIN_TERMS.apelAttendanceMap,
+        url: "/dashboard/deputi/peta-apel",
+        icon: DOMAIN_VISUALS.jaring.Icon,
+        roles: EXECUTIVE_ROLE,
+      },
+      {
         id: "executive-performance",
         title: "Kinerja & Evaluasi",
         url: "/dashboard/deputi/kinerja-evaluasi",
@@ -254,6 +261,12 @@ export const sidebarItems: NavGroup[] = [
             id: "admin-system-wa-center",
             title: DOMAIN_TERMS.whatsappIntegration,
             url: "/dashboard/admin-system/integrasi-wa-center",
+            roles: ADMIN_SYSTEM_ROLE,
+          },
+          {
+            id: "admin-system-apel-settings",
+            title: DOMAIN_TERMS.apelSettings,
+            url: "/dashboard/admin-system/pengaturan-apel",
             roles: ADMIN_SYSTEM_ROLE,
           },
           {
@@ -435,6 +448,7 @@ export function getSidebarItemsForRole(role: SystemRole): NavGroup[] {
   const commandMonitoringOrder = new Map(
     [
       "executive-intelligence-network-map",
+      "executive-apel-map",
       "executive-performance",
       "executive-whatsapp-connectivity",
     ].map((id, index) => [id, index]),

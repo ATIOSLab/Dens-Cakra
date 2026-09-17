@@ -40,6 +40,7 @@ import { ApplicationCacheModule } from './modules/cache/application-cache.module
 import { CacheInvalidationInterceptor } from './modules/cache/cache-invalidation.interceptor.js';
 import { ExecutiveDashboardModule } from './modules/executive-dashboard/executive-dashboard.module.js';
 import { KpiModule } from './modules/kpi/kpi.module.js';
+import { ApelModule } from './modules/apel/apel.module.js';
 
 @Module({
   imports: [
@@ -80,6 +81,7 @@ import { KpiModule } from './modules/kpi/kpi.module.js';
     TaskModule,
     JaringModule,
     WhatsAppModule,
+    ApelModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

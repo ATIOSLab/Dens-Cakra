@@ -18,5 +18,11 @@ import { WhatsAppReportFlowService } from './whatsapp-report-flow.service.js';
     WhatsAppReportFlowService,
     WhatsAppChannelScopeService,
   ],
+  exports: [
+    IntegrationService,
+    WhatsappBotRuntimeService,
+    WhatsAppReportFlowService,
+    WhatsAppChannelScopeService,
+  ],
 })
 export class IntegrationModule {}

@@ -781,6 +781,8 @@ model AdministrativeArea {
   personnelLocationPings   PersonnelLocationPing[]
   whatsappDeviceLogs       WhatsAppDeviceActivityLog[]  @relation("WhatsAppDeviceActivityArea")
   supervisionAssignments   SupervisionAssignment[]
+  apelConfigs              ApelConfig[]
+  apelSessions             ApelSession[]
 
   @@unique([parentId, level, code])
   @@index([parentId, level])
@@ -1183,6 +1185,7 @@ model Jaring {
   messages             WhatsAppMessage[]
   reportSessions       WhatsAppReportSession[]
   primaryBakets        Baket[]                     @relation("BaketPrimaryJaring")
+  apelAttendances      ApelAttendance[]
 
   @@index([status, deletedAt])
   @@index([registrationStatus, createdAt])
@@ -2197,6 +2200,8 @@ model IntegrationChannel {
   senderNumbers    WhatsAppSenderNumber[]
   reportSessions   WhatsAppReportSession[]
   deviceLogs       WhatsAppDeviceActivityLog[]
+  selectedApelConfigs ApelConfig[]
+  apelAttendances     ApelAttendance[]
 
   @@index([deletedAt])
 }
@@ -2518,4 +2523,129 @@ model OrganizationUnit {
 
   @@index([parentId, type])
   @@index([type, isActive])
+}
+
+// =========================================================
+// APEL DAN ABSENSI JARING
+// =======================================================
+
+enum ApelSessionStatus {
+  DRAFT
+  SCHEDULED
+  BLASTING
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum ApelAttendanceStatus {
+  PENDING
+  PRESENT
+  LATE
+  ABSENT
+}
+
+enum ApelSentStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+enum ApelChannelSelectionMode {
+  MANUAL
+  LOAD_BALANCE
+}
+
+model ApelConfig {
+  id                   String                   @id @default(uuid()) @db.Uuid
+  title                String                   @db.VarChar(180)
+  description          String?                  @db.Text
+  targetType           String                   @default("AREA") @db.VarChar(30) // "ALL" | "AREA" | "GASWIL" | "JARING"
+  areaId               String?                  @db.Uuid
+  targetGaswilIds      Json?                    // Array of fieldOfficerAssignmentId (string[])
+  targetJaringIds      Json?                    // Array of jaringId (string[])
+  channelSelectionMode ApelChannelSelectionMode @default(MANUAL)
+  selectedChannelId    String?                  @db.Uuid
+  selectedChannelIds   Json?                    // Array of channel IDs if LOAD_BALANCE
+  messageTemplate          String                   @db.Text
+  attendanceReplyTemplate  String?                  @db.Text
+  scheduleTime         String                   @default("07:00") @db.VarChar(10) // HH:mm WIB
+  deadlineTime         String                   @default("08:30") @db.VarChar(10) // HH:mm WIB
+  deadlineMinutes      Int                      @default(90)
+  requireLocation      Boolean                  @default(true)
+  isActive             Boolean                  @default(true)
+  minDelaySeconds      Int                      @default(8)
+  maxDelaySeconds      Int                      @default(20)
+  batchSize            Int                      @default(5)
+  batchPauseSeconds    Int                      @default(30)
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
+
+  area            AdministrativeArea? @relation(fields: [areaId], references: [id], onDelete: SetNull)
+  selectedChannel IntegrationChannel? @relation(fields: [selectedChannelId], references: [id], onDelete: SetNull)
+  sessions        ApelSession[]
+
+  @@index([areaId, isActive])
+  @@index([selectedChannelId])
+}
+
+model ApelSession {
+  id                      String            @id @default(uuid()) @db.Uuid
+  configId                String?           @db.Uuid
+  title                   String            @db.VarChar(200)
+  sessionDate             DateTime          @db.Date
+  targetType              String            @default("AREA") @db.VarChar(30) // "ALL" | "AREA" | "GASWIL" | "JARING"
+  areaId                  String?           @db.Uuid
+  targetGaswilIds         Json?
+  targetJaringIds         Json?
+  requireLocation         Boolean           @default(true)
+  status                  ApelSessionStatus @default(DRAFT)
+  messageTemplateUsed     String            @db.Text
+  attendanceReplyTemplate String?           @db.Text
+  blastedAt               DateTime?
+  blastingCompletedAt DateTime?
+  deadlineAt          DateTime
+  totalTarget         Int               @default(0)
+  totalSent           Int               @default(0)
+  totalFailed         Int               @default(0)
+  totalAttended       Int               @default(0)
+  totalAbsent         Int               @default(0)
+  createdByUserId     String?           @db.VarChar(100)
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  config      ApelConfig?         @relation(fields: [configId], references: [id], onDelete: SetNull)
+  area        AdministrativeArea? @relation(fields: [areaId], references: [id], onDelete: SetNull)
+  attendances ApelAttendance[]
+
+  @@index([sessionDate, status])
+  @@index([areaId, sessionDate])
+}
+
+model ApelAttendance {
+  id               String               @id @default(uuid()) @db.Uuid
+  sessionId        String               @db.Uuid
+  jaringId         String               @db.Uuid
+  channelId        String?              @db.Uuid
+  phoneNumber      String               @db.VarChar(30)
+  sentStatus       ApelSentStatus       @default(PENDING)
+  sentAt           DateTime?
+  deliveryError    String?              @db.Text
+  attendanceStatus ApelAttendanceStatus @default(PENDING)
+  attendedAt       DateTime?
+  replyContent     String?              @db.Text
+  latitude         Decimal?             @db.Decimal(10, 7)
+  longitude        Decimal?             @db.Decimal(10, 7)
+  coordinateSource CoordinateSource?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  session ApelSession         @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  jaring  Jaring              @relation(fields: [jaringId], references: [id], onDelete: Restrict)
+  channel IntegrationChannel? @relation(fields: [channelId], references: [id], onDelete: SetNull)
+
+  @@unique([sessionId, jaringId])
+  @@index([sessionId, attendanceStatus])
+  @@index([jaringId])
+  @@index([phoneNumber])
 }

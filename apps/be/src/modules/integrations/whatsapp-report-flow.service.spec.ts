@@ -177,58 +177,34 @@ describe('WhatsAppReportFlowService simplified collector', () => {
     expect(input.reply).toHaveBeenCalled();
   });
 
-  it('starts a CONTENT draft for a first-time chat from an eligible jaring even if message is empty', async () => {
-    const { service, prisma } = createFixture();
-    const input = inbound('');
-
-    await service.handle(input);
-
-    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
-    expect(input.reply).toHaveBeenCalledWith([
-      expect.stringContaining(
-        '*KANAL INFORMASI*\n\nSilakan sampaikan informasi dengan urutan berikut:',
-      ),
-    ]);
-  });
-
-  it('starts a CONTENT draft for a first-time chat from an eligible jaring if message is a greeting', async () => {
+  it('ignores casual messages or greetings (like halo or P) that do not contain the 1945 trigger', async () => {
     const { service, prisma } = createFixture();
     const input = inbound('halo');
 
     await service.handle(input);
 
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(input.reply).not.toHaveBeenCalled();
+  });
+
+  it('ignores empty message when no report draft is active', async () => {
+    const { service, prisma } = createFixture();
+    const input = inbound('');
+
+    await service.handle(input);
+
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(input.reply).not.toHaveBeenCalled();
+  });
+
+  it('starts a CONTENT draft when an eligible jaring sends trigger code 1945', async () => {
+    const { service, prisma } = createFixture();
+    const input = inbound('1945');
+
+    await service.handle(input);
+
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
     expect(input.reply).toHaveBeenCalledWith([
-      expect.stringContaining('*KANAL INFORMASI*'),
-    ]);
-  });
-
-  it('starts a CONTENT draft for a returning sender who already submitted a report even on empty message', async () => {
-    const { service, prisma } = createFixture();
-    prisma.whatsAppMessage.findFirst.mockResolvedValue({
-      id: 'prev-report-123',
-    });
-    const emptyInput = inbound('');
-
-    await service.handle(emptyInput);
-
-    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
-    expect(emptyInput.reply).toHaveBeenCalledWith([
-      expect.stringContaining('*KANAL INFORMASI*'),
-    ]);
-  });
-
-  it('starts a CONTENT draft for a returning sender who sends a greeting', async () => {
-    const { service, prisma } = createFixture();
-    prisma.whatsAppMessage.findFirst.mockResolvedValue({
-      id: 'prev-report-123',
-    });
-    const greetingInput = inbound('halo');
-
-    await service.handle(greetingInput);
-
-    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
-    expect(greetingInput.reply).toHaveBeenCalledWith([
       expect.stringContaining('*KANAL INFORMASI*'),
     ]);
   });
