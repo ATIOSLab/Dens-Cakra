@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { WhatsappBotRuntimeService } from '../integrations/whatsapp-bot-runtime.service.js';
+import { WhatsAppChannelScopeService } from '../whatsapp/whatsapp-channel-scope.service.js';
 import {
   ApelSessionStatus,
   ApelSentStatus,
@@ -46,6 +47,62 @@ function formatIndonesianDate(date: Date): string {
   return `${dayName}, ${day} ${monthName} ${year}`;
 }
 
+/**
+ * Normalizes city/administrative territory name from area hierarchy
+ */
+function extractKotaName(area: {
+  name: string;
+  parent?: {
+    name: string;
+    parent?: {
+      name: string;
+    } | null;
+  } | null;
+} | null | undefined): string {
+  if (!area) return '';
+  const gparent = area.parent?.parent?.name;
+  const parent = area.parent?.name;
+  const current = area.name;
+
+  for (const candidate of [gparent, parent, current]) {
+    if (!candidate) continue;
+    const lower = candidate.toLowerCase();
+    if (
+      lower.includes('jakarta') ||
+      lower.includes('kepulauan seribu')
+    ) {
+      return candidate;
+    }
+  }
+  return gparent || parent || current || '';
+}
+
+/**
+ * Strictly checks if a WhatsApp bot channel matches a given territory name
+ */
+function isChannelMatchingTerritory(channelName: string, kotaName: string): boolean {
+  if (!channelName || !kotaName) return false;
+  const cn = channelName.toLowerCase();
+  const kn = kotaName.toLowerCase();
+
+  if (kn.includes('jakarta timur')) return cn.includes('jakarta timur');
+  if (kn.includes('jakarta pusat')) return cn.includes('jakarta pusat');
+  if (kn.includes('jakarta selatan')) return cn.includes('jakarta selatan');
+  if (kn.includes('jakarta barat')) return cn.includes('jakarta barat');
+  if (kn.includes('jakarta utara')) return cn.includes('jakarta utara');
+  if (kn.includes('kepulauan seribu')) {
+    return cn.includes('kepulauan seribu') || cn.includes('seribu');
+  }
+
+  return false;
+}
+
+export type CandidateChannel = {
+  id: string;
+  name: string;
+  config: unknown;
+};
+
 @Injectable()
 export class ApelBlasterService {
   private readonly logger = new Logger(ApelBlasterService.name);
@@ -54,12 +111,9 @@ export class ApelBlasterService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly whatsappBotRuntime: WhatsappBotRuntimeService,
+    private readonly channelScope: WhatsAppChannelScopeService,
   ) {}
 
-  /**
-   * Generates tailored message content with spintax, personalized placeholders,
-   * and anti-ban invisible entropy to guarantee unique message hashes across WhatsApp network.
-   */
   generateMessage(
     template: string,
     context: {
@@ -108,7 +162,7 @@ export class ApelBlasterService {
   }
 
   /**
-   * Resolves list of active WhatsApp channels available for blasting in an area.
+   * Resolves list of active WhatsApp channels available for blasting.
    */
   async resolveAvailableChannels(
     config?: {
@@ -116,28 +170,40 @@ export class ApelBlasterService {
       selectedChannelId?: string | null;
       selectedChannelIds?: unknown;
     },
-    areaId?: string | null,
-  ): Promise<string[]> {
+  ): Promise<CandidateChannel[]> {
     // If specific channel selected in manual mode
     if (config?.selectedChannelId) {
-      if (this.whatsappBotRuntime.isChannelConnected(config.selectedChannelId)) {
-        return [config.selectedChannelId];
+      const channel = await this.prisma.integrationChannel.findUnique({
+        where: { id: config.selectedChannelId, deletedAt: null },
+        select: { id: true, name: true, config: true },
+      });
+      if (channel && this.whatsappBotRuntime.isChannelConnected(channel.id)) {
+        return [channel];
       }
     }
 
-    // If array of channels specified
+    // If explicit array of channels specified
     if (
       Array.isArray(config?.selectedChannelIds) &&
       config.selectedChannelIds.length > 0
     ) {
-      const connected = (config.selectedChannelIds as string[]).filter((id) =>
-        this.whatsappBotRuntime.isChannelConnected(id),
+      const explicitIds = config.selectedChannelIds as string[];
+      const explicitChannels = await this.prisma.integrationChannel.findMany({
+        where: {
+          id: { in: explicitIds },
+          deletedAt: null,
+          status: { in: ['ACTIVE', 'DEGRADED'] },
+        },
+        select: { id: true, name: true, config: true },
+      });
+      const connected = explicitChannels.filter((c) =>
+        this.whatsappBotRuntime.isChannelConnected(c.id),
       );
       if (connected.length > 0) return connected;
     }
 
-    // Fallback to finding any WhatsApp channels (ACTIVE, DEGRADED, or any in dev)
-    let channels = await this.prisma.integrationChannel.findMany({
+    // Default: find all WhatsApp channels in ACTIVE or DEGRADED state
+    const allChannels = await this.prisma.integrationChannel.findMany({
       where: {
         deletedAt: null,
         status: { in: ['ACTIVE', 'DEGRADED'] },
@@ -146,23 +212,23 @@ export class ApelBlasterService {
           { channelType: { contains: 'WA', mode: 'insensitive' } },
         ],
       },
-      select: { id: true, config: true },
+      select: { id: true, name: true, config: true },
     });
 
-    const connectedChannels = channels.filter((c) =>
+    const connectedChannels = allChannels.filter((c) =>
       this.whatsappBotRuntime.isChannelConnected(c.id),
     );
 
     if (connectedChannels.length > 0) {
-      return connectedChannels.map((c) => c.id);
+      return connectedChannels;
     }
 
-    if (channels.length > 0) {
-      return channels.map((c) => c.id);
+    if (allChannels.length > 0) {
+      return allChannels;
     }
 
-    // In local development or testing, fallback to any available whatsapp channel in database
-    const anyChannels = await this.prisma.integrationChannel.findMany({
+    // Fallback for dev/test
+    return await this.prisma.integrationChannel.findMany({
       where: {
         deletedAt: null,
         OR: [
@@ -170,15 +236,13 @@ export class ApelBlasterService {
           { channelType: { contains: 'WA', mode: 'insensitive' } },
         ],
       },
-      select: { id: true },
+      select: { id: true, name: true, config: true },
       take: 3,
     });
-
-    return anyChannels.map((c) => c.id);
   }
 
   /**
-   * Executes the blasting process asynchronously with full anti-ban protection.
+   * Executes the blasting process asynchronously with STRICT TERRITORY LOCK & anti-ban protection.
    */
   async executeBlasting(sessionId: string): Promise<void> {
     if (this.activeBlasts.has(sessionId)) {
@@ -216,7 +280,7 @@ export class ApelBlasterService {
       const batchSize = config?.batchSize ?? 5;
       const batchPause = config?.batchPauseSeconds ?? 30;
 
-      // 1. Fetch all verified Jaring targets FIRST so attendances are recorded immediately
+      // 1. Fetch all verified Jaring targets with administrative hierarchy (Kelurahan -> Kecamatan -> Kota)
       const whereJaring: Prisma.JaringWhereInput = {
         deletedAt: null,
         status: 'ACTIVE',
@@ -271,8 +335,20 @@ export class ApelBlasterService {
                 select: {
                   id: true,
                   name: true,
-                  centroidLatitude: true,
-                  centroidLongitude: true,
+                  parentId: true,
+                  parent: {
+                    select: {
+                      id: true,
+                      name: true,
+                      parentId: true,
+                      parent: {
+                        select: {
+                          id: true,
+                          name: true,
+                        },
+                      },
+                    },
+                  },
                 },
               },
             },
@@ -285,7 +361,6 @@ export class ApelBlasterService {
 
       // Ensure ApelAttendance rows exist
       for (const jaring of jarings) {
-        const primaryArea = jaring.areaCoverages[0]?.area;
         await this.prisma.apelAttendance.upsert({
           where: {
             sessionId_jaringId: {
@@ -308,7 +383,7 @@ export class ApelBlasterService {
       }
 
       // 2. Resolve available bot channels
-      const availableChannelIds = await this.resolveAvailableChannels(
+      const availableChannels = await this.resolveAvailableChannels(
         config
           ? {
               channelSelectionMode: config.channelSelectionMode,
@@ -316,7 +391,6 @@ export class ApelBlasterService {
               selectedChannelIds: config.selectedChannelIds,
             }
           : undefined,
-        session.areaId,
       );
 
       // Transition session to ACTIVE so it appears on the Deputi map right away
@@ -328,17 +402,17 @@ export class ApelBlasterService {
         },
       });
 
-      if (availableChannelIds.length === 0) {
+      if (availableChannels.length === 0) {
         this.logger.warn(
           `Apel session ${sessionId} created with ${jarings.length} targets, but no WhatsApp bot channels are currently available. Blasting paused until a bot is connected.`,
         );
         return;
       }
 
-      // 3. Batch processing with Anti-Ban mitigations
+      // 3. Batch processing with STRICT TERRITORY ROUTING & Anti-Ban mitigations
       let sentCount = 0;
       let failedCount = 0;
-      let channelIndex = 0;
+      const territoryIndexMap = new Map<string, number>();
 
       const deadlineHoursMinutes = session.deadlineAt.toLocaleTimeString('id-ID', {
         hour: '2-digit',
@@ -350,11 +424,63 @@ export class ApelBlasterService {
       for (let i = 0; i < jarings.length; i++) {
         const jaring = jarings[i];
         const jaringName = jaring.fullName || jaring.aliasName || 'Rekan Jaring';
-        const areaName = jaring.areaCoverages[0]?.area.name || session.area?.name || 'Wilayah Penugasan';
+        const primaryArea = jaring.areaCoverages[0]?.area;
+        const areaName = primaryArea?.name || session.area?.name || 'Wilayah Penugasan';
+        const kotaName = extractKotaName(primaryArea);
 
-        // Load-balance channels across targets
-        const currentChannelId = availableChannelIds[channelIndex % availableChannelIds.length];
-        channelIndex++;
+        // Resolve matching channels strictly for this jaring's territory
+        const jaringAreaIds = primaryArea?.id ? [primaryArea.id] : [];
+        const matchingChannels: CandidateChannel[] = [];
+
+        for (const ch of availableChannels) {
+          let allowed = false;
+
+          // Check 1: Channel scope service (config-level scope if configured)
+          if (jaringAreaIds.length > 0) {
+            try {
+              allowed = await this.channelScope.isJaringAllowed(ch, jaringAreaIds);
+            } catch {
+              allowed = false;
+            }
+          }
+
+          // Check 2: Territorial Name matching (strict city/regency boundary)
+          if (!allowed && kotaName) {
+            allowed = isChannelMatchingTerritory(ch.name, kotaName);
+          }
+
+          if (allowed) {
+            matchingChannels.push(ch);
+          }
+        }
+
+        // STRICT TERRITORY ENFORCEMENT: If no channel matches territory, DO NOT cross-send!
+        if (matchingChannels.length === 0) {
+          this.logger.warn(
+            `[Apel Territory Lock] Skipping blast for ${jaringName} (${jaring.whatsappNumber}) in ${areaName} (${kotaName}): No active WhatsApp bot is assigned/connected to this territory. Cross-region blast is strictly BLOCKED to prevent spam bans.`,
+          );
+          failedCount++;
+          await this.prisma.apelAttendance.update({
+            where: {
+              sessionId_jaringId: {
+                sessionId: session.id,
+                jaringId: jaring.id,
+              },
+            },
+            data: {
+              sentStatus: ApelSentStatus.FAILED,
+              deliveryError: 'NO_TERRITORY_CHANNEL_CONNECTED',
+            },
+          });
+          continue;
+        }
+
+        // Territory-Scoped Load Balancing: Rotate only among bots belonging to this territory
+        const territoryKey = kotaName || areaName || 'DEFAULT';
+        const tIndex = territoryIndexMap.get(territoryKey) ?? 0;
+        const currentChannel = matchingChannels[tIndex % matchingChannels.length];
+        territoryIndexMap.set(territoryKey, tIndex + 1);
+        const currentChannelId = currentChannel.id;
 
         const messageText = this.generateMessage(session.messageTemplateUsed, {
           jaringName,
@@ -365,7 +491,7 @@ export class ApelBlasterService {
 
         try {
           this.logger.log(
-            `[Apel Anti-Ban Blast] Sending to ${jaringName} (${jaring.whatsappNumber}) via channel ${currentChannelId}`,
+            `[Apel Territory-Locked Blast] Sending to ${jaringName} (${jaring.whatsappNumber}) [${kotaName}] via channel ${currentChannel.name} (${currentChannelId})`,
           );
 
           const sendResult = await this.whatsappBotRuntime.sendDirectTextMessage(
