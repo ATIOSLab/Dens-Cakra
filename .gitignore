@@ -77,3 +77,11 @@ apps/be/src/scripts/seed-missing-field-officers.ts
 apps/be/src/scripts/update-prod-jaring-aliases.ts
 apps/be/src/scripts/verify-*.ts
 apps/be/src/scripts/test-*.ts
+
+# Sensitive export docs & contacts
+docs/*kontak*
+docs/*jaring*
+docs/*.vcf
+docs/*.csv
+docs/laporan_absensi_apel_jaring.md
+
