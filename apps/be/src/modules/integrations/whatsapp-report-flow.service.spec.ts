@@ -187,6 +187,20 @@ describe('WhatsAppReportFlowService simplified collector', () => {
     expect(input.reply).not.toHaveBeenCalled();
   });
 
+  it('replies to attendance word when no active session without using the word intelijen', async () => {
+    const { service, prisma } = createFixture();
+    const input = inbound('hadir');
+
+    await service.handle(input);
+
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(input.reply).toHaveBeenCalledWith([
+      'Saat ini tidak ada sesi apel aktif atau batas waktu absensi telah berakhir.\n\nUntuk menyampaikan informasi/laporan, gunakan kode *1945*.',
+    ]);
+    const replyText = input.reply.mock.calls[0][0][0];
+    expect(replyText.toLowerCase()).not.toContain('intelijen');
+  });
+
   it('ignores empty message when no report draft is active', async () => {
     const { service, prisma } = createFixture();
     const input = inbound('');

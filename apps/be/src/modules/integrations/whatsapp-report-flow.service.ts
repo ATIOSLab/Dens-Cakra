@@ -240,18 +240,22 @@ export class WhatsAppReportFlowService
     if (session && session.integrationChannelId !== channel.id) return;
 
     if (!session) {
-      const cleanForHadir = text.toLowerCase().replace(/[*_~`]/g, '').trim();
+      const cleanForHadir = text
+        .toLowerCase()
+        .replace(/[*_~`]/g, '')
+        .trim();
       const isAttendanceWord =
-        /\bhadir\b/i.test(cleanForHadir) || /\bkehadiran\b/i.test(cleanForHadir);
+        /\bhadir\b/i.test(cleanForHadir) ||
+        /\bkehadiran\b/i.test(cleanForHadir);
 
       if (isAttendanceWord) {
         await reply([
-          'Saat ini tidak ada sesi apel aktif atau batas waktu absensi telah berakhir.\n\nUntuk menyampaikan informasi/laporan intelijen, gunakan kode *1945*.',
+          'Saat ini tidak ada sesi apel aktif atau batas waktu absensi telah berakhir.\n\nUntuk menyampaikan informasi/laporan, gunakan kode *1945*.',
         ]);
         return;
       }
 
-      // Verifikasi pemicu laporan intelijen: HANYA kode 1945 yang diizinkan memulai draf pelaporan
+      // Verifikasi pemicu laporan: HANYA kode 1945 yang diizinkan memulai draf pelaporan
       const cleanForTrigger = text.replace(/[*_~`#\s]/g, '').trim();
       const isTrigger =
         cleanForTrigger === REPORT_TRIGGER ||
