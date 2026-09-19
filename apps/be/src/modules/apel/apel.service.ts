@@ -50,7 +50,9 @@ export class ApelService implements OnModuleInit {
     this.whatsappBotRuntime.registerInboundInterceptor((ctx) =>
       this.handleInboundAttendance(ctx),
     );
-    this.logger.log('Registered Apel attendance inbound interceptor with WhatsAppBotRuntimeService');
+    this.logger.log(
+      'Registered Apel attendance inbound interceptor with WhatsAppBotRuntimeService',
+    );
   }
 
   formatAttendanceReply(
@@ -82,7 +84,9 @@ export class ApelService implements OnModuleInit {
         phoneNumber: { contains: rawPhone.slice(-9) },
         attendanceStatus: ApelAttendanceStatus.PENDING,
         session: {
-          status: { in: [ApelSessionStatus.ACTIVE, ApelSessionStatus.BLASTING] },
+          status: {
+            in: [ApelSessionStatus.ACTIVE, ApelSessionStatus.BLASTING],
+          },
           deadlineAt: { gte: now },
         },
       },
@@ -119,7 +123,8 @@ export class ApelService implements OnModuleInit {
     // Determine content and location from inbound message
     const replyContent = (ctx.payload.content || '').trim();
     const hasCoordinates =
-      Number.isFinite(ctx.payload.latitude) && Number.isFinite(ctx.payload.longitude);
+      Number.isFinite(ctx.payload.latitude) &&
+      Number.isFinite(ctx.payload.longitude);
 
     const jaringName =
       activeAttendance.jaring.fullName ||
@@ -132,11 +137,14 @@ export class ApelService implements OnModuleInit {
       timeZone: 'Asia/Jakarta',
     });
 
-    const deadlineStr = activeAttendance.session.deadlineAt.toLocaleTimeString('id-ID', {
-      hour: '2-digit',
-      minute: '2-digit',
-      timeZone: 'Asia/Jakarta',
-    });
+    const deadlineStr = activeAttendance.session.deadlineAt.toLocaleTimeString(
+      'id-ID',
+      {
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'Asia/Jakarta',
+      },
+    );
 
     const isLocationRequired = activeAttendance.session.requireLocation ?? true;
 
@@ -152,17 +160,21 @@ export class ApelService implements OnModuleInit {
     }
 
     // Cek apakah jaring saat ini sedang aktif dalam proses penyusunan draf pelaporan intelijen
-    const activeReportDraft = await this.prisma.whatsAppReportSession.findFirst({
-      where: {
-        activeSenderKey: {
-          in: [
-            rawPhone,
-            `+${rawPhone}`,
-            rawPhone.startsWith('62') ? `0${rawPhone.slice(2)}` : `62${rawPhone.slice(1)}`,
-          ],
+    const activeReportDraft = await this.prisma.whatsAppReportSession.findFirst(
+      {
+        where: {
+          activeSenderKey: {
+            in: [
+              rawPhone,
+              `+${rawPhone}`,
+              rawPhone.startsWith('62')
+                ? `0${rawPhone.slice(2)}`
+                : `62${rawPhone.slice(1)}`,
+            ],
+          },
         },
       },
-    });
+    );
 
     // 2. EVALUASI INTENT ABSENSI APEL ('HADIR' dalam berbagai kombinasi huruf besar/kecil)
     const cleanForHadir = replyContent
@@ -184,14 +196,15 @@ export class ApelService implements OnModuleInit {
     if (activeReportDraft && isHadirIntent) {
       // Jika draf laporan sebelumnya masih kosong (misal akibat salah trigger sebelumnya),
       // hapus draf kosong tersebut agar jaring tidak tertahan di sesi pelaporan.
-      const hasContentOrMedia = await this.prisma.whatsAppReportHistory.findFirst({
-        where: {
-          reportSessionId: activeReportDraft.id,
-          action: {
-            in: ['TEXT_CAPTURED', 'MEDIA_CAPTURED', 'LIVE_LOCATION_CAPTURED'],
+      const hasContentOrMedia =
+        await this.prisma.whatsAppReportHistory.findFirst({
+          where: {
+            reportSessionId: activeReportDraft.id,
+            action: {
+              in: ['TEXT_CAPTURED', 'MEDIA_CAPTURED', 'LIVE_LOCATION_CAPTURED'],
+            },
           },
-        },
-      });
+        });
       if (!hasContentOrMedia) {
         await this.prisma.whatsAppReportHistory
           .deleteMany({
@@ -218,7 +231,8 @@ export class ApelService implements OnModuleInit {
       const longitude = ctx.payload.longitude as number;
       const finalReply =
         replyContent ||
-        (activeAttendance.replyContent && !activeAttendance.replyContent.includes('belum mengirim')
+        (activeAttendance.replyContent &&
+        !activeAttendance.replyContent.includes('belum mengirim')
           ? `${activeAttendance.replyContent} + Lokasi Terkini`
           : 'HADIR (Koordinat Lokasi Terverifikasi)');
 
@@ -332,46 +346,47 @@ export class ApelService implements OnModuleInit {
     });
 
     // 2. Petugas Wilayah (Gaswil - FIELD_OFFICER)
-    const gaswilAssignments = await this.prisma.userOperationalAssignment.findMany({
-      where: {
-        isActive: true,
-        role: { code: 'FIELD_OFFICER' },
-        userProfile: { isActive: true, deletedAt: null },
-      },
-      include: {
-        userProfile: {
-          select: {
-            id: true,
-            fullName: true,
-            phone: true,
-          },
+    const gaswilAssignments =
+      await this.prisma.userOperationalAssignment.findMany({
+        where: {
+          isActive: true,
+          role: { code: 'FIELD_OFFICER' },
+          userProfile: { isActive: true, deletedAt: null },
         },
-        areaScopes: {
-          where: { validUntil: null },
-          include: {
-            area: {
-              select: { id: true, name: true },
+        include: {
+          userProfile: {
+            select: {
+              id: true,
+              fullName: true,
+              phone: true,
             },
           },
-          take: 1,
-        },
-        jaringCaretakerAssignments: {
-          where: {
-            isActive: true,
-            validUntil: null,
-            jaring: {
-              deletedAt: null,
-              status: 'ACTIVE',
-              registrationStatus: 'APPROVED',
+          areaScopes: {
+            where: { validUntil: null },
+            include: {
+              area: {
+                select: { id: true, name: true },
+              },
+            },
+            take: 1,
+          },
+          jaringCaretakerAssignments: {
+            where: {
+              isActive: true,
+              validUntil: null,
+              jaring: {
+                deletedAt: null,
+                status: 'ACTIVE',
+                registrationStatus: 'APPROVED',
+              },
+            },
+            select: {
+              jaringId: true,
             },
           },
-          select: {
-            jaringId: true,
-          },
         },
-      },
-      orderBy: { userProfile: { fullName: 'asc' } },
-    });
+        orderBy: { userProfile: { fullName: 'asc' } },
+      });
 
     const gaswils = gaswilAssignments.map((ga) => ({
       id: ga.id,
@@ -576,13 +591,15 @@ export class ApelService implements OnModuleInit {
   // ==========================================
 
   async triggerBlast(dto: TriggerApelBlastDto, userId?: string) {
-    let config = dto.configId
+    const config = dto.configId
       ? await this.prisma.apelConfig.findUnique({ where: { id: dto.configId } })
       : null;
 
     const targetType = dto.targetType || config?.targetType || 'AREA';
-    const targetGaswilIds = dto.targetGaswilIds ?? config?.targetGaswilIds ?? Prisma.JsonNull;
-    const targetJaringIds = dto.targetJaringIds ?? config?.targetJaringIds ?? Prisma.JsonNull;
+    const targetGaswilIds =
+      dto.targetGaswilIds ?? config?.targetGaswilIds ?? Prisma.JsonNull;
+    const targetJaringIds =
+      dto.targetJaringIds ?? config?.targetJaringIds ?? Prisma.JsonNull;
     const areaId = dto.areaId || config?.areaId || null;
     const template =
       dto.messageTemplate || config?.messageTemplate || DEFAULT_APEL_TEMPLATE;
@@ -599,10 +616,14 @@ export class ApelService implements OnModuleInit {
       deadlineAt = new Date(now);
       deadlineAt.setHours(h, m, 0, 0);
       if (deadlineAt.getTime() <= now.getTime()) {
-        deadlineAt = new Date(now.getTime() + (dto.deadlineMinutes ?? 90) * 60_000);
+        deadlineAt = new Date(
+          now.getTime() + (dto.deadlineMinutes ?? 90) * 60_000,
+        );
       }
     } else {
-      deadlineAt = new Date(now.getTime() + (dto.deadlineMinutes ?? 90) * 60_000);
+      deadlineAt = new Date(
+        now.getTime() + (dto.deadlineMinutes ?? 90) * 60_000,
+      );
     }
 
     const title =
@@ -727,10 +748,25 @@ export class ApelService implements OnModuleInit {
     } else if (filterDate) {
       const targetDate = new Date(filterDate);
       const startOfDay = new Date(
-        Date.UTC(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 0, 0, 0),
+        Date.UTC(
+          targetDate.getFullYear(),
+          targetDate.getMonth(),
+          targetDate.getDate(),
+          0,
+          0,
+          0,
+        ),
       );
       const endOfDay = new Date(
-        Date.UTC(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 23, 59, 59, 999),
+        Date.UTC(
+          targetDate.getFullYear(),
+          targetDate.getMonth(),
+          targetDate.getDate(),
+          23,
+          59,
+          59,
+          999,
+        ),
       );
       sessionWhere = {
         sessionDate: {
@@ -850,7 +886,9 @@ export class ApelService implements OnModuleInit {
         select: { descendantId: true },
       });
       const targetAreaIds =
-        closures.length > 0 ? closures.map((c) => c.descendantId) : [filterAreaId];
+        closures.length > 0
+          ? closures.map((c) => c.descendantId)
+          : [filterAreaId];
 
       attendanceWhere.jaring = {
         areaCoverages: {
@@ -901,7 +939,10 @@ export class ApelService implements OnModuleInit {
 
     const now = new Date();
     const isDeadlinePassed = now.getTime() > session.deadlineAt.getTime();
-    const remainingMs = Math.max(0, session.deadlineAt.getTime() - now.getTime());
+    const remainingMs = Math.max(
+      0,
+      session.deadlineAt.getTime() - now.getTime(),
+    );
     const remainingMinutes = Math.floor(remainingMs / 60_000);
 
     const totalTarget = attendances.length;
@@ -914,8 +955,12 @@ export class ApelService implements OnModuleInit {
 
     // Delivery metrics (progres pengiriman blast ke WhatsApp)
     const totalSent = attendances.filter((a) => a.sentStatus === 'SENT').length;
-    const totalFailed = attendances.filter((a) => a.sentStatus === 'FAILED').length;
-    const totalPendingDelivery = attendances.filter((a) => a.sentStatus === 'PENDING').length;
+    const totalFailed = attendances.filter(
+      (a) => a.sentStatus === 'FAILED',
+    ).length;
+    const totalPendingDelivery = attendances.filter(
+      (a) => a.sentStatus === 'PENDING',
+    ).length;
     const deliveryPercentage =
       totalTarget > 0 ? Math.round((totalSent / totalTarget) * 100) : 0;
 
@@ -927,8 +972,10 @@ export class ApelService implements OnModuleInit {
           ?.fullName || 'Belum ditugaskan';
       const caretakerId =
         a.jaring.caretakerAssignments[0]?.fieldOfficerAssignment?.id || null;
-      const coverageArea = a.jaring.areaCoverages[0]?.area?.name || session.area?.name || 'Pusat';
-      const areaId = a.jaring.areaCoverages[0]?.area?.id || session.areaId || null;
+      const coverageArea =
+        a.jaring.areaCoverages[0]?.area?.name || session.area?.name || 'Pusat';
+      const areaId =
+        a.jaring.areaCoverages[0]?.area?.id || session.areaId || null;
 
       // 1. Waktu Masuk & Waktu Balas
       const sentAt = a.sentAt ? a.sentAt.toISOString() : null;
@@ -961,7 +1008,8 @@ export class ApelService implements OnModuleInit {
       let isLate = false;
 
       if (a.attendedAt) {
-        const diffDeadlineMs = session.deadlineAt.getTime() - a.attendedAt.getTime();
+        const diffDeadlineMs =
+          session.deadlineAt.getTime() - a.attendedAt.getTime();
         minutesBeforeDeadline = Math.round(diffDeadlineMs / 60_000);
 
         if (minutesBeforeDeadline >= 0 && minutesBeforeDeadline <= 15) {

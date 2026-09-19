@@ -38,6 +38,8 @@ function activeSession(overrides: Record<string, unknown> = {}) {
     locationCapturedAt: null,
     locationType: null,
     startedAt: new Date(),
+    lastActivityAt: new Date(),
+    expiresAt: new Date(Date.now() + 30 * 60 * 1000),
     contentParts: [],
     media: [],
     ...overrides,
@@ -118,6 +120,7 @@ function createFixture() {
     txMessageCreate,
     txReferenceCounterUpsert,
     txHistoryDeleteMany,
+    txHistoryCreate,
     txSessionDelete,
     txSessionUpdate,
   };
@@ -689,5 +692,126 @@ describe('WhatsAppReportFlowService simplified collector', () => {
       select: { id: true },
     });
     expect(purge).toHaveBeenCalledTimes(2);
+  });
+
+  it('expires an active draft after 30 minutes of inactivity and starts a fresh draft on 1945', async () => {
+    const { service, prisma } = createFixture();
+    const staleSession = activeSession({
+      lastActivityAt: new Date(Date.now() - 31 * 60 * 1000), // 31 minutes ago
+    });
+    prisma.whatsAppReportSession.findUnique.mockResolvedValue(staleSession);
+    const target = service as any;
+    const purge = jest
+      .spyOn(target, 'purgeDraftSession')
+      .mockResolvedValue(true);
+
+    const input = inbound('1945');
+    await service.handle(input);
+
+    expect(purge).toHaveBeenCalledWith(staleSession.id);
+    expect(prisma.$transaction).toHaveBeenCalled();
+    expect(input.reply).toHaveBeenCalledWith([
+      expect.stringContaining('*KANAL INFORMASI*'),
+    ]);
+  });
+
+  it('performs automatic channel handover when jaring contacts another authorized bot channel', async () => {
+    const { service, prisma, txSessionUpdate, txHistoryCreate } =
+      createFixture();
+    const otherChannel = {
+      id: 'channel-2',
+      code: 'KANAL-JARING-2',
+      channelType: 'WHATSAPP',
+      config: {},
+    };
+    const sessionOnChannel1 = activeSession({
+      integrationChannelId: 'channel-1',
+      content: 'Laporan awal',
+    });
+    prisma.whatsAppReportSession.findUnique.mockResolvedValue(
+      sessionOnChannel1,
+    );
+
+    const input = {
+      ...inbound('1945'),
+      channel: otherChannel,
+    };
+
+    await service.handle(input);
+
+    expect(txSessionUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: sessionOnChannel1.id },
+        data: expect.objectContaining({
+          integrationChannelId: otherChannel.id,
+        }),
+      }),
+    );
+    expect(txHistoryCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          reportSessionId: sessionOnChannel1.id,
+          action: 'CHANNEL_HANDOVER',
+          metadata: expect.objectContaining({
+            previousChannelId: 'channel-1',
+            newChannelId: otherChannel.id,
+          }),
+        }),
+      }),
+    );
+    expect(input.reply).toHaveBeenCalledWith([
+      expect.stringContaining('Informasi masih dalam proses'),
+    ]);
+  });
+
+  it('re-sends WELCOME_MESSAGE and refreshes activity when 1945 is sent to an empty active draft', async () => {
+    const { service, prisma } = createFixture();
+    const emptySession = activeSession({
+      content: null,
+      contentParts: [],
+      media: [],
+      latitude: null,
+    });
+    prisma.whatsAppReportSession.findUnique.mockResolvedValue(emptySession);
+
+    const input = inbound('*1945*');
+    await service.handle(input);
+
+    expect(prisma.whatsAppReportSession.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: emptySession.id },
+        data: expect.objectContaining({
+          lastActivityAt: expect.any(Date),
+          expiresAt: expect.any(Date),
+        }),
+      }),
+    );
+    expect(input.reply).toHaveBeenCalledWith([
+      expect.stringContaining('*KANAL INFORMASI*'),
+    ]);
+  });
+
+  it('cleans inactive drafts older than 30 minutes via cleanupInactiveDrafts', async () => {
+    const { service, prisma } = createFixture();
+    prisma.whatsAppReportSession.findMany.mockResolvedValue([
+      { id: 'stale-1' },
+      { id: 'stale-2' },
+      { id: 'stale-3' },
+    ]);
+    const target = service as any;
+    const purge = jest
+      .spyOn(target, 'purgeDraftSession')
+      .mockResolvedValue(true);
+
+    await expect(service.cleanupInactiveDrafts()).resolves.toBe(3);
+
+    expect(prisma.whatsAppReportSession.findMany).toHaveBeenCalledWith({
+      where: {
+        status: 'ACTIVE',
+        lastActivityAt: { lt: expect.any(Date) },
+      },
+      select: { id: true },
+    });
+    expect(purge).toHaveBeenCalledTimes(3);
   });
 });

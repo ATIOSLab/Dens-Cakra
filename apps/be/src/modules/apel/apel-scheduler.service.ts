@@ -38,7 +38,12 @@ export class ApelSchedulerService {
     );
 
     // 1. Check for scheduled blasts
-    await this.processScheduledBlasts(currentWibTime, dotWibTime, sessionDate, now);
+    await this.processScheduledBlasts(
+      currentWibTime,
+      dotWibTime,
+      sessionDate,
+      now,
+    );
 
     // 2. Check for expired attendance deadlines
     await this.processExpiredDeadlines(now);
@@ -53,10 +58,7 @@ export class ApelSchedulerService {
     const activeConfigs = await this.prisma.apelConfig.findMany({
       where: {
         isActive: true,
-        OR: [
-          { scheduleTime: currentWibTime },
-          { scheduleTime: dotWibTime },
-        ],
+        OR: [{ scheduleTime: currentWibTime }, { scheduleTime: dotWibTime }],
       },
       include: {
         area: { select: { id: true, name: true } },
@@ -98,7 +100,9 @@ export class ApelSchedulerService {
         deadlineAt = new Date(targetUtcMillis);
 
         if (deadlineAt.getTime() <= now.getTime()) {
-          deadlineAt = new Date(now.getTime() + config.deadlineMinutes * 60_000);
+          deadlineAt = new Date(
+            now.getTime() + config.deadlineMinutes * 60_000,
+          );
         }
       } else {
         deadlineAt = new Date(now.getTime() + config.deadlineMinutes * 60_000);

@@ -662,7 +662,9 @@ export class WhatsappBotRuntimeService
   }
 
   registerInboundInterceptor(
-    interceptor: (context: WhatsAppInboundInterceptorContext) => Promise<boolean>,
+    interceptor: (
+      context: WhatsAppInboundInterceptorContext,
+    ) => Promise<boolean>,
   ) {
     this.inboundInterceptors.push(interceptor);
   }
@@ -683,9 +685,7 @@ export class WhatsappBotRuntimeService
       return { success: false, error: 'CHANNEL_NOT_CONNECTED' };
     }
     const digits = recipientPhone.replace(/\D+/g, '');
-    const cleanPhone = digits.startsWith('0')
-      ? `62${digits.slice(1)}`
-      : digits;
+    const cleanPhone = digits.startsWith('0') ? `62${digits.slice(1)}` : digits;
     const remoteJid = cleanPhone.endsWith('@s.whatsapp.net')
       ? cleanPhone
       : `${cleanPhone}@s.whatsapp.net`;

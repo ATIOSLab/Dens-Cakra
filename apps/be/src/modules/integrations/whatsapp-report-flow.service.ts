@@ -77,6 +77,7 @@ type LoadedSession = Prisma.WhatsAppReportSessionGetPayload<{
 }>;
 
 const REPORT_TRIGGER = '1945';
+export const DRAFT_SESSION_INACTIVITY_MS = 30 * 60 * 1000;
 const MAX_CONTENT_ENTRIES = 30;
 const MAX_MEDIA = 10;
 const MAX_CONTENT_LENGTH = 10_000;
@@ -150,7 +151,12 @@ export class WhatsAppReportFlowService
   async onApplicationBootstrap() {
     await this.cleanupPreviousDayDrafts().catch((error: unknown) => {
       this.logger.error(
-        `Initial WhatsApp draft cleanup failed: ${this.messageOf(error)}`,
+        `Initial WhatsApp previous day draft cleanup failed: ${this.messageOf(error)}`,
+      );
+    });
+    await this.cleanupInactiveDrafts().catch((error: unknown) => {
+      this.logger.error(
+        `Initial WhatsApp inactive draft cleanup failed: ${this.messageOf(error)}`,
       );
     });
   }
@@ -160,6 +166,30 @@ export class WhatsAppReportFlowService
       clearTimeout(pending.timer);
     }
     this.pendingCaptureAcks.clear();
+  }
+
+  @Cron('*/10 * * * *')
+  async cleanupInactiveDrafts() {
+    const staleThreshold = new Date(Date.now() - DRAFT_SESSION_INACTIVITY_MS);
+    const drafts = await this.prisma.whatsAppReportSession.findMany({
+      where: {
+        status: WhatsAppReportSessionStatus.ACTIVE,
+        lastActivityAt: { lt: staleThreshold },
+      },
+      select: { id: true },
+    });
+
+    for (const draft of drafts) {
+      await this.purgeDraftSession(draft.id);
+    }
+
+    if (drafts.length > 0) {
+      this.logger.log(
+        `Purged ${drafts.length} inactive WhatsApp report draft(s) older than 30 minutes`,
+      );
+    }
+
+    return drafts.length;
   }
 
   @Cron('5 0 * * *', { timeZone: 'Asia/Jakarta' })
@@ -223,9 +253,18 @@ export class WhatsAppReportFlowService
     const media = this.mediaMessage(message);
     let session = await this.findActiveSession(payload.senderPhone);
 
-    if (session && session.startedAt < this.startOfWibDay(new Date())) {
-      await this.purgeDraftSession(session.id);
-      session = null;
+    if (session) {
+      const lastActivityTime = new Date(
+        session.lastActivityAt ?? session.startedAt,
+      ).getTime();
+      const isInactive =
+        Date.now() - lastActivityTime > DRAFT_SESSION_INACTIVITY_MS;
+      const isPastWibDay = session.startedAt < this.startOfWibDay(new Date());
+
+      if (isInactive || isPastWibDay) {
+        await this.purgeDraftSession(session.id);
+        session = null;
+      }
     }
 
     const eligibleJaring = await this.findEligibleJaring(
@@ -237,7 +276,39 @@ export class WhatsAppReportFlowService
       return;
     }
 
-    if (session && session.integrationChannelId !== channel.id) return;
+    if (session && session.integrationChannelId !== channel.id) {
+      const previousChannelId = session.integrationChannelId;
+      const newRemoteJid = message.key.remoteJid ?? session.remoteJid;
+      await this.prisma.$transaction(async (tx) => {
+        await tx.whatsAppReportSession.update({
+          where: { id: session.id },
+          data: {
+            integrationChannelId: channel.id,
+            remoteJid: newRemoteJid,
+            lastActivityAt: new Date(),
+            expiresAt: new Date(Date.now() + DRAFT_SESSION_INACTIVITY_MS),
+          },
+        });
+        await tx.whatsAppReportHistory.create({
+          data: {
+            reportSessionId: session.id,
+            action: 'CHANNEL_HANDOVER',
+            previousState: session.currentState,
+            newState: session.currentState,
+            externalMessageId: payload.externalMessageId,
+            metadata: {
+              previousChannelId,
+              newChannelId: channel.id,
+            },
+          },
+        });
+      });
+      session.integrationChannelId = channel.id;
+      session.remoteJid = newRemoteJid;
+      this.logger.log(
+        `[Report Flow] Handover sesi ${session.id} untuk ${payload.senderPhone} dari kanal ${previousChannelId} ke ${channel.id}`,
+      );
+    }
 
     if (!session) {
       const cleanForHadir = text
@@ -309,12 +380,31 @@ export class WhatsAppReportFlowService
 
     if (!text) return;
 
-    const command = text.toLocaleUpperCase('id-ID');
-    if (command === REPORT_TRIGGER) {
+    const cleanForTrigger = text.replace(/[*_~`#\s]/g, '').trim();
+    if (cleanForTrigger === REPORT_TRIGGER) {
       this.cancelCaptureAck(payload.senderPhone);
-      await reply([this.progressText(session)]);
+      const hasAnyContent =
+        Boolean(session.content?.trim()) ||
+        session.contentParts.length > 0 ||
+        session.media.length > 0 ||
+        session.latitude !== null;
+
+      if (!hasAnyContent) {
+        await this.prisma.whatsAppReportSession.update({
+          where: { id: session.id },
+          data: {
+            lastActivityAt: new Date(),
+            expiresAt: new Date(Date.now() + DRAFT_SESSION_INACTIVITY_MS),
+          },
+        });
+        await reply([WELCOME_MESSAGE]);
+      } else {
+        await reply([this.progressText(session)]);
+      }
       return;
     }
+
+    const command = text.toLocaleUpperCase('id-ID');
     if (command === 'BATAL') {
       this.cancelCaptureAck(payload.senderPhone);
       await this.purgeDraftSession(session.id);
@@ -359,7 +449,8 @@ export class WhatsAppReportFlowService
             jaringId: jaring.id,
             fieldOfficerAssignmentId,
             currentState: WhatsAppReportSessionState.CONTENT,
-            expiresAt: this.nextWibDayStart(new Date()),
+            expiresAt: new Date(Date.now() + DRAFT_SESSION_INACTIVITY_MS),
+            lastActivityAt: new Date(),
           },
         });
         await tx.whatsAppReportHistory.create({
@@ -414,6 +505,7 @@ export class WhatsAppReportFlowService
           data: {
             content: this.appendContent(session.content, text),
             lastActivityAt: new Date(),
+            expiresAt: new Date(Date.now() + DRAFT_SESSION_INACTIVITY_MS),
           },
         }),
         this.prisma.whatsAppReportHistory.create({
@@ -486,6 +578,7 @@ export class WhatsAppReportFlowService
               ? { content: this.appendContent(session.content, captionText) }
               : {}),
             lastActivityAt: new Date(),
+            expiresAt: new Date(Date.now() + DRAFT_SESSION_INACTIVITY_MS),
           },
         }),
         this.prisma.whatsAppReportHistory.create({
@@ -528,6 +621,7 @@ export class WhatsAppReportFlowService
           locationMessageId: payload.externalMessageId,
           locationType: 'LIVE_LOCATION',
           lastActivityAt: new Date(),
+          expiresAt: new Date(Date.now() + DRAFT_SESSION_INACTIVITY_MS),
         },
       }),
       this.prisma.whatsAppReportHistory.create({

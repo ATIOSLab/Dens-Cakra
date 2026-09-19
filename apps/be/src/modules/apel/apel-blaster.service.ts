@@ -37,8 +37,18 @@ function resolveSpintax(text: string): string {
 function formatIndonesianDate(date: Date): string {
   const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
   const months = [
-    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    'Januari',
+    'Februari',
+    'Maret',
+    'April',
+    'Mei',
+    'Juni',
+    'Juli',
+    'Agustus',
+    'September',
+    'Oktober',
+    'November',
+    'Desember',
   ];
   const dayName = days[date.getDay()];
   const day = date.getDate();
@@ -50,15 +60,20 @@ function formatIndonesianDate(date: Date): string {
 /**
  * Normalizes city/administrative territory name from area hierarchy
  */
-function extractKotaName(area: {
-  name: string;
-  parent?: {
-    name: string;
-    parent?: {
-      name: string;
-    } | null;
-  } | null;
-} | null | undefined): string {
+function extractKotaName(
+  area:
+    | {
+        name: string;
+        parent?: {
+          name: string;
+          parent?: {
+            name: string;
+          } | null;
+        } | null;
+      }
+    | null
+    | undefined,
+): string {
   if (!area) return '';
   const gparent = area.parent?.parent?.name;
   const parent = area.parent?.name;
@@ -67,10 +82,7 @@ function extractKotaName(area: {
   for (const candidate of [gparent, parent, current]) {
     if (!candidate) continue;
     const lower = candidate.toLowerCase();
-    if (
-      lower.includes('jakarta') ||
-      lower.includes('kepulauan seribu')
-    ) {
+    if (lower.includes('jakarta') || lower.includes('kepulauan seribu')) {
       return candidate;
     }
   }
@@ -80,7 +92,10 @@ function extractKotaName(area: {
 /**
  * Strictly checks if a WhatsApp bot channel matches a given territory name
  */
-function isChannelMatchingTerritory(channelName: string, kotaName: string): boolean {
+function isChannelMatchingTerritory(
+  channelName: string,
+  kotaName: string,
+): boolean {
   if (!channelName || !kotaName) return false;
   const cn = channelName.toLowerCase();
   const kn = kotaName.toLowerCase();
@@ -125,7 +140,10 @@ export class ApelBlasterService {
   ): string {
     let content = template;
 
-    content = content.replace(/\{\{\s*nama_jaring\s*\}\}/gi, context.jaringName);
+    content = content.replace(
+      /\{\{\s*nama_jaring\s*\}\}/gi,
+      context.jaringName,
+    );
     content = content.replace(/\{\{\s*nama\s*\}\}/gi, context.jaringName);
     content = content.replace(
       /\{\{\s*wilayah\s*\}\}/gi,
@@ -155,7 +173,8 @@ export class ApelBlasterService {
     const entropyLength = randomBetween(2, 5);
     let entropy = '';
     for (let i = 0; i < entropyLength; i++) {
-      entropy += zeroWidthEntropy[Math.floor(Math.random() * zeroWidthEntropy.length)];
+      entropy +=
+        zeroWidthEntropy[Math.floor(Math.random() * zeroWidthEntropy.length)];
     }
 
     return `${content}${entropy}`;
@@ -164,13 +183,11 @@ export class ApelBlasterService {
   /**
    * Resolves list of active WhatsApp channels available for blasting.
    */
-  async resolveAvailableChannels(
-    config?: {
-      channelSelectionMode?: string;
-      selectedChannelId?: string | null;
-      selectedChannelIds?: unknown;
-    },
-  ): Promise<CandidateChannel[]> {
+  async resolveAvailableChannels(config?: {
+    channelSelectionMode?: string;
+    selectedChannelId?: string | null;
+    selectedChannelIds?: unknown;
+  }): Promise<CandidateChannel[]> {
     // If specific channel selected in manual mode
     if (config?.selectedChannelId) {
       const channel = await this.prisma.integrationChannel.findUnique({
@@ -261,8 +278,13 @@ export class ApelBlasterService {
         },
       });
 
-      if (session.status === ApelSessionStatus.COMPLETED || session.status === ApelSessionStatus.CANCELLED) {
-        this.logger.warn(`Apel session ${sessionId} is already ${session.status}, skipping blast.`);
+      if (
+        session.status === ApelSessionStatus.COMPLETED ||
+        session.status === ApelSessionStatus.CANCELLED
+      ) {
+        this.logger.warn(
+          `Apel session ${sessionId} is already ${session.status}, skipping blast.`,
+        );
         return;
       }
 
@@ -311,7 +333,9 @@ export class ApelBlasterService {
           select: { descendantId: true },
         });
         const targetAreaIds =
-          closures.length > 0 ? closures.map((c) => c.descendantId) : [session.areaId];
+          closures.length > 0
+            ? closures.map((c) => c.descendantId)
+            : [session.areaId];
 
         whereJaring.areaCoverages = {
           some: {
@@ -357,7 +381,9 @@ export class ApelBlasterService {
         },
       });
 
-      this.logger.log(`Found ${jarings.length} verified Jaring targets for Apel session ${sessionId}`);
+      this.logger.log(
+        `Found ${jarings.length} verified Jaring targets for Apel session ${sessionId}`,
+      );
 
       // Ensure ApelAttendance rows exist
       for (const jaring of jarings) {
@@ -414,18 +440,23 @@ export class ApelBlasterService {
       let failedCount = 0;
       const territoryIndexMap = new Map<string, number>();
 
-      const deadlineHoursMinutes = session.deadlineAt.toLocaleTimeString('id-ID', {
-        hour: '2-digit',
-        minute: '2-digit',
-        timeZone: 'Asia/Jakarta',
-      });
+      const deadlineHoursMinutes = session.deadlineAt.toLocaleTimeString(
+        'id-ID',
+        {
+          hour: '2-digit',
+          minute: '2-digit',
+          timeZone: 'Asia/Jakarta',
+        },
+      );
       const deadlineText = `${deadlineHoursMinutes} WIB`;
 
       for (let i = 0; i < jarings.length; i++) {
         const jaring = jarings[i];
-        const jaringName = jaring.fullName || jaring.aliasName || 'Rekan Jaring';
+        const jaringName =
+          jaring.fullName || jaring.aliasName || 'Rekan Jaring';
         const primaryArea = jaring.areaCoverages[0]?.area;
-        const areaName = primaryArea?.name || session.area?.name || 'Wilayah Penugasan';
+        const areaName =
+          primaryArea?.name || session.area?.name || 'Wilayah Penugasan';
         const kotaName = extractKotaName(primaryArea);
 
         // Resolve matching channels strictly for this jaring's territory
@@ -438,7 +469,10 @@ export class ApelBlasterService {
           // Check 1: Channel scope service (config-level scope if configured)
           if (jaringAreaIds.length > 0) {
             try {
-              allowed = await this.channelScope.isJaringAllowed(ch, jaringAreaIds);
+              allowed = await this.channelScope.isJaringAllowed(
+                ch,
+                jaringAreaIds,
+              );
             } catch {
               allowed = false;
             }
@@ -478,7 +512,8 @@ export class ApelBlasterService {
         // Territory-Scoped Load Balancing: Rotate only among bots belonging to this territory
         const territoryKey = kotaName || areaName || 'DEFAULT';
         const tIndex = territoryIndexMap.get(territoryKey) ?? 0;
-        const currentChannel = matchingChannels[tIndex % matchingChannels.length];
+        const currentChannel =
+          matchingChannels[tIndex % matchingChannels.length];
         territoryIndexMap.set(territoryKey, tIndex + 1);
         const currentChannelId = currentChannel.id;
 
@@ -494,12 +529,13 @@ export class ApelBlasterService {
             `[Apel Territory-Locked Blast] Sending to ${jaringName} (${jaring.whatsappNumber}) [${kotaName}] via channel ${currentChannel.name} (${currentChannelId})`,
           );
 
-          const sendResult = await this.whatsappBotRuntime.sendDirectTextMessage(
-            currentChannelId,
-            jaring.whatsappNumber,
-            messageText,
-            { simulateTypingMs: randomBetween(1500, 3500) },
-          );
+          const sendResult =
+            await this.whatsappBotRuntime.sendDirectTextMessage(
+              currentChannelId,
+              jaring.whatsappNumber,
+              messageText,
+              { simulateTypingMs: randomBetween(1500, 3500) },
+            );
 
           if (sendResult.success) {
             sentCount++;
@@ -535,7 +571,8 @@ export class ApelBlasterService {
           }
         } catch (sendError: unknown) {
           failedCount++;
-          const errorMsg = sendError instanceof Error ? sendError.message : String(sendError);
+          const errorMsg =
+            sendError instanceof Error ? sendError.message : String(sendError);
           await this.prisma.apelAttendance.update({
             where: {
               sessionId_jaringId: {
@@ -554,7 +591,9 @@ export class ApelBlasterService {
         // Anti-ban Mitigation: Jitter delay between messages
         if (i < jarings.length - 1) {
           const jitterDelay = randomBetween(minDelay, maxDelay);
-          this.logger.debug(`[Apel Anti-Ban Jitter] Waiting ${jitterDelay}s before next contact...`);
+          this.logger.debug(
+            `[Apel Anti-Ban Jitter] Waiting ${jitterDelay}s before next contact...`,
+          );
           await sleep(jitterDelay * 1000);
 
           // Anti-ban Mitigation: Batch cooling-down pause
@@ -582,7 +621,10 @@ export class ApelBlasterService {
         `Apel Blasting completed for session ${sessionId}. Sent: ${sentCount}, Failed: ${failedCount}`,
       );
     } catch (error: unknown) {
-      this.logger.error(`Failed to execute blasting session ${sessionId}:`, error);
+      this.logger.error(
+        `Failed to execute blasting session ${sessionId}:`,
+        error,
+      );
       await this.prisma.apelSession.update({
         where: { id: sessionId },
         data: { status: ApelSessionStatus.DRAFT },

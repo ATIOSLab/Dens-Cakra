@@ -46,7 +46,8 @@ export class CreateApelConfigDto {
 
   @IsOptional()
   @IsEnum(ApelChannelSelectionMode)
-  channelSelectionMode?: ApelChannelSelectionMode = ApelChannelSelectionMode.MANUAL;
+  channelSelectionMode?: ApelChannelSelectionMode =
+    ApelChannelSelectionMode.MANUAL;
 
   @IsOptional()
   @IsUUID()
