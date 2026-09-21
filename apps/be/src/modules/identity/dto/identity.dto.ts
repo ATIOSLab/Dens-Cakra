@@ -19,6 +19,11 @@ export class AreaScopeQueryDto {
   @IsOptional()
   @IsEnum(AdministrativeLevel)
   level?: AdministrativeLevel;
+
+  @IsOptional()
+  @Transform(({ value }) => value === true || value === 'true')
+  @IsBoolean()
+  excludeVillages = false;
 }
 
 export class UpdateSessionNetworkDto {

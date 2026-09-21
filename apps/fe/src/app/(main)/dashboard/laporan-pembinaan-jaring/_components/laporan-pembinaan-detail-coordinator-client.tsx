@@ -164,12 +164,14 @@ export function LaporanPembinaanDetailCoordinatorClient({ reportId }: { reportId
         </div>
       </div>
 
-      {loading ? (
+      {loading && (
         <div className="flex min-h-[250px] flex-col items-center justify-center rounded-lg border bg-card/50 p-8 text-center">
           <RefreshCw className="size-8 animate-spin text-emerald-500 mb-3" />
           <p className="text-sm font-medium text-muted-foreground">Memuat detail laporan pembinaan...</p>
         </div>
-      ) : !report ? (
+      )}
+
+      {!loading && !report && (
         <div className="flex min-h-[250px] flex-col items-center justify-center rounded-lg border bg-card/50 p-8 text-center">
           <FileText className="size-10 text-muted-foreground/50 mb-3" />
           <p className="text-base font-semibold text-foreground">Detail Laporan Tidak Ditemukan</p>
@@ -177,7 +179,9 @@ export function LaporanPembinaanDetailCoordinatorClient({ reportId }: { reportId
             Laporan pembinaan mungkin sudah tidak tersedia atau berada di luar cakupan akses Anda.
           </p>
         </div>
-      ) : (
+      )}
+
+      {!loading && report && (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           {/* MAIN CONTENT COLUMN */}
           <div className="lg:col-span-2 space-y-6">
@@ -185,7 +189,7 @@ export function LaporanPembinaanDetailCoordinatorClient({ reportId }: { reportId
               <CardHeader className="border-b border-slate-100 dark:border-white/5 pb-4">
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
                   <span className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Clock className="size-3.5" /> Dilaporkan: {formatDateTime(report.reportedAt)}
+                    <Clock className="size-3.5" /> Waktu Pengiriman Laporan: {formatDateTime(report.createdAt || report.reportedAt)}
                   </span>
                 </div>
 

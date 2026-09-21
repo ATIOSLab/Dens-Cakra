@@ -436,9 +436,7 @@ export function KonektivitasWhatsappPage() {
               <Search className="size-4 text-primary" />
               Filter Konektivitas WhatsApp
             </p>
-            <p className="mt-1 text-muted-foreground text-xs">
-              Urutan wilayah: Provinsi lalu Kota/Kabupaten.
-            </p>
+            <p className="mt-1 text-muted-foreground text-xs">Urutan wilayah: Provinsi lalu Kota/Kabupaten.</p>
           </div>
           <Badge variant="outline" className="rounded-full font-mono text-[11px]">
             {isFilterActive ? "Filter aktif" : "Tanpa filter"}

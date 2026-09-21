@@ -1055,10 +1055,11 @@ export class JaringService {
 
   private async summarizeReportSessions(
     where: Prisma.WhatsAppReportSessionWhereInput,
+    totalPromise?: Promise<number>,
   ) {
     const [totalJaringReports, baketReports, reportingJaringGroups] =
       await Promise.all([
-        this.prisma.whatsAppReportSession.count({ where }),
+        totalPromise ?? this.prisma.whatsAppReportSession.count({ where }),
         this.prisma.whatsAppReportSession.count({
           where: {
             AND: [
@@ -1163,8 +1164,18 @@ export class JaringService {
     };
   }
 
-  private scopedJaringAreaWhere(scope: { areaRootIds: string[] }) {
-    if (scope.areaRootIds.length === 0) {
+  private scopedJaringAreaWhere(
+    scope: { areaRootIds: string[] },
+    context?: AuthorizationContext,
+  ) {
+    const isNationalSupervision =
+      context &&
+      (context.authRole === SYSTEM_ROLES.EXECUTIVE ||
+        context.authRole === SYSTEM_ROLES.NATIONAL_LEADER ||
+        context.authRole === SYSTEM_ROLES.ADMIN_SYSTEM ||
+        context.areaScopes.some((s) => s.level === 'COUNTRY'));
+
+    if (isNationalSupervision || scope.areaRootIds.length === 0) {
       return {};
     }
 
@@ -1227,12 +1238,17 @@ export class JaringService {
     const scope = await this.domainScope.resolve(context);
     const isFieldOfficer = context.authRole === 'field_officer';
     const isFieldCoordinator = context.authRole === 'field_coordinator';
+    const isNationalSupervision =
+      context.authRole === SYSTEM_ROLES.EXECUTIVE ||
+      context.authRole === SYSTEM_ROLES.NATIONAL_LEADER ||
+      context.authRole === SYSTEM_ROLES.ADMIN_SYSTEM ||
+      context.areaScopes.some((s) => s.level === 'COUNTRY');
     const page = query.page ?? 1;
     const search = query.search?.trim();
     const phoneSearchVariants = search
       ? getIndonesianPhoneSearchVariants(search)
       : [];
-    const scopedAreaWhere = this.scopedJaringAreaWhere(scope);
+    const scopedAreaWhere = this.scopedJaringAreaWhere(scope, context);
 
     const threeMonthsAgo = new Date();
     threeMonthsAgo.setDate(threeMonthsAgo.getDate() - 90);
@@ -1329,24 +1345,35 @@ export class JaringService {
       ...(isFieldCoordinator && scope.areaRootIds.length === 0
         ? { id: { in: [] } }
         : {}),
-      caretakerAssignments: {
-        some: {
-          ...(isFieldCoordinator
-            ? {
-                fieldOfficerAssignment: {
-                  branch: scope.commandRouteType,
+      ...(query.fieldOfficerAssignmentId
+        ? {
+            caretakerAssignments: {
+              some: {
+                fieldOfficerAssignmentId: query.fieldOfficerAssignmentId,
+                isActive: true,
+                OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
+              },
+            },
+          }
+        : isNationalSupervision
+          ? {}
+          : {
+              caretakerAssignments: {
+                some: {
+                  ...(isFieldCoordinator
+                    ? {
+                        fieldOfficerAssignment: {
+                          branch: scope.commandRouteType,
+                        },
+                      }
+                    : {
+                        fieldOfficerAssignmentId: { in: scope.assignmentIds },
+                      }),
+                  isActive: true,
+                  OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
                 },
-              }
-            : {
-                fieldOfficerAssignmentId: { in: scope.assignmentIds },
-              }),
-          ...(query.fieldOfficerAssignmentId
-            ? { fieldOfficerAssignmentId: query.fieldOfficerAssignmentId }
-            : {}),
-          isActive: true,
-          OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
-        },
-      },
+              },
+            }),
       ...(query.occupationId ? { occupationId: query.occupationId } : {}),
       ...(query.status === JaringStatus.ACTIVE
         ? {
@@ -1540,11 +1567,12 @@ export class JaringService {
         },
         coachingReports: {
           take: 1,
-          orderBy: { reportedAt: 'desc' },
+          orderBy: { createdAt: 'desc' },
           select: {
             id: true,
             title: true,
             reportedAt: true,
+            createdAt: true,
             fieldOfficerAssignment: {
               select: {
                 userProfile: {
@@ -2364,7 +2392,7 @@ export class JaringService {
         : {}),
       ...(fromDate || toDate
         ? {
-            reportedAt: {
+            createdAt: {
               ...(fromDate ? { gte: fromDate } : {}),
               ...(toDate ? { lte: toDate } : {}),
             },
@@ -2372,7 +2400,7 @@ export class JaringService {
         : {}),
     };
     const sortOrder = query.sortOrder ?? 'desc';
-    const sortBy = query.sortBy ?? 'reportedAt';
+    const sortBy = query.sortBy ?? 'createdAt';
     const currentMonth = this.currentWibMonthRange();
     const [reports, total, groupedJaring, thisMonthCount] = await Promise.all([
       this.prisma.jaringCoachingReport.findMany({
@@ -2381,8 +2409,7 @@ export class JaringService {
         take: limit,
         orderBy: [
           { [sortBy]: sortOrder },
-          ...(sortBy === 'reportedAt' ? [] : [{ reportedAt: 'desc' as const }]),
-          { createdAt: 'desc' },
+          ...(sortBy === 'createdAt' ? [] : [{ createdAt: 'desc' as const }]),
           { id: 'desc' },
         ],
         select: jaringCoachingReportSelect,
@@ -2397,7 +2424,7 @@ export class JaringService {
           AND: [
             where,
             {
-              reportedAt: {
+              createdAt: {
                 gte: currentMonth.from,
                 lt: currentMonth.to,
               },
@@ -2438,7 +2465,7 @@ export class JaringService {
       ? getIndonesianPhoneSearchVariants(search)
       : [];
     const sortOrder = query.sortOrder ?? 'desc';
-    const sortBy = query.sortBy ?? 'reportedAt';
+    const sortBy = query.sortBy ?? 'createdAt';
     if (query.areaId) {
       await this.domainScope.assertArea(context, query.areaId);
     }
@@ -2533,7 +2560,7 @@ export class JaringService {
         : {}),
       ...(fromDate || toDate
         ? {
-            reportedAt: {
+            createdAt: {
               ...(fromDate ? { gte: fromDate } : {}),
               ...(toDate ? { lte: toDate } : {}),
             },
@@ -2542,18 +2569,23 @@ export class JaringService {
     };
 
     const currentMonth = this.currentWibMonthRange();
-    const [reports, total, groupedJaring, thisMonthCount, filterJaring] =
-      await Promise.all([
+    const [
+      reports,
+      total,
+      groupedJaring,
+      thisMonthCount,
+      filterJaring,
+      configSetting,
+    ] = await Promise.all([
         this.prisma.jaringCoachingReport.findMany({
           where,
           skip: (page - 1) * limit,
           take: limit,
           orderBy: [
             { [sortBy]: sortOrder },
-            ...(sortBy === 'reportedAt'
+            ...(sortBy === 'createdAt'
               ? []
-              : [{ reportedAt: 'desc' as const }]),
-            { createdAt: 'desc' },
+              : [{ createdAt: 'desc' as const }]),
             { id: 'desc' },
           ],
           select: jaringCoachingReportSelect,
@@ -2568,7 +2600,7 @@ export class JaringService {
             AND: [
               where,
               {
-                reportedAt: {
+                createdAt: {
                   gte: currentMonth.from,
                   lt: currentMonth.to,
                 },
@@ -2620,7 +2652,14 @@ export class JaringService {
             },
           },
         }),
+        this.prisma.systemSetting?.findUnique
+          ? this.prisma.systemSetting.findUnique({
+              where: { key: 'features.coaching_report.enabled' },
+            })
+          : Promise.resolve(null),
       ]);
+
+    const isCreationEnabled = configSetting?.value === false ? false : true;
 
     return {
       items: reports.map((report) =>
@@ -2637,10 +2676,22 @@ export class JaringService {
         uniqueJaringCount: groupedJaring.length,
         thisMonthCount,
       },
+      isCreationEnabled,
       filterOptions: {
         jaring: filterJaring,
       },
       scope: this.domainScope.scopeSummary(context),
+    };
+  }
+
+  async getCoachingReportConfig() {
+    const config = this.prisma.systemSetting?.findUnique
+      ? await this.prisma.systemSetting.findUnique({
+          where: { key: 'features.coaching_report.enabled' },
+        })
+      : null;
+    return {
+      enabled: config?.value === false ? false : true,
     };
   }
 
@@ -2649,6 +2700,19 @@ export class JaringService {
     body: CreateJaringCoachingReportDto,
     context: AuthorizationContext,
   ) {
+    const config = this.prisma.systemSetting?.findUnique
+      ? await this.prisma.systemSetting.findUnique({
+          where: { key: 'features.coaching_report.enabled' },
+        })
+      : null;
+    if (config?.value === false) {
+      throw new ApiException(
+        'JARING_COACHING_REPORT_DISABLED',
+        'Fitur pembuatan laporan pembinaan Jaring sedang dinonaktifkan oleh Admin Sistem.',
+        403,
+      );
+    }
+
     await this.domainScope.assertJaring(context, id);
 
     const targetJaring = await this.prisma.jaring.findUnique({
@@ -2677,14 +2741,7 @@ export class JaringService {
       );
     }
 
-    const reportedAt = new Date(body.reportedAt);
-    if (Number.isNaN(reportedAt.getTime())) {
-      throw new ApiException(
-        'JARING_COACHING_REPORT_TIME_INVALID',
-        'Tanggal dan waktu laporan pembinaan harus valid.',
-        422,
-      );
-    }
+    const reportedAt = new Date();
 
     const attachmentFileIds = [...new Set(body.attachmentFileIds ?? [])];
     if (attachmentFileIds.length > 0) {
@@ -3075,6 +3132,7 @@ export class JaringService {
       AND: [...filters],
     };
 
+    const totalPromise = this.prisma.whatsAppReportSession.count({ where });
     const [sessions, total, statusCounts, summary] = await Promise.all([
       this.prisma.whatsAppReportSession.findMany({
         where,
@@ -3083,13 +3141,13 @@ export class JaringService {
         orderBy: this.reportOrderBy(query),
         select: jaringReportSessionSelect,
       }),
-      this.prisma.whatsAppReportSession.count({ where }),
+      totalPromise,
       this.prisma.whatsAppReportSession.groupBy({
         by: ['status'],
         where,
         _count: { _all: true },
       }),
-      this.summarizeReportSessions(summaryWhere),
+      this.summarizeReportSessions(summaryWhere, totalPromise),
     ]);
 
     return {

@@ -26,6 +26,7 @@ import {
   Search,
   ShieldAlert,
   ShieldCheck,
+  SlidersHorizontal,
   UserRound,
   X,
   XCircle,
@@ -42,6 +43,7 @@ import {
 import type { CoachingReportItem } from "@/app/(main)/dashboard/laporan-pembinaan-jaring/_components/laporan-pembinaan-types";
 import { GaswilEntityLink } from "@/components/domain/gaswil-entity-link";
 import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";
+import { ActiveFilterChips, type FilterChipItem } from "@/components/ui/active-filter-chips";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -65,6 +67,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { FilterField } from "@/components/ui/filter-field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { SearchableSelect } from "@/components/ui/searchable-select";
@@ -594,6 +597,159 @@ export function JaringVerificationListClient() {
     villageFilter !== "ALL" ||
     officerFilter !== "ALL";
 
+  const activeFilterChips = useMemo<FilterChipItem[]>(() => {
+    const chips: FilterChipItem[] = [];
+
+    if (search.trim()) {
+      chips.push({
+        id: "search",
+        label: "Pencarian",
+        value: search.trim(),
+        onRemove: () => {
+          setSearch("");
+          setPage(1);
+        },
+      });
+    }
+
+    if (provinceFilter !== (defaultProvinceFilter || "ALL") && provinceFilter !== "ALL") {
+      const provName = uniqueProvinces.find((p) => p.id === provinceFilter)?.name || provinceFilter;
+      chips.push({
+        id: "province",
+        label: "Provinsi",
+        value: provName,
+        onRemove: () => {
+          setProvinceFilter(defaultProvinceFilter || "ALL");
+          setCityFilter("ALL");
+          setDistrictFilter("ALL");
+          setVillageFilter("ALL");
+          setPage(1);
+        },
+      });
+    }
+
+    if (cityFilter !== "ALL") {
+      const cityName = uniqueCities.find((c) => c.id === cityFilter)?.name || cityFilter;
+      chips.push({
+        id: "city",
+        label: "Kota/Kab",
+        value: cityName,
+        onRemove: () => {
+          setCityFilter("ALL");
+          setDistrictFilter("ALL");
+          setVillageFilter("ALL");
+          setPage(1);
+        },
+      });
+    }
+
+    if (districtFilter !== "ALL") {
+      const distName = uniqueDistricts.find((d) => d.id === districtFilter)?.name || districtFilter;
+      chips.push({
+        id: "district",
+        label: "Kecamatan",
+        value: distName,
+        onRemove: () => {
+          setDistrictFilter("ALL");
+          setVillageFilter("ALL");
+          setPage(1);
+        },
+      });
+    }
+
+    if (villageFilter !== "ALL") {
+      const villName = uniqueVillages.find((v) => v.id === villageFilter)?.name || villageFilter;
+      chips.push({
+        id: "village",
+        label: "Kelurahan",
+        value: villName,
+        onRemove: () => {
+          setVillageFilter("ALL");
+          setPage(1);
+        },
+      });
+    }
+
+    if (statusFilter !== "ALL") {
+      const statusLabels: Record<string, string> = {
+        PENDING: "Menunggu Tinjauan",
+        APPROVED: "Disetujui",
+        REJECTED: "Ditolak",
+        SUSPENDED: "Ditangguhkan",
+      };
+      chips.push({
+        id: "status",
+        label: "Status",
+        value: statusLabels[statusFilter] || statusFilter,
+        onRemove: () => {
+          setStatusFilter("ALL");
+          setPage(1);
+        },
+      });
+    }
+
+    if (activeStatusFilter !== "ALL") {
+      chips.push({
+        id: "activity",
+        label: "Aktivitas",
+        value: activeStatusFilter === "ACTIVE" ? DOMAIN_TERMS.jaringActive90Days : DOMAIN_TERMS.jaringInactive90Days,
+        onRemove: () => {
+          setActiveStatusFilter("ALL");
+          setPage(1);
+        },
+      });
+    }
+
+    if (periodFilter !== "ALL") {
+      const periodLabel = REPORT_PERIOD_OPTIONS.find((p) => p.value === periodFilter)?.label || periodFilter;
+      chips.push({
+        id: "period",
+        label: "Periode",
+        value:
+          periodFilter === "CUSTOM" && (periodStartDate || periodEndDate)
+            ? `${periodStartDate || "..."} s.d ${periodEndDate || "..."}`
+            : periodLabel,
+        onRemove: () => {
+          setPeriodFilter("ALL");
+          setPeriodStartDate("");
+          setPeriodEndDate("");
+          setPage(1);
+        },
+      });
+    }
+
+    if (officerFilter !== "ALL") {
+      chips.push({
+        id: "officer",
+        label: "Gaswil",
+        value: officerFilter,
+        onRemove: () => {
+          setOfficerFilter("ALL");
+          setPage(1);
+        },
+      });
+    }
+
+    return chips;
+  }, [
+    search,
+    provinceFilter,
+    defaultProvinceFilter,
+    uniqueProvinces,
+    cityFilter,
+    uniqueCities,
+    districtFilter,
+    uniqueDistricts,
+    villageFilter,
+    uniqueVillages,
+    statusFilter,
+    activeStatusFilter,
+    periodFilter,
+    periodStartDate,
+    periodEndDate,
+    officerFilter,
+  ]);
+
   function handleResetFilters() {
     setSearch("");
     setStatusFilter("ALL");
@@ -821,27 +977,48 @@ export function JaringVerificationListClient() {
       </div>
 
       {/* FILTER & TOOLBAR CARD */}
-      <div className="flex flex-col gap-3 rounded-md border border-slate-200/80 bg-card p-4 shadow-xs dark:border-white/10">
+      <div className="flex flex-col gap-3.5 rounded-md border border-slate-200/80 bg-card p-4 shadow-xs dark:border-white/10">
+        {/* Filter Card Header */}
         <div className="flex flex-wrap items-center justify-between gap-2 border-border/70 border-b pb-3">
           <div>
             <p className={cn(DC_TYPOGRAPHY.cardTitle, "flex items-center gap-2")}>
-              <Search className="size-4 text-primary" />
-              Filter Daftar Jaring
+              <SlidersHorizontal className="size-4 text-primary" />
+              Filter & Pencarian Daftar Jaring
             </p>
-            <p className="mt-1 text-muted-foreground text-xs">
-              Urutan wilayah: Provinsi, Kota/Kabupaten, Kecamatan, lalu Kelurahan/Desa.
+            <p className="mt-0.5 text-muted-foreground text-xs">
+              Penyaringan berjenjang wilayah penugasan, status verifikasi, keaktifan pelaporan, dan Gaswil penanggung
+              jawab.
             </p>
           </div>
-          <Badge variant="outline" className="rounded-full font-mono text-[11px]">
-            {hasActiveFilters ? "Filter aktif" : "Tanpa filter"}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge
+              variant={hasActiveFilters ? "default" : "outline"}
+              className={cn(
+                "rounded-full font-mono text-[11px]",
+                hasActiveFilters ? "border border-primary/30 bg-primary/15 text-primary" : "text-muted-foreground",
+              )}
+            >
+              {hasActiveFilters ? `${activeFilterChips.length} filter aktif` : "Semua data"}
+            </Badge>
+            {hasActiveFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleResetFilters}
+                className="h-7 gap-1 px-2 font-medium text-rose-600 text-xs hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/30"
+              >
+                <RotateCcw className="size-3" />
+                Reset
+              </Button>
+            )}
+          </div>
         </div>
 
         <div className="space-y-3.5">
           {/* TOP ROW: Search input + Actions */}
           <div className="flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center">
-            <div className="relative min-w-[240px] flex-1">
-              <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+            <div className="relative min-w-[260px] flex-1">
+              <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={search}
                 onChange={(e) => {
@@ -849,16 +1026,21 @@ export function JaringVerificationListClient() {
                   setPage(1);
                 }}
                 placeholder="Cari alias, nama, nomor HP, pekerjaan, Petugas Wilayah (Gaswil), atau wilayah penugasan..."
-                className={cn(DC_CONTROLS.input, "h-9 pl-9 text-xs")}
+                className={cn(
+                  DC_CONTROLS.input,
+                  "h-9 pl-9 text-xs",
+                  search.trim() && "border-primary/45 bg-primary/[0.03]",
+                )}
               />
               {search && (
                 <button
                   type="button"
+                  aria-label="Bersihkan pencarian"
                   onClick={() => {
                     setSearch("");
                     setPage(1);
                   }}
-                  className="absolute top-1/2 right-2.5 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  className="absolute top-1/2 right-2.5 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:text-foreground"
                 >
                   <X className="size-3.5" />
                 </button>
@@ -891,232 +1073,270 @@ export function JaringVerificationListClient() {
             </div>
           </div>
 
-          {/* MIDDLE ROW: Structured Grid of Filter Dropdowns */}
-          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
-            {/* 1. Filter Provinsi (hanya role nasional: Deputi II / KaBIN) */}
-            {isNationalRole && (
-              <SearchableSelect
-                aria-label="Filter Provinsi"
-                value={provinceFilter}
-                options={[
-                  { value: "ALL", label: "Semua Provinsi" },
-                  ...uniqueProvinces.map((province) => ({ value: province.id, label: province.name })),
-                ]}
-                onValueChange={(value) => {
-                  setProvinceFilter(value);
-                  setCityFilter("ALL");
-                  setDistrictFilter("ALL");
-                  setVillageFilter("ALL");
+          {/* BARIS 2: KELOMPOK STATUS & PARAMETER OPERASIONAL */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {/* Status Verifikasi */}
+            <FilterField label="Status Verifikasi" icon={ShieldCheck} isActive={statusFilter !== "ALL"}>
+              <NativeSelect
+                aria-label="Filter Status"
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
                   setPage(1);
                 }}
-                placeholder="Semua Provinsi"
-                searchPlaceholder="Cari provinsi..."
-                emptyText="Provinsi tidak ditemukan."
-                className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full min-w-0")}
-              />
-            )}
+                isActive={statusFilter !== "ALL"}
+                className="h-9 w-full text-xs"
+              >
+                <option value="ALL">Semua Status</option>
+                <option value="PENDING">Menunggu Tinjauan</option>
+                <option value="APPROVED">Disetujui</option>
+                <option value="REJECTED">Ditolak</option>
+                <option value="SUSPENDED">Ditangguhkan</option>
+              </NativeSelect>
+            </FilterField>
 
-            {/* 2. Filter Kota / Kabupaten (sembunyikan untuk Korwil & Gaswil yang sudah ter-scope) */}
-            {!isFieldOfficer && !isFieldCoordinator && (
-              <SearchableSelect
-                aria-label="Filter Kota/Kabupaten"
-                value={cityFilter}
-                options={[
-                  {
-                    value: "ALL",
-                    label: provinceFilter === "ALL" ? "Pilih Provinsi dahulu" : "Semua Kota/Kabupaten",
-                    disabled: provinceFilter === "ALL",
-                  },
-                  ...uniqueCities.map((city) => ({ value: city.id, label: city.name })),
-                ]}
-                onValueChange={(value) => {
-                  setCityFilter(value);
-                  setDistrictFilter("ALL");
-                  setVillageFilter("ALL");
+            {/* Aktivitas Laporan 90 Hari */}
+            <FilterField label="Aktivitas (90 Hari)" icon={Clock} isActive={activeStatusFilter !== "ALL"}>
+              <NativeSelect
+                aria-label="Filter Aktivitas Laporan"
+                value={activeStatusFilter}
+                onChange={(e) => {
+                  setActiveStatusFilter(e.target.value);
                   setPage(1);
                 }}
-                disabled={provinceFilter === "ALL"}
-                placeholder={provinceFilter === "ALL" ? "Pilih Provinsi dahulu" : "Semua Kota/Kabupaten"}
-                searchPlaceholder="Cari kota/kabupaten..."
-                emptyText="Kota/Kabupaten tidak ditemukan."
-                className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full min-w-0")}
-              />
-            )}
+                isActive={activeStatusFilter !== "ALL"}
+                className="h-9 w-full text-xs"
+              >
+                <option value="ALL">Semua Aktivitas</option>
+                <option value="ACTIVE">{DOMAIN_TERMS.jaringActive90Days}</option>
+                <option value="INACTIVE">{DOMAIN_TERMS.jaringInactive90Days}</option>
+              </NativeSelect>
+            </FilterField>
 
-            {/* 3. Filter Kecamatan (sembunyikan untuk Gaswil) */}
-            {!isFieldOfficer && (
-              <SearchableSelect
-                aria-label="Filter Kecamatan"
-                value={districtFilter}
-                options={[
-                  {
-                    value: "ALL",
-                    label: cityFilter === "ALL" ? "Pilih Kota/Kabupaten dahulu" : "Semua Kecamatan",
-                    disabled: cityFilter === "ALL",
-                  },
-                  ...uniqueDistricts.map((dist) => ({ value: dist.id, label: dist.name })),
-                ]}
-                onValueChange={(value) => {
-                  setDistrictFilter(value);
-                  setVillageFilter("ALL");
-                  setPage(1);
-                }}
-                disabled={!isFieldCoordinator && cityFilter === "ALL"}
-                placeholder={cityFilter === "ALL" ? "Pilih Kota/Kabupaten dahulu" : "Semua Kecamatan"}
-                searchPlaceholder="Cari kecamatan..."
-                emptyText="Kecamatan tidak ditemukan."
-                className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full min-w-0")}
-              />
-            )}
-
-            {/* 4. Filter Kelurahan / Desa (untuk Gaswil = wilayah desanya) */}
-            <SearchableSelect
-              aria-label="Filter Kelurahan/Desa"
-              value={villageFilter}
-              options={[
-                {
-                  value: "ALL",
-                  label:
-                    !isFieldOfficer && districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan/Desa",
-                  disabled: !isFieldOfficer && districtFilter === "ALL",
-                },
-                ...uniqueVillages.map((vill) => ({ value: vill.id, label: vill.name })),
-              ]}
-              onValueChange={(value) => {
-                setVillageFilter(value);
-                setPage(1);
-              }}
-              disabled={!isFieldOfficer && districtFilter === "ALL"}
-              placeholder={
-                !isFieldOfficer && districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan/Desa"
-              }
-              searchPlaceholder="Cari kelurahan/desa..."
-              emptyText="Kelurahan/Desa tidak ditemukan."
-              className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full min-w-0")}
-            />
-
-            {/* 5. Filter Status */}
-            <NativeSelect
-              aria-label="Filter Status"
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value);
-                setPage(1);
-              }}
-              className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full text-xs")}
-            >
-              <option value="ALL">Semua Status</option>
-              <option value="PENDING">Menunggu Tinjauan</option>
-              <option value="APPROVED">Disetujui</option>
-              <option value="REJECTED">Ditolak</option>
-              <option value="SUSPENDED">Ditangguhkan</option>
-            </NativeSelect>
-
-            {/* 6. Filter Aktivitas Laporan 90 Hari */}
-            <NativeSelect
-              aria-label="Filter Aktivitas Laporan"
-              value={activeStatusFilter}
-              onChange={(e) => {
-                setActiveStatusFilter(e.target.value);
-                setPage(1);
-              }}
-              className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full text-xs")}
-            >
-              <option value="ALL">Semua Aktivitas</option>
-              <option value="ACTIVE">{DOMAIN_TERMS.jaringActive90Days}</option>
-              <option value="INACTIVE">{DOMAIN_TERMS.jaringInactive90Days}</option>
-            </NativeSelect>
-
-            {/* 7. Filter Periode Pelaporan */}
-            <NativeSelect
-              aria-label="Filter periode pelaporan"
-              value={periodFilter}
-              onChange={(e) => {
-                setPeriodFilter(e.target.value as ReportPeriodFilter);
-                setPage(1);
-              }}
-              className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full text-xs")}
-            >
-              {REPORT_PERIOD_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </NativeSelect>
-
-            {/* 8. Filter Petugas Wilayah (Gaswil) */}
-            <SearchableSelect
-              aria-label="Filter Petugas Wilayah (Gaswil)"
-              value={officerFilter}
-              options={[
-                { value: "ALL", label: "Semua Gaswil" },
-                ...uniqueOfficers.map((officer) => ({ value: officer, label: officer })),
-              ]}
-              onValueChange={(value) => {
-                setOfficerFilter(value);
-                setPage(1);
-              }}
-              placeholder="Semua Gaswil"
-              searchPlaceholder="Cari Petugas Wilayah (Gaswil)..."
-              emptyText="Petugas Wilayah (Gaswil) tidak ditemukan."
-              className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full min-w-0")}
-            />
-
-            {/* 9. Sort Dropdown */}
-            <NativeSelect
-              aria-label="Urutkan"
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-              className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full text-xs")}
-            >
-              <option value="newest">Terbaru</option>
-              <option value="oldest">Terlama</option>
-              <option value="name_asc">Nama A-Z</option>
-              <option value="name_desc">Nama Z-A</option>
-            </NativeSelect>
+            {/* Urutkan Berdasarkan */}
+            <FilterField label="Urutkan Berdasarkan" isActive={sortBy !== "newest"}>
+              <NativeSelect
+                aria-label="Urutkan"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+                isActive={sortBy !== "newest"}
+                className="h-9 w-full text-xs"
+              >
+                <option value="newest">Terbaru Terdaftar</option>
+                <option value="oldest">Terlama Terdaftar</option>
+                <option value="name_asc">Nama Jaring (A-Z)</option>
+                <option value="name_desc">Nama Jaring (Z-A)</option>
+              </NativeSelect>
+            </FilterField>
           </div>
 
-          {/* CUSTOM PERIOD DATE RANGE */}
+          {/* BARIS 3: KELOMPOK HIERARKI WILAYAH PENUGASAN */}
+          <div className="space-y-2.5 rounded-md border border-slate-200/80 bg-muted/15 p-3.5 dark:border-white/10 dark:bg-muted/10">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 font-mono text-[11px] text-muted-foreground uppercase tracking-wider">
+                <MapPin className="size-3.5 text-primary" />
+                <span className="font-semibold text-foreground">Hierarki Wilayah Penugasan</span>
+                <span className="hidden text-muted-foreground sm:inline">(Provinsi → Kota/Kab → Kecamatan → Kelurahan)</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {/* Provinsi */}
+              {isNationalRole && (
+                <FilterField
+                  label="Provinsi"
+                  icon={MapPin}
+                  isActive={provinceFilter !== "ALL" && provinceFilter !== (defaultProvinceFilter || "ALL")}
+                >
+                  <SearchableSelect
+                    aria-label="Filter Provinsi"
+                    value={provinceFilter}
+                    options={[
+                      { value: "ALL", label: "Semua Provinsi" },
+                      ...uniqueProvinces.map((province) => ({ value: province.id, label: province.name })),
+                    ]}
+                    onValueChange={(value) => {
+                      setProvinceFilter(value);
+                      setCityFilter("ALL");
+                      setDistrictFilter("ALL");
+                      setVillageFilter("ALL");
+                      setPage(1);
+                    }}
+                    placeholder="Semua Provinsi"
+                    searchPlaceholder="Cari provinsi..."
+                    emptyText="Provinsi tidak ditemukan."
+                    className="h-9 w-full"
+                  />
+                </FilterField>
+              )}
+
+              {/* Kota / Kabupaten */}
+              {!isFieldOfficer && !isFieldCoordinator && (
+                <FilterField label="Kota / Kabupaten" icon={MapPin} isActive={cityFilter !== "ALL"}>
+                  <SearchableSelect
+                    aria-label="Filter Kota/Kabupaten"
+                    value={cityFilter}
+                    options={[
+                      {
+                        value: "ALL",
+                        label: provinceFilter === "ALL" ? "Pilih Provinsi dahulu" : "Semua Kota/Kabupaten",
+                        disabled: provinceFilter === "ALL",
+                      },
+                      ...uniqueCities.map((city) => ({ value: city.id, label: city.name })),
+                    ]}
+                    onValueChange={(value) => {
+                      setCityFilter(value);
+                      setDistrictFilter("ALL");
+                      setVillageFilter("ALL");
+                      setPage(1);
+                    }}
+                    disabled={provinceFilter === "ALL"}
+                    placeholder={provinceFilter === "ALL" ? "Pilih Provinsi dahulu" : "Semua Kota/Kabupaten"}
+                    searchPlaceholder="Cari kota/kabupaten..."
+                    emptyText="Kota/Kabupaten tidak ditemukan."
+                    className="h-9 w-full"
+                  />
+                </FilterField>
+              )}
+
+              {/* Kecamatan */}
+              {!isFieldOfficer && (
+                <FilterField label="Kecamatan" icon={MapPin} isActive={districtFilter !== "ALL"}>
+                  <SearchableSelect
+                    aria-label="Filter Kecamatan"
+                    value={districtFilter}
+                    options={[
+                      {
+                        value: "ALL",
+                        label: cityFilter === "ALL" ? "Pilih Kota/Kabupaten dahulu" : "Semua Kecamatan",
+                        disabled: cityFilter === "ALL",
+                      },
+                      ...uniqueDistricts.map((dist) => ({ value: dist.id, label: dist.name })),
+                    ]}
+                    onValueChange={(value) => {
+                      setDistrictFilter(value);
+                      setVillageFilter("ALL");
+                      setPage(1);
+                    }}
+                    disabled={!isFieldCoordinator && cityFilter === "ALL"}
+                    placeholder={cityFilter === "ALL" ? "Pilih Kota/Kabupaten dahulu" : "Semua Kecamatan"}
+                    searchPlaceholder="Cari kecamatan..."
+                    emptyText="Kecamatan tidak ditemukan."
+                    className="h-9 w-full"
+                  />
+                </FilterField>
+              )}
+
+              {/* Kelurahan / Desa */}
+              <FilterField label="Kelurahan / Desa" icon={MapPin} isActive={villageFilter !== "ALL"}>
+                <SearchableSelect
+                  aria-label="Filter Kelurahan/Desa"
+                  value={villageFilter}
+                  options={[
+                    {
+                      value: "ALL",
+                      label:
+                        !isFieldOfficer && districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan/Desa",
+                      disabled: !isFieldOfficer && districtFilter === "ALL",
+                    },
+                    ...uniqueVillages.map((vill) => ({ value: vill.id, label: vill.name })),
+                  ]}
+                  onValueChange={(value) => {
+                    setVillageFilter(value);
+                    setPage(1);
+                  }}
+                  disabled={!isFieldOfficer && districtFilter === "ALL"}
+                  placeholder={
+                    !isFieldOfficer && districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan/Desa"
+                  }
+                  searchPlaceholder="Cari kelurahan/desa..."
+                  emptyText="Kelurahan/Desa tidak ditemukan."
+                  className="h-9 w-full"
+                />
+              </FilterField>
+            </div>
+          </div>
+
+          {/* BARIS 4: PEMBINA & PERIODE PENDAFTARAN */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {/* Petugas Wilayah (Gaswil) */}
+            <FilterField label="Petugas Wilayah (Gaswil)" icon={UserRound} isActive={officerFilter !== "ALL"}>
+              <SearchableSelect
+                aria-label="Filter Petugas Wilayah (Gaswil)"
+                value={officerFilter}
+                options={[
+                  { value: "ALL", label: "Semua Gaswil" },
+                  ...uniqueOfficers.map((officer) => ({ value: officer, label: officer })),
+                ]}
+                onValueChange={(value) => {
+                  setOfficerFilter(value);
+                  setPage(1);
+                }}
+                placeholder="Semua Gaswil"
+                searchPlaceholder="Cari Petugas Wilayah (Gaswil)..."
+                emptyText="Petugas Wilayah (Gaswil) tidak ditemukan."
+                className="h-9 w-full"
+              />
+            </FilterField>
+
+            {/* Periode Pelaporan */}
+            <FilterField label="Periode Pelaporan" icon={Clock} isActive={periodFilter !== "ALL"}>
+              <NativeSelect
+                aria-label="Filter periode pelaporan"
+                value={periodFilter}
+                onChange={(e) => {
+                  setPeriodFilter(e.target.value as ReportPeriodFilter);
+                  setPage(1);
+                }}
+                isActive={periodFilter !== "ALL"}
+                className="h-9 w-full text-xs"
+              >
+                {REPORT_PERIOD_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </NativeSelect>
+            </FilterField>
+          </div>
+
+          {/* CUSTOM PERIOD DATE RANGE (HANYA MUNCUL KETIKA PERIOD === CUSTOM) */}
           {periodFilter === "CUSTOM" && (
-            <div className="flex flex-wrap items-center gap-2 pt-1 text-muted-foreground text-xs">
-              <span>Dari:</span>
-              <Input
-                aria-label="Periode mulai"
-                type="date"
-                value={periodStartDate}
-                onChange={(e) => {
-                  setPeriodStartDate(e.target.value);
-                  setPage(1);
-                }}
-                className={cn(DC_CONTROLS.input, "h-8 w-[140px] px-2 text-xs")}
-              />
-              <span>s.d.</span>
-              <Input
-                aria-label="Periode selesai"
-                type="date"
-                value={periodEndDate}
-                onChange={(e) => {
-                  setPeriodEndDate(e.target.value);
-                  setPage(1);
-                }}
-                className={cn(DC_CONTROLS.input, "h-8 w-[140px] px-2 text-xs")}
-              />
+            <div className="flex flex-wrap items-center gap-3 rounded-md border border-primary/30 border-dashed bg-primary/[0.02] p-3 text-xs">
+              <span className="font-mono font-semibold text-[10px] text-muted-foreground uppercase tracking-wider">
+                Rentang Tanggal Kustom:
+              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">Dari:</span>
+                <Input
+                  aria-label="Periode mulai"
+                  type="date"
+                  value={periodStartDate}
+                  onChange={(e) => {
+                    setPeriodStartDate(e.target.value);
+                    setPage(1);
+                  }}
+                  className={cn(DC_CONTROLS.input, "h-8 w-[145px] px-2 text-xs")}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">s.d:</span>
+                <Input
+                  aria-label="Periode selesai"
+                  type="date"
+                  value={periodEndDate}
+                  onChange={(e) => {
+                    setPeriodEndDate(e.target.value);
+                    setPage(1);
+                  }}
+                  className={cn(DC_CONTROLS.input, "h-8 w-[145px] px-2 text-xs")}
+                />
+              </div>
             </div>
           )}
 
-          {/* BOTTOM ROW: Reset Filter */}
-          {hasActiveFilters && (
-            <div className="flex justify-end pt-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleResetFilters}
-                className="h-8 font-medium text-rose-600 text-xs hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/30"
-              >
-                Reset Filter
-              </Button>
-            </div>
-          )}
+          {/* ACTIVE FILTER CHIPS ROW */}
+          <ActiveFilterChips chips={activeFilterChips} onResetAll={handleResetFilters} />
         </div>
       </div>
 
@@ -1901,7 +2121,7 @@ function JaringCoachingCardItem({
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const attachments = item.attachments ?? [];
-  const reportedDate = formatDateTime(item.reportedAt ?? item.createdAt);
+  const reportedDate = formatDateTime(item.createdAt ?? item.reportedAt);
   const gaswil = item.fieldOfficer?.userProfile;
 
   return (
@@ -2013,7 +2233,7 @@ function JaringCoachingCardItem({
                   />
                 </span>
               )}
-              <span>Waktu Pembinaan: {reportedDate}</span>
+              <span>Waktu Pengiriman Laporan: {reportedDate}</span>
             </div>
 
             <Button
@@ -2178,7 +2398,7 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
         if (!titleMatch && !contentMatch && !gaswilMatch) return false;
       }
 
-      const reportDateStr = rep.reportedAt || rep.createdAt;
+      const reportDateStr = rep.createdAt || rep.reportedAt;
       if (reportDateStr) {
         const itemTime = new Date(reportDateStr).getTime();
         const now = new Date();

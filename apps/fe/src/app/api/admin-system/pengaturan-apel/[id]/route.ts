@@ -1,12 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server";
 
-import { apiRouteErrorResponse } from "@/server/api-route-error";
 import { deleteApelConfig, updateApelConfig } from "@/server/apel-repository";
+import { apiRouteErrorResponse } from "@/server/api-route-error";
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const cookie = request.headers.get("cookie") ?? "";
@@ -19,10 +16,7 @@ export async function PATCH(
   }
 }
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const cookie = request.headers.get("cookie") ?? "";

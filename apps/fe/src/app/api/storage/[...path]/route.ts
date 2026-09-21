@@ -34,10 +34,14 @@ async function forwardStorageRequest(request: NextRequest) {
     cache: "no-store",
   });
 
+  const responseHeaders = new Headers(response.headers);
+  responseHeaders.delete("content-encoding");
+  responseHeaders.delete("content-length");
+
   return new NextResponse(response.body, {
     status: response.status,
     statusText: response.statusText,
-    headers: response.headers,
+    headers: responseHeaders,
   });
 }
 

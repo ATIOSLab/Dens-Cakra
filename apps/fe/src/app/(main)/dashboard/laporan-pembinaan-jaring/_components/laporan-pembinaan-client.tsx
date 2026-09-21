@@ -4,7 +4,19 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import Link from "next/link";
 
-import { Calendar, ChevronRight, Eye, FileText, MapPin, Plus, RefreshCw, ScrollText, Search, User } from "lucide-react";
+import {
+  AlertCircle,
+  Calendar,
+  ChevronRight,
+  Eye,
+  FileText,
+  MapPin,
+  Plus,
+  RefreshCw,
+  ScrollText,
+  Search,
+  User,
+} from "lucide-react";
 
 import { ViewModeToggle } from "@/app/(main)/dashboard/_components/view-mode-toggle";
 import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";
@@ -72,6 +84,7 @@ export function LaporanPembinaanClient() {
   const [loadingWorkspace, setLoadingWorkspace] = useState(true);
   const [loadingReports, setLoadingReports] = useState(false);
   const [totalReports, setTotalReports] = useState(0);
+  const [isCreationEnabled, setIsCreationEnabled] = useState<boolean | null>(null);
 
   // View mode state
   const [viewMode, setViewMode] = useState<"card" | "table">("table");
@@ -142,7 +155,7 @@ export function LaporanPembinaanClient() {
       const params = new URLSearchParams({
         page: String(page),
         limit: String(limit),
-        sortBy: "reportedAt",
+        sortBy: "createdAt",
         sortOrder: "desc",
       });
       if (debouncedSearch) params.set("search", debouncedSearch);
@@ -154,10 +167,14 @@ export function LaporanPembinaanClient() {
       const result = await apiBrowserFetch<{
         items?: CoachingReportItem[];
         pagination?: { total: number };
+        isCreationEnabled?: boolean;
       }>(`/jaring/coaching-reports?${params.toString()}`);
       if (requestId !== requestSequence.current) return;
       setReports(result.items ?? []);
       setTotalReports(result.pagination?.total ?? 0);
+      if (result.isCreationEnabled !== undefined) {
+        setIsCreationEnabled(result.isCreationEnabled);
+      }
     } catch (err) {
       if (requestId === requestSequence.current) {
         console.error("Gagal memuat laporan pembinaan:", err);
@@ -246,14 +263,30 @@ export function LaporanPembinaanClient() {
             Muat Ulang
           </Button>
 
-          <Button asChild size="sm" className="h-9 gap-1.5 text-xs">
-            <Link href="/dashboard/laporan-pembinaan-jaring/baru">
+          {isCreationEnabled === false ? (
+            <Button size="sm" disabled className="h-9 gap-1.5 text-xs opacity-60 cursor-not-allowed">
               <Plus className="h-4 w-4" />
-              Buat Laporan Pembinaan
-            </Link>
-          </Button>
+              Buat Laporan Pembinaan (Dinonaktifkan)
+            </Button>
+          ) : (
+            <Button asChild size="sm" className="h-9 gap-1.5 text-xs">
+              <Link href="/dashboard/laporan-pembinaan-jaring/baru">
+                <Plus className="h-4 w-4" />
+                Buat Laporan Pembinaan
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
+
+      {isCreationEnabled === false && (
+        <div className="flex items-start gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3.5 text-amber-900 dark:text-amber-200">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+          <p className="text-xs leading-relaxed">
+            Pembuatan laporan pembinaan Jaring baru saat ini sedang dinonaktifkan oleh Admin Sistem.
+          </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Card className="border-slate-200/80 shadow-xs dark:border-white/10">
@@ -478,7 +511,7 @@ export function LaporanPembinaanClient() {
                   />
                   <span className="text-[11px] text-muted-foreground flex items-center gap-1 whitespace-nowrap">
                     <Calendar className="h-3 w-3" />
-                    {formatDateOnly(report.reportedAt)}
+                    {formatDateOnly(report.createdAt || report.reportedAt)}
                   </span>
                 </div>
 
@@ -526,7 +559,7 @@ export function LaporanPembinaanClient() {
                     Judul & Ringkasan Laporan
                   </TableHead>
                   <TableHead className="font-bold text-xs uppercase tracking-wider whitespace-nowrap">
-                    Waktu Pembinaan
+                    Waktu Pengiriman Laporan
                   </TableHead>
                   <TableHead className="text-right font-bold text-xs uppercase tracking-wider">Aksi</TableHead>
                 </TableRow>
@@ -596,7 +629,7 @@ export function LaporanPembinaanClient() {
                       </TableCell>
 
                       <TableCell className="align-middle whitespace-nowrap font-mono text-muted-foreground text-xs">
-                        {formatDateTime(report.reportedAt)}
+                        {formatDateTime(report.createdAt || report.reportedAt)}
                       </TableCell>
 
                       <TableCell className="align-middle text-right">

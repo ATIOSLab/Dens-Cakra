@@ -52,7 +52,12 @@ import { TablePagination } from "@/components/ui/table-pagination";
 import { DOMAIN_TERMS } from "@/lib/domain/terminology";
 import { DC_CONTROLS, DC_TYPOGRAPHY } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
-import type { AdministrativeAreaOption, ApelMapAttendanceItem, ApelMapDataResponse, ApelSessionItem } from "@/server/apel-repository";
+import type {
+  AdministrativeAreaOption,
+  ApelMapAttendanceItem,
+  ApelMapDataResponse,
+  ApelSessionItem,
+} from "@/server/apel-repository";
 
 const INDONESIA_CENTER: [number, number] = [118.0149, -2.5489]; // [lng, lat]
 
@@ -490,9 +495,7 @@ export function PetaApelClient() {
   // 1. Daftar Provinsi (38 Provinsi se-Indonesia)
   const provinces = useMemo(() => {
     if (!data?.availableAreas) return [];
-    return data.availableAreas
-      .filter((a) => a.level === "PROVINCE")
-      .sort((a, b) => a.name.localeCompare(b.name));
+    return data.availableAreas.filter((a) => a.level === "PROVINCE").sort((a, b) => a.name.localeCompare(b.name));
   }, [data?.availableAreas]);
 
   // 2. Daftar Kota/Kabupaten berdasarkan Provinsi terpilih
@@ -521,7 +524,7 @@ export function PetaApelClient() {
       const res = await fetch(`/api/deputi/peta-apel/children?parentId=${regencyId}`);
       if (res.ok) {
         const json = (await res.json()) as { items?: AdministrativeAreaOption[] };
-        setDistrictOptions(json.items || []);
+        setDistrictOptions(json.items ?? []);
       }
     } catch (e) {
       console.error("Gagal memuat daftar kecamatan:", e);
@@ -541,7 +544,7 @@ export function PetaApelClient() {
       const res = await fetch(`/api/deputi/peta-apel/children?parentId=${districtId}`);
       if (res.ok) {
         const json = (await res.json()) as { items?: AdministrativeAreaOption[] };
-        setVillageOptions(json.items || []);
+        setVillageOptions(json.items ?? []);
       }
     } catch (e) {
       console.error("Gagal memuat daftar kelurahan:", e);
@@ -648,9 +651,7 @@ export function PetaApelClient() {
   };
 
   const isFilterActive = Boolean(
-    selectedDate ||
-      (selectedAreaId && selectedAreaId !== "ALL") ||
-      selectedProvinceId !== "ALL",
+    selectedDate || (selectedAreaId && selectedAreaId !== "ALL") || selectedProvinceId !== "ALL",
   );
 
   const session = data?.session;
@@ -1014,11 +1015,11 @@ export function PetaApelClient() {
                 <div className="flex items-center gap-1.5 text-[10px] mt-0.5">
                   {(kpi.totalPendingDelivery ?? 0) > 0 ? (
                     <span className="text-amber-400 font-medium">{kpi.totalPendingDelivery} antre jitter</span>
-                  ) : (kpi.totalTarget > 0 ? (
+                  ) : kpi.totalTarget > 0 ? (
                     <span className="text-emerald-400 font-medium">Semua terkirim</span>
                   ) : (
                     <span className="text-slate-500">-</span>
-                  ))}
+                  )}
                   {(kpi.totalFailed ?? 0) > 0 && (
                     <span className="text-rose-400 font-medium">• {kpi.totalFailed} gagal</span>
                   )}
@@ -1060,9 +1061,7 @@ export function PetaApelClient() {
                     ({kpi.totalTarget > 0 ? Math.round((kpi.totalBelum / kpi.totalTarget) * 100) : 0}%)
                   </span>
                 </p>
-                <p className="text-[10px] text-slate-500 mt-0.5">
-                  Menunggu konfirmasi jaring
-                </p>
+                <p className="text-[10px] text-slate-500 mt-0.5">Menunggu konfirmasi jaring</p>
               </div>
             </div>
 

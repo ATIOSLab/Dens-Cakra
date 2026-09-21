@@ -232,7 +232,7 @@ const PEMBINAAN_COLUMNS: ColumnOption[] = [
   { id: "wilayahPenempatan", label: "Wilayah Penempatan" },
   { id: "whatsapp", label: "Nomor WhatsApp" },
   { id: "judulRingkasan", label: "Judul & Ringkasan Pembinaan", alwaysVisible: true },
-  { id: "waktuPembinaan", label: "Waktu Pembinaan" },
+  { id: "waktuPembinaan", label: "Waktu Pengiriman Laporan" },
 ];
 
 export function LaporanPembinaanCoordinatorClient({ role }: { role?: SystemRole } = {}) {
@@ -305,7 +305,7 @@ export function LaporanPembinaanCoordinatorClient({ role }: { role?: SystemRole 
       const params = new URLSearchParams({
         page: String(requestedPage),
         limit: String(requestedLimit),
-        sortBy: "reportedAt",
+        sortBy: "createdAt",
         sortOrder: "desc",
       });
       if (debouncedSearch) params.set("search", debouncedSearch);
@@ -577,7 +577,7 @@ export function LaporanPembinaanCoordinatorClient({ role }: { role?: SystemRole 
         "Judul Pembinaan",
         "Ringkasan Kegiatan",
         "Petugas Wilayah (Gaswil)",
-        "Waktu Pembinaan",
+        "Waktu Pengiriman Laporan",
       ];
 
       const rows = allReports.map((r) => [
@@ -587,7 +587,7 @@ export function LaporanPembinaanCoordinatorClient({ role }: { role?: SystemRole 
         `"${(r.title || "-").replace(/"/g, '""')}"`,
         `"${(r.content || "-").replace(/"/g, '""')}"`,
         `"${r.fieldOfficer?.userProfile?.fullName || "-"}"`,
-        `"${formatDateTime(r.reportedAt || r.createdAt)}"`,
+        `"${formatDateTime(r.createdAt || r.reportedAt)}"`,
       ]);
 
       const csvContent = [headers.join(","), ...rows.map((row) => row.join(","))].join("\n");
@@ -1011,7 +1011,7 @@ export function LaporanPembinaanCoordinatorClient({ role }: { role?: SystemRole 
                   <div className="flex items-center justify-end gap-2">
                     <span className="flex items-center gap-1 text-[11px] font-mono text-muted-foreground">
                       <Calendar className="size-3 text-sky-500" />
-                      {formatDateOnly(report.reportedAt || report.createdAt)}
+                      {formatDateOnly(report.createdAt || report.reportedAt)}
                     </span>
                   </div>
 
@@ -1101,7 +1101,7 @@ export function LaporanPembinaanCoordinatorClient({ role }: { role?: SystemRole 
                   )}
                   {isColVisible("waktuPembinaan") && (
                     <TableHead className="font-bold text-xs uppercase tracking-wider whitespace-nowrap">
-                      Waktu Pembinaan
+                      Waktu Pengiriman Laporan
                     </TableHead>
                   )}
                   <TableHead className="text-right font-bold text-xs uppercase tracking-wider">Aksi</TableHead>
@@ -1195,7 +1195,7 @@ export function LaporanPembinaanCoordinatorClient({ role }: { role?: SystemRole 
 
                       {isColVisible("waktuPembinaan") && (
                         <TableCell className="align-middle whitespace-nowrap font-mono text-muted-foreground text-xs">
-                          {formatDateTime(report.reportedAt || report.createdAt)}
+                          {formatDateTime(report.createdAt || report.reportedAt)}
                         </TableCell>
                       )}
 

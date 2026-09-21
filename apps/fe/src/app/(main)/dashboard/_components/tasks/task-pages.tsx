@@ -1,9 +1,4 @@
-import {
-  AssignmentCandidate,
-  TaskAssignmentDetail,
-  TaskDetail,
-  TaskSummary,
-} from "@/features/tasks/types";
+import type { AssignmentCandidate, TaskAssignmentDetail, TaskDetail, TaskSummary } from "@/features/tasks/types";
 import { apiServerGet } from "@/lib/api/server-client";
 import { requireRole } from "@/lib/auth/server-session";
 import { SYSTEM_ROLES } from "@/navigation/sidebar/system-roles";

@@ -5,9 +5,24 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
-import { Eye, MapPin, RefreshCw, Search, User, X } from "lucide-react";
+import {
+  AlertTriangle,
+  Calendar,
+  Clock,
+  Eye,
+  Layers,
+  MapPin,
+  RefreshCw,
+  RotateCcw,
+  Search,
+  SlidersHorizontal,
+  User,
+  X,
+} from "lucide-react";
 
 import { GaswilEntityLink } from "@/components/domain/gaswil-entity-link";
+import { ActiveFilterChips, type FilterChipItem } from "@/components/ui/active-filter-chips";
+import { Badge } from "@/components/ui/badge";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -19,6 +34,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { type ColumnOption, ColumnVisibilityToggle } from "@/components/ui/column-visibility-toggle";
+import { FilterField } from "@/components/ui/filter-field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -32,7 +48,7 @@ import {
 } from "@/lib/domain/date-time";
 import { resolveJaringIdentity } from "@/lib/domain/jaring-identity";
 import { sortReportCategories } from "@/lib/domain/report-category-order";
-import { DC_TYPOGRAPHY, DOMAIN_VISUALS } from "@/lib/domain/visual-system";
+import { DC_CONTROLS, DC_TYPOGRAPHY, DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 
 import {
@@ -51,7 +67,7 @@ import {
   getBaketVersionLabel,
   type PriorityLevel,
 } from "./baket-data";
-import { BaketSummaryCards } from "./baket-summary-cards";
+import { BAKET_URGENCY_LABELS, BaketSummaryCards } from "./baket-summary-cards";
 
 export interface ReportCategoryItem {
   id: string;
@@ -291,6 +307,99 @@ export function BaketOfficerClient() {
     return filteredReports.slice(start, start + limit);
   }, [filteredReports, page, limit]);
 
+  const handleResetFilters = () => {
+    setSearch("");
+    setUrgencyFilter("ALL");
+    setCategoryFilter("ALL");
+    setPeriodPreset("TODAY");
+    setStartDate("");
+    setEndDate("");
+    setPage(1);
+    void fetchBakets("", "");
+  };
+
+  const activeFilterChips = useMemo<FilterChipItem[]>(() => {
+    const chips: FilterChipItem[] = [];
+
+    if (search.trim()) {
+      chips.push({
+        id: "search",
+        label: "Pencarian",
+        value: search.trim(),
+        onRemove: () => {
+          setSearch("");
+          setPage(1);
+        },
+      });
+    }
+
+    if (urgencyFilter !== "ALL") {
+      chips.push({
+        id: "urgency",
+        label: "Urgensi",
+        value: BAKET_URGENCY_LABELS[urgencyFilter] || urgencyFilter,
+        onRemove: () => {
+          setUrgencyFilter("ALL");
+          setPage(1);
+        },
+      });
+    }
+
+    if (categoryFilter !== "ALL") {
+      const cat = categories.find((c) => c.id === categoryFilter);
+      chips.push({
+        id: "category",
+        label: "Kategori",
+        value: cat ? cat.name : categoryFilter,
+        onRemove: () => {
+          setCategoryFilter("ALL");
+          setPage(1);
+        },
+      });
+    }
+
+    if (periodPreset !== "TODAY") {
+      const periodLabels: Record<DashboardDetailPeriodPreset, string> = {
+        ALL: "Semua Waktu",
+        TODAY: "Hari Ini",
+        LAST_7_DAYS: "7 Hari Terakhir",
+        LAST_30_DAYS: "30 Hari Terakhir",
+        CUSTOM: "Rentang Kustom",
+      };
+      chips.push({
+        id: "period",
+        label: "Periode",
+        value: periodLabels[periodPreset] || periodPreset,
+        onRemove: () => {
+          setPeriodPreset("TODAY");
+          setStartDate("");
+          setEndDate("");
+          setPage(1);
+          void fetchBakets("", "");
+        },
+      });
+    }
+
+    if (periodPreset === "CUSTOM" && (startDate || endDate)) {
+      chips.push({
+        id: "dateRange",
+        label: "Rentang Tanggal",
+        value: `${startDate || "..."} s.d ${endDate || "..."}`,
+        onRemove: () => {
+          setStartDate("");
+          setEndDate("");
+          setPage(1);
+          void fetchBakets("", "");
+        },
+      });
+    }
+
+    return chips;
+    // biome-ignore lint/correctness/useExhaustiveDependencies: fetchBakets stabil dan dipanggil hanya di onRemove handler
+  }, [search, urgencyFilter, categoryFilter, categories, periodPreset, startDate, endDate]);
+
+  const activeFilterCount = activeFilterChips.length;
+
   return (
     <main className="mx-auto w-full max-w-[1600px] space-y-5 transition-colors duration-150 sm:space-y-6">
       {/* BREADCRUMB */}
@@ -310,7 +419,7 @@ export function BaketOfficerClient() {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h1 className={DC_TYPOGRAPHY.pageTitle}>Bahan Keterangan (Baket)</h1>
-          <p className="mt-1 text-muted-foreground text-sm max-w-2xl">
+          <p className="mt-1 max-w-2xl text-muted-foreground text-sm">
             Daftar Bahan Keterangan (Baket) yang telah dipilih, diberi kategori, urgensi, dan diproses sebagai bahan
             operasional.
           </p>
@@ -321,7 +430,7 @@ export function BaketOfficerClient() {
           size="sm"
           onClick={() => void fetchBakets()}
           disabled={loadingList}
-          className="w-fit h-9 gap-2"
+          className="h-9 w-fit gap-2"
         >
           <RefreshCw className={cn("size-4 text-emerald-600 dark:text-emerald-400", loadingList && "animate-spin")} />
           Muat Ulang
@@ -340,133 +449,23 @@ export function BaketOfficerClient() {
       />
 
       {/* FULL TABLE VIEW CONTAINER */}
-      <Card className="border border-slate-200/80 dark:border-white/10 bg-card rounded-xl shadow-xs overflow-hidden">
-        <CardHeader className="p-3 border-b border-slate-200/80 dark:border-white/10 space-y-0">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-3">
-              {/* Search Input */}
-              <div className="relative w-48 sm:w-56">
-                <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  value={search}
-                  onChange={(e) => {
-                    setSearch(e.target.value);
-                    setPage(1);
-                  }}
-                  placeholder="Cari referensi, judul..."
-                  className="pl-8 h-8 text-xs bg-background"
-                />
-                {search ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSearch("");
-                      setPage(1);
-                    }}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  >
-                    <X className="size-3.5" />
-                  </button>
-                ) : null}
+      <Card className="overflow-hidden rounded-md border border-slate-200/80 bg-card shadow-xs dark:border-white/10">
+        <CardHeader className="space-y-4 border-slate-200/80 border-b p-4 sm:p-5 dark:border-white/10">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-border/70 border-b pb-3">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <SlidersHorizontal className="size-4 text-primary" />
+                <h3 className={DC_TYPOGRAPHY.cardTitle}>Filter & Parameter Baket</h3>
+                {activeFilterCount > 0 && (
+                  <Badge variant="secondary" className="h-5 px-1.5 font-mono text-[10px] text-primary">
+                    {activeFilterCount} aktif
+                  </Badge>
+                )}
               </div>
-
-              {/* Filter Urgensi Select */}
-              <div className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground">
-                <span>Urgensi:</span>
-                <NativeSelect
-                  value={urgencyFilter}
-                  onChange={(e) => {
-                    setUrgencyFilter(e.target.value as PriorityLevel | "ALL");
-                    setPage(1);
-                  }}
-                  className="h-8 text-xs bg-background min-w-[130px]"
-                >
-                  <option value="ALL">Semua Urgensi</option>
-                  <option value="URGENT">Mendesak</option>
-                  <option value="HIGH">Tinggi</option>
-                  <option value="NORMAL">Normal</option>
-                  <option value="LOW">Rendah</option>
-                </NativeSelect>
-              </div>
-
-              {/* Filter Kategori Dropdown */}
-              <div className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground">
-                <span>Kategori:</span>
-                <NativeSelect
-                  value={categoryFilter}
-                  onChange={(e) => {
-                    setCategoryFilter(e.target.value);
-                    setPage(1);
-                  }}
-                  className="h-8 text-xs bg-background min-w-[160px]"
-                >
-                  <option value="ALL">Semua Kategori</option>
-                  {sortReportCategories(categories).map((cat) => (
-                    <option key={cat.id} value={cat.id}>
-                      {cat.name} ({cat.code})
-                    </option>
-                  ))}
-                </NativeSelect>
-              </div>
-
-              {/* Periode Filter Dropdown */}
-              <div className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground">
-                <span>Periode:</span>
-                <NativeSelect
-                  value={periodPreset}
-                  onChange={(e) => {
-                    setPeriodPreset(e.target.value as DashboardDetailPeriodPreset);
-                    setPage(1);
-                  }}
-                  className="h-8 text-xs bg-background min-w-[150px]"
-                >
-                  <option value="TODAY">Hari Ini</option>
-                  <option value="LAST_7_DAYS">7 Hari Terakhir</option>
-                  <option value="LAST_30_DAYS">30 Hari Terakhir</option>
-                  <option value="CUSTOM">Kustom (Pilih Tanggal)</option>
-                </NativeSelect>
-              </div>
-
-              {/* Date Range Picker (Only shown when periodPreset === "CUSTOM") */}
-              {periodPreset === "CUSTOM" ? (
-                <>
-                  <div className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground">
-                    <span>Dari:</span>
-                    <Input
-                      type="date"
-                      value={startDate}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setStartDate(val);
-                        setPage(1);
-                        if (val.length === 10 || val === "") {
-                          void fetchBakets(val, endDate);
-                        }
-                      }}
-                      className="h-8 text-xs bg-background w-[130px]"
-                      title="Dari Tanggal Masuk"
-                    />
-                  </div>
-
-                  <div className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground">
-                    <span>s.d:</span>
-                    <Input
-                      type="date"
-                      value={endDate}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setEndDate(val);
-                        setPage(1);
-                        if (val.length === 10 || val === "") {
-                          void fetchBakets(startDate, val);
-                        }
-                      }}
-                      className="h-8 text-xs bg-background w-[130px]"
-                      title="Sampai Tanggal Masuk"
-                    />
-                  </div>
-                </>
-              ) : null}
+              <p className="text-muted-foreground text-xs">
+                Saring Bahan Keterangan berdasarkan urgensi, kategori, dan periode pelaporan di wilayah operasional
+                Anda.
+              </p>
             </div>
 
             <div className="flex items-center gap-2">
@@ -475,99 +474,240 @@ export function BaketOfficerClient() {
                 visibleColumns={visibleColumns}
                 onChange={setVisibleColumns}
               />
-              {(search ||
-                urgencyFilter !== "ALL" ||
-                categoryFilter !== "ALL" ||
-                periodPreset !== "TODAY" ||
-                startDate ||
-                endDate) && (
+              {activeFilterCount > 0 && (
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => {
-                    setSearch("");
-                    setUrgencyFilter("ALL");
-                    setCategoryFilter("ALL");
-                    setPeriodPreset("TODAY");
-                    setStartDate("");
-                    setEndDate("");
-                    setPage(1);
-                    void fetchBakets("", "");
-                  }}
-                  className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
-                  title="Reset Filter"
+                  onClick={handleResetFilters}
+                  className="h-8 gap-1.5 text-muted-foreground text-xs hover:text-rose-600 dark:hover:text-rose-400"
                 >
-                  <X className="size-3.5 mr-1" />
-                  Reset Filter
+                  <RotateCcw className="size-3.5" />
+                  Atur Ulang
                 </Button>
               )}
             </div>
           </div>
+
+          {/* Controls Form Layout Terstruktur */}
+          <div className="space-y-3">
+            {/* Baris 1: Pencarian Cepat & Periode Masuk */}
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+              <div className="md:col-span-2">
+                <FilterField
+                  label="Pencarian Bebas"
+                  icon={<Search className="size-3.5" />}
+                  isActive={Boolean(search.trim())}
+                >
+                  <div className="relative">
+                    <Search className="absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      value={search}
+                      onChange={(e) => {
+                        setSearch(e.target.value);
+                        setPage(1);
+                      }}
+                      placeholder="Cari nomor referensi, judul, atau isi baket..."
+                      className={cn(DC_CONTROLS.input, "h-9 pl-8 text-xs")}
+                    />
+                    {search ? (
+                      <button
+                        type="button"
+                        aria-label="Bersihkan pencarian"
+                        onClick={() => {
+                          setSearch("");
+                          setPage(1);
+                        }}
+                        className="absolute top-1/2 right-2.5 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="size-3.5" />
+                      </button>
+                    ) : null}
+                  </div>
+                </FilterField>
+              </div>
+
+              <div>
+                <FilterField label="Periode Masuk" icon={<Clock className="size-3.5" />} isActive={periodPreset !== "TODAY"}>
+                  <NativeSelect
+                    aria-label="Filter Periode"
+                    value={periodPreset}
+                    onChange={(e) => {
+                      setPeriodPreset(e.target.value as DashboardDetailPeriodPreset);
+                      setPage(1);
+                    }}
+                    isActive={periodPreset !== "TODAY"}
+                    className="h-9 w-full text-xs"
+                  >
+                    <option value="TODAY">Hari Ini</option>
+                    <option value="LAST_7_DAYS">7 Hari Terakhir</option>
+                    <option value="LAST_30_DAYS">30 Hari Terakhir</option>
+                    <option value="CUSTOM">Rentang Kustom</option>
+                  </NativeSelect>
+                </FilterField>
+              </div>
+            </div>
+
+            {/* Baris 2: Klasifikasi & Atribut Baket */}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <FilterField
+                label="Tingkat Urgensi"
+                icon={<AlertTriangle className="size-3.5" />}
+                isActive={urgencyFilter !== "ALL"}
+              >
+                <NativeSelect
+                  aria-label="Filter Urgensi"
+                  value={urgencyFilter}
+                  onChange={(e) => {
+                    setUrgencyFilter(e.target.value as PriorityLevel | "ALL");
+                    setPage(1);
+                  }}
+                  isActive={urgencyFilter !== "ALL"}
+                  className="h-9 w-full text-xs"
+                >
+                  <option value="ALL">Semua Urgensi</option>
+                  <option value="URGENT">Mendesak</option>
+                  <option value="HIGH">Tinggi</option>
+                  <option value="NORMAL">Normal</option>
+                  <option value="LOW">Rendah</option>
+                </NativeSelect>
+              </FilterField>
+
+              <FilterField
+                label="Kategori Baket"
+                icon={<Layers className="size-3.5" />}
+                isActive={categoryFilter !== "ALL"}
+              >
+                <NativeSelect
+                  aria-label="Filter Kategori"
+                  value={categoryFilter}
+                  onChange={(e) => {
+                    setCategoryFilter(e.target.value);
+                    setPage(1);
+                  }}
+                  isActive={categoryFilter !== "ALL"}
+                  className="h-9 w-full text-xs"
+                >
+                  <option value="ALL">Semua Kategori</option>
+                  {sortReportCategories(categories).map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name} ({cat.code})
+                    </option>
+                  ))}
+                </NativeSelect>
+              </FilterField>
+            </div>
+          </div>
+
+          {/* Date Range Picker (Only shown when periodPreset === "CUSTOM") */}
+          {periodPreset === "CUSTOM" && (
+            <div className="rounded-md border border-border/80 border-dashed bg-muted/20 p-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-1.5 font-mono text-muted-foreground text-xs">
+                  <Calendar className="size-3.5 text-primary" />
+                  <span>Rentang Tanggal Masuk:</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setStartDate(val);
+                      setPage(1);
+                      if (val.length === 10 || val === "") {
+                        void fetchBakets(val, endDate);
+                      }
+                    }}
+                    className={cn(DC_CONTROLS.input, "h-9 w-[150px] font-mono text-xs")}
+                    title="Dari Tanggal Masuk"
+                  />
+                  <span className="text-muted-foreground text-xs">s.d.</span>
+                  <Input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setEndDate(val);
+                      setPage(1);
+                      if (val.length === 10 || val === "") {
+                        void fetchBakets(startDate, val);
+                      }
+                    }}
+                    className={cn(DC_CONTROLS.input, "h-9 w-[150px] font-mono text-xs")}
+                    title="Sampai Tanggal Masuk"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Active Filter Chips */}
+          <ActiveFilterChips chips={activeFilterChips} onResetAll={handleResetFilters} />
         </CardHeader>
 
         {/* MAIN DATA TABLE */}
         <div className="overflow-x-auto">
           <Table>
             <TableHeader className="bg-slate-50/50 dark:bg-slate-900/40">
-              <TableRow className="border-b border-slate-200/80 dark:border-white/10 hover:bg-transparent">
+              <TableRow className="border-slate-200/80 border-b hover:bg-transparent dark:border-white/10">
                 {isColVisible("no") && (
-                  <TableHead className="w-12 text-center text-xs font-semibold uppercase tracking-wider">No</TableHead>
+                  <TableHead className="w-12 text-center font-semibold text-xs uppercase tracking-wider">No</TableHead>
                 )}
                 {isColVisible("refNum") && (
-                  <TableHead className="w-36 text-xs font-semibold uppercase tracking-wider">No. Referensi</TableHead>
+                  <TableHead className="w-36 font-semibold text-xs uppercase tracking-wider">No. Referensi</TableHead>
                 )}
                 {isColVisible("foto") && (
-                  <TableHead className="w-12 text-center text-xs font-semibold uppercase tracking-wider">
+                  <TableHead className="w-12 text-center font-semibold text-xs uppercase tracking-wider">
                     Foto
                   </TableHead>
                 )}
                 {isColVisible("namaJaring") && (
-                  <TableHead className="min-w-[150px] text-xs font-semibold uppercase tracking-wider">Sumber</TableHead>
+                  <TableHead className="min-w-[150px] font-semibold text-xs uppercase tracking-wider">Sumber</TableHead>
                 )}
                 {isColVisible("kodeJaring") && (
-                  <TableHead className="min-w-[120px] text-xs font-semibold uppercase tracking-wider">
+                  <TableHead className="min-w-[120px] font-semibold text-xs uppercase tracking-wider">
                     Kode Sumber
                   </TableHead>
                 )}
                 {isColVisible("gaswil") && (
-                  <TableHead className="min-w-[160px] text-xs font-semibold uppercase tracking-wider">
+                  <TableHead className="min-w-[160px] font-semibold text-xs uppercase tracking-wider">
                     Petugas Wilayah (Gaswil)
                   </TableHead>
                 )}
                 {isColVisible("whatsapp") && (
-                  <TableHead className="min-w-[130px] text-xs font-semibold uppercase tracking-wider">
+                  <TableHead className="min-w-[130px] font-semibold text-xs uppercase tracking-wider">
                     Nomor WhatsApp
                   </TableHead>
                 )}
                 {isColVisible("judulIsi") && (
-                  <TableHead className="min-w-[220px] text-xs font-semibold uppercase tracking-wider">
+                  <TableHead className="min-w-[220px] font-semibold text-xs uppercase tracking-wider">
                     Judul & Isi Baket
                   </TableHead>
                 )}
                 {isColVisible("lokasiAktual") && (
-                  <TableHead className="min-w-[190px] text-xs font-semibold uppercase tracking-wider">
+                  <TableHead className="min-w-[190px] font-semibold text-xs uppercase tracking-wider">
                     Lokasi Baket
                   </TableHead>
                 )}
                 {isColVisible("wilayahPenempatan") && (
-                  <TableHead className="min-w-[190px] text-xs font-semibold uppercase tracking-wider">
+                  <TableHead className="min-w-[190px] font-semibold text-xs uppercase tracking-wider">
                     Wilayah Sumber
                   </TableHead>
                 )}
                 {isColVisible("statusVerifikasi") && (
-                  <TableHead className="w-48 text-xs font-semibold uppercase tracking-wider">Status Validasi</TableHead>
+                  <TableHead className="w-48 font-semibold text-xs uppercase tracking-wider">Status Validasi</TableHead>
                 )}
                 {isColVisible("tanggalBaket") && (
-                  <TableHead className="w-44 text-xs font-semibold uppercase tracking-wider">Tanggal Baket</TableHead>
+                  <TableHead className="w-44 font-semibold text-xs uppercase tracking-wider">Tanggal Baket</TableHead>
                 )}
-                <TableHead className="w-32 text-center text-xs font-semibold uppercase tracking-wider">Aksi</TableHead>
+                <TableHead className="w-32 text-center font-semibold text-xs uppercase tracking-wider">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody className="divide-y divide-slate-100 dark:divide-white/5">
               {loadingList ? (
                 <TableRow>
-                  <TableCell colSpan={13} className="py-12 text-center text-xs text-muted-foreground font-mono">
-                    <div className="flex justify-center items-center gap-2">
+                  <TableCell colSpan={13} className="py-12 text-center font-mono text-muted-foreground text-xs">
+                    <div className="flex items-center justify-center gap-2">
                       <RefreshCw className="size-4 animate-spin text-emerald-600 dark:text-emerald-400" />
                       Memuat data Baket...
                     </div>
@@ -575,11 +715,11 @@ export function BaketOfficerClient() {
                 </TableRow>
               ) : loadError ? (
                 <TableRow>
-                  <TableCell colSpan={13} className="py-12 text-center space-y-3">
-                    <DOMAIN_VISUALS.baket.Icon className="size-8 mx-auto text-muted-foreground/40" />
-                    <p className="text-xs text-muted-foreground">{loadError}</p>
+                  <TableCell colSpan={13} className="space-y-3 py-12 text-center">
+                    <DOMAIN_VISUALS.baket.Icon className="mx-auto size-8 text-muted-foreground/40" />
+                    <p className="text-muted-foreground text-xs">{loadError}</p>
                     <Button variant="outline" size="sm" onClick={() => void fetchBakets()}>
-                      <RefreshCw className="size-4 mr-2" />
+                      <RefreshCw className="mr-2 size-4" />
                       Coba Lagi
                     </Button>
                   </TableCell>
@@ -595,19 +735,19 @@ export function BaketOfficerClient() {
                     <TableRow
                       key={item.id}
                       className={cn(
-                        "hover:bg-slate-50/80 dark:hover:bg-slate-900/50 transition-colors",
+                        "transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-900/50",
                         isUnread && "bg-amber-500/[0.03] dark:bg-amber-500/[0.05]",
                       )}
                     >
                       {isColVisible("no") && (
-                        <TableCell className="text-center font-mono text-xs text-muted-foreground">
+                        <TableCell className="text-center font-mono text-muted-foreground text-xs">
                           {itemIndex}
                         </TableCell>
                       )}
                       {isColVisible("refNum") && (
                         <TableCell>
                           <div className="flex items-center gap-1.5">
-                            <span className="font-mono font-bold text-xs text-sky-600 dark:text-sky-400">
+                            <span className="font-bold font-mono text-sky-600 text-xs dark:text-sky-400">
                               {getBaketReferenceLabel(item)}
                             </span>
                           </div>
@@ -615,7 +755,7 @@ export function BaketOfficerClient() {
                       )}
                       {isColVisible("foto") && (
                         <TableCell className="text-center">
-                          <div className="mx-auto size-9 shrink-0 overflow-hidden rounded-full border border-slate-200 bg-slate-100 dark:border-slate-800 dark:bg-slate-900 flex items-center justify-center">
+                          <div className="mx-auto flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-100 dark:border-slate-800 dark:bg-slate-900">
                             {identity.avatarUrl ? (
                               <img src={identity.avatarUrl} alt={identity.name} className="size-full object-cover" />
                             ) : (
@@ -626,12 +766,12 @@ export function BaketOfficerClient() {
                       )}
                       {isColVisible("namaJaring") && (
                         <TableCell>
-                          <div className="font-semibold text-xs text-foreground">{identity.name}</div>
+                          <div className="font-semibold text-foreground text-xs">{identity.name}</div>
                         </TableCell>
                       )}
                       {isColVisible("kodeJaring") && (
                         <TableCell>
-                          <span className="font-mono text-xs text-sky-600 dark:text-sky-400 font-bold">
+                          <span className="font-bold font-mono text-sky-600 text-xs dark:text-sky-400">
                             {identity.code}
                           </span>
                         </TableCell>
@@ -647,7 +787,7 @@ export function BaketOfficerClient() {
                       )}
                       {isColVisible("whatsapp") && (
                         <TableCell>
-                          <span className="font-mono text-xs text-emerald-600 dark:text-emerald-400">
+                          <span className="font-mono text-emerald-600 text-xs dark:text-emerald-400">
                             {identity.whatsappNumber}
                           </span>
                         </TableCell>
@@ -655,11 +795,11 @@ export function BaketOfficerClient() {
                       {isColVisible("judulIsi") && (
                         <TableCell className="max-w-xs">
                           <div className="space-y-0.5">
-                            <p className="font-bold text-xs text-foreground line-clamp-1">
+                            <p className="line-clamp-1 font-bold text-foreground text-xs">
                               {getBaketDisplayTitle(item)}
                             </p>
                             {getBaketContent(item) ? (
-                              <p className="text-[11px] text-muted-foreground line-clamp-1 font-normal">
+                              <p className="line-clamp-1 font-normal text-[11px] text-muted-foreground">
                                 {getBaketContent(item)}
                               </p>
                             ) : null}
@@ -668,7 +808,7 @@ export function BaketOfficerClient() {
                       )}
                       {isColVisible("lokasiAktual") && (
                         <TableCell>
-                          <span className="flex items-start gap-1.5 text-xs text-foreground">
+                          <span className="flex items-start gap-1.5 text-foreground text-xs">
                             <MapPin className="mt-0.5 size-3.5 shrink-0 text-sky-600 dark:text-sky-400" />
                             <span className="line-clamp-2">{formatBaketAreaName(version?.eventArea)}</span>
                           </span>
@@ -676,18 +816,18 @@ export function BaketOfficerClient() {
                       )}
                       {isColVisible("wilayahPenempatan") && (
                         <TableCell>
-                          <span className="text-xs text-muted-foreground line-clamp-2">{identity.placementArea}</span>
+                          <span className="line-clamp-2 text-muted-foreground text-xs">{identity.placementArea}</span>
                         </TableCell>
                       )}
                       {isColVisible("statusVerifikasi") && (
                         <TableCell>
-                          <span className="inline-flex items-center rounded border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
+                          <span className="inline-flex items-center rounded border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 font-semibold text-[10px] text-emerald-700 uppercase tracking-wide dark:text-emerald-400">
                             {getBaketStatusLabel(item.status)}
                           </span>
                         </TableCell>
                       )}
                       {isColVisible("tanggalBaket") && (
-                        <TableCell className="font-mono text-xs text-muted-foreground whitespace-nowrap">
+                        <TableCell className="whitespace-nowrap font-mono text-muted-foreground text-xs">
                           <div>{formatDateTime(getBaketDate(item))}</div>
                           <div className="mt-0.5 text-[10px] text-muted-foreground">{getBaketVersionLabel(item)}</div>
                         </TableCell>
@@ -698,7 +838,7 @@ export function BaketOfficerClient() {
                           size="sm"
                           asChild
                           onClick={() => markBaketAsRead(item.id)}
-                          className="h-8 px-2.5 text-xs rounded-lg gap-1.5 font-medium border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10 dark:text-emerald-400"
+                          className="h-8 gap-1.5 rounded-lg border-emerald-500/30 px-2.5 font-medium text-emerald-600 text-xs hover:bg-emerald-500/10 dark:text-emerald-400"
                         >
                           <Link href={getBaketHref(item)}>
                             <Eye className="size-3.5" />
@@ -711,8 +851,8 @@ export function BaketOfficerClient() {
                 })
               ) : (
                 <TableRow>
-                  <TableCell colSpan={13} className="py-12 text-center text-xs text-muted-foreground space-y-2">
-                    <DOMAIN_VISUALS.baket.Icon className="size-8 mx-auto text-muted-foreground/40" />
+                  <TableCell colSpan={13} className="space-y-2 py-12 text-center text-muted-foreground text-xs">
+                    <DOMAIN_VISUALS.baket.Icon className="mx-auto size-8 text-muted-foreground/40" />
                     <p>Tidak ada Baket yang sesuai filter.</p>
                   </TableCell>
                 </TableRow>

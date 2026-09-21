@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
 
-import { apiRouteErrorResponse } from "@/server/api-route-error";
 import {
   createApelConfig,
   getApelBroadcastTargets,
@@ -8,6 +7,7 @@ import {
   getApelSessions,
   triggerApelBlast,
 } from "@/server/apel-repository";
+import { apiRouteErrorResponse } from "@/server/api-route-error";
 import { getWhatsappControlChannels } from "@/server/field-ops/repository";
 
 export async function GET(request: NextRequest) {

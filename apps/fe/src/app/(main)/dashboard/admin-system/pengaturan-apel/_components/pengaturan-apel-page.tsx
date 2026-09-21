@@ -5,8 +5,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertCircle,
   Bot,
+  Building2,
   Calendar,
+  Check,
   CheckCircle2,
+  CheckSquare,
   Clock,
   ExternalLink,
   Flame,
@@ -17,19 +20,16 @@ import {
   Plus,
   RadioTower,
   RefreshCw,
-  Send,
   Search,
-  Check,
-  CheckSquare,
-  Square,
+  Send,
   ShieldAlert,
   ShieldCheck,
   Sparkles,
+  Square,
   Timer,
   Trash2,
-  Users,
-  Building2,
   UserCheck,
+  Users,
 } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -131,7 +131,7 @@ export function PengaturanApelPage() {
       setConfigs(data.configs || []);
       setChannels(data.channels || []);
       setSessions(data.sessions || []);
-      setTargets(data.targets || { areas: [], gaswils: [], jarings: [] });
+      setTargets(data.targets ?? { areas: [], gaswils: [], jarings: [] });
 
       if (data.configs && data.configs.length > 0) {
         const first = data.configs[0];
@@ -166,11 +166,11 @@ export function PengaturanApelPage() {
     setDescription(cfg.description || "");
     setTargetType(cfg.targetType || "ALL");
     setAreaId(cfg.areaId || "");
-    setTargetGaswilIds(cfg.targetGaswilIds || []);
-    setTargetJaringIds(cfg.targetJaringIds || []);
+    setTargetGaswilIds(cfg.targetGaswilIds ?? []);
+    setTargetJaringIds(cfg.targetJaringIds ?? []);
     setChannelSelectionMode(cfg.channelSelectionMode || "MANUAL");
     setSelectedChannelId(cfg.selectedChannelId || "");
-    setSelectedChannelIds(cfg.selectedChannelIds || []);
+    setSelectedChannelIds(cfg.selectedChannelIds ?? []);
     setMessageTemplate(cfg.messageTemplate);
     setAttendanceReplyTemplate(cfg.attendanceReplyTemplate || DEFAULT_ATTENDANCE_REPLY_TEMPLATE);
     setScheduleTime(cfg.scheduleTime || "07:00");
@@ -1237,7 +1237,11 @@ export function PengaturanApelPage() {
                         className="w-full rounded-md border border-slate-300 p-3 font-mono text-xs leading-relaxed shadow-xs focus:border-emerald-500 focus:outline-hidden dark:border-slate-700 dark:bg-slate-900 dark:text-white"
                       />
                       <p className="text-[11px] text-slate-400">
-                        Tag yang tersedia: <code className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">{"{{nama_jaring}}"}</code> (nama personil) dan <code className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">{"{{waktu}}"}</code> (jam absensi, misal: 20.36 WIB).
+                        Tag yang tersedia:{" "}
+                        <code className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">{"{{nama_jaring}}"}</code>{" "}
+                        (nama personil) dan{" "}
+                        <code className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">{"{{waktu}}"}</code> (jam
+                        absensi, misal: 20.36 WIB).
                       </p>
                     </div>
 

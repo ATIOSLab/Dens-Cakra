@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { Prisma } from '../../generated/prisma/client.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
@@ -10,10 +11,14 @@ import {
   resolveIpLocation,
 } from '../../lib/ip-location.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { ApplicationCacheService } from '../cache/application-cache.service.js';
 
 @Injectable()
 export class IdentityService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly cache?: ApplicationCacheService,
+  ) {}
 
   async getMe(context: AuthorizationContext) {
     const user = await this.prisma.user.findUniqueOrThrow({
@@ -204,6 +209,7 @@ export class IdentityService {
     context: AuthorizationContext,
     includeDescendants: boolean,
     level?: string,
+    excludeVillages?: boolean,
   ) {
     if (!includeDescendants) {
       return context.areaScopes.filter(
@@ -216,26 +222,47 @@ export class IdentityService {
       return [];
     }
 
-    const levelFilter = level
-      ? Prisma.sql`AND area."level"::text = ${level}`
-      : Prisma.empty;
-    return this.prisma.$queryRaw(Prisma.sql`
-      SELECT DISTINCT
-        area."id" AS "areaId",
-        area."code",
-        area."officialCode",
-        area."name",
-        area."level",
-        parent."id" AS "parentAreaId",
-        parent."officialCode" AS "parentOfficialCode"
-      FROM "AdministrativeAreaClosure" closure
-      JOIN "AdministrativeArea" area ON area."id" = closure."descendantId"
-      LEFT JOIN "AdministrativeArea" parent ON parent."id" = area."parentId"
-      WHERE closure."ancestorId" IN (${Prisma.join(scopeIds)})
-        AND area."isActive" = true
-        ${levelFilter}
-      ORDER BY area."level", area."name"
-    `);
+    const loader = () => {
+      const levelFilter = level
+        ? Prisma.sql`AND area."level"::text = ${level}`
+        : excludeVillages
+          ? Prisma.sql`AND area."level"::text NOT IN ('VILLAGE', 'URBAN_VILLAGE', 'RT', 'RW')`
+          : Prisma.empty;
+      return this.prisma.$queryRaw(Prisma.sql`
+        SELECT DISTINCT
+          area."id" AS "areaId",
+          area."code",
+          area."officialCode",
+          area."name",
+          area."level",
+          parent."id" AS "parentAreaId",
+          parent."officialCode" AS "parentOfficialCode"
+        FROM "AdministrativeAreaClosure" closure
+        JOIN "AdministrativeArea" area ON area."id" = closure."descendantId"
+        LEFT JOIN "AdministrativeArea" parent ON parent."id" = area."parentId"
+        WHERE closure."ancestorId" IN (${Prisma.join(scopeIds)})
+          AND area."isActive" = true
+          ${levelFilter}
+        ORDER BY area."level", area."name"
+      `);
+    };
+
+    if (!this.cache) {
+      return loader();
+    }
+
+    return this.cache.getOrSet(
+      {
+        namespace: 'user-area-scopes',
+        identity: {
+          scopeIds: scopeIds.slice().sort(),
+          level: level ?? 'ALL',
+          excludeVillages: Boolean(excludeVillages),
+        },
+        ttlMs: 30 * 60_000,
+      },
+      loader,
+    );
   }
 
   writeAudit(input: {

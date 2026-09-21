@@ -3,10 +3,19 @@ import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { json, raw, urlencoded, type Express } from 'express';
 import helmet from 'helmet';
+import compression from 'compression';
 import { toNodeHandler } from 'better-auth/node';
 import { AppModule } from './app.module.js';
 import { auth } from './lib/auth.js';
 import { env } from './lib/env.js';
+
+process.on('unhandledRejection', (reason) => {
+  console.warn('[Global] Unhandled promise rejection:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('[Global] Uncaught exception:', err);
+});
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -17,6 +26,7 @@ async function bootstrap() {
     },
   });
 
+  app.use(compression({ threshold: 1024 }));
   app.use(
     helmet({
       crossOriginResourcePolicy: false,

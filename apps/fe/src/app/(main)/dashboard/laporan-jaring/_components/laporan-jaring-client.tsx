@@ -5,13 +5,28 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
-import { Check, ChevronDown, Eye, MapPin, RefreshCw, Search, User, X } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  Clock,
+  Eye,
+  MapPin,
+  RefreshCw,
+  RotateCcw,
+  Search,
+  SlidersHorizontal,
+  User,
+  Users,
+  X,
+} from "lucide-react";
 
 import { GaswilEntityLink } from "@/components/domain/gaswil-entity-link";
+import { ActiveFilterChips, type FilterChipItem } from "@/components/ui/active-filter-chips";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { type ColumnOption, ColumnVisibilityToggle } from "@/components/ui/column-visibility-toggle";
+import { FilterField } from "@/components/ui/filter-field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -118,6 +133,13 @@ function JaringFilterPopover({
     (opt) => opt.id === selectedId || opt.sandiCode === selectedId || opt.displayName === selectedId,
   );
 
+  let triggerLabel = "Filter Jaring";
+  if (selectedId === "ALL") {
+    triggerLabel = "Semua Jaring";
+  } else if (selectedOption) {
+    triggerLabel = `${selectedOption.displayName} - ${selectedOption.whatsappNumber || "tanpa WhatsApp"} - ${selectedOption.sandiCode}`;
+  }
+
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
@@ -127,22 +149,15 @@ function JaringFilterPopover({
           role="combobox"
           aria-expanded={open}
           className={cn(
-            "h-8 gap-2 justify-between text-xs font-normal border-slate-200 bg-background hover:bg-slate-50 dark:border-white/10 dark:hover:bg-slate-900 transition-colors min-w-[170px]",
-            selectedId !== "ALL" &&
-              "border-sky-500/50 bg-sky-500/5 font-semibold text-sky-700 dark:bg-sky-500/10 dark:text-sky-400",
+            "h-9 w-full min-w-[200px] justify-between gap-2 border-slate-200 bg-background font-normal text-xs transition-colors hover:bg-slate-50 dark:border-white/10 dark:hover:bg-slate-900",
+            selectedId !== "ALL" && "border-primary/45 bg-primary/5 font-semibold text-primary dark:bg-primary/10",
           )}
         >
-          <div className="flex items-center gap-1.5 truncate max-w-[180px]">
+          <div className="flex max-w-[220px] items-center gap-1.5 truncate">
             <DOMAIN_VISUALS.jaring.Icon className={`size-3.5 shrink-0 ${DOMAIN_VISUALS.jaring.iconClass}`} />
-            <span className="truncate font-mono">
-              {selectedId === "ALL"
-                ? "Semua Jaring"
-                : selectedOption
-                  ? `${selectedOption.displayName} - ${selectedOption.whatsappNumber || "tanpa WhatsApp"} - ${selectedOption.sandiCode}`
-                  : "Filter Jaring"}
-            </span>
+            <span className="truncate font-mono">{triggerLabel}</span>
           </div>
-          <div className="flex items-center gap-1 shrink-0">
+          <div className="flex shrink-0 items-center gap-1">
             {selectedId !== "ALL" && (
               <button
                 type="button"
@@ -151,12 +166,12 @@ function JaringFilterPopover({
                   e.stopPropagation();
                   onSelect("ALL");
                 }}
-                className="p-0.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 text-muted-foreground hover:text-foreground cursor-pointer"
+                className="cursor-pointer rounded-full p-0.5 text-muted-foreground hover:bg-slate-200 hover:text-foreground dark:hover:bg-slate-800"
               >
                 <X className="size-3" />
               </button>
             )}
-            <ChevronDown className="size-3.5 opacity-50 shrink-0" />
+            <ChevronDown className="size-3.5 shrink-0 opacity-50" />
           </div>
         </Button>
       </PopoverTrigger>
@@ -166,9 +181,9 @@ function JaringFilterPopover({
         align="start"
       >
         {/* Sticky Search Header */}
-        <div className="p-2 border-b border-slate-100 dark:border-white/10 bg-slate-50/50 dark:bg-slate-900/50">
+        <div className="border-slate-100 border-b bg-slate-50/50 p-2 dark:border-white/10 dark:bg-slate-900/50">
           <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Search className="absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={search}
               onChange={(e) => {
@@ -176,14 +191,14 @@ function JaringFilterPopover({
                 setDisplayCount(15);
               }}
               placeholder="Cari nama, WhatsApp, atau kode Jaring..."
-              className="pl-8 h-8 text-xs bg-background"
+              className="h-8 bg-background pl-8 text-xs"
               autoFocus
             />
             {search && (
               <button
                 type="button"
                 onClick={() => setSearch("")}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                className="absolute top-1/2 right-2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               >
                 <X className="size-3" />
               </button>
@@ -195,7 +210,7 @@ function JaringFilterPopover({
         <div
           ref={scrollRef}
           onScroll={handleScroll}
-          className="max-h-[240px] overflow-y-auto p-1 divide-y divide-slate-100 dark:divide-white/5 scrollbar-thin"
+          className="scrollbar-thin max-h-[240px] divide-y divide-slate-100 overflow-y-auto p-1 dark:divide-white/5"
         >
           {/* Default option: Semua Jaring */}
           <button
@@ -205,10 +220,10 @@ function JaringFilterPopover({
               setOpen(false);
             }}
             className={cn(
-              "w-full flex items-center justify-between px-3 py-2 text-xs rounded-md transition-colors text-left cursor-pointer",
+              "flex w-full cursor-pointer items-center justify-between rounded-md px-3 py-2 text-left text-xs transition-colors",
               selectedId === "ALL"
                 ? "bg-sky-500/10 font-semibold text-sky-700 dark:text-sky-400"
-                : "hover:bg-slate-100 dark:hover:bg-slate-800 text-foreground",
+                : "text-foreground hover:bg-slate-100 dark:hover:bg-slate-800",
             )}
           >
             <div className="flex items-center gap-2">
@@ -232,14 +247,14 @@ function JaringFilterPopover({
                     setOpen(false);
                   }}
                   className={cn(
-                    "w-full flex items-center justify-between px-3 py-2 text-xs rounded-md transition-colors text-left cursor-pointer my-0.5",
+                    "my-0.5 flex w-full cursor-pointer items-center justify-between rounded-md px-3 py-2 text-left text-xs transition-colors",
                     isSelected
                       ? "bg-sky-500/10 font-semibold text-sky-700 dark:text-sky-400"
-                      : "hover:bg-slate-100 dark:hover:bg-slate-800 text-foreground",
+                      : "text-foreground hover:bg-slate-100 dark:hover:bg-slate-800",
                   )}
                 >
                   <div className="min-w-0 flex-1 pr-2">
-                    <div className="truncate text-foreground font-semibold">{opt.displayName}</div>
+                    <div className="truncate font-semibold text-foreground">{opt.displayName}</div>
                     <div className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground">
                       {opt.whatsappNumber || "WhatsApp belum tersedia"} · {opt.sandiCode}
                     </div>
@@ -250,12 +265,12 @@ function JaringFilterPopover({
               );
             })
           ) : (
-            <div className="p-4 text-center text-xs text-muted-foreground font-mono">Jaring tidak ditemukan</div>
+            <div className="p-4 text-center font-mono text-muted-foreground text-xs">Jaring tidak ditemukan</div>
           )}
 
           {/* Infinite Scroll indicator */}
           {displayCount < filteredOptions.length && (
-            <div className="p-2 text-center text-[10px] text-muted-foreground font-mono border-t border-dashed border-slate-200 dark:border-white/10">
+            <div className="border-slate-200 border-t border-dashed p-2 text-center font-mono text-[10px] text-muted-foreground dark:border-white/10">
               Scroll ke bawah untuk memuat lebih banyak ({displayCount}/{filteredOptions.length})
             </div>
           )}
@@ -456,6 +471,82 @@ export function LaporanJaringClient() {
     );
   }, [workspaceJarings]);
 
+  const handleResetFilters = useCallback(() => {
+    setSearch("");
+    setJaringFilter("ALL");
+    setPeriodPreset("TODAY");
+    setStartDate("");
+    setEndDate("");
+    setPage(1);
+  }, []);
+
+  const activeFilterChips = useMemo<FilterChipItem[]>(() => {
+    const chips: FilterChipItem[] = [];
+
+    if (search.trim()) {
+      chips.push({
+        id: "search",
+        label: "Pencarian",
+        value: search.trim(),
+        onRemove: () => {
+          setSearch("");
+          setPage(1);
+        },
+      });
+    }
+
+    if (jaringFilter !== "ALL") {
+      const selected = jaringOptions.find((j) => j.id === jaringFilter);
+      chips.push({
+        id: "jaring",
+        label: "Jaring",
+        value: selected ? selected.displayName : jaringFilter,
+        onRemove: () => {
+          setJaringFilter("ALL");
+          setPage(1);
+        },
+      });
+    }
+
+    if (periodPreset !== "TODAY") {
+      const periodLabels: Record<DashboardDetailPeriodPreset, string> = {
+        ALL: "Semua Waktu",
+        TODAY: "Hari Ini",
+        LAST_7_DAYS: "7 Hari Terakhir",
+        LAST_30_DAYS: "30 Hari Terakhir",
+        CUSTOM: "Rentang Kustom",
+      };
+      chips.push({
+        id: "period",
+        label: "Periode",
+        value: periodLabels[periodPreset] || periodPreset,
+        onRemove: () => {
+          setPeriodPreset("TODAY");
+          setStartDate("");
+          setEndDate("");
+          setPage(1);
+        },
+      });
+    }
+
+    if (periodPreset === "CUSTOM" && (startDate || endDate)) {
+      chips.push({
+        id: "dateRange",
+        label: "Rentang Tanggal",
+        value: `${startDate || "..."} s.d ${endDate || "..."}`,
+        onRemove: () => {
+          setStartDate("");
+          setEndDate("");
+          setPage(1);
+        },
+      });
+    }
+
+    return chips;
+  }, [search, jaringFilter, jaringOptions, periodPreset, startDate, endDate]);
+
+  const activeFilterCount = activeFilterChips.length;
+
   const paginatedReports = reports;
   const alignedSummary = alignJaringReportCategorySummary(reportSummary);
   const reportKpiCards = [
@@ -515,7 +606,7 @@ export function LaporanJaringClient() {
           size="sm"
           onClick={() => void fetchReports()}
           disabled={loadingList}
-          className="w-fit h-9 gap-2"
+          className="h-9 w-fit gap-2"
         >
           <RefreshCw className={cn("size-4 text-sky-600 dark:text-sky-400", loadingList && "animate-spin")} />
           Muat Ulang
@@ -552,117 +643,21 @@ export function LaporanJaringClient() {
 
       {/* FULL TABLE VIEW CONTAINER */}
       <Card className="overflow-hidden rounded-md border border-slate-200/80 bg-card shadow-xs dark:border-white/10">
-        <CardHeader className="space-y-0 border-slate-200/80 border-b p-4 dark:border-white/10">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-border/70 border-b pb-3">
-            <div>
-              <p className={cn(DC_TYPOGRAPHY.cardTitle, "flex items-center gap-2")}>
-                <Search className="size-4 text-primary" />
-                Filter Laporan Jaring
+        <CardHeader className="space-y-4 border-slate-200/80 border-b p-4 sm:p-5 dark:border-white/10">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-border/70 border-b pb-3">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <SlidersHorizontal className="size-4 text-primary" />
+                <h3 className={DC_TYPOGRAPHY.cardTitle}>Filter Laporan Jaring</h3>
+                {activeFilterCount > 0 && (
+                  <Badge variant="secondary" className="h-5 px-1.5 font-mono text-[10px] text-primary">
+                    {activeFilterCount} aktif
+                  </Badge>
+                )}
+              </div>
+              <p className="text-muted-foreground text-xs">
+                Gunakan pencarian, Jaring pelapor, dan periode waktu untuk menyaring daftar laporan masuk.
               </p>
-              <p className="mt-1 text-muted-foreground text-xs">
-                Gunakan pencarian, Jaring, dan periode untuk memusatkan daftar laporan.
-              </p>
-            </div>
-            <Badge variant="outline" className="rounded-full font-mono text-[11px]">
-              {search || jaringFilter !== "ALL" || periodPreset !== "TODAY" || startDate || endDate
-                ? "Filter aktif"
-                : "Tanpa filter"}
-            </Badge>
-          </div>
-          {/* Controls Bar - Uniform design matching Jaring page */}
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-3">
-              {/* Search Input */}
-              <div className="relative w-48 sm:w-56">
-                <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  value={search}
-                  onChange={(e) => {
-                    setSearch(e.target.value);
-                    setPage(1);
-                  }}
-                  placeholder="Cari referensi, judul..."
-                  className={cn(DC_CONTROLS.input, "h-8 pl-8 text-xs")}
-                />
-                {search ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSearch("");
-                      setPage(1);
-                    }}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  >
-                    <X className="size-3.5" />
-                  </button>
-                ) : null}
-              </div>
-
-              {/* Jaring Filter Popover with inline label */}
-              <div className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground">
-                <span>Jaring:</span>
-                <JaringFilterPopover
-                  options={jaringOptions}
-                  selectedId={jaringFilter}
-                  onSelect={(id) => {
-                    setJaringFilter(id);
-                    setPage(1);
-                  }}
-                />
-              </div>
-
-              {/* Periode Filter Dropdown */}
-              <div className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground">
-                <span>Periode:</span>
-                <NativeSelect
-                  value={periodPreset}
-                  onChange={(e) => {
-                    setPeriodPreset(e.target.value as DashboardDetailPeriodPreset);
-                    setPage(1);
-                  }}
-                  className={cn(DC_CONTROLS.selectTrigger, "h-8 min-w-[150px] text-xs")}
-                >
-                  <option value="TODAY">Hari Ini</option>
-                  <option value="LAST_7_DAYS">7 Hari Terakhir</option>
-                  <option value="LAST_30_DAYS">30 Hari Terakhir</option>
-                  <option value="CUSTOM">Kustom (Pilih Tanggal)</option>
-                </NativeSelect>
-              </div>
-
-              {/* Date Range Picker (Only shown when periodPreset === "CUSTOM") */}
-              {periodPreset === "CUSTOM" ? (
-                <>
-                  <div className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground">
-                    <span>Dari:</span>
-                    <Input
-                      type="date"
-                      value={startDate}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setStartDate(val);
-                        setPage(1);
-                      }}
-                      className={cn(DC_CONTROLS.input, "h-8 w-[130px] text-xs")}
-                      title="Dari Tanggal Masuk"
-                    />
-                  </div>
-
-                  <div className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground">
-                    <span>s.d:</span>
-                    <Input
-                      type="date"
-                      value={endDate}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setEndDate(val);
-                        setPage(1);
-                      }}
-                      className={cn(DC_CONTROLS.input, "h-8 w-[130px] text-xs")}
-                      title="Sampai Tanggal Masuk"
-                    />
-                  </div>
-                </>
-              ) : null}
             </div>
 
             <div className="flex items-center gap-2">
@@ -671,89 +666,198 @@ export function LaporanJaringClient() {
                 visibleColumns={visibleColumns}
                 onChange={setVisibleColumns}
               />
-              {(search || jaringFilter !== "ALL" || periodPreset !== "TODAY" || startDate || endDate) && (
+              {activeFilterCount > 0 && (
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => {
-                    setSearch("");
-                    setJaringFilter("ALL");
-                    setPeriodPreset("TODAY");
-                    setStartDate("");
-                    setEndDate("");
-                    setPage(1);
-                  }}
-                  className="h-8 text-xs text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                  onClick={handleResetFilters}
+                  className="h-8 gap-1.5 text-muted-foreground text-xs hover:text-rose-600 dark:hover:text-rose-400"
                 >
-                  Reset Filter
+                  <RotateCcw className="size-3.5" />
+                  Atur Ulang
                 </Button>
               )}
             </div>
           </div>
+
+          {/* Controls Form Layout Terstruktur */}
+          <div className="space-y-3">
+            {/* Baris 1: Pencarian Bebas */}
+            <FilterField
+              label="Pencarian Bebas"
+              icon={<Search className="size-3.5" />}
+              isActive={Boolean(search.trim())}
+            >
+              <div className="relative">
+                <Search className="absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPage(1);
+                  }}
+                  placeholder="Cari nomor referensi, judul, atau isi laporan..."
+                  className={cn(DC_CONTROLS.input, "h-9 pl-8 text-xs")}
+                />
+                {search ? (
+                  <button
+                    type="button"
+                    aria-label="Bersihkan pencarian"
+                    onClick={() => {
+                      setSearch("");
+                      setPage(1);
+                    }}
+                    className="absolute top-1/2 right-2.5 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                ) : null}
+              </div>
+            </FilterField>
+
+            {/* Baris 2: Parameter Sumber & Waktu */}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {/* Jaring Filter */}
+              <FilterField
+                label="Jaring Pelapor"
+                icon={<Users className="size-3.5" />}
+                isActive={jaringFilter !== "ALL"}
+              >
+                <JaringFilterPopover
+                  options={jaringOptions}
+                  selectedId={jaringFilter}
+                  onSelect={(id) => {
+                    setJaringFilter(id);
+                    setPage(1);
+                  }}
+                />
+              </FilterField>
+
+              {/* Periode Filter */}
+              <FilterField
+                label="Periode Laporan"
+                icon={<Clock className="size-3.5" />}
+                isActive={periodPreset !== "TODAY"}
+              >
+                <NativeSelect
+                  value={periodPreset}
+                  onChange={(e) => {
+                    setPeriodPreset(e.target.value as DashboardDetailPeriodPreset);
+                    setPage(1);
+                  }}
+                  isActive={periodPreset !== "TODAY"}
+                  className="h-9 w-full text-xs"
+                >
+                  <option value="TODAY">Hari Ini</option>
+                  <option value="LAST_7_DAYS">7 Hari Terakhir</option>
+                  <option value="LAST_30_DAYS">30 Hari Terakhir</option>
+                  <option value="CUSTOM">Rentang Kustom</option>
+                </NativeSelect>
+              </FilterField>
+            </div>
+          </div>
+
+          {/* Date Range Picker (Only shown when periodPreset === "CUSTOM") */}
+          {periodPreset === "CUSTOM" && (
+            <div className="rounded-md border border-border/80 border-dashed bg-muted/20 p-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-1.5 font-mono text-muted-foreground text-xs">
+                  <Clock className="size-3.5 text-primary" />
+                  <span>Rentang Tanggal Masuk:</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => {
+                      setStartDate(e.target.value);
+                      setPage(1);
+                    }}
+                    className={cn(DC_CONTROLS.input, "h-9 w-[150px] font-mono text-xs")}
+                    title="Dari Tanggal Masuk"
+                  />
+                  <span className="text-muted-foreground text-xs">s.d.</span>
+                  <Input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => {
+                      setEndDate(e.target.value);
+                      setPage(1);
+                    }}
+                    className={cn(DC_CONTROLS.input, "h-9 w-[150px] font-mono text-xs")}
+                    title="Sampai Tanggal Masuk"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Active Filter Chips */}
+          <ActiveFilterChips chips={activeFilterChips} onResetAll={handleResetFilters} />
         </CardHeader>
 
         {/* MAIN DATA TABLE */}
         <div className="overflow-x-auto">
           <Table>
             <TableHeader className="bg-slate-50/50 dark:bg-slate-900/40">
-              <TableRow className="border-b border-slate-200/80 dark:border-white/10 hover:bg-transparent">
+              <TableRow className="border-slate-200/80 border-b hover:bg-transparent dark:border-white/10">
                 {isColVisible("waktuMasuk") && (
-                  <TableHead className="w-44 text-xs font-semibold uppercase tracking-wider">Waktu Masuk</TableHead>
+                  <TableHead className="w-44 font-semibold text-xs uppercase tracking-wider">Waktu Masuk</TableHead>
                 )}
                 {isColVisible("foto") && (
-                  <TableHead className="w-12 text-center text-xs font-semibold uppercase tracking-wider">
+                  <TableHead className="w-12 text-center font-semibold text-xs uppercase tracking-wider">
                     Foto
                   </TableHead>
                 )}
                 {isColVisible("namaJaring") && (
-                  <TableHead className="min-w-[150px] text-xs font-semibold uppercase tracking-wider">
+                  <TableHead className="min-w-[150px] font-semibold text-xs uppercase tracking-wider">
                     Nama Jaring
                   </TableHead>
                 )}
                 {isColVisible("kodeJaring") && (
-                  <TableHead className="min-w-[120px] text-xs font-semibold uppercase tracking-wider">
+                  <TableHead className="min-w-[120px] font-semibold text-xs uppercase tracking-wider">
                     Kode Jaring
                   </TableHead>
                 )}
                 {isColVisible("gaswil") && (
-                  <TableHead className="min-w-[160px] text-xs font-semibold uppercase tracking-wider">
+                  <TableHead className="min-w-[160px] font-semibold text-xs uppercase tracking-wider">
                     Petugas Wilayah (Gaswil)
                   </TableHead>
                 )}
                 {isColVisible("whatsapp") && (
-                  <TableHead className="min-w-[130px] text-xs font-semibold uppercase tracking-wider">
+                  <TableHead className="min-w-[130px] font-semibold text-xs uppercase tracking-wider">
                     Nomor WhatsApp
                   </TableHead>
                 )}
                 {isColVisible("judulIsi") && (
-                  <TableHead className="min-w-[220px] text-xs font-semibold uppercase tracking-wider">
+                  <TableHead className="min-w-[220px] font-semibold text-xs uppercase tracking-wider">
                     Judul & Isi Laporan
                   </TableHead>
                 )}
                 {isColVisible("lokasiAktual") && (
-                  <TableHead className="min-w-[190px] text-xs font-semibold uppercase tracking-wider">
+                  <TableHead className="min-w-[190px] font-semibold text-xs uppercase tracking-wider">
                     Lokasi Aktual Laporan
                   </TableHead>
                 )}
                 {isColVisible("wilayahPenempatan") && (
-                  <TableHead className="min-w-[190px] text-xs font-semibold uppercase tracking-wider">
+                  <TableHead className="min-w-[190px] font-semibold text-xs uppercase tracking-wider">
                     Wilayah Penempatan Jaring
                   </TableHead>
                 )}
                 {isColVisible("statusProses") && (
-                  <TableHead className="w-44 text-xs font-semibold uppercase tracking-wider">Status Proses</TableHead>
+                  <TableHead className="w-44 font-semibold text-xs uppercase tracking-wider">Status Proses</TableHead>
                 )}
                 {isColVisible("refNum") && (
-                  <TableHead className="w-36 text-xs font-semibold uppercase tracking-wider">Nomor Referensi</TableHead>
+                  <TableHead className="w-36 font-semibold text-xs uppercase tracking-wider">Nomor Referensi</TableHead>
                 )}
-                <TableHead className="w-32 text-center text-xs font-semibold uppercase tracking-wider">Aksi</TableHead>
+                <TableHead className="w-32 text-center font-semibold text-xs uppercase tracking-wider">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody className="divide-y divide-slate-100 dark:divide-white/5">
               {loadingList ? (
                 <TableRow>
-                  <TableCell colSpan={12} className="py-12 text-center text-xs text-muted-foreground font-mono">
-                    <div className="flex justify-center items-center gap-2">
+                  <TableCell colSpan={12} className="py-12 text-center font-mono text-muted-foreground text-xs">
+                    <div className="flex items-center justify-center gap-2">
                       <RefreshCw className="size-4 animate-spin text-sky-600 dark:text-sky-400" />
                       Memuat data laporan...
                     </div>
@@ -783,18 +887,18 @@ export function LaporanJaringClient() {
                     <TableRow
                       key={item.id}
                       className={cn(
-                        "hover:bg-slate-50/80 dark:hover:bg-slate-900/50 transition-colors",
+                        "transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-900/50",
                         isUnread && "bg-amber-500/[0.03] dark:bg-amber-500/[0.05]",
                       )}
                     >
                       {isColVisible("waktuMasuk") && (
-                        <TableCell className="font-mono text-xs text-muted-foreground whitespace-nowrap">
+                        <TableCell className="whitespace-nowrap font-mono text-muted-foreground text-xs">
                           {formatDateTime(item.reportedAt || item.submittedAt || item.createdAt)}
                         </TableCell>
                       )}
                       {isColVisible("foto") && (
                         <TableCell className="text-center">
-                          <div className="mx-auto size-9 shrink-0 overflow-hidden rounded-full border border-slate-200 bg-slate-100 dark:border-slate-800 dark:bg-slate-900 flex items-center justify-center">
+                          <div className="mx-auto flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-100 dark:border-slate-800 dark:bg-slate-900">
                             {identity.avatarUrl ? (
                               <img src={identity.avatarUrl} alt={identity.name} className="size-full object-cover" />
                             ) : (
@@ -805,12 +909,12 @@ export function LaporanJaringClient() {
                       )}
                       {isColVisible("namaJaring") && (
                         <TableCell>
-                          <div className="font-semibold text-xs text-foreground">{identity.name}</div>
+                          <div className="font-semibold text-foreground text-xs">{identity.name}</div>
                         </TableCell>
                       )}
                       {isColVisible("kodeJaring") && (
                         <TableCell>
-                          <span className="font-mono font-bold text-sky-600 text-xs dark:text-sky-400">
+                          <span className="font-bold font-mono text-sky-600 text-xs dark:text-sky-400">
                             {identity.code}
                           </span>
                         </TableCell>
@@ -826,7 +930,7 @@ export function LaporanJaringClient() {
                       )}
                       {isColVisible("whatsapp") && (
                         <TableCell>
-                          <span className="font-mono text-xs text-emerald-600 dark:text-emerald-400">
+                          <span className="font-mono text-emerald-600 text-xs dark:text-emerald-400">
                             {identity.whatsappNumber}
                           </span>
                         </TableCell>
@@ -834,9 +938,9 @@ export function LaporanJaringClient() {
                       {isColVisible("judulIsi") && (
                         <TableCell className="max-w-xs">
                           <div className="space-y-0.5">
-                            <p className="font-bold text-xs text-foreground line-clamp-1">{item.displayTitle}</p>
+                            <p className="line-clamp-1 font-bold text-foreground text-xs">{item.displayTitle}</p>
                             {item.content ? (
-                              <p className="text-[11px] text-muted-foreground line-clamp-1 font-normal">
+                              <p className="line-clamp-1 font-normal text-[11px] text-muted-foreground">
                                 {item.content}
                               </p>
                             ) : null}
@@ -848,7 +952,7 @@ export function LaporanJaringClient() {
                       )}
                       {isColVisible("lokasiAktual") && (
                         <TableCell>
-                          <span className="flex items-start gap-1.5 text-xs text-foreground">
+                          <span className="flex items-start gap-1.5 text-foreground text-xs">
                             <MapPin className="mt-0.5 size-3.5 shrink-0 text-sky-600 dark:text-sky-400" />
                             <span className="line-clamp-2">{formatFullAreaName(item.resolvedArea)}</span>
                           </span>
@@ -856,7 +960,7 @@ export function LaporanJaringClient() {
                       )}
                       {isColVisible("wilayahPenempatan") && (
                         <TableCell>
-                          <span className="text-xs text-muted-foreground line-clamp-2">{identity.placementArea}</span>
+                          <span className="line-clamp-2 text-muted-foreground text-xs">{identity.placementArea}</span>
                         </TableCell>
                       )}
                       {isColVisible("statusProses") && (
@@ -866,7 +970,7 @@ export function LaporanJaringClient() {
                             return (
                               <span
                                 className={cn(
-                                  "inline-flex items-center rounded border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                                  "inline-flex items-center rounded border px-2 py-0.5 font-semibold text-[10px] uppercase tracking-wide",
                                   verificationStatusBadgeVariant(displayStatus),
                                 )}
                               >
@@ -879,13 +983,13 @@ export function LaporanJaringClient() {
                       {isColVisible("refNum") && (
                         <TableCell>
                           <div className="flex items-center gap-1.5">
-                            <span className="font-mono font-bold text-sky-600 text-xs dark:text-sky-400">
+                            <span className="font-bold font-mono text-sky-600 text-xs dark:text-sky-400">
                               {item.referenceNumber || item.id.slice(0, 8)}
                             </span>
                             {isUnread && (
                               <Badge
                                 variant="outline"
-                                className="text-[9px] font-mono px-1 py-0 h-4 border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-semibold"
+                                className="h-4 border-amber-500/40 bg-amber-500/10 px-1 py-0 font-mono font-semibold text-[9px] text-amber-600 dark:text-amber-400"
                               >
                                 BARU
                               </Badge>
@@ -914,8 +1018,8 @@ export function LaporanJaringClient() {
                 })
               ) : (
                 <TableRow>
-                  <TableCell colSpan={12} className="py-12 text-center text-xs text-muted-foreground space-y-2">
-                    <DOMAIN_VISUALS.jaringReport.Icon className="size-8 mx-auto text-muted-foreground/40" />
+                  <TableCell colSpan={12} className="space-y-2 py-12 text-center text-muted-foreground text-xs">
+                    <DOMAIN_VISUALS.jaringReport.Icon className="mx-auto size-8 text-muted-foreground/40" />
                     <p>Tidak ada laporan yang sesuai filter.</p>
                   </TableCell>
                 </TableRow>

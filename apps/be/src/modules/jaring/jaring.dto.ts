@@ -217,11 +217,12 @@ export class JaringCoachingReportQuery {
 export class CreateJaringCoachingReportDto {
   @IsString() @IsNotEmpty() @MaxLength(300) title!: string;
   @IsString() @IsNotEmpty() @MaxLength(10000) content!: string;
+  @IsOptional()
   @IsDateString(
     {},
     { message: 'Tanggal dan waktu laporan pembinaan harus valid.' },
   )
-  reportedAt!: string;
+  reportedAt?: string;
   @IsOptional()
   @IsArray()
   @ArrayMaxSize(5, { message: 'Maksimal 5 foto dapat dilampirkan.' })

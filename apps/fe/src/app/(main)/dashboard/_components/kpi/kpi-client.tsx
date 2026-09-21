@@ -364,7 +364,8 @@ export function KpiClient({
               Filter Kinerja &amp; Evaluasi
             </p>
             <p className="mt-1 text-muted-foreground text-xs">
-              Urutan wilayah: Provinsi, Kota/Kabupaten, Kecamatan. Filter berdasarkan status Jaring, pelaporan, dan kendala.
+              Urutan wilayah: Provinsi, Kota/Kabupaten, Kecamatan. Filter berdasarkan status Jaring, pelaporan, dan
+              kendala.
             </p>
           </div>
           <Badge variant="outline" className="rounded-full font-mono text-[11px]">
@@ -669,15 +670,10 @@ function RegionFilter({
   return (
     <>
       <div className="grid min-w-0 gap-1">
-        <span className="truncate text-xs text-muted-foreground font-medium">
-          {label1}
-        </span>
+        <span className="truncate text-xs text-muted-foreground font-medium">{label1}</span>
         <SearchableSelect
           value={sel1}
-          options={[
-            { value: "", label: "Nasional" },
-            ...level1.map((node) => ({ value: node.id, label: node.name })),
-          ]}
+          options={[{ value: "", label: "Nasional" }, ...level1.map((node) => ({ value: node.id, label: node.name }))]}
           onValueChange={(value) => {
             setSel1(value);
             setSel2("");
@@ -693,9 +689,7 @@ function RegionFilter({
       </div>
       {level2.length > 0 ? (
         <div className="grid min-w-0 gap-1">
-          <span className="truncate text-xs text-muted-foreground font-medium">
-            {label2}
-          </span>
+          <span className="truncate text-xs text-muted-foreground font-medium">{label2}</span>
           <SearchableSelect
             value={sel2}
             options={[
@@ -717,9 +711,7 @@ function RegionFilter({
       ) : null}
       {level3.length > 0 ? (
         <div className="grid min-w-0 gap-1">
-          <span className="truncate text-xs text-muted-foreground font-medium">
-            {label3}
-          </span>
+          <span className="truncate text-xs text-muted-foreground font-medium">{label3}</span>
           <SearchableSelect
             value={sel3}
             options={[

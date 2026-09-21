@@ -84,7 +84,7 @@ export const env = {
     process.env.NODE_ENV !== 'production',
   ),
   cache: {
-    enabled: getBoolean('CACHE_ENABLED', false),
+    enabled: getBoolean('CACHE_ENABLED', true),
     redisUrl: getOptionalString('REDIS_URL'),
     prefix: getString('CACHE_PREFIX', 'dens-cakra'),
     defaultTtlMs: getNumber('CACHE_DEFAULT_TTL_MS', 60_000),

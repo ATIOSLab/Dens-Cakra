@@ -55,6 +55,11 @@ async function forwardAuthRequest(request: NextRequest) {
     responseHeaders.delete("set-cookie");
   }
 
+  // Node.js fetch automatically decompresses compressed response bodies (gzip/deflate/br).
+  // Stripping content-encoding and content-length prevents browser ERR_CONTENT_DECODING_FAILED.
+  responseHeaders.delete("content-encoding");
+  responseHeaders.delete("content-length");
+
   const proxyResponse = new NextResponse(response.body, {
     status: response.status,
     statusText: response.statusText,

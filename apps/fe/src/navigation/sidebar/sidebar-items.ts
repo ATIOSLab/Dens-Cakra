@@ -1,7 +1,7 @@
 import { ClipboardList, type LucideIcon, UserPlus } from "lucide-react";
 
 import { DOMAIN_TERMS } from "@/lib/domain/terminology";
-import { DOMAIN_VISUALS, SUPPORT_VISUALS } from "@/lib/domain/visual-system";
+import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 
 import { SYSTEM_ROLE_HOME_ROUTES, SYSTEM_ROLES, type SystemRole } from "./system-roles";
 
@@ -124,8 +124,6 @@ export const sidebarItems: NavGroup[] = [
         icon: DOMAIN_VISUALS.home.Icon,
         roles: REGIONAL_COMMANDER_ROLE,
       },
-
-
       {
         id: "shared-laporan-jaring",
         title: DOMAIN_TERMS.jaringReport,
@@ -247,6 +245,12 @@ export const sidebarItems: NavGroup[] = [
             id: "admin-system-master-data",
             title: "Master Data",
             url: "/dashboard/admin-system/master-data",
+            roles: ADMIN_SYSTEM_ROLE,
+          },
+          {
+            id: "admin-system-system-config",
+            title: "Konfigurasi Sistem",
+            url: "/dashboard/admin-system/konfigurasi-sistem",
             roles: ADMIN_SYSTEM_ROLE,
           },
         ],

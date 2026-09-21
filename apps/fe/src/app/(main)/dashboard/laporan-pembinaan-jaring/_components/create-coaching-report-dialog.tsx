@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { AlertCircle, Calendar, FileText, Loader2, Plus } from "lucide-react";
+import { AlertCircle, Clock, FileText, Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";
@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
-import { apiBrowserMutation } from "@/lib/api/browser-client";
+import { apiBrowserFetch, apiBrowserMutation } from "@/lib/api/browser-client";
 import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 
 import { coachingReportSchema } from "./coaching-report-schema";
@@ -43,16 +43,6 @@ interface CreateCoachingReportDialogProps {
   onSuccess: () => void;
 }
 
-function getCurrentDateTimeLocal() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  const hours = String(now.getHours()).padStart(2, "0");
-  const minutes = String(now.getMinutes()).padStart(2, "0");
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
-}
-
 export function CreateCoachingReportDialog({
   open,
   onOpenChange,
@@ -63,8 +53,8 @@ export function CreateCoachingReportDialog({
   const [jaringId, setJaringId] = useState<string>(defaultJaringId ?? "");
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [reportedAt, setReportedAt] = useState(getCurrentDateTimeLocal());
   const [submitting, setSubmitting] = useState(false);
+  const [isCreationEnabled, setIsCreationEnabled] = useState<boolean | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const selectedJaring = jarings.find((jaring) => jaring.id === jaringId);
 
@@ -73,8 +63,10 @@ export function CreateCoachingReportDialog({
       setJaringId(defaultJaringId ?? (jarings.length > 0 ? jarings[0].id : ""));
       setTitle("");
       setContent("");
-      setReportedAt(getCurrentDateTimeLocal());
       setErrorMessage(null);
+      void apiBrowserFetch<{ enabled: boolean }>("/jaring/coaching-reports/config")
+        .then((res) => setIsCreationEnabled(res.enabled))
+        .catch(() => setIsCreationEnabled(true));
     }
   }, [open, defaultJaringId, jarings]);
 
@@ -82,11 +74,15 @@ export function CreateCoachingReportDialog({
     e.preventDefault();
     setErrorMessage(null);
 
+    if (isCreationEnabled === false) {
+      setErrorMessage("Pembuatan laporan pembinaan Jaring sedang dinonaktifkan oleh Admin Sistem.");
+      return;
+    }
+
     const parsed = coachingReportSchema.safeParse({
       jaringId,
       title,
       content,
-      reportedAt,
     });
 
     if (!parsed.success) {
@@ -94,14 +90,11 @@ export function CreateCoachingReportDialog({
       return;
     }
 
-    const isoDate = new Date(parsed.data.reportedAt).toISOString();
-
     setSubmitting(true);
     try {
       await apiBrowserMutation("POST", `/jaring/${parsed.data.jaringId}/coaching-reports`, {
         title: parsed.data.title,
         content: parsed.data.content,
-        reportedAt: isoDate,
       });
 
       toast.success("Laporan pembinaan Jaring berhasil dibuat.");
@@ -138,6 +131,18 @@ export function CreateCoachingReportDialog({
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+            {isCreationEnabled === false && (
+              <div className="flex items-start gap-2.5 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-900 dark:text-amber-200">
+                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+                <div>
+                  <p className="font-semibold">Fitur Pembuatan Laporan Dinonaktifkan</p>
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">
+                    Admin Sistem telah menonaktifkan pembuatan laporan pembinaan Jaring baru.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {errorMessage && (
               <div className="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
                 <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
@@ -154,7 +159,7 @@ export function CreateCoachingReportDialog({
                 id="jaring-select"
                 value={jaringId}
                 onChange={(e) => setJaringId(e.target.value)}
-                disabled={submitting}
+                disabled={submitting || isCreationEnabled === false}
                 className="w-full text-sm"
               >
                 {jarings.map((j) => {
@@ -194,25 +199,20 @@ export function CreateCoachingReportDialog({
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   maxLength={300}
-                  disabled={submitting}
+                  disabled={submitting || isCreationEnabled === false}
                   className="text-sm"
                 />
                 <div className="text-[10px] text-muted-foreground text-right">{title.length}/300</div>
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="reportedAt-input" className="text-xs font-semibold flex items-center gap-1.5">
-                  <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                  Waktu Pembinaan <span className="text-destructive">*</span>
+                <Label className="text-xs font-semibold flex items-center gap-1.5 text-muted-foreground">
+                  <Clock className="h-3.5 w-3.5" />
+                  Waktu Pengiriman Laporan
                 </Label>
-                <Input
-                  id="reportedAt-input"
-                  type="datetime-local"
-                  value={reportedAt}
-                  onChange={(e) => setReportedAt(e.target.value)}
-                  disabled={submitting}
-                  className="text-sm"
-                />
+                <div className="flex h-9 items-center rounded-md border border-border bg-muted/40 px-3 text-xs text-muted-foreground select-none">
+                  Otomatis dicatat sistem saat dikirim
+                </div>
               </div>
             </div>
 
@@ -228,7 +228,7 @@ export function CreateCoachingReportDialog({
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 maxLength={10000}
-                disabled={submitting}
+                disabled={submitting || isCreationEnabled === false}
                 className="text-sm leading-relaxed"
               />
               <div className="text-[10px] text-muted-foreground text-right">{content.length}/10.000</div>
@@ -244,7 +244,11 @@ export function CreateCoachingReportDialog({
               >
                 Batal
               </Button>
-              <Button type="submit" disabled={submitting || jarings.length === 0} size="sm">
+              <Button
+                type="submit"
+                disabled={submitting || jarings.length === 0 || isCreationEnabled === false}
+                size="sm"
+              >
                 {submitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

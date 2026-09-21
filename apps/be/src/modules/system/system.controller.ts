@@ -11,12 +11,17 @@ import {
   TestSmtpSettingsDto,
   UpdateSmtpSettingsDto,
 } from '../infrastructure/mail-settings.service.js';
+import { SystemConfigService } from './system-config.service.js';
+import { UpdateSystemConfigDto } from './system.dto.js';
 
 @ApiTags('27. System Administration & Reference Data')
 @UseGuards(SessionGuard, DomainAccessGuard)
 @Controller()
 export class SystemController {
-  constructor(private readonly mailSettings: MailSettingsService) {}
+  constructor(
+    private readonly mailSettings: MailSettingsService,
+    private readonly systemConfig: SystemConfigService,
+  ) {}
 
   @Get('system/email-settings')
   @ApiContract({
@@ -54,5 +59,31 @@ export class SystemController {
     @CurrentAccessContext() context: AuthorizationContext,
   ) {
     return apiResult(await this.mailSettings.sendTest(body, context));
+  }
+
+  @Get('system/configuration')
+  @ApiContract({
+    operationId: 'apiSys011',
+    contractId: 'API-SYS-011',
+    summary: 'Pengaturan konfigurasi fitur sistem',
+    roles: ['admin_system'],
+  })
+  async systemConfiguration() {
+    return apiResult(await this.systemConfig.getConfiguration());
+  }
+
+  @Put('system/configuration')
+  @ApiContract({
+    operationId: 'apiSys012',
+    contractId: 'API-SYS-012',
+    summary: 'Ubah pengaturan konfigurasi fitur sistem',
+    roles: ['admin_system'],
+    idempotent: true,
+  })
+  async updateSystemConfiguration(
+    @Body() body: UpdateSystemConfigDto,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.systemConfig.updateConfiguration(body, context));
   }
 }

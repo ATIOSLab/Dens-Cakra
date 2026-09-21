@@ -28,6 +28,8 @@ export class CacheInvalidationInterceptor implements NestInterceptor {
           'dashboard-briefing',
           'field-officer-summary',
           'map-markers',
+          'kpi-v1',
+          'executive-dashboard-v1',
         );
         return value;
       }),

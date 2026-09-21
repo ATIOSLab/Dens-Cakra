@@ -75,11 +75,26 @@ export class DomainScopeService {
       };
     }
 
+    const isNationalSupervision =
+      context.authRole === SYSTEM_ROLES.EXECUTIVE ||
+      context.authRole === SYSTEM_ROLES.NATIONAL_LEADER ||
+      context.authRole === SYSTEM_ROLES.ADMIN_SYSTEM ||
+      context.areaScopes.some((scope) => scope.level === 'COUNTRY');
+
+    if (isNationalSupervision) {
+      return {
+        organizationUnitId: context.organizationUnitId,
+        commandRouteType: context.commandRouteType,
+        assignmentIds: [],
+        areaRootIds,
+      };
+    }
+
     const assignments = await this.prisma.userOperationalAssignment.findMany({
       where: {
         isActive: true,
         OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
-        ...(areaRootIds.length
+        ...(!isNationalSupervision && areaRootIds.length
           ? {
               areaScopes: {
                 some: {
@@ -113,8 +128,19 @@ export class DomainScopeService {
   async baketWhere(
     context: AuthorizationContext,
   ): Promise<Prisma.BaketWhereInput> {
+    const isNationalSupervision =
+      context.authRole === SYSTEM_ROLES.EXECUTIVE ||
+      context.authRole === SYSTEM_ROLES.NATIONAL_LEADER ||
+      context.authRole === SYSTEM_ROLES.ADMIN_SYSTEM ||
+      context.areaScopes.some((scope) => scope.level === 'COUNTRY');
+
+    if (isNationalSupervision) {
+      return { deletedAt: null };
+    }
+
     const scope = await this.resolve(context);
     return {
+      deletedAt: null,
       createdByFieldOfficerAssignmentId: { in: scope.assignmentIds },
     };
   }
@@ -471,6 +497,18 @@ export class DomainScopeService {
   async jaringWhere(
     context: AuthorizationContext,
   ): Promise<Prisma.JaringWhereInput> {
+    const isNationalSupervision =
+      context.authRole === SYSTEM_ROLES.EXECUTIVE ||
+      context.authRole === SYSTEM_ROLES.NATIONAL_LEADER ||
+      context.authRole === SYSTEM_ROLES.ADMIN_SYSTEM ||
+      context.areaScopes.some((scope) => scope.level === 'COUNTRY');
+
+    if (isNationalSupervision) {
+      return {
+        deletedAt: null,
+      };
+    }
+
     const scope = await this.resolve(context);
     const isFieldCoordinator =
       context.authRole === SYSTEM_ROLES.FIELD_COORDINATOR;

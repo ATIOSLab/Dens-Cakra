@@ -9,13 +9,15 @@ import { env } from '../../lib/env.js';
 export type CacheNamespace =
   | 'administrative-area-tree'
   | 'administrative-boundaries'
+  | 'auth-context'
   | 'dashboard-briefing'
   | 'executive-dashboard-v1'
   | 'field-officer-summary'
   | 'jaring-occupations'
   | 'kpi-v1'
   | 'map-markers'
-  | 'report-categories';
+  | 'report-categories'
+  | 'user-area-scopes';
 
 type CacheLoadOptions = {
   namespace: CacheNamespace;
@@ -34,7 +36,7 @@ export class ApplicationCacheService {
     options: CacheLoadOptions,
     loader: () => Promise<T>,
   ): Promise<T> {
-    if (!env.cache.enabled || !env.cache.redisUrl) {
+    if (!env.cache.enabled) {
       markRequestCacheStatus('BYPASS');
       return loader();
     }
@@ -93,7 +95,7 @@ export class ApplicationCacheService {
   }
 
   async invalidate(...namespaces: CacheNamespace[]): Promise<void> {
-    if (!env.cache.enabled || !env.cache.redisUrl) return;
+    if (!env.cache.enabled) return;
 
     await Promise.all(
       namespaces.map(async (namespace) => {
@@ -102,7 +104,7 @@ export class ApplicationCacheService {
             this.cache.set(
               this.generationKey(namespace),
               `${Date.now()}-${randomUUID()}`,
-              0,
+              86_400_000,
             ),
           );
         } catch (error) {
@@ -117,7 +119,7 @@ export class ApplicationCacheService {
     ok: boolean;
     status: 'disabled' | 'ready' | 'degraded';
   }> {
-    if (!env.cache.enabled || !env.cache.redisUrl) {
+    if (!env.cache.enabled) {
       return { enabled: false, ok: true, status: 'disabled' };
     }
 

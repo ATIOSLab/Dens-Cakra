@@ -2,7 +2,7 @@ import type { ElementType } from "react";
 
 import Link from "next/link";
 
-import { ArrowRight, CheckCircle2, Mail, ShieldCheck, UserCog } from "lucide-react";
+import { ArrowRight, CheckCircle2, Mail, ShieldCheck, Sliders, UserCog } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -73,6 +73,13 @@ const adminModuleGroups: AdminModuleGroup[] = [
         Icon: DOMAIN_VISUALS.intelligenceReport.Icon,
         iconClass: DOMAIN_VISUALS.intelligenceReport.iconClass,
       },
+      {
+        title: "Konfigurasi Sistem",
+        label: "Pengaturan fitur operasional termasuk izin pembuatan laporan pembinaan Jaring.",
+        href: "/dashboard/admin-system/konfigurasi-sistem",
+        Icon: Sliders,
+        iconClass: "text-amber-500",
+      },
     ],
   },
   {
@@ -95,7 +102,8 @@ const adminModuleGroups: AdminModuleGroup[] = [
       },
       {
         title: DOMAIN_TERMS.whatsappIncomingMessages,
-        label: "Kesesuaian nomor pengirim dengan Jaring: terverifikasi, belum diverifikasi/ditolak, atau tidak terdaftar.",
+        label:
+          "Kesesuaian nomor pengirim dengan Jaring: terverifikasi, belum diverifikasi/ditolak, atau tidak terdaftar.",
         href: "/dashboard/admin-system/riwayat-pesan-whatsapp",
         Icon: DOMAIN_VISUALS.briefing.Icon,
         iconClass: DOMAIN_VISUALS.briefing.iconClass,

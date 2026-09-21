@@ -12,5 +12,5 @@ export const coachingReportSchema = z.object({
     .trim()
     .min(1, "Isi laporan pembinaan wajib diisi.")
     .max(10000, "Isi laporan maksimal 10.000 karakter."),
-  reportedAt: z.string().min(1, "Tanggal dan waktu pelaporan wajib diisi."),
+  reportedAt: z.string().optional(),
 });

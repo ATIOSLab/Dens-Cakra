@@ -1246,9 +1246,7 @@ function _ReportStatusTabs({ activeStatus }: { activeStatus?: string }) {
     <div className="flex flex-wrap gap-2">
       {tabs.map(([status, label]) => (
         <Button key={status} variant={activeStatus === status ? "default" : "outline"} asChild>
-          <Link
-            href={`/dashboard/baket?${status.includes(",") ? `statuses=${status}` : `status=${status}`}`}
-          >
+          <Link href={`/dashboard/baket?${status.includes(",") ? `statuses=${status}` : `status=${status}`}`}>
             {label}
           </Link>
         </Button>

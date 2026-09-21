@@ -21,11 +21,44 @@ type AuthorizationInput = {
 
 const SYSTEM_ROLE_SET = new Set<SystemRole>(Object.values(SYSTEM_ROLES));
 
+type CachedAuthContextEntry = {
+  context: AuthorizationContext;
+  cachedUntil: number;
+};
+
+const authContextCache = new Map<string, CachedAuthContextEntry>();
+const AUTH_CONTEXT_CACHE_TTL_MS = 25_000;
+const AUTH_CONTEXT_CACHE_MAX_ENTRIES = 1_000;
+
+export function invalidateUserAuthorization(authUserId?: string): void {
+  if (authUserId) {
+    authContextCache.delete(authUserId);
+  } else {
+    authContextCache.clear();
+  }
+}
+
 @Injectable()
 export class AuthorizationService {
   constructor(private readonly prisma: PrismaService) {}
 
   async authorize(input: AuthorizationInput): Promise<AuthorizationContext> {
+    const cached = authContextCache.get(input.authUserId);
+    if (cached && cached.cachedUntil > Date.now()) {
+      if (input.authRole && cached.context.authRole !== input.authRole) {
+        authContextCache.delete(input.authUserId);
+      } else if (
+        input.allowedRoles?.length &&
+        !input.allowedRoles.includes(cached.context.authRole)
+      ) {
+        throw new ForbiddenException(
+          'Authenticated role is not allowed to access this resource.',
+        );
+      } else {
+        return cached.context;
+      }
+    }
+
     const authUser = await this.prisma.user.findUnique({
       where: {
         id: input.authUserId,
@@ -201,7 +234,7 @@ export class AuthorizationService {
       ? `${primaryAssignment.branch} ${primaryArea.name}`
       : primaryAssignment.branch;
 
-    return {
+    const authContext: AuthorizationContext = {
       authUserId: authUser.id,
       authRole: coarseRole,
       userProfileId: profile.id,
@@ -227,6 +260,19 @@ export class AuthorizationService {
         isPrimary: scope.isPrimary,
       })),
     };
+
+    if (authContextCache.size >= AUTH_CONTEXT_CACHE_MAX_ENTRIES) {
+      for (const key of authContextCache.keys()) {
+        authContextCache.delete(key);
+        break;
+      }
+    }
+    authContextCache.set(input.authUserId, {
+      context: authContext,
+      cachedUntil: Date.now() + AUTH_CONTEXT_CACHE_TTL_MS,
+    });
+
+    return authContext;
   }
 
   private isSystemRole(role: string): role is SystemRole {

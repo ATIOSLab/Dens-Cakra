@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
-import { AlertCircle, Calendar, FileText, ImagePlus, Loader2, Plus, ScrollText, X } from "lucide-react";
+import { AlertCircle, Clock, FileText, ImagePlus, Loader2, Plus, ScrollText, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";
@@ -24,22 +24,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
-import { apiBrowserMutation } from "@/lib/api/browser-client";
+import { apiBrowserFetch, apiBrowserMutation } from "@/lib/api/browser-client";
 import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 import type { FieldOfficerJaring, FieldOfficerWorkspace } from "@/server/field-ops/types";
 
 import { coachingReportSchema } from "./coaching-report-schema";
-
-function getCurrentDateTimeLocal() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  const hours = String(now.getHours()).padStart(2, "0");
-  const minutes = String(now.getMinutes()).padStart(2, "0");
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
-}
 
 const MAX_PHOTOS = 5;
 const MAX_ORIGINAL_PHOTO_BYTES = 10 * 1024 * 1024;
@@ -148,11 +138,11 @@ export function CreateCoachingReportForm() {
   const [jarings, setJarings] = useState<FieldOfficerJaring[]>([]);
   const [gaswilName, setGaswilName] = useState<string | null>(null);
   const [loadingWorkspace, setLoadingWorkspace] = useState(true);
+  const [isCreationEnabled, setIsCreationEnabled] = useState<boolean | null>(null);
 
   const [jaringId, setJaringId] = useState<string>("");
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [reportedAt, setReportedAt] = useState(getCurrentDateTimeLocal());
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [photos, setPhotos] = useState<PhotoDraft[]>([]);
@@ -163,9 +153,15 @@ export function CreateCoachingReportForm() {
     async function loadWorkspace() {
       setLoadingWorkspace(true);
       try {
-        const res = await fetch("/api/field-officer/workspace");
-        if (res.ok) {
-          const data: FieldOfficerWorkspace = await res.json();
+        const [wsRes, configRes] = await Promise.all([
+          fetch("/api/field-officer/workspace"),
+          apiBrowserFetch<{ enabled: boolean }>("/jaring/coaching-reports/config").catch(() => ({ enabled: true })),
+        ]);
+
+        setIsCreationEnabled(configRes.enabled);
+
+        if (wsRes.ok) {
+          const data: FieldOfficerWorkspace = await wsRes.json();
           const rawJarings = Array.isArray(data?.jaring) ? data.jaring : [];
           const approved = rawJarings.filter((j) => j.registrationStatus === "APPROVED");
           setJarings(approved);
@@ -251,19 +247,21 @@ export function CreateCoachingReportForm() {
     e.preventDefault();
     setErrorMessage(null);
 
+    if (isCreationEnabled === false) {
+      setErrorMessage("Pembuatan laporan pembinaan Jaring sedang dinonaktifkan oleh Admin Sistem.");
+      return;
+    }
+
     const parsed = coachingReportSchema.safeParse({
       jaringId,
       title,
       content,
-      reportedAt,
     });
 
     if (!parsed.success) {
       setErrorMessage(parsed.error.issues[0]?.message ?? "Data formulir tidak valid.");
       return;
     }
-
-    const isoDate = new Date(parsed.data.reportedAt).toISOString();
 
     setSubmitting(true);
     try {
@@ -275,7 +273,6 @@ export function CreateCoachingReportForm() {
       await apiBrowserMutation("POST", `/jaring/${parsed.data.jaringId}/coaching-reports`, {
         title: parsed.data.title,
         content: parsed.data.content,
-        reportedAt: isoDate,
         ...(attachmentFileIds.length > 0 ? { attachmentFileIds } : {}),
       });
 
@@ -353,6 +350,19 @@ export function CreateCoachingReportForm() {
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-6">
+              {isCreationEnabled === false && (
+                <div className="flex items-start gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-amber-900 dark:text-amber-200">
+                  <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
+                  <div>
+                    <p className="font-semibold text-sm">Fitur Pembuatan Laporan Dinonaktifkan</p>
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                      Admin Sistem telah menonaktifkan pembuatan laporan pembinaan Jaring baru. Anda tetap dapat melihat
+                      riwayat laporan yang sudah tersimpan sebelumnya.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {errorMessage && (
                 <div className="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/10 p-3.5 text-destructive text-xs">
                   <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -418,25 +428,20 @@ export function CreateCoachingReportForm() {
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     maxLength={300}
-                    disabled={submitting}
+                    disabled={submitting || isCreationEnabled === false}
                     className="h-9 bg-background text-sm"
                   />
                   <div className="text-right text-[10px] text-muted-foreground">{title.length}/300</div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="reportedAt-input" className="flex items-center gap-1.5 font-semibold text-xs">
-                    <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                    Waktu Pembinaan <span className="text-destructive">*</span>
+                  <Label className="flex items-center gap-1.5 font-semibold text-xs text-muted-foreground">
+                    <Clock className="h-3.5 w-3.5" />
+                    Waktu Pengiriman Laporan
                   </Label>
-                  <Input
-                    id="reportedAt-input"
-                    type="datetime-local"
-                    value={reportedAt}
-                    onChange={(e) => setReportedAt(e.target.value)}
-                    disabled={submitting}
-                    className="h-9 bg-background text-sm"
-                  />
+                  <div className="flex h-9 items-center rounded-md border border-border bg-muted/40 px-3 text-xs text-muted-foreground select-none">
+                    Otomatis dicatat sistem saat dikirim
+                  </div>
                 </div>
               </div>
 
@@ -453,7 +458,7 @@ export function CreateCoachingReportForm() {
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
                   maxLength={10000}
-                  disabled={submitting}
+                  disabled={submitting || isCreationEnabled === false}
                   className="bg-background text-sm leading-relaxed"
                 />
                 <div className="text-right text-[10px] text-muted-foreground">{content.length}/10.000</div>
@@ -472,14 +477,15 @@ export function CreateCoachingReportForm() {
                   accept={ALLOWED_PHOTO_TYPES.join(",")}
                   multiple
                   onChange={(e) => handlePhotoFiles(e.target.files)}
-                  disabled={submitting || photos.length >= MAX_PHOTOS}
+                  disabled={submitting || photos.length >= MAX_PHOTOS || isCreationEnabled === false}
                   className="hidden"
                 />
                 <label
                   htmlFor="photo-input"
                   className={cn(
                     "flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed p-4 text-muted-foreground text-xs hover:bg-muted/40",
-                    (submitting || photos.length >= MAX_PHOTOS) && "pointer-events-none opacity-50",
+                    (submitting || photos.length >= MAX_PHOTOS || isCreationEnabled === false) &&
+                      "pointer-events-none opacity-50",
                   )}
                 >
                   <ImagePlus className="h-4 w-4" />
@@ -526,7 +532,7 @@ export function CreateCoachingReportForm() {
                 </Button>
                 <Button
                   type="submit"
-                  disabled={submitting || jarings.length === 0}
+                  disabled={submitting || jarings.length === 0 || isCreationEnabled === false}
                   size="sm"
                   className="h-9 px-5 text-xs"
                 >

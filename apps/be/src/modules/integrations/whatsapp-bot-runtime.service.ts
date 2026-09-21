@@ -297,43 +297,49 @@ export class WhatsappBotRuntimeService
       this.processWelcomeJob(payload),
     );
 
-    const channels = await this.prisma.integrationChannel.findMany({
-      where: {
-        deletedAt: null,
-        OR: [
-          { channelType: { contains: 'WHATSAPP', mode: 'insensitive' } },
-          { channelType: { contains: 'WA', mode: 'insensitive' } },
-        ],
-        status: {
-          in: [
-            IntegrationStatus.ACTIVE,
-            IntegrationStatus.DEGRADED,
-            IntegrationStatus.ERROR,
+    try {
+      const channels = await this.prisma.integrationChannel.findMany({
+        where: {
+          deletedAt: null,
+          OR: [
+            { channelType: { contains: 'WHATSAPP', mode: 'insensitive' } },
+            { channelType: { contains: 'WA', mode: 'insensitive' } },
           ],
+          status: {
+            in: [
+              IntegrationStatus.ACTIVE,
+              IntegrationStatus.DEGRADED,
+              IntegrationStatus.ERROR,
+            ],
+          },
         },
-      },
-      select: {
-        id: true,
-        code: true,
-        channelType: true,
-        status: true,
-        config: true,
-      },
-    });
-
-    for (const channel of channels) {
-      if (!(await this.shouldBootstrapChannel(channel))) {
-        this.logger.warn(
-          `WhatsApp channel ${channel.code} skipped at bootstrap because no saved session state was found.`,
-        );
-        continue;
-      }
-
-      void this.connectChannel(channel).catch((error: unknown) => {
-        this.logger.error(
-          `Failed to bootstrap WhatsApp channel ${channel.code}: ${this.messageOf(error)}`,
-        );
+        select: {
+          id: true,
+          code: true,
+          channelType: true,
+          status: true,
+          config: true,
+        },
       });
+
+      for (const channel of channels) {
+        if (!(await this.shouldBootstrapChannel(channel))) {
+          this.logger.warn(
+            `WhatsApp channel ${channel.code} skipped at bootstrap because no saved session state was found.`,
+          );
+          continue;
+        }
+
+        void this.connectChannel(channel).catch((error: unknown) => {
+          this.logger.error(
+            `Failed to bootstrap WhatsApp channel ${channel.code}: ${this.messageOf(error)}`,
+          );
+        });
+      }
+    } catch (error) {
+      this.logger.warn(
+        `Deferred WhatsApp channels initialization due to startup query timeout: ${this.messageOf(error)}`,
+      );
     }
   }
 
@@ -1550,10 +1556,6 @@ export class WhatsappBotRuntimeService
   }
 
   private async shouldBootstrapChannel(channel: WhatsAppChannelRecord) {
-    if (channel.status !== IntegrationStatus.ERROR) {
-      return true;
-    }
-
     return this.hasStoredAuthState(channel.code);
   }
 

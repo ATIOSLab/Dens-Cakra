@@ -69,6 +69,7 @@ export class IdentityController {
         context,
         query.includeDescendants,
         query.level,
+        query.excludeVillages,
       ),
     );
   }

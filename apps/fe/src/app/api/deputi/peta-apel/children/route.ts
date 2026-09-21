@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 
-import { apiRouteErrorResponse } from "@/server/api-route-error";
 import { getAreaChildren } from "@/server/apel-repository";
+import { apiRouteErrorResponse } from "@/server/api-route-error";
 
 export async function GET(request: NextRequest) {
   try {

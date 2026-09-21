@@ -213,9 +213,7 @@ export function JaringExportPdfDialog({
                 <div className="mt-0.5 font-bold text-base text-emerald-600 dark:text-emerald-400">
                   {totalApprovedCount} <span className="font-normal text-muted-foreground text-xs">Jaring</span>
                 </div>
-                <span className="text-[11px] text-muted-foreground">
-                  Status Terverifikasi (APPROVED)
-                </span>
+                <span className="text-[11px] text-muted-foreground">Status Terverifikasi (APPROVED)</span>
               </button>
             </div>
           </div>

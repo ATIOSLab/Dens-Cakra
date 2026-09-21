@@ -103,6 +103,8 @@ export function SearchableSelect({
     ? Math.max(filteredOptions.length - visibleCount, 0)
     : Math.max(filteredOptions.length - maxVisibleOptions, 0);
 
+  const isCustomSelected = Boolean(value && value !== "ALL" && value !== "");
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -116,24 +118,29 @@ export function SearchableSelect({
           className={cn(
             DC_CONTROLS.selectTrigger,
             DC_TYPOGRAPHY.control,
-            "w-full min-w-0 justify-between gap-2 text-left font-normal hover:bg-muted/50",
-            !selectedOption && "text-muted-foreground",
+            "w-full min-w-0 justify-between gap-2 text-left font-normal transition-colors hover:bg-muted/50",
+            isCustomSelected && "border-primary/45 bg-primary/[0.04] font-medium text-foreground dark:bg-primary/10 hover:border-primary/60",
+            !selectedOption && !isCustomSelected && "text-muted-foreground",
             className,
           )}
         >
           <span className="flex min-w-0 flex-1 items-center gap-2">
-            {icon ? <span className="shrink-0 text-muted-foreground">{icon}</span> : null}
+            {icon ? (
+              <span className={cn("shrink-0", isCustomSelected ? "text-primary" : "text-muted-foreground")}>{icon}</span>
+            ) : isCustomSelected ? (
+              <span className="size-1.5 shrink-0 rounded-full bg-primary ring-2 ring-primary/20" />
+            ) : null}
             <span className="truncate">{selectedOption?.label ?? placeholder}</span>
           </span>
-          <ChevronsUpDown className="size-3.5 shrink-0 text-muted-foreground" />
+          <ChevronsUpDown className={cn("size-3.5 shrink-0 transition-colors", isCustomSelected ? "text-primary/70" : "text-muted-foreground")} />
         </Button>
       </PopoverTrigger>
       <PopoverContent
         align="start"
         container={container}
-        className={cn("w-[var(--radix-popover-trigger-width)] min-w-[260px] p-0", contentClassName)}
+        className={cn("w-[var(--radix-popover-trigger-width)] min-w-[260px] p-0 rounded-md border border-border/80 bg-popover text-popover-foreground shadow-lg backdrop-blur-sm z-50", contentClassName)}
       >
-        <div className="relative border-b p-2">
+        <div className="relative border-b border-border/70 p-2 bg-muted/20">
           <Search className="pointer-events-none absolute top-1/2 left-4 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={search}
@@ -142,7 +149,7 @@ export function SearchableSelect({
               setVisibleCount(pageSize ? pageSize : maxVisibleOptions);
             }}
             placeholder={searchPlaceholder}
-            className={cn(DC_CONTROLS.input, "h-8 pr-8 pl-8 text-xs")}
+            className={cn(DC_CONTROLS.input, "h-8 pr-8 pl-8 text-xs bg-background/60 focus:bg-background")}
           />
           {search ? (
             <button
@@ -157,7 +164,7 @@ export function SearchableSelect({
         </div>
 
         <div
-          className={cn("overflow-y-auto p-1", pageSize ? "max-h-56" : "max-h-72")}
+          className={cn("overflow-y-auto p-1 space-y-0.5", pageSize ? "max-h-56" : "max-h-72")}
           onScroll={pageSize ? handleScroll : undefined}
           onWheel={pageSize ? handleWheel : undefined}
         >
@@ -178,16 +185,18 @@ export function SearchableSelect({
                   className={cn(
                     DC_CONTROLS.selectItem,
                     "flex w-full items-center gap-2 text-left transition-colors disabled:pointer-events-none disabled:opacity-50",
-                    isSelected && "bg-accent/80 font-semibold text-primary",
+                    isSelected
+                      ? "bg-primary/10 font-semibold text-primary dark:bg-primary/20 hover:bg-primary/15"
+                      : "hover:bg-muted/80",
                   )}
                 >
                   <span className="min-w-0 flex-1">
                     <span className="block truncate">{option.label}</span>
                     {option.description ? (
-                      <span className="block truncate text-muted-foreground text-[11px]">{option.description}</span>
+                      <span className="block truncate font-mono text-[11px] text-muted-foreground">{option.description}</span>
                     ) : null}
                   </span>
-                  {isSelected ? <Check className="size-3.5 shrink-0" /> : null}
+                  {isSelected ? <Check className="size-3.5 shrink-0 text-primary" /> : null}
                 </button>
               );
             })
@@ -195,7 +204,7 @@ export function SearchableSelect({
         </div>
 
         {hiddenCount > 0 ? (
-          <div className="border-t px-3 py-2 text-muted-foreground text-[11px]">
+          <div className="border-t border-border/60 bg-muted/10 px-3 py-2 text-muted-foreground text-[11px]">
             {pageSize
               ? `Gulir untuk memuat ${hiddenCount} pilihan lagi (${visibleCount}/${filteredOptions.length}).`
               : `${hiddenCount} pilihan lain disembunyikan. Ketik kata kunci untuk mempersempit hasil.`}

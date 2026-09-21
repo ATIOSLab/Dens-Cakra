@@ -1192,6 +1192,9 @@ model Jaring {
   @@index([reviewedByAssignmentId])
   @@index([occupationId])
   @@index([profilePhotoFileId])
+  @@index([whatsappNumber])
+  @@index([registeredAt(sort: Desc)])
+  @@index([createdByAssignmentId, status])
 }
 
 model JaringOccupation {
@@ -1253,6 +1256,7 @@ model JaringAreaCoverage {
 
   @@unique([jaringId, areaId, validFrom])
   @@index([areaId, validUntil])
+  @@index([jaringId, validUntil])
 }
 
 model JaringCoachingReport {
@@ -1336,6 +1340,7 @@ model WhatsAppMessage {
   @@index([jaringId, receivedAt])
   @@index([categoryId, receivedAt])
   @@index([resolvedAreaId, receivedAt])
+  @@index([status, receivedAt(sort: Desc)])
 }
 
 model WhatsAppValidationIssue {
@@ -1536,6 +1541,8 @@ model Baket {
   @@index([createdByFieldOfficerAssignmentId, status])
   @@index([taskAssignmentId])
   @@index([reportCategoryId, status])
+  @@index([status, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
 }
 
 model BaketVersion {

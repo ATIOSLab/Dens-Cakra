@@ -5,6 +5,7 @@ import {
   OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
+import pg from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { getPerformanceContext } from '../../common/performance/performance-context.js';
 import { env } from '../../lib/env.js';
@@ -22,9 +23,17 @@ export class PrismaService
   private readonly logger = new Logger(PrismaService.name);
 
   constructor() {
-    const adapter = new PrismaPg({
+    const pool = new pg.Pool({
       connectionString: env.databaseUrl,
-      options: '-c timezone=UTC',
+      max: 20,
+      idleTimeoutMillis: 30_000,
+      connectionTimeoutMillis: 30_000,
+    });
+
+    const adapter = new PrismaPg(pool, {
+      disposeExternalPool: true,
+      statementNameGenerator: (query) =>
+        `stmt_${createHash('md5').update(query.sql).digest('hex').slice(0, 16)}`,
     });
 
     super({

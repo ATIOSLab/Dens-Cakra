@@ -1278,7 +1278,6 @@ describe('JaringService registration security', () => {
         take: 10,
         orderBy: [
           { title: 'asc' },
-          { reportedAt: 'desc' },
           { createdAt: 'desc' },
           { id: 'desc' },
         ],
@@ -1433,4 +1432,119 @@ describe('JaringService registration security', () => {
       source: 'report_history',
     });
   });
+
+  describe('Coaching report control and timestamp', () => {
+    it('mengembalikan status fitur pembinaan aktif secara default', async () => {
+      const prisma = {
+        systemSetting: {
+          findUnique: jest.fn(() => Promise.resolve(null)),
+        },
+      };
+      const service = createService(prisma);
+      const result = await service.getCoachingReportConfig();
+      expect(result).toEqual({ enabled: true });
+    });
+
+    it('menolak pembuatan laporan pembinaan dengan kode 403 saat fitur dinonaktifkan', async () => {
+      const prisma = {
+        systemSetting: {
+          findUnique: jest.fn(() =>
+            Promise.resolve({
+              key: 'features.coaching_report.enabled',
+              value: false,
+            }),
+          ),
+        },
+      };
+      const service = createService(prisma);
+
+      await expect(
+        service.createCoachingReport(
+          'jaring-id',
+          { title: 'Judul Pembinaan', content: 'Isi Pembinaan' },
+          { primaryAssignmentId: 'assignment-id' } as never,
+        ),
+      ).rejects.toMatchObject({
+        code: 'JARING_COACHING_REPORT_DISABLED',
+        status: 403,
+      });
+    });
+
+    it('membuat laporan pembinaan dengan mencatat waktu server secara otomatis saat fitur aktif', async () => {
+      const createdReport = {
+        id: 'coaching-report-id',
+        jaringId: 'jaring-id',
+        fieldOfficerAssignmentId: 'officer-id',
+        title: 'Pembinaan Rutin',
+        content: 'Hasil koordinasi di lapangan',
+        reportedAt: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        attachments: [],
+        jaring: {
+          id: 'jaring-id',
+          aliasName: 'M01',
+          fullName: 'Jaring Binaan',
+          whatsappNumber: '0812345678',
+          profilePhotoFileId: null,
+          profilePhotoUrl: null,
+          areaCoverages: [],
+          caretakerAssignments: [],
+        },
+        fieldOfficerAssignment: {
+          id: 'officer-id',
+          userProfile: { id: 'prof-1', fullName: 'Gaswil Budi' },
+        },
+      };
+
+      const jaringCoachingReportCreate = jest.fn(() =>
+        Promise.resolve(createdReport),
+      );
+      const auditLogCreate = jest.fn(() => Promise.resolve({}));
+
+      const prisma = {
+        systemSetting: {
+          findUnique: jest.fn(() => Promise.resolve(null)),
+        },
+        jaring: {
+          findUnique: jest.fn(() =>
+            Promise.resolve({ registrationStatus: 'APPROVED' }),
+          ),
+        },
+        $transaction: jest.fn((callback: (tx: unknown) => Promise<unknown>) =>
+          callback({
+            jaringCoachingReport: {
+              create: jaringCoachingReportCreate,
+            },
+            auditLog: {
+              create: auditLogCreate,
+            },
+          }),
+        ),
+      };
+
+      const assertJaring = jest.fn(() => Promise.resolve());
+      const service = createService(prisma, { assertJaring });
+
+      const result = await service.createCoachingReport(
+        'jaring-id',
+        { title: 'Pembinaan Rutin', content: 'Hasil koordinasi di lapangan' },
+        { primaryAssignmentId: 'officer-id', userProfileId: 'prof-1' } as never,
+      );
+
+      expect(assertJaring).toHaveBeenCalledWith(expect.anything(), 'jaring-id');
+      expect(jaringCoachingReportCreate).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          jaringId: 'jaring-id',
+          fieldOfficerAssignmentId: 'officer-id',
+          title: 'Pembinaan Rutin',
+          content: 'Hasil koordinasi di lapangan',
+          reportedAt: expect.any(Date),
+        }),
+        select: expect.anything(),
+      });
+      expect(result.id).toBe('coaching-report-id');
+    });
+  });
 });
+

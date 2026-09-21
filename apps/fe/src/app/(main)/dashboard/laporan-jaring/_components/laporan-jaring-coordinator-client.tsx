@@ -14,14 +14,18 @@ import {
   MapPin,
   MessageSquare,
   RefreshCw,
+  RotateCcw,
   Search,
+  SlidersHorizontal,
   User,
+  Users,
   X,
 } from "lucide-react";
 
 import { ViewModeToggle } from "@/app/(main)/dashboard/_components/view-mode-toggle";
 import { GaswilEntityLink } from "@/components/domain/gaswil-entity-link";
 import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";
+import { ActiveFilterChips, type FilterChipItem } from "@/components/ui/active-filter-chips";
 import { Badge } from "@/components/ui/badge";
 import {
   Breadcrumb,
@@ -34,6 +38,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { type ColumnOption, ColumnVisibilityToggle } from "@/components/ui/column-visibility-toggle";
+import { FilterField } from "@/components/ui/filter-field";
 import { Input } from "@/components/ui/input";
 import { type JaringOption, JaringSelectPopover } from "@/components/ui/jaring-select-popover";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -399,35 +404,21 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
   }
 
   async function fetchAllJaringPages(jaringAreaId?: string) {
-    const allJaring: RawJaringItem[] = [];
-    let currentPage = 1;
-    let totalPages = 1;
+    const params = new URLSearchParams({
+      page: "1",
+      limit: "100",
+      registrationStatus: "APPROVED",
+    });
+    if (jaringAreaId) params.set("areaId", jaringAreaId);
 
-    do {
-      const params = new URLSearchParams({
-        page: String(currentPage),
-        limit: "100",
-        registrationStatus: "APPROVED",
-      });
-      if (jaringAreaId) params.set("areaId", jaringAreaId);
-
-      const response = await apiBrowserFetch<PaginatedJaringResponse | RawJaringItem[]>(`/jaring?${params.toString()}`);
-      const pageItems = Array.isArray(response) ? response : response.items || [];
-      allJaring.push(...pageItems);
-      if (Array.isArray(response)) {
-        totalPages = pageItems.length < 100 ? currentPage : currentPage + 1;
-      } else {
-        totalPages = Math.max(1, response.pagination?.totalPages ?? 1);
-      }
-      currentPage += 1;
-    } while (currentPage <= totalPages);
-
-    return Array.from(new Map(allJaring.map((jaring) => [jaring.id, jaring])).values());
+    const response = await apiBrowserFetch<PaginatedJaringResponse | RawJaringItem[]>(`/jaring?${params.toString()}`);
+    const pageItems = Array.isArray(response) ? response : response.items || [];
+    return pageItems;
   }
 
   async function fetchAreaScopes() {
     return apiBrowserFetch<AdministrativeAreaScope[]>("/me/area-scopes", {
-      query: { includeDescendants: true },
+      query: { includeDescendants: true, excludeVillages: true },
     });
   }
 
@@ -691,6 +682,10 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
   }, [areaFilter, areaScopes]);
 
   useEffect(() => {
+    if (isNationalRole) {
+      didHydrateAreaHierarchy.current = true;
+      return;
+    }
     if (areaFilter || didHydrateAreaHierarchy.current || !defaultProvinceFilter || provinceFilter !== "ALL") return;
 
     setProvinceFilter(defaultProvinceFilter);
@@ -699,7 +694,7 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
     setVillageFilter("ALL");
     setPage(1);
     didHydrateAreaHierarchy.current = true;
-  }, [areaFilter, defaultProvinceFilter, provinceFilter]);
+  }, [areaFilter, defaultProvinceFilter, isNationalRole, provinceFilter]);
 
   const areaSubtitle = useMemo(
     () =>
@@ -765,6 +760,187 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
     setEndDate("");
     setPage(1);
   };
+
+  const activeFilterChips = useMemo<FilterChipItem[]>(() => {
+    const chips: FilterChipItem[] = [];
+
+    if (search.trim()) {
+      chips.push({
+        id: "search",
+        label: "Pencarian",
+        value: search.trim(),
+        onRemove: () => {
+          setSearch("");
+          setPage(1);
+        },
+      });
+    }
+
+    if (urgencyFilter !== "ALL") {
+      const urgencyLabels: Record<string, string> = {
+        URGENT: "Mendesak",
+        HIGH: "Tinggi",
+        NORMAL: "Normal",
+        LOW: "Rendah",
+      };
+      chips.push({
+        id: "urgency",
+        label: "Urgensi",
+        value: urgencyLabels[urgencyFilter] || urgencyFilter,
+        onRemove: () => {
+          setUrgencyFilter("ALL");
+          setPage(1);
+        },
+      });
+    }
+
+    if (statusFilter !== "ALL") {
+      const statusLabels: Record<string, string> = {
+        UNVERIFIED: "Belum Verifikasi",
+        VALID: "Terverifikasi",
+        INVALID: "Ditolak / Invalid",
+        NEED_CLARIFICATION: "Perlu Klarifikasi",
+      };
+      chips.push({
+        id: "status",
+        label: "Status",
+        value: statusLabels[statusFilter] || statusFilter,
+        onRemove: () => {
+          setStatusFilter("ALL");
+          setPage(1);
+        },
+      });
+    }
+
+    if (provinceFilter !== (defaultProvinceFilter || "ALL") && provinceFilter !== "ALL") {
+      const prov = provinceOptions.find((p) => p.id === provinceFilter);
+      chips.push({
+        id: "province",
+        label: "Provinsi",
+        value: prov?.name || provinceFilter,
+        onRemove: () => {
+          setProvinceFilter(defaultProvinceFilter || "ALL");
+          setRegencyFilter("ALL");
+          setDistrictFilter("ALL");
+          setVillageFilter("ALL");
+          setPage(1);
+        },
+      });
+    }
+
+    if (regencyFilter !== "ALL") {
+      const reg = regencyOptions.find((r) => r.id === regencyFilter);
+      chips.push({
+        id: "regency",
+        label: "Kota/Kab",
+        value: reg?.name || regencyFilter,
+        onRemove: () => {
+          setRegencyFilter("ALL");
+          setDistrictFilter("ALL");
+          setVillageFilter("ALL");
+          setPage(1);
+        },
+      });
+    }
+
+    if (districtFilter !== "ALL") {
+      const dist = districtOptions.find((d) => d.id === districtFilter);
+      chips.push({
+        id: "district",
+        label: "Kecamatan",
+        value: dist?.name || districtFilter,
+        onRemove: () => {
+          setDistrictFilter("ALL");
+          setVillageFilter("ALL");
+          setPage(1);
+        },
+      });
+    }
+
+    if (villageFilter !== "ALL") {
+      const vill = villageOptions.find((v) => v.id === villageFilter);
+      chips.push({
+        id: "village",
+        label: "Kelurahan",
+        value: vill?.name || villageFilter,
+        onRemove: () => {
+          setVillageFilter("ALL");
+          setPage(1);
+        },
+      });
+    }
+
+    if (fieldOfficerFilter) {
+      const officer = gaswilOptions.find((o) => o.assignmentId === fieldOfficerFilter);
+      chips.push({
+        id: "officer",
+        label: "Gaswil",
+        value: officer?.name || fieldOfficerFilter,
+        onRemove: () => {
+          setFieldOfficerFilter("");
+          setPage(1);
+        },
+      });
+    }
+
+    if (jaringFilter !== "ALL") {
+      const jaring = popoverJaringOptions.find((j) => j.id === jaringFilter);
+      chips.push({
+        id: "jaring",
+        label: "Jaring",
+        value: jaring?.aliasName || jaring?.code || jaringFilter,
+        onRemove: () => {
+          setJaringFilter("ALL");
+          setPage(1);
+        },
+      });
+    }
+
+    if (periodPreset !== DEFAULT_REPORT_PERIOD_PRESET) {
+      const periodLabels: Record<string, string> = {
+        TODAY: "Hari Ini",
+        LAST_7_DAYS: "7 Hari Terakhir",
+        LAST_30_DAYS: "30 Hari Terakhir",
+        CUSTOM: "Kustom",
+      };
+      chips.push({
+        id: "period",
+        label: "Periode",
+        value:
+          periodPreset === "CUSTOM" && (startDate || endDate)
+            ? `${startDate || "..."} s.d ${endDate || "..."}`
+            : periodLabels[periodPreset] || periodPreset,
+        onRemove: () => {
+          setPeriodPreset(DEFAULT_REPORT_PERIOD_PRESET);
+          setStartDate("");
+          setEndDate("");
+          setPage(1);
+        },
+      });
+    }
+
+    return chips;
+  }, [
+    search,
+    urgencyFilter,
+    statusFilter,
+    provinceFilter,
+    defaultProvinceFilter,
+    provinceOptions,
+    regencyFilter,
+    regencyOptions,
+    districtFilter,
+    districtOptions,
+    villageFilter,
+    villageOptions,
+    fieldOfficerFilter,
+    gaswilOptions,
+    jaringFilter,
+    popoverJaringOptions,
+    periodPreset,
+    startDate,
+    endDate,
+  ]);
 
   // CSV Export
   const handleExportCSV = async () => {
@@ -836,8 +1012,8 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
           <p className="mt-1.5 max-w-2xl text-muted-foreground text-sm">
             Monitoring arus Laporan Jaring dalam cakupan hak akses dan wilayah penugasan.
           </p>
-          <p className="mt-2 text-sm font-medium text-foreground">{areaSubtitle}</p>
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <p className="mt-2 font-medium text-foreground text-sm">{areaSubtitle}</p>
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-muted-foreground text-xs">
             <Badge variant="outline" className="gap-1.5">
               <MapPin className="size-3.5" />
               {scopeLabel}
@@ -906,67 +1082,102 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
       </div>
 
       {/* FILTER & TOOLBAR BAR */}
-      <div className="flex flex-col gap-3 rounded-md border border-slate-200/80 bg-card p-4 shadow-xs dark:border-white/10">
+      <div className="flex flex-col gap-3.5 rounded-md border border-slate-200/80 bg-card p-4 shadow-xs dark:border-white/10">
         <div className="flex flex-wrap items-center justify-between gap-2 border-border/70 border-b pb-3">
           <div>
             <p className={cn(DC_TYPOGRAPHY.cardTitle, "flex items-center gap-2")}>
-              <Search className="size-4 text-primary" />
-              Filter Laporan Jaring
+              <SlidersHorizontal className="size-4 text-primary" />
+              Filter & Parameter Laporan Jaring
             </p>
-            <p className="mt-1 text-muted-foreground text-xs">
-              Urutan wilayah: Provinsi, Kota/Kabupaten, Kecamatan, lalu Kelurahan/Desa.
+            <p className="mt-0.5 text-muted-foreground text-xs">
+              Saring laporan berdasarkan hierarki wilayah (Provinsi → Kota/Kab → Kecamatan → Kelurahan), Gaswil pembina,
+              dan Jaring pelapor.
             </p>
           </div>
-          <Badge variant="outline" className="rounded-full font-mono text-[11px]">
-            {search ||
-            urgencyFilter !== "ALL" ||
-            statusFilter !== "ALL" ||
-            jaringFilter !== "ALL" ||
-            provinceFilter !== (defaultProvinceFilter || "ALL") ||
-            regencyFilter !== "ALL" ||
-            districtFilter !== "ALL" ||
-            villageFilter !== "ALL" ||
-            categoryFilter ||
-            areaFilter ||
-            fieldOfficerFilter ||
-            attachmentFilter ||
-            coordinateSourceFilter ||
-            locationFilter ||
-            periodPreset !== DEFAULT_REPORT_PERIOD_PRESET ||
-            startDate ||
-            endDate
-              ? "Filter aktif"
-              : "Tanpa filter"}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge
+              variant={activeFilterChips.length > 0 ? "default" : "outline"}
+              className={cn(
+                "rounded-full font-mono text-[11px]",
+                activeFilterChips.length > 0
+                  ? "border border-primary/30 bg-primary/15 text-primary"
+                  : "text-muted-foreground",
+              )}
+            >
+              {activeFilterChips.length > 0 ? `${activeFilterChips.length} filter aktif` : "Semua data"}
+            </Badge>
+            {activeFilterChips.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleResetFilters}
+                className="h-7 gap-1 px-2 font-medium text-rose-600 text-xs hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/30"
+              >
+                <RotateCcw className="size-3" />
+                Reset
+              </Button>
+            )}
+          </div>
         </div>
-        <div className="space-y-3.5">
-          {/* TOP ROW: Search input + View Mode Switcher */}
-          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+
+        <div className="space-y-4">
+          {/* BARIS 1: Search Input & Waktu Operasional + View Mode Switcher */}
+          <div className="flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center">
             {/* Search Input */}
-            <div className="relative flex-1 min-w-[240px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+            <div className="relative min-w-[260px] flex-1">
+              <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Cari ID laporan, kata kunci, wilayah..."
+                placeholder="Cari ID laporan, kata kunci, judul, wilayah..."
                 value={search}
                 onChange={(e) => {
                   setSearch(e.target.value);
                   setPage(1);
                 }}
-                className={cn(DC_CONTROLS.input, "h-9 pl-9 text-xs")}
+                className={cn(
+                  DC_CONTROLS.input,
+                  "h-9 pl-9 text-xs",
+                  search.trim() && "border-primary/45 bg-primary/[0.03]",
+                )}
               />
               {search && (
                 <button
                   type="button"
+                  aria-label="Bersihkan pencarian"
                   onClick={() => setSearch("")}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  className="absolute top-1/2 right-2.5 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:text-foreground"
                 >
                   <X className="size-3.5" />
                 </button>
               )}
             </div>
 
+            {/* Filter Periode Cepat di Toolbar Atas */}
+            <div className="w-full sm:w-[220px]">
+              <FilterField
+                label="Periode Laporan"
+                icon={Clock}
+                isActive={periodPreset !== DEFAULT_REPORT_PERIOD_PRESET}
+              >
+                <NativeSelect
+                  aria-label="Filter Periode Waktu"
+                  value={periodPreset}
+                  onChange={(event) => {
+                    setPeriodPreset(event.target.value as typeof periodPreset);
+                    setPage(1);
+                  }}
+                  isActive={periodPreset !== DEFAULT_REPORT_PERIOD_PRESET}
+                  className="h-9 w-full text-xs"
+                >
+                  <option value="TODAY">Hari Ini</option>
+                  <option value="LAST_7_DAYS">7 Hari Terakhir</option>
+                  <option value="LAST_30_DAYS">30 Hari Terakhir</option>
+                  <option value="CUSTOM">Rentang Kustom</option>
+                </NativeSelect>
+              </FilterField>
+            </div>
+
             {/* View Mode Toggle Switcher & Column Visibility Toggle */}
-            <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+            <div className="flex shrink-0 items-center gap-2 self-end sm:self-auto">
               <ColumnVisibilityToggle
                 columns={LAPORAN_JARING_COLUMNS}
                 visibleColumns={visibleColumns}
@@ -976,262 +1187,235 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
             </div>
           </div>
 
-          {/* MIDDLE ROW: Structured Grid of Filter Dropdowns */}
-          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-[repeat(auto-fit,minmax(240px,1fr))]">
-            {/* Filter Provinsi (hanya role nasional: Deputi II / KaBIN) */}
-            {isNationalRole && provinceOptions.length > 0 && (
-              <SearchableSelect
-                aria-label="Filter Provinsi"
-                value={provinceFilter}
-                options={[
-                  { value: "ALL", label: "Semua Provinsi" },
-                  ...provinceOptions.map((province) => ({ value: province.id, label: province.name })),
-                ]}
-                onValueChange={(value) => {
-                  setProvinceFilter(value);
-                  setRegencyFilter("ALL");
-                  setDistrictFilter("ALL");
-                  setVillageFilter("ALL");
-                  setPage(1);
-                }}
-                placeholder="Semua Provinsi"
-                searchPlaceholder="Cari Provinsi..."
-                emptyText="Provinsi tidak ditemukan."
-                className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full")}
-              />
-            )}
+          {/* BARIS 2: KELOMPOK HIERARKI WILAYAH LAPORAN */}
+          <div className="space-y-2.5 rounded-md border border-slate-200/80 bg-muted/15 p-3.5 dark:border-white/10 dark:bg-muted/10">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 font-mono text-[11px] text-muted-foreground uppercase tracking-wider">
+                <MapPin className="size-3.5 text-primary" />
+                <span className="font-semibold text-foreground">Hierarki Wilayah Aktual</span>
+                <span className="hidden text-muted-foreground sm:inline">
+                  (Provinsi → Kota/Kab → Kecamatan → Kelurahan)
+                </span>
+              </div>
+            </div>
 
-            {/* 3. Filter Kota/Kabupaten (sembunyikan untuk Korwil & Gaswil yang sudah ter-scope) */}
-            {!isFieldOfficer && !isFieldCoordinator && (regencyOptions.length > 0 || provinceOptions.length > 0) && (
-              <SearchableSelect
-                aria-label="Filter Kota/Kabupaten"
-                value={regencyFilter}
-                options={[
-                  {
-                    value: "ALL",
-                    label:
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {/* Filter Provinsi */}
+              {isNationalRole && (
+                <FilterField label="Provinsi" icon={MapPin} isActive={provinceFilter !== "ALL"}>
+                  <SearchableSelect
+                    aria-label="Filter Provinsi"
+                    value={provinceFilter}
+                    options={[
+                      { value: "ALL", label: "Semua Provinsi" },
+                      ...provinceOptions.map((province) => ({ value: province.id, label: province.name })),
+                    ]}
+                    onValueChange={(value) => {
+                      setProvinceFilter(value);
+                      setRegencyFilter("ALL");
+                      setDistrictFilter("ALL");
+                      setVillageFilter("ALL");
+                      setPage(1);
+                    }}
+                    placeholder={provinceOptions.length === 0 ? "Memuat Provinsi..." : "Semua Provinsi"}
+                    disabled={provinceOptions.length === 0}
+                    searchPlaceholder="Cari Provinsi..."
+                    emptyText="Provinsi tidak ditemukan."
+                    className="h-9 w-full"
+                  />
+                </FilterField>
+              )}
+
+              {/* Filter Kota/Kabupaten */}
+              {!isFieldOfficer && !isFieldCoordinator && (
+                <FilterField label="Kota / Kabupaten" icon={MapPin} isActive={regencyFilter !== "ALL"}>
+                  <SearchableSelect
+                    aria-label="Filter Kota/Kabupaten"
+                    value={regencyFilter}
+                    options={[
+                      {
+                        value: "ALL",
+                        label:
+                          provinceFilter === "ALL"
+                            ? "Pilih Provinsi dahulu"
+                            : isDkiScoped
+                              ? "Semua Kota/Kabupaten DKI"
+                              : "Semua Kota/Kabupaten",
+                        disabled: provinceFilter === "ALL",
+                      },
+                      ...regencyOptions.map((regency) => ({ value: regency.id, label: regency.name })),
+                    ]}
+                    onValueChange={(value) => {
+                      setRegencyFilter(value);
+                      setDistrictFilter("ALL");
+                      setVillageFilter("ALL");
+                      setPage(1);
+                    }}
+                    disabled={provinceFilter === "ALL" || regencyOptions.length === 0}
+                    placeholder={
                       provinceFilter === "ALL"
                         ? "Pilih Provinsi dahulu"
-                        : isDkiScoped
-                          ? "Semua Kota/Kabupaten DKI"
-                          : "Semua Kota/Kabupaten",
-                    disabled: provinceFilter === "ALL",
-                  },
-                  ...regencyOptions.map((regency) => ({ value: regency.id, label: regency.name })),
-                ]}
-                onValueChange={(value) => {
-                  setRegencyFilter(value);
-                  setDistrictFilter("ALL");
-                  setVillageFilter("ALL");
-                  setPage(1);
-                }}
-                disabled={provinceFilter === "ALL"}
-                placeholder={
-                  provinceFilter === "ALL"
-                    ? "Pilih Provinsi dahulu"
-                    : isDkiScoped
-                      ? "Semua Kota/Kabupaten DKI"
-                      : "Semua Kota/Kabupaten"
-                }
-                searchPlaceholder="Cari Kota/Kabupaten..."
-                emptyText="Kota/Kabupaten tidak ditemukan."
-                className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full")}
-              />
-            )}
+                        : regencyOptions.length === 0
+                          ? "Memuat Kota/Kab..."
+                          : isDkiScoped
+                            ? "Semua Kota/Kabupaten DKI"
+                            : "Semua Kota/Kabupaten"
+                    }
+                    searchPlaceholder="Cari Kota/Kabupaten..."
+                    emptyText="Kota/Kabupaten tidak ditemukan."
+                    className="h-9 w-full"
+                  />
+                </FilterField>
+              )}
 
-            {/* 4. Filter Kecamatan */}
-            {!isFieldOfficer && (
-              <SearchableSelect
-                aria-label="Filter Kecamatan"
-                value={districtFilter}
-                options={[
-                  {
-                    value: "ALL",
-                    label: regencyFilter === "ALL" ? "Pilih Kota/Kabupaten dahulu" : "Semua Kecamatan",
-                    disabled: regencyFilter === "ALL",
-                  },
-                  ...districtOptions.map((district) => ({ value: district.id, label: district.name })),
-                ]}
-                onValueChange={(value) => {
-                  setDistrictFilter(value);
-                  setVillageFilter("ALL");
-                  setPage(1);
-                }}
-                disabled={!isFieldCoordinator && regencyFilter === "ALL"}
-                placeholder={regencyFilter === "ALL" ? "Pilih Kota/Kabupaten dahulu" : "Semua Kecamatan"}
-                searchPlaceholder="Cari Kecamatan..."
-                emptyText="Kecamatan tidak ditemukan."
-                className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full")}
-              />
-            )}
+              {/* Filter Kecamatan */}
+              {!isFieldOfficer && (
+                <FilterField label="Kecamatan" icon={MapPin} isActive={districtFilter !== "ALL"}>
+                  <SearchableSelect
+                    aria-label="Filter Kecamatan"
+                    value={districtFilter}
+                    options={[
+                      {
+                        value: "ALL",
+                        label: regencyFilter === "ALL" ? "Pilih Kota/Kabupaten dahulu" : "Semua Kecamatan",
+                        disabled: regencyFilter === "ALL",
+                      },
+                      ...districtOptions.map((district) => ({ value: district.id, label: district.name })),
+                    ]}
+                    onValueChange={(value) => {
+                      setDistrictFilter(value);
+                      setVillageFilter("ALL");
+                      setPage(1);
+                    }}
+                    disabled={!isFieldCoordinator && regencyFilter === "ALL"}
+                    placeholder={regencyFilter === "ALL" ? "Pilih Kota/Kabupaten dahulu" : "Semua Kecamatan"}
+                    searchPlaceholder="Cari Kecamatan..."
+                    emptyText="Kecamatan tidak ditemukan."
+                    className="h-9 w-full"
+                  />
+                </FilterField>
+              )}
 
-            {/* 4. Filter Kelurahan/Desa */}
-            <NativeSelect
-              aria-label="Filter Kelurahan atau Desa"
-              value={villageFilter}
-              onChange={(event) => {
-                setVillageFilter(event.target.value);
-                setPage(1);
-              }}
-              disabled={!isFieldOfficer && districtFilter === "ALL"}
-              className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full")}
-            >
-              <option value="ALL">
-                {!isFieldOfficer && districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan"}
-              </option>
-              {villageOptions.map((village) => (
-                <option key={village.id} value={village.id}>
-                  {village.name}
-                  {!isFieldOfficer && districtFilter === "ALL" && village.districtName
-                    ? ` - ${village.districtName}`
-                    : ""}
-                </option>
-              ))}
-            </NativeSelect>
-
-            {/* 5. Filter Petugas Wilayah (Gaswil) */}
-            {!isFieldOfficer && (
-              <SearchableSelect
-                aria-label="Filter Petugas Wilayah (Gaswil)"
-                value={fieldOfficerFilter || "ALL"}
-                options={[
-                  { value: "ALL", label: "Semua Gaswil" },
-                  ...gaswilOptions.map((option) => ({
-                    value: option.assignmentId,
-                    label: `${option.name} (${option.jaringCount} Jaring)`,
-                  })),
-                ]}
-                onValueChange={(value) => {
-                  setFieldOfficerFilter(value === "ALL" ? "" : value);
-                  setPage(1);
-                }}
-                disabled={gaswilOptions.length === 0}
-                placeholder={gaswilOptions.length === 0 ? "Petugas Wilayah belum tersedia" : "Semua Gaswil"}
-                searchPlaceholder="Cari Petugas Wilayah (Gaswil)..."
-                emptyText="Petugas Wilayah (Gaswil) tidak ditemukan."
-                className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full")}
-              />
-            )}
-
-            {/* 6. Jaring Filter Popover */}
-            <div className="w-full">
-              <JaringSelectPopover
-                options={popoverJaringOptions}
-                value={jaringFilter}
-                onValueChange={(val) => {
-                  setJaringFilter(val);
-                  setPage(1);
-                }}
-                allowAllOption
-                allOptionLabel="Semua Jaring"
-                filterVerifiedOnly={false}
-                className="h-9 text-xs w-full"
-              />
+              {/* Filter Kelurahan/Desa */}
+              <FilterField label="Kelurahan / Desa" icon={MapPin} isActive={villageFilter !== "ALL"}>
+                <NativeSelect
+                  aria-label="Filter Kelurahan atau Desa"
+                  value={villageFilter}
+                  onChange={(event) => {
+                    setVillageFilter(event.target.value);
+                    setPage(1);
+                  }}
+                  disabled={!isFieldOfficer && districtFilter === "ALL"}
+                  isActive={villageFilter !== "ALL"}
+                  className="h-9 w-full text-xs"
+                >
+                  <option value="ALL">
+                    {!isFieldOfficer && districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan"}
+                  </option>
+                  {villageOptions.map((village) => (
+                    <option key={village.id} value={village.id}>
+                      {village.name}
+                      {!isFieldOfficer && districtFilter === "ALL" && village.districtName
+                        ? ` - ${village.districtName}`
+                        : ""}
+                    </option>
+                  ))}
+                </NativeSelect>
+              </FilterField>
             </div>
-
-            {/* 7. Filter Periode Waktu */}
-            <NativeSelect
-              aria-label="Filter Periode Waktu"
-              value={periodPreset}
-              onChange={(event) => {
-                setPeriodPreset(event.target.value as typeof periodPreset);
-                setPage(1);
-              }}
-              className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full")}
-            >
-              <option value="TODAY">Hari Ini</option>
-              <option value="LAST_7_DAYS">7 Hari Terakhir</option>
-              <option value="LAST_30_DAYS">30 Hari Terakhir</option>
-              <option value="CUSTOM">Kustom (Pilih Tanggal)</option>
-            </NativeSelect>
           </div>
 
-          {/* BOTTOM ROW: Custom Date Range Filter Inputs & Reset Button */}
-          {periodPreset === "CUSTOM" ||
-          search ||
-          urgencyFilter !== "ALL" ||
-          statusFilter !== "ALL" ||
-          jaringFilter !== "ALL" ||
-          provinceFilter !== (defaultProvinceFilter || "ALL") ||
-          regencyFilter !== "ALL" ||
-          districtFilter !== "ALL" ||
-          villageFilter !== "ALL" ||
-          categoryFilter ||
-          areaFilter ||
-          fieldOfficerFilter ||
-          attachmentFilter ||
-          coordinateSourceFilter ||
-          locationFilter ||
-          periodPreset !== "TODAY" ||
-          startDate ||
-          endDate ? (
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-3 border-t border-slate-100 dark:border-white/5 text-xs">
-              {periodPreset === "CUSTOM" ? (
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-muted-foreground flex items-center gap-1.5 font-medium shrink-0">
-                    <Calendar className="size-3.5 text-sky-500" /> Tanggal:
-                  </span>
+          {/* BARIS 3: KELOMPOK PELAPOR & PEMBINA LAPANGAN */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {/* Filter Petugas Wilayah (Gaswil) */}
+            {!isFieldOfficer && (
+              <FilterField label="Petugas Wilayah (Gaswil)" icon={User} isActive={Boolean(fieldOfficerFilter)}>
+                <SearchableSelect
+                  aria-label="Filter Petugas Wilayah (Gaswil)"
+                  value={fieldOfficerFilter || "ALL"}
+                  options={[
+                    { value: "ALL", label: "Semua Gaswil" },
+                    ...gaswilOptions.map((option) => ({
+                      value: option.assignmentId,
+                      label: `${option.name} (${option.jaringCount} Jaring)`,
+                    })),
+                  ]}
+                  onValueChange={(value) => {
+                    setFieldOfficerFilter(value === "ALL" ? "" : value);
+                    setPage(1);
+                  }}
+                  disabled={gaswilOptions.length === 0}
+                  placeholder={gaswilOptions.length === 0 ? "Petugas Wilayah belum tersedia" : "Semua Gaswil"}
+                  searchPlaceholder="Cari Petugas Wilayah (Gaswil)..."
+                  emptyText="Petugas Wilayah (Gaswil) tidak ditemukan."
+                  className="h-9 w-full"
+                />
+              </FilterField>
+            )}
 
-                  <Input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => {
-                      setStartDate(e.target.value);
-                      setPage(1);
-                    }}
-                    className={cn(DC_CONTROLS.input, "h-8 w-[135px] px-2 text-xs")}
-                  />
-                  <span className="text-muted-foreground font-medium">s.d</span>
-                  <Input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => {
-                      setEndDate(e.target.value);
-                      setPage(1);
-                    }}
-                    className={cn(DC_CONTROLS.input, "h-8 w-[135px] px-2 text-xs")}
-                  />
-                </div>
-              ) : (
-                <div />
-              )}
+            {/* Jaring Filter Popover */}
+            <FilterField label="Jaring Pelapor" icon={Users} isActive={jaringFilter !== "ALL"}>
+              <div className="w-full">
+                <JaringSelectPopover
+                  options={popoverJaringOptions}
+                  value={jaringFilter}
+                  onValueChange={(val) => {
+                    setJaringFilter(val);
+                    setPage(1);
+                  }}
+                  allowAllOption
+                  allOptionLabel="Semua Jaring"
+                  filterVerifiedOnly={false}
+                  className="h-9 w-full text-xs"
+                />
+              </div>
+            </FilterField>
+          </div>
 
-              {(search ||
-                urgencyFilter !== "ALL" ||
-                statusFilter !== "ALL" ||
-                jaringFilter !== "ALL" ||
-                provinceFilter !== (defaultProvinceFilter || "ALL") ||
-                regencyFilter !== "ALL" ||
-                districtFilter !== "ALL" ||
-                villageFilter !== "ALL" ||
-                categoryFilter ||
-                areaFilter ||
-                fieldOfficerFilter ||
-                attachmentFilter ||
-                coordinateSourceFilter ||
-                locationFilter ||
-                periodPreset !== "TODAY" ||
-                startDate ||
-                endDate) && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleResetFilters}
-                  className="h-8 text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 font-medium"
-                >
-                  Reset Filter
-                </Button>
-              )}
+          {/* CUSTOM PERIOD DATE RANGE */}
+          {periodPreset === "CUSTOM" && (
+            <div className="flex flex-wrap items-center gap-3 rounded-md border border-primary/30 border-dashed bg-primary/[0.02] p-3 text-xs">
+              <span className="flex items-center gap-1.5 font-mono font-semibold text-[10px] text-muted-foreground uppercase tracking-wider">
+                <Calendar className="size-3.5 text-primary" />
+                Rentang Tanggal Kustom:
+              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">Dari:</span>
+                <Input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => {
+                    setStartDate(e.target.value);
+                    setPage(1);
+                  }}
+                  className={cn(DC_CONTROLS.input, "h-8 w-[145px] px-2 text-xs")}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">s.d:</span>
+                <Input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => {
+                    setEndDate(e.target.value);
+                    setPage(1);
+                  }}
+                  className={cn(DC_CONTROLS.input, "h-8 w-[145px] px-2 text-xs")}
+                />
+              </div>
             </div>
-          ) : null}
+          )}
+
+          {/* ACTIVE FILTER CHIPS ROW */}
+          <ActiveFilterChips chips={activeFilterChips} onResetAll={handleResetFilters} />
         </div>
       </div>
 
       {/* DATA CONTENT (CARD VIEW VS TABLE VIEW) */}
       {loadingList ? (
         <div className="flex flex-col items-center justify-center rounded-md border border-slate-200 bg-card p-12 text-center dark:border-white/10">
-          <RefreshCw className="size-8 animate-spin text-emerald-500 mb-3" />
-          <p className="text-sm font-medium text-muted-foreground">Memuat data laporan Jaring...</p>
+          <RefreshCw className="mb-3 size-8 animate-spin text-emerald-500" />
+          <p className="font-medium text-muted-foreground text-sm">Memuat data laporan Jaring...</p>
         </div>
       ) : loadError ? (
         <Card>
@@ -1248,9 +1432,9 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
         </Card>
       ) : reportTotal === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-md border border-slate-200 bg-card p-12 text-center dark:border-white/10">
-          <DOMAIN_VISUALS.jaringReport.Icon className="size-10 text-muted-foreground/50 mb-3" />
-          <p className="text-base font-semibold text-foreground">Tidak ada laporan ditemukan</p>
-          <p className="text-xs text-muted-foreground mt-1 max-w-md">
+          <DOMAIN_VISUALS.jaringReport.Icon className="mb-3 size-10 text-muted-foreground/50" />
+          <p className="font-semibold text-base text-foreground">Tidak ada laporan ditemukan</p>
+          <p className="mt-1 max-w-md text-muted-foreground text-xs">
             Cobalah untuk memuat ulang data atau sesuaikan filter pencarian Anda.
           </p>
           <Button variant="outline" size="sm" onClick={handleResetFilters} className="mt-4 text-xs">
@@ -1260,7 +1444,7 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
       ) : viewMode === "card" ? (
         /* CARD VIEW LAYOUT (MATCHING REFERENCE IMAGE) */
         <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {paginatedReports.map((item) => {
               const urgencyStyle = getUrgencyCardStyle(item.urgency);
               const displayStatus = getReportDisplayStatus(item);
@@ -1288,24 +1472,24 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                   {/* Card Header Pills */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 flex-wrap">
+                      <div className="flex flex-wrap items-center gap-2">
                         {hasBaketUrgency ? (
                           <Badge
                             variant="outline"
-                            className={cn("text-[10px] font-extrabold tracking-wider", urgencyStyle.badge)}
+                            className={cn("font-extrabold text-[10px] tracking-wider", urgencyStyle.badge)}
                           >
                             {urgencyStyle.label}
                           </Badge>
                         ) : null}
 
                         {/* Reference / Code Badge */}
-                        <span className="px-2 py-0.5 rounded text-[11px] font-mono font-medium bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-300">
+                        <span className="rounded bg-slate-100 px-2 py-0.5 font-medium font-mono text-[11px] text-slate-700 dark:bg-white/10 dark:text-slate-300">
                           {refNum}
                         </span>
                         {isUnread ? (
                           <Badge
                             variant="outline"
-                            className="h-4 px-1 py-0 font-mono text-[9px] font-semibold border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                            className="h-4 border-amber-500/40 bg-amber-500/10 px-1 py-0 font-mono font-semibold text-[9px] text-amber-600 dark:text-amber-400"
                           >
                             BARU
                           </Badge>
@@ -1316,7 +1500,7 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                       <Badge
                         variant="outline"
                         className={cn(
-                          "text-[10px] px-2 py-0.5 font-medium shrink-0",
+                          "shrink-0 px-2 py-0.5 font-medium text-[10px]",
                           verificationStatusBadgeVariant(displayStatus),
                         )}
                       >
@@ -1326,8 +1510,8 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
 
                     {/* Title */}
                     <div>
-                      <h3 className="font-semibold text-base text-foreground leading-snug line-clamp-2">{title}</h3>
-                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{item.content || "-"}</p>
+                      <h3 className="line-clamp-2 font-semibold text-base text-foreground leading-snug">{title}</h3>
+                      <p className="mt-1 line-clamp-2 text-muted-foreground text-xs">{item.content || "-"}</p>
                     </div>
                     <JaringIdentitySummary
                       compact
@@ -1348,9 +1532,9 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                   </div>
 
                   {/* Card Footer Info & Actions */}
-                  <div className="mt-4 pt-3 border-t border-slate-100 dark:border-white/10 space-y-3">
+                  <div className="mt-4 space-y-3 border-slate-100 border-t pt-3 dark:border-white/10">
                     {/* Metadata indicators row */}
-                    <div className="flex flex-wrap items-center justify-between text-xs text-muted-foreground gap-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-muted-foreground text-xs">
                       <div className="flex items-center gap-3">
                         <span className="flex items-center gap-1">
                           <MessageSquare className="size-3.5 text-sky-500" /> {partsCount} pesan
@@ -1378,7 +1562,7 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                       onClick={() => {
                         if (isFieldOfficer && item.status === "SUBMITTED") markReportAsRead(item.id);
                       }}
-                      className="w-full h-9 text-xs font-bold gap-2 border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-500 transition-colors uppercase tracking-wider"
+                      className="h-9 w-full gap-2 border-emerald-500/40 font-bold text-emerald-600 text-xs uppercase tracking-wider transition-colors hover:bg-emerald-500/10 hover:text-emerald-500 dark:text-emerald-400"
                     >
                       <Link href={`/dashboard/laporan-jaring/${item.id}`}>
                         <Eye className="size-4" /> Lihat Detail
@@ -1408,51 +1592,51 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
           <div className="select-none overflow-x-auto rounded-md border border-slate-200 bg-card shadow-xs dark:border-white/10">
             <Table className="w-full min-w-[1350px]">
               <TableHeader className="bg-slate-50 dark:bg-white/5">
-                <TableRow className="border-b border-slate-200 dark:border-slate-800">
+                <TableRow className="border-slate-200 border-b dark:border-slate-800">
                   {isColVisible("waktuMasuk") && (
-                    <TableHead className="text-xs font-bold uppercase tracking-wider whitespace-nowrap">
+                    <TableHead className="whitespace-nowrap font-bold text-xs uppercase tracking-wider">
                       Waktu Masuk
                     </TableHead>
                   )}
                   {isColVisible("foto") && (
-                    <TableHead className="w-12 text-center text-xs font-bold uppercase tracking-wider">Foto</TableHead>
+                    <TableHead className="w-12 text-center font-bold text-xs uppercase tracking-wider">Foto</TableHead>
                   )}
                   {isColVisible("namaJaring") && (
-                    <TableHead className="text-xs font-bold uppercase tracking-wider">Nama Jaring</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider">Nama Jaring</TableHead>
                   )}
                   {isColVisible("kodeJaring") && (
-                    <TableHead className="text-xs font-bold uppercase tracking-wider">Kode Jaring</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider">Kode Jaring</TableHead>
                   )}
                   {isColVisible("gaswil") && (
-                    <TableHead className="text-xs font-bold uppercase tracking-wider">
+                    <TableHead className="font-bold text-xs uppercase tracking-wider">
                       Petugas Wilayah (Gaswil)
                     </TableHead>
                   )}
                   {isColVisible("whatsapp") && (
-                    <TableHead className="text-xs font-bold uppercase tracking-wider">Nomor WhatsApp</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider">Nomor WhatsApp</TableHead>
                   )}
                   {isColVisible("judulIsi") && (
-                    <TableHead className="min-w-[200px] text-xs font-bold uppercase tracking-wider">
+                    <TableHead className="min-w-[200px] font-bold text-xs uppercase tracking-wider">
                       Judul & Isi Laporan
                     </TableHead>
                   )}
                   {isColVisible("wilayahSumber") && (
-                    <TableHead className="text-xs font-bold uppercase tracking-wider">Lokasi Aktual Laporan</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider">Lokasi Aktual Laporan</TableHead>
                   )}
                   {isColVisible("wilayahPenempatan") && (
-                    <TableHead className="text-xs font-bold uppercase tracking-wider">
+                    <TableHead className="font-bold text-xs uppercase tracking-wider">
                       Wilayah Penempatan Jaring
                     </TableHead>
                   )}
                   {isColVisible("statusProses") && (
-                    <TableHead className="text-xs font-bold uppercase tracking-wider text-center">
+                    <TableHead className="text-center font-bold text-xs uppercase tracking-wider">
                       Status Proses
                     </TableHead>
                   )}
                   {isColVisible("refNum") && (
-                    <TableHead className="text-xs font-bold uppercase tracking-wider">Nomor Referensi</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider">Nomor Referensi</TableHead>
                   )}
-                  <TableHead className="text-xs font-bold uppercase tracking-wider text-right">Aksi</TableHead>
+                  <TableHead className="text-right font-bold text-xs uppercase tracking-wider">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1481,17 +1665,17 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                   return (
                     <TableRow
                       key={item.id}
-                      className="hover:bg-slate-50/50 dark:hover:bg-white/5 border-b border-slate-100 dark:border-slate-800"
+                      className="border-slate-100 border-b hover:bg-slate-50/50 dark:border-slate-800 dark:hover:bg-white/5"
                     >
                       {isColVisible("waktuMasuk") && (
-                        <TableCell className="align-middle text-xs font-mono text-muted-foreground whitespace-nowrap">
+                        <TableCell className="whitespace-nowrap align-middle font-mono text-muted-foreground text-xs">
                           {formatDateTime(item.reportedAt)}
                         </TableCell>
                       )}
 
                       {isColVisible("foto") && (
                         <TableCell className="align-middle">
-                          <div className="size-8 overflow-hidden rounded-none border border-slate-300 bg-slate-100 dark:border-slate-700 dark:bg-slate-900 flex items-center justify-center">
+                          <div className="flex size-8 items-center justify-center overflow-hidden rounded-none border border-slate-300 bg-slate-100 dark:border-slate-700 dark:bg-slate-900">
                             {identity.avatarUrl ? (
                               <img src={identity.avatarUrl} alt={identity.name} className="size-full object-cover" />
                             ) : (
@@ -1502,13 +1686,13 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                       )}
 
                       {isColVisible("namaJaring") && (
-                        <TableCell className="align-middle font-mono font-bold text-xs text-foreground">
+                        <TableCell className="align-middle font-bold font-mono text-foreground text-xs">
                           {identity.name}
                         </TableCell>
                       )}
 
                       {isColVisible("kodeJaring") && (
-                        <TableCell className="align-middle font-mono text-xs text-violet-600 dark:text-violet-400">
+                        <TableCell className="align-middle font-mono text-violet-600 text-xs dark:text-violet-400">
                           {identity.code}
                         </TableCell>
                       )}
@@ -1531,7 +1715,7 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                               href={`https://wa.me/${identity.whatsappNumber.replace(/\D/g, "")}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-emerald-600 hover:underline dark:text-emerald-400 font-mono"
+                              className="font-mono text-emerald-600 hover:underline dark:text-emerald-400"
                             >
                               {identity.whatsappNumber}
                             </a>
@@ -1542,11 +1726,11 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                       )}
 
                       {isColVisible("judulIsi") && (
-                        <TableCell className="align-middle max-w-[280px]">
-                          <p className="font-semibold text-xs text-foreground line-clamp-1">
+                        <TableCell className="max-w-[280px] align-middle">
+                          <p className="line-clamp-1 font-semibold text-foreground text-xs">
                             {item.displayTitle || item.content || "Laporan sedang dibuat"}
                           </p>
-                          <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">{item.content || "-"}</p>
+                          <p className="mt-0.5 line-clamp-1 text-[11px] text-muted-foreground">{item.content || "-"}</p>
                           <p className="mt-0.5 text-[10px] text-muted-foreground">
                             {messageCount} pesan - {mediaCount} media
                           </p>
@@ -1554,23 +1738,23 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                       )}
 
                       {isColVisible("wilayahSumber") && (
-                        <TableCell className="align-middle text-xs font-mono text-foreground">
+                        <TableCell className="align-middle font-mono text-foreground text-xs">
                           {formatFullAreaName(item.resolvedArea)}
                         </TableCell>
                       )}
 
                       {isColVisible("wilayahPenempatan") && (
-                        <TableCell className="align-middle text-xs font-mono text-foreground">
+                        <TableCell className="align-middle font-mono text-foreground text-xs">
                           {identity.placementArea}
                         </TableCell>
                       )}
 
                       {isColVisible("statusProses") && (
-                        <TableCell className="align-middle text-center">
+                        <TableCell className="text-center align-middle">
                           <Badge
                             variant="outline"
                             className={cn(
-                              "text-[10px] px-2 py-0.5 font-medium",
+                              "px-2 py-0.5 font-medium text-[10px]",
                               verificationStatusBadgeVariant(displayStatus),
                             )}
                           >
@@ -1580,13 +1764,13 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                       )}
 
                       {isColVisible("refNum") && (
-                        <TableCell className="font-mono text-xs font-medium text-foreground align-middle">
+                        <TableCell className="align-middle font-medium font-mono text-foreground text-xs">
                           <div className="flex items-center gap-1.5">
                             <span>{refNum}</span>
                             {isUnread ? (
                               <Badge
                                 variant="outline"
-                                className="h-4 px-1 py-0 font-mono text-[9px] font-semibold border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                                className="h-4 border-amber-500/40 bg-amber-500/10 px-1 py-0 font-mono font-semibold text-[9px] text-amber-600 dark:text-amber-400"
                               >
                                 BARU
                               </Badge>
@@ -1595,7 +1779,7 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                         </TableCell>
                       )}
 
-                      <TableCell className="align-middle text-right">
+                      <TableCell className="text-right align-middle">
                         <Button
                           asChild
                           variant="outline"
