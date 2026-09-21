@@ -876,20 +876,6 @@ export function JaringVerificationListClient() {
         {/* SUMMARY CARDS */}
         <div className="grid w-full grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-7">
           <SummaryCard
-            label="Total Jaring yang Diajukan"
-            value={summary.total}
-            icon={DOMAIN_VISUALS.jaring.Icon}
-            iconClass="bg-sky-500/10 text-sky-600 dark:text-sky-400"
-            valueClass="text-foreground"
-            selected={statusFilter === "ALL" && activeStatusFilter === "ALL"}
-            selectedClass="border-sky-500 ring-2 ring-sky-500/30 bg-sky-500/5 dark:bg-sky-500/10"
-            onClick={() => {
-              setStatusFilter("ALL");
-              setActiveStatusFilter("ALL");
-              setPage(1);
-            }}
-          />
-          <SummaryCard
             label="Total Jaring Terverifikasi"
             value={summary.approved}
             icon={CheckCircle2}
@@ -970,6 +956,20 @@ export function JaringVerificationListClient() {
             onClick={() => {
               setStatusFilter("APPROVED");
               setActiveStatusFilter("INACTIVE");
+              setPage(1);
+            }}
+          />
+          <SummaryCard
+            label="Total Jaring yang Diajukan"
+            value={summary.total}
+            icon={DOMAIN_VISUALS.jaring.Icon}
+            iconClass="bg-sky-500/10 text-sky-600 dark:text-sky-400"
+            valueClass="text-foreground"
+            selected={statusFilter === "ALL" && activeStatusFilter === "ALL"}
+            selectedClass="border-sky-500 ring-2 ring-sky-500/30 bg-sky-500/5 dark:bg-sky-500/10"
+            onClick={() => {
+              setStatusFilter("ALL");
+              setActiveStatusFilter("ALL");
               setPage(1);
             }}
           />
