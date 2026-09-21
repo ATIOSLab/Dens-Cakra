@@ -99,6 +99,10 @@ function createFixture() {
     whatsAppMessage: { findFirst: jest.fn().mockResolvedValue(null) },
     integrationWebhookEvent: { findFirst: jest.fn().mockResolvedValue(null) },
     fileAsset: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
+    auditLog: {
+      create: jest.fn().mockResolvedValue({}),
+      findFirst: jest.fn().mockResolvedValue(null),
+    },
   };
   const storage = { remove: jest.fn().mockResolvedValue(undefined) };
   const files = {};
@@ -180,8 +184,31 @@ describe('WhatsAppReportFlowService simplified collector', () => {
     expect(input.reply).toHaveBeenCalled();
   });
 
-  it('ignores casual messages or greetings (like halo or P) that do not contain the 1945 trigger', async () => {
+  it('sends welcome greeting and instructions to type 1945 when an eligible jaring contacts for the first time with empty message', async () => {
     const { service, prisma } = createFixture();
+    const input = inbound('');
+
+    await service.handle(input);
+
+    expect(prisma.auditLog.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          action: 'WHATSAPP_FIRST_CONTACT_WELCOMED',
+          entityId: eligibleJaring.id,
+        }),
+      }),
+    );
+    expect(input.reply).toHaveBeenCalledWith([
+      expect.stringContaining('Nomor WhatsApp Anda telah terverifikasi sebagai Jaring'),
+    ]);
+    expect(input.reply).toHaveBeenCalledWith([
+      expect.stringContaining('*1945*'),
+    ]);
+  });
+
+  it('ignores casual messages or greetings for returning senders who were already welcomed', async () => {
+    const { service, prisma } = createFixture();
+    prisma.auditLog.findFirst.mockResolvedValue({ id: 'audit-welcomed-1' });
     const input = inbound('halo');
 
     await service.handle(input);
@@ -204,8 +231,9 @@ describe('WhatsAppReportFlowService simplified collector', () => {
     expect(replyText.toLowerCase()).not.toContain('intelijen');
   });
 
-  it('ignores empty message when no report draft is active', async () => {
+  it('ignores empty message when returning sender who was already welcomed sends empty message and no report draft is active', async () => {
     const { service, prisma } = createFixture();
+    prisma.auditLog.findFirst.mockResolvedValue({ id: 'audit-welcomed-1' });
     const input = inbound('');
 
     await service.handle(input);

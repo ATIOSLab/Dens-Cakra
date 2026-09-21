@@ -122,6 +122,20 @@ Silakan sampaikan informasi dengan urutan berikut:
 
 • Untuk membatalkan seluruh informasi yang sedang dibuat, ketik *BATAL*.`;
 
+export function formatFirstContactGreeting(jaring?: {
+  fullName?: string | null;
+  aliasName?: string | null;
+} | null) {
+  const name = jaring?.fullName?.trim() || jaring?.aliasName?.trim() || '';
+  const greetingTarget = name ? ` ${name}` : '';
+  return `Salam hormat Bapak/Ibu${greetingTarget}.
+
+Nomor WhatsApp Anda telah terverifikasi sebagai Jaring pada sistem DENS CAKRA.
+
+Untuk menyampaikan informasi atau laporan, silakan balas pesan ini dengan mengetik:
+*1945*`;
+}
+
 const CAPTURE_RESPONSE = `Terima kasih Informasi telah masuk.
 Anda masih dapat menambahkan informasi jika ada.
 
@@ -334,22 +348,47 @@ export class WhatsAppReportFlowService
         text.endsWith(REPORT_TRIGGER) ||
         /\b1945\b/.test(text);
 
-      if (!isTrigger) {
-        // Chat sembarangan / percakapan di luar apel yang bukan kode 1945:
-        // Bot TIDAK BOLEH membalas KANAL INFORMASI dan TIDAK BOLEH membuat draf laporan.
-        this.logger.debug?.(
-          `[Report Flow] Chat dari ${payload.senderPhone} ("${text}") diabaikan karena bukan pemicu laporan '1945'.`,
+      if (isTrigger) {
+        await this.startSession(
+          channel,
+          message,
+          payload,
+          eligibleJaring,
+          reply,
+          'SESSION_STARTED_WITH_GLOBAL_TRIGGER',
         );
         return;
       }
 
-      await this.startSession(
-        channel,
-        message,
-        payload,
-        eligibleJaring,
-        reply,
-        'SESSION_STARTED_WITH_GLOBAL_TRIGGER',
+      const isNewChat = await this.isFirstTimeChat(
+        payload.senderPhone,
+        eligibleJaring.id,
+      );
+
+      if (isNewChat) {
+        await this.prisma.auditLog.create({
+          data: {
+            action: 'WHATSAPP_FIRST_CONTACT_WELCOMED',
+            entityType: 'Jaring',
+            entityId: eligibleJaring.id,
+            category: 'ACTIVITY',
+            severity: 'INFO',
+            outcome: 'SUCCESS',
+            metadata: {
+              phone: payload.senderPhone,
+              channelId: channel.id,
+              externalMessageId: payload.externalMessageId,
+            },
+          },
+        });
+        await reply([formatFirstContactGreeting(eligibleJaring)]);
+        return;
+      }
+
+      // Chat sembarangan / percakapan di luar apel yang bukan kode 1945:
+      // Bot TIDAK BOLEH membalas KANAL INFORMASI dan TIDAK BOLEH membuat draf laporan.
+      this.logger.debug?.(
+        `[Report Flow] Chat dari ${payload.senderPhone} ("${text}") diabaikan karena bukan pemicu laporan '1945'.`,
       );
       return;
     }
@@ -1052,22 +1091,31 @@ export class WhatsAppReportFlowService
       ]),
     );
 
-    const [previousReport, previousSession] = await Promise.all([
-      this.prisma.whatsAppMessage.findFirst({
-        where: {
-          OR: [{ jaringId }, { senderPhone: { in: candidates } }],
-        },
-        select: { id: true },
-      }),
-      this.prisma.whatsAppReportSession.findFirst({
-        where: {
-          OR: [{ jaringId }, { senderPhone: { in: candidates } }],
-        },
-        select: { id: true },
-      }),
-    ]);
+    const [previousReport, previousSession, previousWelcomed] =
+      await Promise.all([
+        this.prisma.whatsAppMessage.findFirst({
+          where: {
+            OR: [{ jaringId }, { senderPhone: { in: candidates } }],
+          },
+          select: { id: true },
+        }),
+        this.prisma.whatsAppReportSession.findFirst({
+          where: {
+            OR: [{ jaringId }, { senderPhone: { in: candidates } }],
+          },
+          select: { id: true },
+        }),
+        this.prisma.auditLog.findFirst({
+          where: {
+            action: 'WHATSAPP_FIRST_CONTACT_WELCOMED',
+            entityType: 'Jaring',
+            entityId: jaringId,
+          },
+          select: { id: true },
+        }),
+      ]);
 
-    return !previousReport && !previousSession;
+    return !previousReport && !previousSession && !previousWelcomed;
   }
 
   private extractLiveLocation(message: WAMessage) {
