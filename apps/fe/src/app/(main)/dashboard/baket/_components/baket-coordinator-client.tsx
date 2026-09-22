@@ -10,6 +10,7 @@ import {
   Calendar,
   Clock,
   Download,
+  ExternalLink,
   Eye,
   ImageIcon,
   Layers,
@@ -87,6 +88,7 @@ import {
   getBaketVersionLabel,
   type PriorityLevel,
 } from "./baket-data";
+import { BaketPreviewModal } from "./baket-preview-modal";
 import { BAKET_URGENCY_LABELS, BaketSummaryCards } from "./baket-summary-cards";
 
 function formatDateTime(value?: string | null) {
@@ -224,6 +226,21 @@ export function BaketCoordinatorClient({ role }: { role?: SystemRole } = {}) {
 
   // View Mode: Card vs Table
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
+
+  // Pop-up Preview Modal state
+  const [previewBaket, setPreviewBaket] = useState<BaketRecord | null>(null);
+
+  function handleOpenPreview(item: BaketRecord) {
+    setPreviewBaket(item);
+  }
+
+  function handleRowClick(e: React.MouseEvent, item: BaketRecord) {
+    const target = e.target as HTMLElement | null;
+    if (target?.closest("a, button")) {
+      return;
+    }
+    handleOpenPreview(item);
+  }
 
   // Filters
   const [search, setSearch] = useState("");
@@ -903,9 +920,7 @@ export function BaketCoordinatorClient({ role }: { role?: SystemRole } = {}) {
                   <MapPin className="size-3.5 text-primary" />
                   <span>Hierarki Cakupan Wilayah (Provinsi → Kota/Kab → Kecamatan → Kelurahan)</span>
                 </div>
-                {hasAreaFilter && (
-                  <span className="font-mono text-[10px] text-primary">Tersaring spesifik</span>
-                )}
+                {hasAreaFilter && <span className="font-mono text-[10px] text-primary">Tersaring spesifik</span>}
               </div>
 
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -939,41 +954,47 @@ export function BaketCoordinatorClient({ role }: { role?: SystemRole } = {}) {
                 )}
 
                 {/* 2. Filter Kota/Kabupaten (sembunyikan untuk Korwil & Gaswil yang sudah ter-scope) */}
-                {!isFieldOfficer && !isFieldCoordinator && (regencyOptions.length > 0 || provinceOptions.length > 0) && (
-                  <FilterField
-                    label="Kota / Kabupaten"
-                    icon={<MapPin className="size-3.5" />}
-                    isActive={regencyFilter !== "ALL"}
-                  >
-                    <SearchableSelect
-                      aria-label="Filter Kota/Kabupaten"
-                      value={regencyFilter}
-                      options={[
-                        {
-                          value: "ALL",
-                          label: provinceFilter === "ALL" ? "Pilih Provinsi dahulu" : "Semua Kota/Kabupaten",
-                          disabled: provinceFilter === "ALL",
-                        },
-                        ...regencyOptions.map((regency) => ({ value: regency.id, label: regency.name })),
-                      ]}
-                      onValueChange={(value) => {
-                        setRegencyFilter(value);
-                        setDistrictFilter("ALL");
-                        setVillageFilter("ALL");
-                        setPage(1);
-                      }}
-                      disabled={provinceFilter === "ALL"}
-                      placeholder={provinceFilter === "ALL" ? "Pilih Provinsi dahulu" : "Semua Kota/Kabupaten"}
-                      searchPlaceholder="Cari Kota/Kabupaten..."
-                      emptyText="Kota/Kabupaten tidak ditemukan."
-                      className="h-9 w-full"
-                    />
-                  </FilterField>
-                )}
+                {!isFieldOfficer &&
+                  !isFieldCoordinator &&
+                  (regencyOptions.length > 0 || provinceOptions.length > 0) && (
+                    <FilterField
+                      label="Kota / Kabupaten"
+                      icon={<MapPin className="size-3.5" />}
+                      isActive={regencyFilter !== "ALL"}
+                    >
+                      <SearchableSelect
+                        aria-label="Filter Kota/Kabupaten"
+                        value={regencyFilter}
+                        options={[
+                          {
+                            value: "ALL",
+                            label: provinceFilter === "ALL" ? "Pilih Provinsi dahulu" : "Semua Kota/Kabupaten",
+                            disabled: provinceFilter === "ALL",
+                          },
+                          ...regencyOptions.map((regency) => ({ value: regency.id, label: regency.name })),
+                        ]}
+                        onValueChange={(value) => {
+                          setRegencyFilter(value);
+                          setDistrictFilter("ALL");
+                          setVillageFilter("ALL");
+                          setPage(1);
+                        }}
+                        disabled={provinceFilter === "ALL"}
+                        placeholder={provinceFilter === "ALL" ? "Pilih Provinsi dahulu" : "Semua Kota/Kabupaten"}
+                        searchPlaceholder="Cari Kota/Kabupaten..."
+                        emptyText="Kota/Kabupaten tidak ditemukan."
+                        className="h-9 w-full"
+                      />
+                    </FilterField>
+                  )}
 
                 {/* 3. Filter Kecamatan */}
                 {!isFieldOfficer && (
-                  <FilterField label="Kecamatan" icon={<MapPin className="size-3.5" />} isActive={districtFilter !== "ALL"}>
+                  <FilterField
+                    label="Kecamatan"
+                    icon={<MapPin className="size-3.5" />}
+                    isActive={districtFilter !== "ALL"}
+                  >
                     <SearchableSelect
                       aria-label="Filter Kecamatan"
                       value={districtFilter}
@@ -1011,7 +1032,8 @@ export function BaketCoordinatorClient({ role }: { role?: SystemRole } = {}) {
                     options={[
                       {
                         value: "ALL",
-                        label: !isFieldOfficer && districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan",
+                        label:
+                          !isFieldOfficer && districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan",
                         disabled: !isFieldOfficer && districtFilter === "ALL",
                       },
                       ...villageOptions.map((village) => ({ value: village.id, label: village.name })),
@@ -1021,7 +1043,9 @@ export function BaketCoordinatorClient({ role }: { role?: SystemRole } = {}) {
                       setPage(1);
                     }}
                     disabled={!isFieldOfficer && districtFilter === "ALL"}
-                    placeholder={!isFieldOfficer && districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan"}
+                    placeholder={
+                      !isFieldOfficer && districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan"
+                    }
                     searchPlaceholder="Cari Kelurahan/Desa..."
                     emptyText="Kelurahan/Desa tidak ditemukan."
                     className="h-9 w-full"
@@ -1118,8 +1142,9 @@ export function BaketCoordinatorClient({ role }: { role?: SystemRole } = {}) {
               return (
                 <div
                   key={item.id}
+                  onClick={(e) => handleRowClick(e, item)}
                   className={cn(
-                    "flex flex-col justify-between rounded-xl border bg-card p-4 transition-all duration-200 hover:scale-[1.01]",
+                    "flex flex-col justify-between rounded-xl border bg-card p-4 transition-all duration-200 hover:scale-[1.01] cursor-pointer hover:shadow-md",
                     urgencyStyle.border,
                   )}
                 >
@@ -1186,18 +1211,35 @@ export function BaketCoordinatorClient({ role }: { role?: SystemRole } = {}) {
                       <span className="font-mono">{getBaketVersionLabel(item)}</span>
                     </div>
 
-                    <Button
-                      asChild
-                      variant="outline"
-                      className={cn(
-                        "h-9 w-full gap-2 border font-bold text-xs uppercase tracking-wider transition-colors",
-                        urgencyStyle.button,
-                      )}
-                    >
-                      <Link href={getBaketHref(item)}>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenPreview(item);
+                        }}
+                        className={cn(
+                          "h-9 flex-1 gap-2 border font-bold text-xs uppercase tracking-wider transition-colors",
+                          urgencyStyle.button,
+                        )}
+                      >
                         <Eye className="size-4" /> Lihat Detail Baket
-                      </Link>
-                    </Button>
+                      </Button>
+                      <Button
+                        asChild
+                        variant="outline"
+                        size="icon"
+                        onClick={(e) => e.stopPropagation()}
+                        title="Buka di tab baru"
+                        className="h-9 w-9 shrink-0 border-slate-300 text-muted-foreground hover:text-foreground dark:border-slate-700"
+                      >
+                        <Link href={getBaketHref(item)} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="size-4" />
+                          <span className="sr-only">Buka di tab baru</span>
+                        </Link>
+                      </Button>
+                    </div>
                   </div>
                 </div>
               );
@@ -1275,7 +1317,8 @@ export function BaketCoordinatorClient({ role }: { role?: SystemRole } = {}) {
                   return (
                     <TableRow
                       key={item.id}
-                      className="border-slate-100 border-b hover:bg-slate-50/50 dark:border-slate-800 dark:hover:bg-white/5"
+                      onClick={(e) => handleRowClick(e, item)}
+                      className="cursor-pointer border-slate-100 border-b hover:bg-slate-50/80 dark:border-slate-800 dark:hover:bg-white/10 transition-colors"
                     >
                       {isColVisible("refNum") && (
                         <TableCell className="align-middle font-medium font-mono text-foreground text-xs">
@@ -1387,18 +1430,35 @@ export function BaketCoordinatorClient({ role }: { role?: SystemRole } = {}) {
                         </TableCell>
                       )}
 
-                      <TableCell className="text-right align-middle">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          asChild
-                          className="h-8 gap-1.5 rounded-lg border-sky-500/30 px-2.5 font-medium text-sky-600 text-xs hover:bg-sky-500/10 dark:text-sky-400"
-                        >
-                          <Link href={getBaketHref(item)}>
+                      <TableCell className="text-right align-middle whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenPreview(item);
+                            }}
+                            className="h-8 gap-1.5 rounded-lg border-sky-500/30 px-2.5 font-medium text-sky-600 text-xs hover:bg-sky-500/10 dark:text-sky-400"
+                          >
                             <Eye className="size-3.5" />
                             Detail
-                          </Link>
-                        </Button>
+                          </Button>
+                          <Button
+                            asChild
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={(e) => e.stopPropagation()}
+                            title="Buka di tab baru"
+                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                          >
+                            <Link href={getBaketHref(item)} target="_blank" rel="noopener noreferrer">
+                              <ExternalLink className="size-3.5" />
+                              <span className="sr-only">Buka di tab baru</span>
+                            </Link>
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
@@ -1419,6 +1479,15 @@ export function BaketCoordinatorClient({ role }: { role?: SystemRole } = {}) {
           />
         </div>
       )}
+
+      {/* Pop-up Preview Modal */}
+      <BaketPreviewModal
+        baket={previewBaket}
+        open={Boolean(previewBaket)}
+        onOpenChange={(open) => {
+          if (!open) setPreviewBaket(null);
+        }}
+      />
     </main>
   );
 }

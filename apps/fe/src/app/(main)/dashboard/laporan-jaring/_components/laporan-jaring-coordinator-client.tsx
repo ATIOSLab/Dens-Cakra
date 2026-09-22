@@ -9,6 +9,7 @@ import {
   Calendar,
   Clock,
   Download,
+  ExternalLink,
   Eye,
   ImageIcon,
   MapPin,
@@ -75,6 +76,7 @@ import {
   verificationStatusBadgeVariant,
   verificationStatusLabel,
 } from "./laporan-jaring-presentation";
+import { LaporanJaringPreviewModal } from "./laporan-jaring-preview-modal";
 import {
   formatFullAreaName,
   type JaringReportSessionDetail,
@@ -339,6 +341,24 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
     } catch {
       // Abaikan cache lokal yang tidak dapat ditulis.
     }
+  }
+
+  // Pop-up Preview Modal state
+  const [previewReport, setPreviewReport] = useState<JaringReportSessionDetail | null>(null);
+
+  function handleOpenPreview(item: JaringReportSessionDetail) {
+    if (isFieldOfficer && item.status === "SUBMITTED") {
+      markReportAsRead(item.id);
+    }
+    setPreviewReport(item);
+  }
+
+  function handleRowClick(e: React.MouseEvent, item: JaringReportSessionDetail) {
+    const target = e.target as HTMLElement | null;
+    if (target?.closest("a, button")) {
+      return;
+    }
+    handleOpenPreview(item);
   }
 
   // Filters
@@ -1464,8 +1484,9 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
               return (
                 <div
                   key={item.id}
+                  onClick={(e) => handleRowClick(e, item)}
                   className={cn(
-                    "flex flex-col justify-between rounded-md border bg-card p-4 transition-all duration-200 hover:scale-[1.01]",
+                    "flex flex-col justify-between rounded-md border bg-card p-4 transition-all duration-200 hover:scale-[1.01] cursor-pointer hover:shadow-md",
                     hasBaketUrgency ? urgencyStyle.border : "border-border",
                   )}
                 >
@@ -1555,19 +1576,36 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                       </span>
                     </div>
 
-                    {/* Action button */}
-                    <Button
-                      asChild
-                      variant="outline"
-                      onClick={() => {
-                        if (isFieldOfficer && item.status === "SUBMITTED") markReportAsRead(item.id);
-                      }}
-                      className="h-9 w-full gap-2 border-emerald-500/40 font-bold text-emerald-600 text-xs uppercase tracking-wider transition-colors hover:bg-emerald-500/10 hover:text-emerald-500 dark:text-emerald-400"
-                    >
-                      <Link href={`/dashboard/laporan-jaring/${item.id}`}>
+                    {/* Action buttons */}
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenPreview(item);
+                        }}
+                        className="h-9 flex-1 gap-2 border-emerald-500/40 font-bold text-emerald-600 text-xs uppercase tracking-wider transition-colors hover:bg-emerald-500/10 hover:text-emerald-500 dark:text-emerald-400"
+                      >
                         <Eye className="size-4" /> Lihat Detail
-                      </Link>
-                    </Button>
+                      </Button>
+                      <Button
+                        asChild
+                        variant="outline"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (isFieldOfficer && item.status === "SUBMITTED") markReportAsRead(item.id);
+                        }}
+                        title="Buka di tab baru"
+                        className="h-9 w-9 shrink-0 border-slate-300 text-muted-foreground hover:text-foreground dark:border-slate-700"
+                      >
+                        <Link href={`/dashboard/laporan-jaring/${item.id}`} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="size-4" />
+                          <span className="sr-only">Buka di tab baru</span>
+                        </Link>
+                      </Button>
+                    </div>
                   </div>
                 </div>
               );
@@ -1665,7 +1703,8 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                   return (
                     <TableRow
                       key={item.id}
-                      className="border-slate-100 border-b hover:bg-slate-50/50 dark:border-slate-800 dark:hover:bg-white/5"
+                      onClick={(e) => handleRowClick(e, item)}
+                      className="cursor-pointer border-slate-100 border-b hover:bg-slate-50/80 dark:border-slate-800 dark:hover:bg-white/10 transition-colors"
                     >
                       {isColVisible("waktuMasuk") && (
                         <TableCell className="whitespace-nowrap align-middle font-mono text-muted-foreground text-xs">
@@ -1779,20 +1818,41 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                         </TableCell>
                       )}
 
-                      <TableCell className="text-right align-middle">
-                        <Button
-                          asChild
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            if (isFieldOfficer && item.status === "SUBMITTED") markReportAsRead(item.id);
-                          }}
-                          className="h-8 gap-1.5 rounded-md border-sky-500/30 px-2.5 font-medium text-sky-600 text-xs hover:bg-sky-500/10 dark:text-sky-400"
-                        >
-                          <Link href={`/dashboard/laporan-jaring/${item.id}`}>
+                      <TableCell className="text-right align-middle whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenPreview(item);
+                            }}
+                            className="h-8 gap-1.5 rounded-md border-sky-500/30 px-2.5 font-medium text-sky-600 text-xs hover:bg-sky-500/10 dark:text-sky-400"
+                          >
                             <Eye className="size-3.5" /> Detail
-                          </Link>
-                        </Button>
+                          </Button>
+                          <Button
+                            asChild
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (isFieldOfficer && item.status === "SUBMITTED") markReportAsRead(item.id);
+                            }}
+                            title="Buka di tab baru"
+                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                          >
+                            <Link
+                              href={`/dashboard/laporan-jaring/${item.id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <ExternalLink className="size-3.5" />
+                              <span className="sr-only">Buka di tab baru</span>
+                            </Link>
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
@@ -1814,6 +1874,15 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
           />
         </div>
       )}
+
+      {/* Pop-up Preview Modal */}
+      <LaporanJaringPreviewModal
+        report={previewReport}
+        open={Boolean(previewReport)}
+        onOpenChange={(open) => {
+          if (!open) setPreviewReport(null);
+        }}
+      />
     </main>
   );
 }
