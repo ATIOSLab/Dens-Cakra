@@ -135,10 +135,10 @@ export function JaringExportPdfDialog({
               </div>
               <div>
                 <DialogTitle className="font-semibold text-sm text-white tracking-tight">
-                  Ekspor Dokumen PDF Profiling Jaring
+                  Ekspor Dokumen PDF Buku Jaring
                 </DialogTitle>
                 <DialogDescription className="text-[11px] text-slate-400">
-                  Format buku dossier lanskap A4 dengan foto profil, rekapitulasi, dan daftar isi
+                  Format buku dossier lanskap A4 dengan foto, rekapitulasi wilayah berjenjang, dan daftar isi
                 </DialogDescription>
               </div>
             </div>
