@@ -5,7 +5,7 @@ import { apiServerFetch } from "@/lib/api/server-client";
 import { storeReportPayloadForPrint } from "@/lib/auth/internal-print-token";
 import { getSessionPrincipal } from "@/lib/auth/server-session";
 
-import { execFile } from "node:child_process";
+import { execFile, execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -22,14 +22,32 @@ function findBrowserBinary(): string | null {
     "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
     "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
     "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe",
+    "/usr/bin/google-chrome-stable",
     "/usr/bin/google-chrome",
     "/usr/bin/chromium",
     "/usr/bin/chromium-browser",
+    "/snap/bin/chromium",
+    "/opt/google/chrome/chrome",
+    "/usr/local/bin/chrome",
+    "/usr/local/bin/chromium",
   ].filter(Boolean) as string[];
 
   for (const bin of candidates) {
     if (fs.existsSync(bin)) return bin;
   }
+
+  // Also check which/command in PATH if running on Linux
+  if (process.platform === "linux") {
+    for (const name of ["google-chrome-stable", "google-chrome", "chromium", "chromium-browser", "chrome"]) {
+      try {
+        const out = execFileSync("which", [name], { encoding: "utf8" }).trim();
+        if (out && fs.existsSync(out)) return out;
+      } catch {
+        // Continue
+      }
+    }
+  }
+
   return null;
 }
 
@@ -122,6 +140,9 @@ export async function GET(request: NextRequest) {
     // Execute Chromium / Edge CLI to render exact 13 A4 pages PDF
     await execFileAsync(browserBin, [
       "--headless=new",
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage",
       "--disable-gpu",
       "--no-pdf-header-footer",
       "--run-all-compositor-stages-before-draw",
