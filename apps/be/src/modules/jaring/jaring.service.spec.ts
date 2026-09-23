@@ -72,7 +72,14 @@ describe('JaringService registration security', () => {
   it('memfilter Jaring berdasarkan kelurahan turunan dari cakupan wilayah', async () => {
     const findMany = jest.fn(() => Promise.resolve([]));
     const service = createService(
-      { jaring: { findMany } },
+      {
+        jaring: { findMany },
+        administrativeAreaClosure: {
+          findMany: jest.fn(() =>
+            Promise.resolve([{ descendantId: 'village-id' }]),
+          ),
+        },
+      },
       {
         resolve: jest.fn(() =>
           Promise.resolve({
@@ -98,15 +105,8 @@ describe('JaringService registration security', () => {
               areaCoverages: {
                 some: {
                   validUntil: null,
-                  area: {
-                    OR: [
-                      { id: { in: ['district-id'] } },
-                      {
-                        descendantLinks: {
-                          some: { ancestorId: { in: ['district-id'] } },
-                        },
-                      },
-                    ],
+                  areaId: {
+                    in: expect.arrayContaining(['district-id', 'village-id']),
                   },
                 },
               },

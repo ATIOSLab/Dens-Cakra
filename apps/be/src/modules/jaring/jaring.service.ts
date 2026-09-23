@@ -1165,38 +1165,39 @@ export class JaringService {
     };
   }
 
-  private scopedJaringAreaWhere(
+  private async scopedJaringAreaWhere(
     scope: { areaRootIds: string[] },
     context?: AuthorizationContext,
-  ) {
+  ): Promise<Prisma.JaringWhereInput> {
     const isNationalSupervision =
       context &&
       (context.authRole === SYSTEM_ROLES.EXECUTIVE ||
         context.authRole === SYSTEM_ROLES.NATIONAL_LEADER ||
         context.authRole === SYSTEM_ROLES.ADMIN_SYSTEM ||
-        context.areaScopes.some((s) => s.level === 'COUNTRY'));
+        (context.areaScopes?.some((s) => s.level === 'COUNTRY') ?? false));
 
     if (isNationalSupervision || scope.areaRootIds.length === 0) {
       return {};
     }
 
+    const closures = this.prisma.administrativeAreaClosure
+      ? await this.prisma.administrativeAreaClosure.findMany({
+          where: { ancestorId: { in: scope.areaRootIds } },
+          select: { descendantId: true },
+        })
+      : [];
+    const scopedAreaIds = Array.from(
+      new Set([...scope.areaRootIds, ...closures.map((c) => c.descendantId)]),
+    );
+
     return {
       areaCoverages: {
         some: {
           validUntil: null,
-          area: {
-            OR: [
-              { id: { in: scope.areaRootIds } },
-              {
-                descendantLinks: {
-                  some: { ancestorId: { in: scope.areaRootIds } },
-                },
-              },
-            ],
-          },
+          areaId: { in: scopedAreaIds },
         },
       },
-    } satisfies Prisma.JaringWhereInput;
+    };
   }
 
   private async status(
@@ -1243,13 +1244,51 @@ export class JaringService {
       context.authRole === SYSTEM_ROLES.EXECUTIVE ||
       context.authRole === SYSTEM_ROLES.NATIONAL_LEADER ||
       context.authRole === SYSTEM_ROLES.ADMIN_SYSTEM ||
-      context.areaScopes.some((s) => s.level === 'COUNTRY');
+      (context.areaScopes?.some((s) => s.level === 'COUNTRY') ?? false);
     const page = query.page ?? 1;
     const search = query.search?.trim();
     const phoneSearchVariants = search
       ? getIndonesianPhoneSearchVariants(search)
       : [];
-    const scopedAreaWhere = this.scopedJaringAreaWhere(scope, context);
+
+    const [scopedAreaWhere, filterAreaIds, matchedAreaIds] = await Promise.all([
+      this.scopedJaringAreaWhere(scope, context),
+      query.areaId && this.prisma.administrativeAreaClosure
+        ? this.prisma.administrativeAreaClosure
+            .findMany({
+              where: { ancestorId: query.areaId },
+              select: { descendantId: true },
+            })
+            .then((closures) =>
+              Array.from(
+                new Set([
+                  query.areaId as string,
+                  ...closures.map((c) => c.descendantId),
+                ]),
+              ),
+            )
+        : Promise.resolve(null),
+      search && search.length >= 2 && this.prisma.administrativeArea
+        ? this.prisma.administrativeArea
+            .findMany({
+              where: { name: { contains: search, mode: 'insensitive' } },
+              select: { id: true },
+              take: 50,
+            })
+            .then(async (matchedAreas) => {
+              if (matchedAreas.length === 0 || !this.prisma.administrativeAreaClosure) return [];
+              const rawIds = matchedAreas.map((a) => a.id);
+              const closures =
+                await this.prisma.administrativeAreaClosure.findMany({
+                  where: { ancestorId: { in: rawIds } },
+                  select: { descendantId: true },
+                });
+              return Array.from(
+                new Set([...rawIds, ...closures.map((c) => c.descendantId)]),
+              );
+            })
+        : Promise.resolve([]),
+    ]);
 
     const threeMonthsAgo = new Date();
     threeMonthsAgo.setDate(threeMonthsAgo.getDate() - 90);
@@ -1258,22 +1297,13 @@ export class JaringService {
       deletedAt: null,
       AND: [
         scopedAreaWhere,
-        ...(query.areaId
+        ...(filterAreaIds
           ? [
               {
                 areaCoverages: {
                   some: {
                     validUntil: null,
-                    area: {
-                      OR: [
-                        { id: query.areaId },
-                        {
-                          descendantLinks: {
-                            some: { ancestorId: query.areaId },
-                          },
-                        },
-                      ],
-                    },
+                    areaId: { in: filterAreaIds },
                   },
                 },
               } satisfies Prisma.JaringWhereInput,
@@ -1314,30 +1344,18 @@ export class JaringService {
                       },
                     },
                   },
-                  {
-                    areaCoverages: {
-                      some: {
-                        validUntil: null,
-                        area: {
-                          OR: [
-                            { name: { contains: search, mode: 'insensitive' } },
-                            {
-                              descendantLinks: {
-                                some: {
-                                  ancestor: {
-                                    name: {
-                                      contains: search,
-                                      mode: 'insensitive',
-                                    },
-                                  },
-                                },
-                              },
+                  ...(matchedAreaIds.length > 0
+                    ? [
+                        {
+                          areaCoverages: {
+                            some: {
+                              validUntil: null,
+                              areaId: { in: matchedAreaIds },
                             },
-                          ],
+                          },
                         },
-                      },
-                    },
-                  },
+                      ]
+                    : []),
                 ],
               } satisfies Prisma.JaringWhereInput,
             ]
@@ -1547,9 +1565,6 @@ export class JaringService {
           orderBy: { receivedAt: 'desc' },
           select: {
             id: true,
-            content: true,
-            latitude: true,
-            longitude: true,
             receivedAt: true,
           },
         },
@@ -1558,12 +1573,9 @@ export class JaringService {
           orderBy: { lastActivityAt: 'desc' },
           select: {
             id: true,
-            content: true,
             latitude: true,
             longitude: true,
             submittedAt: true,
-            startedAt: true,
-            status: true,
           },
         },
         coachingReports: {
@@ -1571,16 +1583,7 @@ export class JaringService {
           orderBy: { createdAt: 'desc' },
           select: {
             id: true,
-            title: true,
             reportedAt: true,
-            createdAt: true,
-            fieldOfficerAssignment: {
-              select: {
-                userProfile: {
-                  select: { fullName: true },
-                },
-              },
-            },
           },
         },
       },
