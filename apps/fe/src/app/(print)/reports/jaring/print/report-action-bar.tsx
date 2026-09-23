@@ -29,14 +29,26 @@ export function ReportActionBar({
     setDownloading(true);
     try {
       const pdfUrl = `/api/reports/jaring/pdf?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&_t=${Date.now()}`;
+      const response = await fetch(pdfUrl);
+      if (!response.ok) {
+        throw new Error(`Gagal mengunduh PDF (status: ${response.status})`);
+      }
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
       const link = document.createElement("a");
-      link.href = pdfUrl;
-      link.download = `laporan-rekap-jaring-${periodLabel.replace(/\s+/g, "-").toLowerCase()}.pdf`;
+      link.href = blobUrl;
+      link.download = `Laporan Rekap Aktivitas Produktivitas Jaring ${periodLabel}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 15000);
+    } catch (error) {
+      console.error("Download PDF error:", error);
+      // Fallback: direct window navigation
+      const fallbackUrl = `/api/reports/jaring/pdf?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&_t=${Date.now()}`;
+      window.open(fallbackUrl, "_blank");
     } finally {
-      setTimeout(() => setDownloading(false), 2000);
+      setDownloading(false);
     }
   };
 
