@@ -15,6 +15,7 @@ import {
   ChevronUp,
   Clock,
   Columns3,
+  ExternalLink,
   Eye,
   FileDown,
   ImageIcon,
@@ -40,6 +41,7 @@ import {
   jaringVillage,
   type RegistrationJaring,
 } from "@/app/(main)/dashboard/koordinator-wilayah/_components/jaring-types";
+import { LaporanPembinaanPreviewModal } from "@/app/(main)/dashboard/laporan-pembinaan-jaring/_components/laporan-pembinaan-preview-modal";
 import type { CoachingReportItem } from "@/app/(main)/dashboard/laporan-pembinaan-jaring/_components/laporan-pembinaan-types";
 import { GaswilEntityLink } from "@/components/domain/gaswil-entity-link";
 import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";
@@ -1136,7 +1138,9 @@ export function JaringVerificationListClient() {
               <div className="flex items-center gap-1.5 font-mono text-[11px] text-muted-foreground uppercase tracking-wider">
                 <MapPin className="size-3.5 text-primary" />
                 <span className="font-semibold text-foreground">Hierarki Wilayah Penugasan</span>
-                <span className="hidden text-muted-foreground sm:inline">(Provinsi → Kota/Kab → Kecamatan → Kelurahan)</span>
+                <span className="hidden text-muted-foreground sm:inline">
+                  (Provinsi → Kota/Kab → Kecamatan → Kelurahan)
+                </span>
               </div>
             </div>
 
@@ -2113,10 +2117,12 @@ function JaringCoachingCardItem({
   item,
   isExpanded,
   onToggleExpand,
+  onOpenPreview,
 }: {
   item: CoachingReportItem;
   isExpanded: boolean;
   onToggleExpand: () => void;
+  onOpenPreview?: (item: CoachingReportItem) => void;
 }) {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
@@ -2127,10 +2133,16 @@ function JaringCoachingCardItem({
   return (
     <div className="overflow-hidden rounded-lg border border-slate-200 bg-white transition-all duration-150 dark:border-blue-400/12 dark:bg-[#111827]">
       {/* Header / Summary Bar */}
-      <button
-        type="button"
-        onClick={onToggleExpand}
-        aria-expanded={isExpanded}
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => onOpenPreview?.(item)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onOpenPreview?.(item);
+          }
+        }}
         className="flex w-full cursor-pointer select-none items-start justify-between gap-3 p-4 text-left transition-colors hover:bg-slate-50/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset dark:hover:bg-slate-900/50"
       >
         <div className="min-w-0 flex-1 space-y-1.5">
@@ -2158,16 +2170,55 @@ function JaringCoachingCardItem({
           )}
         </div>
 
-        <div className="flex shrink-0 items-center gap-2 pt-0.5">
-          <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-md">
-            {isExpanded ? (
-              <ChevronUp className="size-4 text-muted-foreground" />
-            ) : (
-              <ChevronDown className="size-4 text-muted-foreground" />
-            )}
-          </span>
+        <div className="flex shrink-0 items-center gap-1.5 pt-0.5">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenPreview?.(item);
+            }}
+            className="h-8 gap-1.5 rounded-lg border-sky-500/30 px-2.5 font-medium text-sky-600 text-xs hover:bg-sky-500/10 dark:text-sky-400"
+          >
+            <Eye className="size-3.5" />
+            Detail
+          </Button>
+
+          <Button
+            asChild
+            variant="ghost"
+            size="icon-sm"
+            onClick={(e) => e.stopPropagation()}
+            title="Buka di tab baru"
+            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+          >
+            <Link
+              href={`/dashboard/laporan-pembinaan-jaring/${item.id}?jaringId=${item.jaringId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <ExternalLink className="size-3.5" />
+              <span className="sr-only">Buka di tab baru</span>
+            </Link>
+          </Button>
+
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleExpand();
+            }}
+            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+            title={isExpanded ? "Sembunyikan pratinjau kartu" : "Buka pratinjau kartu"}
+          >
+            {isExpanded ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+            <span className="sr-only">{isExpanded ? "Sembunyikan" : "Buka"}</span>
+          </Button>
         </div>
-      </button>
+      </div>
 
       {/* Expanded Content */}
       {isExpanded && (
@@ -2237,17 +2288,18 @@ function JaringCoachingCardItem({
             </div>
 
             <Button
-              asChild
+              type="button"
               size="sm"
               variant="outline"
               className="h-8 shrink-0 gap-1.5 border-sky-500/30 font-medium text-sky-600 text-xs hover:bg-sky-500/10 dark:text-sky-400"
-              onClick={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenPreview?.(item);
+              }}
             >
-              <Link href={`/dashboard/laporan-pembinaan-jaring/${item.id}?jaringId=${item.jaringId}`}>
-                <Eye className="size-3.5" />
-                Detail Laporan
-                <ChevronRight className="size-3.5" />
-              </Link>
+              <Eye className="size-3.5" />
+              Detail Laporan
+              <ChevronRight className="size-3.5" />
             </Button>
           </div>
         </div>
@@ -2387,6 +2439,7 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
   const [coachingStartDate, setCoachingStartDate] = useState<string>("");
   const [coachingEndDate, setCoachingEndDate] = useState<string>("");
   const [coachingSearch, setCoachingSearch] = useState<string>("");
+  const [previewCoachingReport, setPreviewCoachingReport] = useState<CoachingReportItem | null>(null);
 
   const filteredCoachingReports = useMemo(() => {
     return coachingReports.filter((rep) => {
@@ -2975,6 +3028,7 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
                       item={report}
                       isExpanded={expandedCoachingIds.has(report.id)}
                       onToggleExpand={() => toggleCoachingExpand(report.id)}
+                      onOpenPreview={(rep) => setPreviewCoachingReport(rep)}
                     />
                   ))}
                 </div>
@@ -3234,6 +3288,16 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Pop-up Preview Modal Riwayat Pembinaan Jaring */}
+      <LaporanPembinaanPreviewModal
+        report={previewCoachingReport}
+        open={Boolean(previewCoachingReport)}
+        onOpenChange={(open) => {
+          if (!open) setPreviewCoachingReport(null);
+        }}
+        jaringContext={item}
+      />
     </main>
   );
 }

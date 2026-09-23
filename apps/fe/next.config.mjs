@@ -53,6 +53,7 @@ const securityHeaders = [
 
 const nextConfig = {
   reactCompiler: true,
+  serverExternalPackages: ["@react-pdf/renderer"],
   compiler: {
     removeConsole: process.env.NODE_ENV === "production",
   },

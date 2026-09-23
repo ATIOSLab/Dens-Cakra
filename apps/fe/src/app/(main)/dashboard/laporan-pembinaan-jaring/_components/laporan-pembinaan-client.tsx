@@ -8,6 +8,7 @@ import {
   AlertCircle,
   Calendar,
   ChevronRight,
+  ExternalLink,
   Eye,
   FileText,
   MapPin,
@@ -42,6 +43,7 @@ import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 import type { FieldOfficerJaring, FieldOfficerWorkspace } from "@/server/field-ops/types";
 
+import { LaporanPembinaanPreviewModal } from "./laporan-pembinaan-preview-modal";
 import type { CoachingReportItem, PeriodeFilterOption } from "./laporan-pembinaan-types";
 
 function formatDateTime(value?: string | null) {
@@ -99,6 +101,7 @@ export function LaporanPembinaanClient() {
   const [villageFilter, setVillageFilter] = useState<string>("ALL");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
+  const [previewReport, setPreviewReport] = useState<CoachingReportItem | null>(null);
   const requestSequence = useRef(0);
 
   const approvedWorkspaceJarings = useMemo(
@@ -525,16 +528,31 @@ export function LaporanPembinaanClient() {
                   {report.content}
                 </p>
 
-                <div className="pt-2 border-t flex items-center justify-end text-xs">
+                <div className="pt-2 border-t flex items-center justify-between text-xs">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPreviewReport(report)}
+                    className="h-7 gap-1 px-2.5 border-sky-500/30 text-sky-600 hover:bg-sky-500/10 dark:text-sky-400 text-xs font-medium rounded-md"
+                  >
+                    <Eye className="size-3.5" />
+                    Lihat Detail
+                  </Button>
                   <Button
                     asChild
                     variant="ghost"
-                    size="sm"
-                    className="h-7 gap-1 px-2.5 text-primary text-xs hover:text-primary/90"
+                    size="icon-sm"
+                    title="Buka di tab baru"
+                    className="h-7 w-7 text-muted-foreground hover:text-foreground"
                   >
-                    <Link href={`/dashboard/laporan-pembinaan-jaring/${report.id}?jaringId=${report.jaringId}`}>
-                      Lihat Detail
-                      <ChevronRight className="h-3.5 w-3.5" />
+                    <Link
+                      href={`/dashboard/laporan-pembinaan-jaring/${report.id}?jaringId=${report.jaringId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <ExternalLink className="size-3.5" />
+                      <span className="sr-only">Buka di tab baru</span>
                     </Link>
                   </Button>
                 </div>
@@ -580,7 +598,8 @@ export function LaporanPembinaanClient() {
                   return (
                     <TableRow
                       key={report.id}
-                      className="hover:bg-slate-50/50 dark:hover:bg-white/5 border-b border-slate-100 dark:border-slate-800"
+                      onClick={() => setPreviewReport(report)}
+                      className="cursor-pointer hover:bg-slate-50/50 dark:hover:bg-white/5 border-b border-slate-100 dark:border-slate-800 transition-colors"
                     >
                       <TableCell className="text-center font-mono text-muted-foreground align-middle">
                         {(currentPage - 1) * limit + idx + 1}
@@ -633,17 +652,38 @@ export function LaporanPembinaanClient() {
                       </TableCell>
 
                       <TableCell className="align-middle text-right">
-                        <Button
-                          asChild
-                          variant="outline"
-                          size="sm"
-                          className="h-8 px-2.5 text-xs rounded-lg gap-1.5 font-medium border-sky-500/30 text-sky-600 hover:bg-sky-500/10 dark:text-sky-400"
-                        >
-                          <Link href={`/dashboard/laporan-pembinaan-jaring/${report.id}?jaringId=${report.jaringId}`}>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPreviewReport(report);
+                            }}
+                            className="h-8 px-2.5 text-xs rounded-lg gap-1.5 font-medium border-sky-500/30 text-sky-600 hover:bg-sky-500/10 dark:text-sky-400"
+                          >
                             <Eye className="size-3.5" />
                             Detail
-                          </Link>
-                        </Button>
+                          </Button>
+                          <Button
+                            asChild
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={(e) => e.stopPropagation()}
+                            title="Buka di tab baru"
+                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                          >
+                            <Link
+                              href={`/dashboard/laporan-pembinaan-jaring/${report.id}?jaringId=${report.jaringId}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <ExternalLink className="size-3.5" />
+                              <span className="sr-only">Buka di tab baru</span>
+                            </Link>
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
@@ -669,6 +709,15 @@ export function LaporanPembinaanClient() {
           />
         </div>
       )}
+
+      {/* Pop-up Preview Modal */}
+      <LaporanPembinaanPreviewModal
+        report={previewReport}
+        open={Boolean(previewReport)}
+        onOpenChange={(open) => {
+          if (!open) setPreviewReport(null);
+        }}
+      />
     </div>
   );
 }

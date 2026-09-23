@@ -1,55 +1,15 @@
+import React from "react";
+
 import { type NextRequest, NextResponse } from "next/server";
 
+import { renderToBuffer } from "@react-pdf/renderer";
+
 import { type ReportPayload, validateReport } from "@/app/(print)/reports/jaring/_components/report-types";
+import { JaringReportPdfDocument } from "@/app/(print)/reports/jaring/_pdf/jaring-pdf-document";
 import { apiServerFetch } from "@/lib/api/server-client";
-import { storeReportPayloadForPrint } from "@/lib/auth/internal-print-token";
 import { getSessionPrincipal } from "@/lib/auth/server-session";
 
-import { execFile, execFileSync } from "node:child_process";
-import fs from "node:fs";
-import os from "node:os";
-import path from "node:path";
-import { promisify } from "node:util";
-
-const execFileAsync = promisify(execFile);
-
 export const dynamic = "force-dynamic";
-
-function findBrowserBinary(): string | null {
-  const candidates = [
-    process.env.CHROME_BIN,
-    process.env.EDGE_BIN,
-    "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
-    "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
-    "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe",
-    "/usr/bin/google-chrome-stable",
-    "/usr/bin/google-chrome",
-    "/usr/bin/chromium",
-    "/usr/bin/chromium-browser",
-    "/snap/bin/chromium",
-    "/opt/google/chrome/chrome",
-    "/usr/local/bin/chrome",
-    "/usr/local/bin/chromium",
-  ].filter(Boolean) as string[];
-
-  for (const bin of candidates) {
-    if (fs.existsSync(bin)) return bin;
-  }
-
-  // Also check which/command in PATH if running on Linux
-  if (process.platform === "linux") {
-    for (const name of ["google-chrome-stable", "google-chrome", "chromium", "chromium-browser", "chrome"]) {
-      try {
-        const out = execFileSync("which", [name], { encoding: "utf8" }).trim();
-        if (out && fs.existsSync(out)) return out;
-      } catch {
-        // Continue
-      }
-    }
-  }
-
-  return null;
-}
 
 export async function GET(request: NextRequest) {
   const principal = await getSessionPrincipal();
@@ -115,50 +75,16 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const browserBin = findBrowserBinary();
-  if (!browserBin) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: {
-          code: "BROWSER_NOT_FOUND",
-          message: "Mesin perender PDF (Chromium/Edge) tidak ditemukan di sistem host.",
-        },
-      },
-      { status: 500 },
-    );
-  }
-
-  // Store payload in cache for the headless browser request
-  const token = storeReportPayloadForPrint(reportData);
-  const printUrl = new URL(`/reports/jaring/print?token=${encodeURIComponent(token)}`, request.url).toString();
-
-  const tmpId = `rekap_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-  const tmpPdfPath = path.join(os.tmpdir(), `${tmpId}.pdf`);
-
   try {
-    // Execute Chromium / Edge CLI to render exact 13 A4 pages PDF
-    await execFileAsync(browserBin, [
-      "--headless=new",
-      "--no-sandbox",
-      "--disable-setuid-sandbox",
-      "--disable-dev-shm-usage",
-      "--disable-gpu",
-      "--no-pdf-header-footer",
-      "--run-all-compositor-stages-before-draw",
-      "--virtual-time-budget=6000",
-      `--print-to-pdf=${tmpPdfPath}`,
-      printUrl,
-    ]);
-
-    if (!fs.existsSync(tmpPdfPath)) {
-      throw new Error("Berkas PDF tidak berhasil dibuat oleh perender Chromium.");
-    }
-
-    const pdfBuffer = fs.readFileSync(tmpPdfPath);
+    // Generate 13-page PDF directly in memory using @react-pdf/renderer
+    const pdfBuffer = await renderToBuffer(
+      React.createElement(JaringReportPdfDocument, { data: reportData }) as unknown as React.ReactElement<
+        import("@react-pdf/renderer").DocumentProps
+      >,
+    );
     const filename = `Laporan Rekap Aktivitas Produktivitas Jaring ${reportData.metadata.periodLabel}.pdf`;
 
-    return new NextResponse(pdfBuffer, {
+    return new NextResponse(new Uint8Array(pdfBuffer), {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
@@ -181,11 +107,5 @@ export async function GET(request: NextRequest) {
       },
       { status: 500 },
     );
-  } finally {
-    try {
-      if (fs.existsSync(tmpPdfPath)) fs.unlinkSync(tmpPdfPath);
-    } catch {
-      // Ignore cleanup error
-    }
   }
 }

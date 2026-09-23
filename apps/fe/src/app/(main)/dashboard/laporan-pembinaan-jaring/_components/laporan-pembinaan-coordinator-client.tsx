@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import Link from "next/link";
 
-import { Calendar, Download, Eye, FileText, RefreshCw, Search, User, X } from "lucide-react";
+import { Calendar, Download, ExternalLink, Eye, FileText, RefreshCw, Search, User, X } from "lucide-react";
 
 import { ViewModeToggle } from "@/app/(main)/dashboard/_components/view-mode-toggle";
 import { GaswilEntityLink } from "@/components/domain/gaswil-entity-link";
@@ -47,6 +47,7 @@ import { DC_CONTROLS, DC_TYPOGRAPHY, DOMAIN_VISUALS } from "@/lib/domain/visual-
 import { cn } from "@/lib/utils";
 import { SYSTEM_ROLES, type SystemRole } from "@/navigation/sidebar/system-roles";
 
+import { LaporanPembinaanPreviewModal } from "./laporan-pembinaan-preview-modal";
 import type { CoachingReportItem, PeriodeFilterOption } from "./laporan-pembinaan-types";
 
 function formatDateTime(value?: string | null) {
@@ -270,6 +271,7 @@ export function LaporanPembinaanCoordinatorClient({ role }: { role?: SystemRole 
   // Pagination
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(12);
+  const [previewReport, setPreviewReport] = useState<CoachingReportItem | null>(null);
   const requestSequence = useRef(0);
   const didApplyDefaultProvinceFilter = useRef(false);
 
@@ -1041,16 +1043,33 @@ export function LaporanPembinaanCoordinatorClient({ role }: { role?: SystemRole 
                 </CardHeader>
 
                 <CardContent className="space-y-3 p-4 pt-2">
-                  <Button
-                    asChild
-                    variant="outline"
-                    size="sm"
-                    className="mt-1 h-8 w-full gap-1 border-emerald-500/30 font-semibold text-emerald-600 text-xs hover:bg-emerald-500/10 dark:text-emerald-400"
-                  >
-                    <Link href={`/dashboard/laporan-pembinaan-jaring/${report.id}?jaringId=${report.jaringId}`}>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPreviewReport(report)}
+                      className="mt-1 h-8 flex-1 gap-1 border-sky-500/30 font-semibold text-sky-600 text-xs hover:bg-sky-500/10 dark:text-sky-400"
+                    >
                       <Eye className="size-3.5" /> Lihat Detail
-                    </Link>
-                  </Button>
+                    </Button>
+                    <Button
+                      asChild
+                      variant="ghost"
+                      size="icon-sm"
+                      title="Buka di tab baru"
+                      className="mt-1 h-8 w-8 text-muted-foreground hover:text-foreground"
+                    >
+                      <Link
+                        href={`/dashboard/laporan-pembinaan-jaring/${report.id}?jaringId=${report.jaringId}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <ExternalLink className="size-3.5" />
+                        <span className="sr-only">Buka di tab baru</span>
+                      </Link>
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ))}
@@ -1126,7 +1145,8 @@ export function LaporanPembinaanCoordinatorClient({ role }: { role?: SystemRole 
                   return (
                     <TableRow
                       key={report.id}
-                      className="hover:bg-slate-50/50 dark:hover:bg-white/5 border-b border-slate-100 dark:border-slate-800"
+                      onClick={() => setPreviewReport(report)}
+                      className="cursor-pointer hover:bg-slate-50/50 dark:hover:bg-white/5 border-b border-slate-100 dark:border-slate-800 transition-colors"
                     >
                       {isColVisible("foto") && (
                         <TableCell className="align-middle">
@@ -1200,17 +1220,38 @@ export function LaporanPembinaanCoordinatorClient({ role }: { role?: SystemRole 
                       )}
 
                       <TableCell className="align-middle text-right">
-                        <Button
-                          asChild
-                          size="sm"
-                          variant="outline"
-                          className="h-8 px-2.5 text-xs rounded-lg gap-1.5 font-medium border-sky-500/30 text-sky-600 hover:bg-sky-500/10 dark:text-sky-400"
-                        >
-                          <Link href={`/dashboard/laporan-pembinaan-jaring/${report.id}?jaringId=${report.jaringId}`}>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPreviewReport(report);
+                            }}
+                            className="h-8 px-2.5 text-xs rounded-lg gap-1.5 font-medium border-sky-500/30 text-sky-600 hover:bg-sky-500/10 dark:text-sky-400"
+                          >
                             <Eye className="size-3.5" />
                             Detail
-                          </Link>
-                        </Button>
+                          </Button>
+                          <Button
+                            asChild
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={(e) => e.stopPropagation()}
+                            title="Buka di tab baru"
+                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                          >
+                            <Link
+                              href={`/dashboard/laporan-pembinaan-jaring/${report.id}?jaringId=${report.jaringId}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <ExternalLink className="size-3.5" />
+                              <span className="sr-only">Buka di tab baru</span>
+                            </Link>
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
@@ -1231,6 +1272,14 @@ export function LaporanPembinaanCoordinatorClient({ role }: { role?: SystemRole 
           />
         </div>
       )}
+      {/* Pop-up Preview Modal */}
+      <LaporanPembinaanPreviewModal
+        report={previewReport}
+        open={Boolean(previewReport)}
+        onOpenChange={(open) => {
+          if (!open) setPreviewReport(null);
+        }}
+      />
     </main>
   );
 }

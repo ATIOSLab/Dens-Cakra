@@ -49,9 +49,9 @@ export function ReportActionBar({
         }
       }
 
-      // If response is not ok (e.g. 500 BROWSER_NOT_FOUND on cloud host):
+      // If response is not ok:
       setNotice(
-        "Mesin perender cloud tidak terpasang di host server. Dialog cetak browser dibuka otomatis: Silakan pilih tujuan 'Simpan sebagai PDF' (Save as PDF) untuk mengunduh laporan 13 halaman.",
+        "Tidak dapat mengunduh PDF dari server saat ini. Dialog cetak browser dibuka otomatis: Silakan pilih tujuan 'Simpan sebagai PDF' (Save as PDF) untuk mengunduh laporan 13 halaman.",
       );
       setTimeout(() => {
         window.print();
