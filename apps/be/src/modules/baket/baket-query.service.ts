@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { DomainScopeService } from '../access/domain-scope.service.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
 import { BaketStatus, type Prisma } from '../../generated/prisma/client.js';
+import { resolveDescendantAreaIds } from '../../common/utils/area-closure.js';
 import type { BaketQuery, VerificationQuery } from './baket.dto.js';
 
 const publicFileSelect = {
@@ -243,6 +244,9 @@ export class BaketQueryService {
       BaketStatus.VERIFIED,
       BaketStatus.REJECTED,
     ];
+    const filterAreaIds = query.areaId
+      ? await resolveDescendantAreaIds(this.prisma, query.areaId)
+      : null;
     const where: Prisma.BaketWhereInput = {
       AND: [await this.scope.baketWhere(context)],
       deletedAt: null,
@@ -277,20 +281,11 @@ export class BaketQueryService {
             },
           }
         : {}),
-      ...(query.areaId
+      ...(filterAreaIds
         ? {
             versions: {
               some: {
-                OR: [
-                  { eventAreaId: query.areaId },
-                  {
-                    eventArea: {
-                      descendantLinks: {
-                        some: { ancestorId: query.areaId },
-                      },
-                    },
-                  },
-                ],
+                eventAreaId: { in: filterAreaIds },
               },
             },
           }
@@ -376,6 +371,9 @@ export class BaketQueryService {
     context: AuthorizationContext,
   ) {
     const baketScope = await this.scope.baketWhere(context);
+    const filterAreaIds = query.areaId
+      ? await resolveDescendantAreaIds(this.prisma, query.areaId)
+      : null;
     return this.prisma.baketVerification.findMany({
       where: {
         baketVersion: { baket: baketScope },
@@ -384,17 +382,10 @@ export class BaketQueryService {
           ? { verifiedByAssignmentId: query.verifiedByAssignmentId }
           : {}),
         ...(query.baketId ? { baketVersion: { baketId: query.baketId } } : {}),
-        ...(query.areaId
+        ...(filterAreaIds
           ? {
               baketVersion: {
-                OR: [
-                  { eventAreaId: query.areaId },
-                  {
-                    eventArea: {
-                      ancestorLinks: { some: { ancestorId: query.areaId } },
-                    },
-                  },
-                ],
+                eventAreaId: { in: filterAreaIds },
               },
             }
           : {}),

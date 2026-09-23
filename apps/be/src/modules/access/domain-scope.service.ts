@@ -16,6 +16,10 @@ import {
   ApplicationCacheService,
   authorizationScopeIdentity,
 } from '../cache/application-cache.service.js';
+import {
+  resolveDescendantAreaIds,
+  resolveAncestorAreaIds,
+} from '../../common/utils/area-closure.js';
 
 export type DomainScope = {
   organizationUnitId: string;
@@ -90,25 +94,21 @@ export class DomainScopeService {
       };
     }
 
+    const filterAreaIds =
+      !isNationalSupervision && areaRootIds.length
+        ? await resolveDescendantAreaIds(this.prisma, areaRootIds)
+        : [];
+
     const assignments = await this.prisma.userOperationalAssignment.findMany({
       where: {
         isActive: true,
         OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
-        ...(!isNationalSupervision && areaRootIds.length
+        ...(filterAreaIds.length
           ? {
               areaScopes: {
                 some: {
                   validUntil: null,
-                  area: {
-                    OR: [
-                      { id: { in: areaRootIds } },
-                      {
-                        descendantLinks: {
-                          some: { ancestorId: { in: areaRootIds } },
-                        },
-                      },
-                    ],
-                  },
+                  areaId: { in: filterAreaIds },
                 },
               },
             }
@@ -158,7 +158,9 @@ export class DomainScopeService {
     ) {
       const scope = await this.resolve(context);
       return {
-        createdByAssignmentId: { in: scope.assignmentIds },
+        ...(scope.assignmentIds.length
+          ? { createdByAssignmentId: { in: scope.assignmentIds } }
+          : {}),
         status: {
           in: [
             'APPROVED_REGIONAL',
@@ -189,19 +191,13 @@ export class DomainScopeService {
 
   private async loadAreaTree(context: AuthorizationContext) {
     const scope = await this.resolve(context);
+    const filterAreaIds = scope.areaRootIds.length
+      ? await resolveDescendantAreaIds(this.prisma, scope.areaRootIds)
+      : [];
     const areas = await this.prisma.administrativeArea.findMany({
       where: {
-        ...(scope.areaRootIds.length
-          ? {
-              OR: [
-                { id: { in: scope.areaRootIds } },
-                {
-                  descendantLinks: {
-                    some: { ancestorId: { in: scope.areaRootIds } },
-                  },
-                },
-              ],
-            }
+        ...(filterAreaIds.length
+          ? { id: { in: filterAreaIds } }
           : {}),
         isActive: true,
         deletedAt: null,
@@ -399,6 +395,10 @@ export class DomainScopeService {
     for (const [parentRole, childAreaIds] of childAreaIdsByParentRole) {
       const uniqueAreaIds = [...new Set(childAreaIds)];
 
+      const ancestorAreaIds = await resolveAncestorAreaIds(
+        this.prisma,
+        uniqueAreaIds,
+      );
       const parents = await this.prisma.userOperationalAssignment.findMany({
         where: {
           isActive: true,
@@ -408,16 +408,7 @@ export class DomainScopeService {
           areaScopes: {
             some: {
               validUntil: null,
-              area: {
-                OR: [
-                  { id: { in: uniqueAreaIds } },
-                  {
-                    descendantLinks: {
-                      some: { descendantId: { in: uniqueAreaIds } },
-                    },
-                  },
-                ],
-              },
+              areaId: { in: ancestorAreaIds },
             },
           },
         },
@@ -512,6 +503,9 @@ export class DomainScopeService {
     const scope = await this.resolve(context);
     const isFieldCoordinator =
       context.authRole === SYSTEM_ROLES.FIELD_COORDINATOR;
+    const filterAreaIds = scope.areaRootIds.length
+      ? await resolveDescendantAreaIds(this.prisma, scope.areaRootIds)
+      : [];
     return {
       deletedAt: null,
       ...(isFieldCoordinator && scope.areaRootIds.length === 0
@@ -530,21 +524,12 @@ export class DomainScopeService {
           OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
         },
       },
-      ...(scope.areaRootIds.length
+      ...(filterAreaIds.length
         ? {
             areaCoverages: {
               some: {
                 validUntil: null,
-                area: {
-                  OR: [
-                    { id: { in: scope.areaRootIds } },
-                    {
-                      descendantLinks: {
-                        some: { ancestorId: { in: scope.areaRootIds } },
-                      },
-                    },
-                  ],
-                },
+                areaId: { in: filterAreaIds },
               },
             },
           }

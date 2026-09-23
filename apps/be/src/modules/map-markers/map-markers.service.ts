@@ -12,6 +12,7 @@ import {
 import { ApiException } from '../../common/api/api-exception.js';
 import { sortReportCategories } from '../../common/report-category-order.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
+import { resolveDescendantAreaIds } from '../../common/utils/area-closure.js';
 import { getIndonesianPhoneSearchVariants } from '../../common/utils/phone-normalizer.js';
 import { DomainScopeService } from '../access/domain-scope.service.js';
 import {
@@ -231,7 +232,7 @@ export class MapMarkersService {
     areaIds?: string[],
   ) {
     const scope = await this.scope.jaringWhere(context);
-    const verifiedWhere = this.withAreaFilter(
+    const verifiedWhere = await this.withAreaFilter(
       {
         ...scope,
         registrationStatus: JaringRegistrationStatus.APPROVED,
@@ -254,21 +255,16 @@ export class MapMarkersService {
     return { verified, activeLast90Days };
   }
 
-  private withAreaFilter(
+  private async withAreaFilter(
     where: Prisma.JaringWhereInput,
     areaIds?: string[],
-  ): Prisma.JaringWhereInput {
+  ): Promise<Prisma.JaringWhereInput> {
     if (!areaIds?.length) return where;
-    const areaWhere: Prisma.AdministrativeAreaWhereInput = {
-      OR: [
-        { id: { in: areaIds } },
-        { descendantLinks: { some: { ancestorId: { in: areaIds } } } },
-      ],
-    };
+    const filterAreaIds = await resolveDescendantAreaIds(this.prisma, areaIds);
     return {
       ...where,
       areaCoverages: {
-        some: { validUntil: null, area: areaWhere },
+        some: { validUntil: null, areaId: { in: filterAreaIds } },
       },
     };
   }
@@ -282,7 +278,23 @@ export class MapMarkersService {
     const phoneSearchVariants = filters.search
       ? getIndonesianPhoneSearchVariants(filters.search)
       : [];
+    const searchTerm = filters.search?.trim();
     const candidateLimit = this.candidateLimit(query);
+    const searchAreaIds = searchTerm
+      ? await (async () => {
+          const matchingAreas = await this.prisma.administrativeArea.findMany({
+            where: { name: { contains: searchTerm, mode: 'insensitive' } },
+            select: { id: true },
+            take: 50,
+          });
+          return matchingAreas.length > 0
+            ? resolveDescendantAreaIds(
+                this.prisma,
+                matchingAreas.map((a) => a.id),
+              )
+            : [];
+        })()
+      : [];
     const reportScopeFilters: Prisma.WhatsAppReportSessionWhereInput[] = [
       { jaring: scopedJaringWhere },
       query.jaringIds?.length ? { jaringId: { in: query.jaringIds } } : {},
@@ -368,35 +380,18 @@ export class MapMarkersService {
                         },
                       },
                     },
-                    {
-                      areaCoverages: {
-                        some: {
-                          validUntil: null,
-                          area: {
-                            OR: [
-                              {
-                                name: {
-                                  contains: filters.search,
-                                  mode: 'insensitive',
-                                },
+                    ...(searchAreaIds.length > 0
+                      ? [
+                          {
+                            areaCoverages: {
+                              some: {
+                                validUntil: null,
+                                areaId: { in: searchAreaIds },
                               },
-                              {
-                                descendantLinks: {
-                                  some: {
-                                    ancestor: {
-                                      name: {
-                                        contains: filters.search,
-                                        mode: 'insensitive',
-                                      },
-                                    },
-                                  },
-                                },
-                              },
-                            ],
+                            },
                           },
-                        },
-                      },
-                    },
+                        ]
+                      : []),
                   ],
                 },
               },
@@ -410,16 +405,9 @@ export class MapMarkersService {
                           mode: 'insensitive',
                         },
                       },
-                      {
-                        resolvedArea: {
-                          is: {
-                            name: {
-                              contains: filters.search,
-                              mode: 'insensitive',
-                            },
-                          },
-                        },
-                      },
+                      ...(searchAreaIds.length > 0
+                        ? [{ resolvedAreaId: { in: searchAreaIds } }]
+                        : []),
                     ],
                   },
                 },

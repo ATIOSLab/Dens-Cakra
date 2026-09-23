@@ -9,6 +9,7 @@ import {
 } from '../../generated/prisma/client.js';
 import { ApiException } from '../../common/api/api-exception.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
+import { resolveHierarchicalAreaIds } from '../../common/utils/area-closure.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type {
   CancelDto,
@@ -50,14 +51,19 @@ export class UukService {
     };
   }
 
-  private areaScopeWhere(
+  private async areaScopeWhere(
     context: AuthorizationContext,
-  ): Prisma.UukStrWhereInput | undefined {
+  ): Promise<Prisma.UukStrWhereInput | undefined> {
     const areaIds = this.areaIds(context);
 
     if (areaIds.length === 0) {
       return undefined;
     }
+
+    const hierarchicalAreaIds = await resolveHierarchicalAreaIds(
+      this.prisma,
+      areaIds,
+    );
 
     return {
       OR: [
@@ -65,25 +71,7 @@ export class UukService {
           directiveVersion: {
             targetAreas: {
               some: {
-                area: {
-                  OR: [
-                    { id: { in: areaIds } },
-                    {
-                      ancestorLinks: {
-                        some: {
-                          ancestorId: { in: areaIds },
-                        },
-                      },
-                    },
-                    {
-                      descendantLinks: {
-                        some: {
-                          descendantId: { in: areaIds },
-                        },
-                      },
-                    },
-                  ],
-                },
+                areaId: { in: hierarchicalAreaIds },
               },
             },
           },
@@ -95,25 +83,7 @@ export class UukService {
                 some: {
                   targetAreas: {
                     some: {
-                      area: {
-                        OR: [
-                          { id: { in: areaIds } },
-                          {
-                            ancestorLinks: {
-                              some: {
-                                ancestorId: { in: areaIds },
-                              },
-                            },
-                          },
-                          {
-                            descendantLinks: {
-                              some: {
-                                descendantId: { in: areaIds },
-                              },
-                            },
-                          },
-                        ],
-                      },
+                      areaId: { in: hierarchicalAreaIds },
                     },
                   },
                 },
@@ -125,11 +95,11 @@ export class UukService {
     };
   }
 
-  private uukAccessWhere(
+  private async uukAccessWhere(
     context: AuthorizationContext,
     extra: Prisma.UukStrWhereInput = {},
-  ): Prisma.UukStrWhereInput {
-    const areaScope = this.areaScopeWhere(context);
+  ): Promise<Prisma.UukStrWhereInput> {
+    const areaScope = await this.areaScopeWhere(context);
     const visibilityBranches: Prisma.UukStrWhereInput[] = [
       { ownerAssignmentId: context.primaryAssignmentId },
       { createdByAssignmentId: context.primaryAssignmentId },
@@ -262,10 +232,10 @@ export class UukService {
     });
   }
 
-  private detail(id: string, context?: AuthorizationContext) {
+  private async detail(id: string, context?: AuthorizationContext) {
     return this.prisma.uukStr.findFirstOrThrow({
       where: context
-        ? this.uukAccessWhere(context, { id })
+        ? await this.uukAccessWhere(context, { id })
         : { id, deletedAt: null },
       include: {
         ownerAssignment: true,
@@ -317,12 +287,12 @@ export class UukService {
     });
   }
 
-  private versionDetail(versionId: string, context?: AuthorizationContext) {
+  private async versionDetail(versionId: string, context?: AuthorizationContext) {
     return this.prisma.uukStrVersion.findFirstOrThrow({
       where: context
         ? {
             id: versionId,
-            uukStr: this.uukAccessWhere(context),
+            uukStr: await this.uukAccessWhere(context),
           }
         : { id: versionId },
       include: {
@@ -445,7 +415,7 @@ export class UukService {
           ]
         : [{ updatedAt: sortOrder }, { id: 'asc' }];
 
-    const where = this.uukAccessWhere(context, {
+    const where = await this.uukAccessWhere(context, {
       ...(query.status ? { status: query.status } : {}),
       ...(query.ownerAssignmentId
         ? { ownerAssignmentId: query.ownerAssignmentId }

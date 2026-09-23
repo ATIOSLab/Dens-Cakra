@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ApiException } from '../../common/api/api-exception.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
+import { resolveDescendantAreaIds } from '../../common/utils/area-closure.js';
 import {
   IntegrationStatus,
   JaringRegistrationStatus,
@@ -466,21 +467,19 @@ export class KpiService {
       this.scope.baketWhere(context),
     ]);
     if (query.areaId) await this.scope.assertArea(context, query.areaId);
+    const filterAreaIds = query.areaId
+      ? await resolveDescendantAreaIds(this.prisma, query.areaId)
+      : [];
 
     const jaringWhere: Prisma.JaringWhereInput = {
       ...jaringScope,
       ...this.jaringStatusFilterWhere(query),
-      ...(query.areaId
+      ...(filterAreaIds.length
         ? {
             areaCoverages: {
               some: {
                 validUntil: null,
-                area: {
-                  OR: [
-                    { id: query.areaId },
-                    { descendantLinks: { some: { ancestorId: query.areaId } } },
-                  ],
-                },
+                areaId: { in: filterAreaIds },
               },
             },
           }
@@ -490,19 +489,12 @@ export class KpiService {
     const reportWhere: Prisma.WhatsAppReportSessionWhereInput = {
       jaring: {
         ...jaringScope,
-        ...(query.areaId
+        ...(filterAreaIds.length
           ? {
               areaCoverages: {
                 some: {
                   validUntil: null,
-                  area: {
-                    OR: [
-                      { id: query.areaId },
-                      {
-                        descendantLinks: { some: { ancestorId: query.areaId } },
-                      },
-                    ],
-                  },
+                  areaId: { in: filterAreaIds },
                 },
               },
             }

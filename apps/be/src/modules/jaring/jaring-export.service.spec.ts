@@ -204,12 +204,7 @@ describe('JaringExportService', () => {
             areaCoverages: {
               some: {
                 validUntil: null,
-                area: {
-                  OR: [
-                    { id: 'area-city-1' },
-                    { descendantLinks: { some: { ancestorId: 'area-city-1' } } },
-                  ],
-                },
+                areaId: { in: expect.arrayContaining(['area-city-1']) },
               },
             },
           }),

@@ -10,6 +10,7 @@ import {
 } from '../../generated/prisma/client.js';
 import { ApiException } from '../../common/api/api-exception.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
+import { resolveHierarchicalAreaIds } from '../../common/utils/area-closure.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { DomainScopeService } from '../access/domain-scope.service.js';
 import type {
@@ -111,11 +112,29 @@ export class DirectiveService {
 
   private areaScopeWhere(
     context: AuthorizationContext,
+    hierarchicalAreaIds?: string[],
   ): Prisma.DirectiveWhereInput | undefined {
     const areaIds = this.areaIds(context);
 
     if (areaIds.length === 0) {
       return undefined;
+    }
+
+    if (hierarchicalAreaIds !== undefined) {
+      if (hierarchicalAreaIds.length === 0) {
+        return { id: { in: [] } };
+      }
+      return {
+        versions: {
+          some: {
+            targetAreas: {
+              some: {
+                areaId: { in: hierarchicalAreaIds },
+              },
+            },
+          },
+        },
+      };
     }
 
     return {
@@ -152,8 +171,9 @@ export class DirectiveService {
   private directiveAccessWhere(
     context: AuthorizationContext,
     extra: Prisma.DirectiveWhereInput = {},
+    hierarchicalAreaIds?: string[],
   ): Prisma.DirectiveWhereInput {
-    const areaScope = this.areaScopeWhere(context);
+    const areaScope = this.areaScopeWhere(context, hierarchicalAreaIds);
     const visibilityBranches: Prisma.DirectiveWhereInput[] = [
       { ownerAssignmentId: context.primaryAssignmentId },
       { createdByAssignmentId: context.primaryAssignmentId },
@@ -275,37 +295,52 @@ export class DirectiveService {
     });
   }
 
-  private detailWhere(
+  private async detailWhere(
     id: string,
     context?: AuthorizationContext,
-  ): Prisma.DirectiveWhereInput {
+  ): Promise<Prisma.DirectiveWhereInput> {
     const extra: Prisma.DirectiveWhereInput = { id };
-    return context ? this.directiveAccessWhere(context, extra) : extra;
+    if (!context) return extra;
+    const areaIds = this.areaIds(context);
+    const hierarchicalAreaIds = areaIds.length
+      ? await resolveHierarchicalAreaIds(this.prisma, areaIds)
+      : [];
+    return this.directiveAccessWhere(context, extra, hierarchicalAreaIds);
   }
 
-  private versionWhere(
+  private async versionWhere(
     versionId: string,
     context?: AuthorizationContext,
-  ): Prisma.DirectiveVersionWhereInput {
+  ): Promise<Prisma.DirectiveVersionWhereInput> {
     const extra: Prisma.DirectiveVersionWhereInput = { id: versionId };
 
     if (!context) {
       return extra;
     }
 
+    const areaIds = this.areaIds(context);
+    const hierarchicalAreaIds = areaIds.length
+      ? await resolveHierarchicalAreaIds(this.prisma, areaIds)
+      : [];
+
     return {
       AND: [
         extra,
         {
-          directive: this.directiveAccessWhere(context),
+          directive: this.directiveAccessWhere(
+            context,
+            {},
+            hierarchicalAreaIds,
+          ),
         },
       ],
     };
   }
 
-  private detail(id: string, context?: AuthorizationContext) {
+  private async detail(id: string, context?: AuthorizationContext) {
+    const where = await this.detailWhere(id, context);
     return this.prisma.directive.findFirstOrThrow({
-      where: this.detailWhere(id, context),
+      where,
       include: {
         ownerAssignment: true,
         createdByAssignment: {
@@ -338,9 +373,7 @@ export class DirectiveService {
                 },
                 targetAreas: {
                   include: {
-                    area: {
-                      include: { ancestorLinks: true, descendantLinks: true },
-                    },
+                    area: true,
                   },
                 },
               },
@@ -360,9 +393,10 @@ export class DirectiveService {
     });
   }
 
-  private versionDetail(versionId: string, context?: AuthorizationContext) {
+  private async versionDetail(versionId: string, context?: AuthorizationContext) {
+    const where = await this.versionWhere(versionId, context);
     return this.prisma.directiveVersion.findFirstOrThrow({
-      where: this.versionWhere(versionId, context),
+      where,
       include: {
         directive: true,
         createdByAssignment: {
@@ -385,9 +419,7 @@ export class DirectiveService {
             },
             targetAreas: {
               include: {
-                area: {
-                  include: { ancestorLinks: true, descendantLinks: true },
-                },
+                area: true,
               },
             },
           },
@@ -441,173 +473,188 @@ export class DirectiveService {
     return version;
   }
 
-  private directiveListWhere(
+  private async directiveListWhere(
     query: DirectiveQuery,
     context: AuthorizationContext,
-  ): Prisma.DirectiveWhereInput {
-    return this.directiveAccessWhere(context, {
-      AND: [
-        ...(query.from || query.to
-          ? [
-              {
-                versions: {
-                  some: {
-                    commandDate: {
-                      ...(query.from ? { gte: new Date(query.from) } : {}),
-                      ...(query.to ? { lte: new Date(query.to) } : {}),
+  ): Promise<Prisma.DirectiveWhereInput> {
+    const areaIds = this.areaIds(context);
+    const [hierarchicalContextAreaIds, hierarchicalQueryAreaIds] =
+      await Promise.all([
+        areaIds.length
+          ? resolveHierarchicalAreaIds(this.prisma, areaIds)
+          : Promise.resolve([]),
+        query.areaId
+          ? resolveHierarchicalAreaIds(this.prisma, query.areaId)
+          : Promise.resolve([]),
+      ]);
+
+    return this.directiveAccessWhere(
+      context,
+      {
+        AND: [
+          ...(query.from || query.to
+            ? [
+                {
+                  versions: {
+                    some: {
+                      commandDate: {
+                        ...(query.from ? { gte: new Date(query.from) } : {}),
+                        ...(query.to ? { lte: new Date(query.to) } : {}),
+                      },
                     },
                   },
-                },
-              } satisfies Prisma.DirectiveWhereInput,
-            ]
-          : []),
-        ...(query.classification || query.urgency
-          ? [
-              {
-                versions: {
-                  some: {
-                    ...(query.classification
-                      ? { classification: query.classification }
-                      : {}),
-                    ...(query.urgency ? { urgency: query.urgency } : {}),
+                } satisfies Prisma.DirectiveWhereInput,
+              ]
+            : []),
+          ...(query.classification || query.urgency
+            ? [
+                {
+                  versions: {
+                    some: {
+                      ...(query.classification
+                        ? { classification: query.classification }
+                        : {}),
+                      ...(query.urgency ? { urgency: query.urgency } : {}),
+                    },
                   },
-                },
-              } satisfies Prisma.DirectiveWhereInput,
-            ]
-          : []),
-        ...(query.deadlineFrom || query.deadlineTo
-          ? [
-              {
-                versions: {
-                  some: {
-                    OR: [
-                      {
-                        dueDate: {
-                          ...(query.deadlineFrom
-                            ? { gte: new Date(query.deadlineFrom) }
-                            : {}),
-                          ...(query.deadlineTo
-                            ? { lte: new Date(query.deadlineTo) }
-                            : {}),
+                } satisfies Prisma.DirectiveWhereInput,
+              ]
+            : []),
+          ...(query.deadlineFrom || query.deadlineTo
+            ? [
+                {
+                  versions: {
+                    some: {
+                      OR: [
+                        {
+                          dueDate: {
+                            ...(query.deadlineFrom
+                              ? { gte: new Date(query.deadlineFrom) }
+                              : {}),
+                            ...(query.deadlineTo
+                              ? { lte: new Date(query.deadlineTo) }
+                              : {}),
+                          },
+                        },
+                        {
+                          dueDate: null,
+                          commandDate: {
+                            ...(query.deadlineFrom
+                              ? { gte: new Date(query.deadlineFrom) }
+                              : {}),
+                            ...(query.deadlineTo
+                              ? { lte: new Date(query.deadlineTo) }
+                              : {}),
+                          },
+                        },
+                      ],
+                    },
+                  },
+                } satisfies Prisma.DirectiveWhereInput,
+              ]
+            : []),
+          ...(hierarchicalQueryAreaIds.length
+            ? [
+                {
+                  versions: {
+                    some: {
+                      targetAreas: {
+                        some: {
+                          areaId: { in: hierarchicalQueryAreaIds },
                         },
                       },
-                      {
-                        dueDate: null,
-                        commandDate: {
-                          ...(query.deadlineFrom
-                            ? { gte: new Date(query.deadlineFrom) }
-                            : {}),
-                          ...(query.deadlineTo
-                            ? { lte: new Date(query.deadlineTo) }
-                            : {}),
-                        },
-                      },
-                    ],
+                    },
                   },
-                },
-              } satisfies Prisma.DirectiveWhereInput,
-            ]
-          : []),
-        ...(query.areaId
-          ? [
-              {
-                versions: {
-                  some: {
-                    targetAreas: {
+                } satisfies Prisma.DirectiveWhereInput,
+              ]
+            : query.areaId
+              ? [
+                  {
+                    versions: {
                       some: {
-                        area: {
-                          OR: [
-                            { id: query.areaId },
-                            {
-                              ancestorLinks: {
-                                some: { ancestorId: query.areaId },
-                              },
-                            },
-                            {
-                              descendantLinks: {
-                                some: { descendantId: query.areaId },
-                              },
-                            },
-                          ],
+                        targetAreas: {
+                          some: {
+                            areaId: query.areaId,
+                          },
+                        },
+                      },
+                    },
+                  } satisfies Prisma.DirectiveWhereInput,
+                ]
+              : []),
+          ...(query.assignedToMe
+            ? [
+                {
+                  versions: {
+                    some: {
+                      recipients: {
+                        some: this.recipientScopeWhere(context),
+                      },
+                    },
+                  },
+                } satisfies Prisma.DirectiveWhereInput,
+              ]
+            : []),
+          ...(query.recipientBranch
+            ? [
+                {
+                  versions: {
+                    some: {
+                      recipients: {
+                        some: {
+                          targetAssignment: {
+                            branch: query.recipientBranch,
+                          },
                         },
                       },
                     },
                   },
+                } satisfies Prisma.DirectiveWhereInput,
+              ]
+            : []),
+        ],
+        ...(query.status ? { status: query.status } : {}),
+        ...(query.ownerAssignmentId
+          ? { ownerAssignmentId: query.ownerAssignmentId }
+          : {}),
+        ...(query.search
+          ? {
+              OR: [
+                {
+                  commandNumber: { contains: query.search, mode: 'insensitive' },
                 },
-              } satisfies Prisma.DirectiveWhereInput,
-            ]
-          : []),
-        ...(query.assignedToMe
-          ? [
-              {
-                versions: {
-                  some: {
-                    recipients: {
-                      some: this.recipientScopeWhere(context),
+                {
+                  versions: {
+                    some: {
+                      OR: [
+                        {
+                          commandIssuer: {
+                            contains: query.search,
+                            mode: 'insensitive',
+                          },
+                        },
+                        {
+                          commandSource: {
+                            contains: query.search,
+                            mode: 'insensitive',
+                          },
+                        },
+                        {
+                          commandDescription: {
+                            contains: query.search,
+                            mode: 'insensitive',
+                          },
+                        },
+                      ],
                     },
                   },
                 },
-              } satisfies Prisma.DirectiveWhereInput,
-            ]
-          : []),
-        ...(query.recipientBranch
-          ? [
-              {
-                versions: {
-                  some: {
-                    recipients: {
-                      some: {
-                        targetAssignment: {
-                          branch: query.recipientBranch,
-                        },
-                      },
-                    },
-                  },
-                },
-              } satisfies Prisma.DirectiveWhereInput,
-            ]
-          : []),
-      ],
-      ...(query.status ? { status: query.status } : {}),
-      ...(query.ownerAssignmentId
-        ? { ownerAssignmentId: query.ownerAssignmentId }
-        : {}),
-      ...(query.search
-        ? {
-            OR: [
-              {
-                commandNumber: { contains: query.search, mode: 'insensitive' },
-              },
-              {
-                versions: {
-                  some: {
-                    OR: [
-                      {
-                        commandIssuer: {
-                          contains: query.search,
-                          mode: 'insensitive',
-                        },
-                      },
-                      {
-                        commandSource: {
-                          contains: query.search,
-                          mode: 'insensitive',
-                        },
-                      },
-                      {
-                        commandDescription: {
-                          contains: query.search,
-                          mode: 'insensitive',
-                        },
-                      },
-                    ],
-                  },
-                },
-              },
-            ],
-          }
-        : {}),
-    });
+              ],
+            }
+          : {}),
+      },
+      hierarchicalContextAreaIds,
+    );
   }
 
   async list(query: DirectiveQuery, context: AuthorizationContext) {
@@ -637,7 +684,7 @@ export class DirectiveService {
       sortBy === DirectiveSortField.DUE_DATE ||
       sortBy === DirectiveSortField.EFFECTIVE_DEADLINE;
 
-    const where = this.directiveListWhere(query, context);
+    const where = await this.directiveListWhere(query, context);
     const directives = await this.prisma.directive.findMany({
       where,
       skip: requiresVersionSort ? undefined : (query.page - 1) * query.limit,
@@ -1097,7 +1144,7 @@ export class DirectiveService {
     );
 
     const directive = await this.prisma.directive.findFirstOrThrow({
-      where: this.detailWhere(directiveId, context),
+      where: await this.detailWhere(directiveId, context),
       select: {
         id: true,
         currentVersionNumber: true,
@@ -1157,23 +1204,12 @@ export class DirectiveService {
     });
 
     const routingAreaIds = version.targetAreas.map((target) => target.areaId);
-    const routingAreaWhere: Prisma.AdministrativeAreaWhereInput = {
-      OR: [
-        { id: { in: routingAreaIds } },
-        {
-          descendantLinks: {
-            some: { ancestorId: { in: routingAreaIds } },
-          },
-        },
-        {
-          ancestorLinks: {
-            some: { descendantId: { in: routingAreaIds } },
-          },
-        },
-      ],
-    };
-    const routingPositions =
+    const hierarchicalRoutingAreaIds =
       routingAreaIds.length > 0
+        ? await resolveHierarchicalAreaIds(this.prisma, routingAreaIds)
+        : [];
+    const routingPositions =
+      hierarchicalRoutingAreaIds.length > 0
         ? await this.prisma.userOperationalAssignment.findMany({
             where: {
               isActive: true,
@@ -1192,7 +1228,7 @@ export class DirectiveService {
               areaScopes: {
                 some: {
                   validUntil: null,
-                  area: routingAreaWhere,
+                  areaId: { in: hierarchicalRoutingAreaIds },
                 },
               },
             },
@@ -1203,7 +1239,7 @@ export class DirectiveService {
               areaScopes: {
                 where: {
                   validUntil: null,
-                  area: routingAreaWhere,
+                  areaId: { in: hierarchicalRoutingAreaIds },
                 },
                 orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
                 include: { area: true },
@@ -1256,12 +1292,7 @@ export class DirectiveService {
         },
         targetAreas: {
           include: {
-            area: {
-              include: {
-                ancestorLinks: true,
-                descendantLinks: true,
-              },
-            },
+            area: true,
           },
         },
         assignments: {
@@ -1331,17 +1362,15 @@ export class DirectiveService {
       RecipientStatus.ACKNOWLEDGED,
     ]);
 
+    const hierarchicalFilterAreaIds = areaId
+      ? await resolveHierarchicalAreaIds(this.prisma, areaId)
+      : [];
+    const filterAreaSet = new Set(hierarchicalFilterAreaIds);
+
     const taskMatchesArea = (task: any) =>
       areaId
-        ? task.targetAreas.some(
-            (target: any) =>
-              target.areaId === areaId ||
-              target.area.ancestorLinks.some(
-                (link: any) => link.ancestorId === areaId,
-              ) ||
-              target.area.descendantLinks.some(
-                (link: any) => link.descendantId === areaId,
-              ),
+        ? task.targetAreas.some((target: any) =>
+            filterAreaSet.has(target.areaId),
           )
         : true;
 

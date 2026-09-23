@@ -10,6 +10,7 @@ import { DomainScopeService } from '../access/domain-scope.service.js';
 import { LocalStorageService } from '../infrastructure/local-storage.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SYSTEM_ROLES } from '../../common/constants/system-role.js';
+import { resolveDescendantAreaIds } from '../../common/utils/area-closure.js';
 import type { JaringExportPdfQueryDto } from './jaring.dto.js';
 import sharp from 'sharp';
 
@@ -325,69 +326,35 @@ export class JaringExportService {
           .filter(Boolean)
       : undefined;
 
-    const scopedAreaWhere =
+    const scopedAreaIds =
       isNationalSupervision || scope.areaRootIds.length === 0
-        ? {}
-        : {
-            areaCoverages: {
-              some: {
-                validUntil: null,
-                area: {
-                  OR: [
-                    { id: { in: scope.areaRootIds } },
-                    {
-                      descendantLinks: {
-                        some: { ancestorId: { in: scope.areaRootIds } },
-                      },
-                    },
-                  ],
-                },
-              },
-            },
-          };
+        ? []
+        : await resolveDescendantAreaIds(this.prisma, scope.areaRootIds);
 
-    const areaFilter: Prisma.JaringWhereInput = query.areaId
-      ? Object.keys(scopedAreaWhere).length > 0
-        ? {
-            AND: [
-              scopedAreaWhere,
-              {
-                areaCoverages: {
-                  some: {
-                    validUntil: null,
-                    area: {
-                      OR: [
-                        { id: query.areaId },
-                        {
-                          descendantLinks: {
-                            some: { ancestorId: query.areaId },
-                          },
-                        },
-                      ],
-                    },
-                  },
-                },
-              },
-            ],
-          }
-        : {
-            areaCoverages: {
-              some: {
-                validUntil: null,
-                area: {
-                  OR: [
-                    { id: query.areaId },
-                    {
-                      descendantLinks: {
-                        some: { ancestorId: query.areaId },
-                      },
-                    },
-                  ],
-                },
-              },
+    const queryAreaIds = query.areaId
+      ? await resolveDescendantAreaIds(this.prisma, query.areaId)
+      : [];
+
+    let effectiveAreaIds: string[] | null = null;
+    if (scopedAreaIds.length > 0 && queryAreaIds.length > 0) {
+      const scopedSet = new Set(scopedAreaIds);
+      effectiveAreaIds = queryAreaIds.filter((id) => scopedSet.has(id));
+    } else if (queryAreaIds.length > 0) {
+      effectiveAreaIds = queryAreaIds;
+    } else if (scopedAreaIds.length > 0) {
+      effectiveAreaIds = scopedAreaIds;
+    }
+
+    const areaFilter: Prisma.JaringWhereInput = effectiveAreaIds
+      ? {
+          areaCoverages: {
+            some: {
+              validUntil: null,
+              areaId: { in: effectiveAreaIds },
             },
-          }
-      : scopedAreaWhere;
+          },
+        }
+      : {};
 
     const caretakerWhere: Prisma.JaringWhereInput = query.fieldOfficerAssignmentId
       ? {

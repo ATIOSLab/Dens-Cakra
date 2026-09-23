@@ -21,6 +21,7 @@ import {
   getIndonesianPhoneSearchVariants,
   normalizeIndonesianPhoneNumber,
 } from '../../common/utils/phone-normalizer.js';
+import { resolveDescendantAreaIds } from '../../common/utils/area-closure.js';
 import { DomainScopeService } from '../access/domain-scope.service.js';
 import { ApplicationCacheService } from '../cache/application-cache.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -1056,11 +1057,10 @@ export class JaringService {
 
   private async summarizeReportSessions(
     where: Prisma.WhatsAppReportSessionWhereInput,
-    totalPromise?: Promise<number>,
   ) {
     const [totalJaringReports, baketReports, reportingJaringGroups] =
       await Promise.all([
-        totalPromise ?? this.prisma.whatsAppReportSession.count({ where }),
+        this.prisma.whatsAppReportSession.count({ where }),
         this.prisma.whatsAppReportSession.count({
           where: {
             AND: [
@@ -1180,14 +1180,9 @@ export class JaringService {
       return {};
     }
 
-    const closures = this.prisma.administrativeAreaClosure
-      ? await this.prisma.administrativeAreaClosure.findMany({
-          where: { ancestorId: { in: scope.areaRootIds } },
-          select: { descendantId: true },
-        })
-      : [];
-    const scopedAreaIds = Array.from(
-      new Set([...scope.areaRootIds, ...closures.map((c) => c.descendantId)]),
+    const scopedAreaIds = await resolveDescendantAreaIds(
+      this.prisma,
+      scope.areaRootIds,
     );
 
     return {
@@ -2476,24 +2471,36 @@ export class JaringService {
     const scopedJaringWhere = await this.domainScope.jaringWhere(context);
     const isFieldOfficer = context.authRole === SYSTEM_ROLES.FIELD_OFFICER;
 
-    const areaWhere: Prisma.AdministrativeAreaWhereInput | undefined =
+    const [filterAreaIds, matchedSearchAreaIds] = await Promise.all([
       query.areaId
-        ? {
-            OR: [
-              { id: query.areaId },
-              { descendantLinks: { some: { ancestorId: query.areaId } } },
-            ],
-          }
-        : undefined;
+        ? resolveDescendantAreaIds(this.prisma, query.areaId)
+        : Promise.resolve(null),
+      search && search.length >= 2 && this.prisma.administrativeArea
+        ? this.prisma.administrativeArea
+            .findMany({
+              where: { name: { contains: search, mode: 'insensitive' } },
+              select: { id: true },
+              take: 50,
+            })
+            .then(async (matchedAreas) => {
+              if (matchedAreas.length === 0) return [];
+              return resolveDescendantAreaIds(
+                this.prisma,
+                matchedAreas.map((a) => a.id),
+              );
+            })
+        : Promise.resolve([]),
+    ]);
+
     const jaringWhere: Prisma.JaringWhereInput = {
       AND: [
         scopedJaringWhere,
         ...(query.jaringId ? [{ id: query.jaringId }] : []),
-        ...(areaWhere
+        ...(filterAreaIds
           ? [
               {
                 areaCoverages: {
-                  some: { validUntil: null, area: areaWhere },
+                  some: { validUntil: null, areaId: { in: filterAreaIds } },
                 },
               },
             ]
@@ -2520,32 +2527,18 @@ export class JaringService {
                     ...phoneSearchVariants.map((phone) => ({
                       whatsappNumber: { contains: phone },
                     })),
-                    {
-                      areaCoverages: {
-                        some: {
-                          validUntil: null,
-                          area: {
-                            OR: [
-                              {
-                                name: { contains: search, mode: 'insensitive' },
+                    ...(matchedSearchAreaIds.length > 0
+                      ? [
+                          {
+                            areaCoverages: {
+                              some: {
+                                validUntil: null,
+                                areaId: { in: matchedSearchAreaIds },
                               },
-                              {
-                                descendantLinks: {
-                                  some: {
-                                    ancestor: {
-                                      name: {
-                                        contains: search,
-                                        mode: 'insensitive',
-                                      },
-                                    },
-                                  },
-                                },
-                              },
-                            ],
+                            },
                           },
-                        },
-                      },
-                    },
+                        ]
+                      : []),
                   ],
                 },
               },
@@ -2861,6 +2854,31 @@ export class JaringService {
         : {}),
     };
 
+    const [filterReportAreaIds, filterJaringAreaIds, matchedSearchAreaIds] =
+      await Promise.all([
+        query.areaId
+          ? resolveDescendantAreaIds(this.prisma, query.areaId)
+          : Promise.resolve(null),
+        query.jaringAreaId
+          ? resolveDescendantAreaIds(this.prisma, query.jaringAreaId)
+          : Promise.resolve(null),
+        search && search.length >= 2 && this.prisma.administrativeArea
+          ? this.prisma.administrativeArea
+              .findMany({
+                where: { name: { contains: search, mode: 'insensitive' } },
+                select: { id: true },
+                take: 50,
+              })
+              .then(async (matchedAreas) => {
+                if (matchedAreas.length === 0) return [];
+                return resolveDescendantAreaIds(
+                  this.prisma,
+                  matchedAreas.map((a) => a.id),
+                );
+              })
+          : Promise.resolve([]),
+      ]);
+
     const filters: Prisma.WhatsAppReportSessionWhereInput[] = [
       { jaring: baseJaringWhere },
     ];
@@ -2922,30 +2940,18 @@ export class JaringService {
                     },
                   },
                 },
-                {
-                  areaCoverages: {
-                    some: {
-                      validUntil: null,
-                      area: {
-                        OR: [
-                          { name: { contains: search, mode: 'insensitive' } },
-                          {
-                            descendantLinks: {
-                              some: {
-                                ancestor: {
-                                  name: {
-                                    contains: search,
-                                    mode: 'insensitive',
-                                  },
-                                },
-                              },
-                            },
+                ...(matchedSearchAreaIds.length > 0
+                  ? [
+                      {
+                        areaCoverages: {
+                          some: {
+                            validUntil: null,
+                            areaId: { in: matchedSearchAreaIds },
                           },
-                        ],
+                        },
                       },
-                    },
-                  },
-                },
+                    ]
+                  : []),
               ],
             },
           },
@@ -2960,6 +2966,13 @@ export class JaringService {
                       mode: 'insensitive',
                     },
                   },
+                  ...(matchedSearchAreaIds.length > 0
+                    ? [
+                        {
+                          resolvedAreaId: { in: matchedSearchAreaIds },
+                        },
+                      ]
+                    : []),
                 ],
               },
             },
@@ -2978,43 +2991,23 @@ export class JaringService {
         },
       });
     }
-    if (query.areaId) {
+    if (filterReportAreaIds) {
       filters.push({
         submittedMessage: {
           is: {
-            resolvedArea: {
-              is: {
-                OR: [
-                  { id: query.areaId },
-                  {
-                    descendantLinks: {
-                      some: { ancestorId: query.areaId },
-                    },
-                  },
-                ],
-              },
-            },
+            resolvedAreaId: { in: filterReportAreaIds },
           },
         },
       });
     }
-    if (query.jaringAreaId) {
+    if (filterJaringAreaIds) {
       filters.push({
         jaring: {
           ...baseJaringWhere,
           areaCoverages: {
             some: {
               validUntil: null,
-              area: {
-                OR: [
-                  { id: query.jaringAreaId },
-                  {
-                    descendantLinks: {
-                      some: { ancestorId: query.jaringAreaId },
-                    },
-                  },
-                ],
-              },
+              areaId: { in: filterJaringAreaIds },
             },
           },
         },
@@ -3136,7 +3129,6 @@ export class JaringService {
       AND: [...filters],
     };
 
-    const totalPromise = this.prisma.whatsAppReportSession.count({ where });
     const [sessions, total, statusCounts, summary] = await Promise.all([
       this.prisma.whatsAppReportSession.findMany({
         where,
@@ -3145,13 +3137,13 @@ export class JaringService {
         orderBy: this.reportOrderBy(query),
         select: jaringReportSessionSelect,
       }),
-      totalPromise,
+      this.prisma.whatsAppReportSession.count({ where }),
       this.prisma.whatsAppReportSession.groupBy({
         by: ['status'],
         where,
         _count: { _all: true },
       }),
-      this.summarizeReportSessions(summaryWhere, totalPromise),
+      this.summarizeReportSessions(summaryWhere),
     ]);
 
     return {

@@ -76,14 +76,7 @@ describe('DomainScopeService', () => {
     expect(administrativeAreaFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          OR: expect.arrayContaining([
-            { id: { in: ['indonesia'] } },
-            {
-              descendantLinks: {
-                some: { ancestorId: { in: ['indonesia'] } },
-              },
-            },
-          ]),
+          id: { in: expect.arrayContaining(['indonesia']) },
         }),
       }),
     );
@@ -191,7 +184,6 @@ describe('DomainScopeService', () => {
     } as unknown as AuthorizationContext;
 
     await expect(service.productWhere(context)).resolves.toEqual({
-      createdByAssignmentId: { in: ['regional-a', 'oim-a'] },
       status: {
         in: [
           'APPROVED_REGIONAL',

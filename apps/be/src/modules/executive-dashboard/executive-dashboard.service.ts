@@ -9,6 +9,7 @@ import { ApiException } from '../../common/api/api-exception.js';
 import { SYSTEM_ROLES } from '../../common/constants/system-role.js';
 import { sortReportCategories } from '../../common/report-category-order.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
+import { resolveDescendantAreaIds } from '../../common/utils/area-closure.js';
 import {
   BaketStatus,
   CoverageValidationStatus,
@@ -392,23 +393,17 @@ export class ExecutiveDashboardService {
     const resolvedScope = await this.scope.resolve(context);
     const search = query.search?.trim();
     const jaringWhere = await this.scope.jaringWhere(context);
+    const filterAreaIds = query.areaId
+      ? await resolveDescendantAreaIds(this.prisma, query.areaId)
+      : [];
     const jaringFilterWhere: Prisma.JaringWhereInput = {
       ...jaringWhere,
-      ...(query.areaId
+      ...(filterAreaIds.length
         ? {
             areaCoverages: {
               some: {
                 validUntil: null,
-                area: {
-                  OR: [
-                    { id: query.areaId },
-                    {
-                      descendantLinks: {
-                        some: { ancestorId: query.areaId },
-                      },
-                    },
-                  ],
-                },
+                areaId: { in: filterAreaIds },
               },
             },
           }
@@ -422,17 +417,12 @@ export class ExecutiveDashboardService {
           }
         : {}),
     };
-    const areaConstraint = query.areaId
+    const areaConstraint = filterAreaIds.length
       ? {
           areaScopes: {
             some: {
               validUntil: null,
-              area: {
-                OR: [
-                  { id: query.areaId },
-                  { descendantLinks: { some: { ancestorId: query.areaId } } },
-                ],
-              },
+              areaId: { in: filterAreaIds },
             },
           },
         }
@@ -558,19 +548,23 @@ export class ExecutiveDashboardService {
       this.scope.jaringWhere(context),
     ]);
 
+    const filterAreaIds = query.areaId
+      ? await resolveDescendantAreaIds(this.prisma, query.areaId)
+      : [];
+
     const productCurrentWhere: Prisma.IntelligenceProductWhereInput = {
       ...productWhere,
       deletedAt: null,
       createdAt: { gte: range.from, lte: range.to },
       ...(query.productTypeId ? { productTypeId: query.productTypeId } : {}),
-      ...(query.areaId ? { AND: [this.productAreaFilter(query.areaId)] } : {}),
+      ...(filterAreaIds.length ? { AND: [this.productAreaFilter(filterAreaIds)] } : {}),
     };
     const productPreviousWhere: Prisma.IntelligenceProductWhereInput = {
       ...productWhere,
       deletedAt: null,
       createdAt: { gte: range.previousFrom, lte: range.previousTo },
       ...(query.productTypeId ? { productTypeId: query.productTypeId } : {}),
-      ...(query.areaId ? { AND: [this.productAreaFilter(query.areaId)] } : {}),
+      ...(filterAreaIds.length ? { AND: [this.productAreaFilter(filterAreaIds)] } : {}),
     };
     const scopedJaringWhere: Prisma.JaringWhereInput = {
       ...jaringScope,
@@ -586,19 +580,12 @@ export class ExecutiveDashboardService {
             },
           }
         : {}),
-      ...(query.areaId
+      ...(filterAreaIds.length
         ? {
             areaCoverages: {
               some: {
                 validUntil: null,
-                area: {
-                  OR: [
-                    { id: query.areaId },
-                    {
-                      descendantLinks: { some: { ancestorId: query.areaId } },
-                    },
-                  ],
-                },
+                areaId: { in: filterAreaIds },
               },
             },
           }
@@ -607,8 +594,8 @@ export class ExecutiveDashboardService {
     const taskWhere: Prisma.TaskWhereInput = {
       deletedAt: null,
       createdAt: { gte: range.from, lte: range.to },
-      ...(query.areaId
-        ? { targetAreas: { some: this.targetAreaFilter(query.areaId) } }
+      ...(filterAreaIds.length
+        ? { targetAreas: { some: this.targetAreaFilter(filterAreaIds) } }
         : {}),
       OR: [
         { ownerAssignmentId: { in: resolvedScope.assignmentIds } },
@@ -622,11 +609,11 @@ export class ExecutiveDashboardService {
     const directiveWhere: Prisma.DirectiveWhereInput = {
       deletedAt: null,
       createdAt: { gte: range.from, lte: range.to },
-      ...(query.areaId
+      ...(filterAreaIds.length
         ? {
             versions: {
               some: {
-                targetAreas: { some: this.targetAreaFilter(query.areaId) },
+                targetAreas: { some: this.targetAreaFilter(filterAreaIds) },
               },
             },
           }
@@ -868,16 +855,15 @@ export class ExecutiveDashboardService {
       });
     }
     if (query.areaId) {
-      messageFilters.push({
-        resolvedArea: {
-          is: {
-            OR: [
-              { id: query.areaId },
-              { descendantLinks: { some: { ancestorId: query.areaId } } },
-            ],
-          },
-        },
-      });
+      const filterAreaIds = await resolveDescendantAreaIds(
+        this.prisma,
+        query.areaId,
+      );
+      if (filterAreaIds.length) {
+        messageFilters.push({
+          resolvedAreaId: { in: filterAreaIds },
+        });
+      }
     }
     if (query.workflowStatus) {
       messageFilters.push({
@@ -965,23 +951,12 @@ export class ExecutiveDashboardService {
     };
   }
 
-  private areaWithinFilter(
-    areaId: string,
-  ): Prisma.AdministrativeAreaWhereInput {
-    return {
-      OR: [
-        { id: areaId },
-        { descendantLinks: { some: { ancestorId: areaId } } },
-      ],
-    };
-  }
-
-  private targetAreaFilter(areaId: string) {
-    return { area: { is: this.areaWithinFilter(areaId) } };
+  private targetAreaFilter(areaIds: string[]) {
+    return { areaId: { in: areaIds } };
   }
 
   private productAreaFilter(
-    areaId: string,
+    areaIds: string[],
   ): Prisma.IntelligenceProductWhereInput {
     return {
       versions: {
@@ -990,7 +965,7 @@ export class ExecutiveDashboardService {
             some: {
               verification: {
                 baketVersion: {
-                  eventArea: { is: this.areaWithinFilter(areaId) },
+                  eventAreaId: { in: areaIds },
                 },
               },
             },

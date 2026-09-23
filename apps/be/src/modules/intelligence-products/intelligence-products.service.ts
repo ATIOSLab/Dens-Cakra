@@ -20,6 +20,10 @@ import {
   Classification,
 } from '../../generated/prisma/client.js';
 import { ApiException } from '../../common/api/api-exception.js';
+import {
+  resolveDescendantAreaIds,
+  resolveHierarchicalAreaIds,
+} from '../../common/utils/area-closure.js';
 import { SYSTEM_ROLES } from '../../common/constants/system-role.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
 import { SpatialRepository } from '../spatial/spatial.repository.js';
@@ -1053,6 +1057,10 @@ export class IntelligenceProductsService {
       );
     }
 
+    const hierarchicalAreaIds = await resolveHierarchicalAreaIds(
+      this.prisma,
+      areaIds,
+    );
     const regional = await this.prisma.userOperationalAssignment.findFirst({
       where: {
         isActive: true,
@@ -1062,13 +1070,7 @@ export class IntelligenceProductsService {
         areaScopes: {
           some: {
             validUntil: null,
-            area: {
-              OR: [
-                { id: { in: areaIds } },
-                { ancestorLinks: { some: { descendantId: { in: areaIds } } } },
-                { descendantLinks: { some: { ancestorId: { in: areaIds } } } },
-              ],
-            },
+            areaId: { in: hierarchicalAreaIds },
           },
         },
       },
@@ -1569,6 +1571,10 @@ export class IntelligenceProductsService {
       return { id: { in: [] }, deletedAt: null };
     }
 
+    const descendantAreaIds = resolvedScope.areaRootIds.length
+      ? await resolveDescendantAreaIds(this.prisma, resolvedScope.areaRootIds)
+      : [];
+
     return {
       deletedAt: null,
       caretakerAssignments: {
@@ -1588,23 +1594,12 @@ export class IntelligenceProductsService {
           OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
         },
       },
-      ...(resolvedScope.areaRootIds.length
+      ...(descendantAreaIds.length
         ? {
             areaCoverages: {
               some: {
                 validUntil: null,
-                area: {
-                  OR: [
-                    { id: { in: resolvedScope.areaRootIds } },
-                    {
-                      descendantLinks: {
-                        some: {
-                          ancestorId: { in: resolvedScope.areaRootIds },
-                        },
-                      },
-                    },
-                  ],
-                },
+                areaId: { in: descendantAreaIds },
               },
             },
           }
@@ -2384,19 +2379,11 @@ export class IntelligenceProductsService {
       this.scope.baketWhere(context),
       this.scope.resolve(context),
     ]);
-    const areaWhere = resolvedScope.areaRootIds.length
-      ? {
-          OR: [
-            { areaId: { in: resolvedScope.areaRootIds } },
-            {
-              area: {
-                ancestorLinks: {
-                  some: { ancestorId: { in: resolvedScope.areaRootIds } },
-                },
-              },
-            },
-          ],
-        }
+    const descendantAreaIds = resolvedScope.areaRootIds.length
+      ? await resolveDescendantAreaIds(this.prisma, resolvedScope.areaRootIds)
+      : [];
+    const areaWhere = descendantAreaIds.length
+      ? { areaId: { in: descendantAreaIds } }
       : {};
     const [bakets, tasks, directives, products, alerts, emergencies] =
       await Promise.all([
@@ -3733,6 +3720,9 @@ export class IntelligenceProductsService {
       SELECT id FROM matched_versions
       LIMIT ${query.limit}
     `);
+    const queryDescendantAreaIds = query.areaId
+      ? await resolveDescendantAreaIds(this.prisma, query.areaId)
+      : [];
     const bakets = await this.prisma.baket.findMany({
       where: {
         ...(await this.scope.baketWhere(context)),
@@ -3741,18 +3731,11 @@ export class IntelligenceProductsService {
           some: {
             id: { in: versionIds.map((item) => item.id) },
             ...(query.urgency ? { urgency: query.urgency as never } : {}),
-            ...(query.areaId
-              ? {
-                  OR: [
-                    { eventAreaId: query.areaId },
-                    {
-                      eventArea: {
-                        ancestorLinks: { some: { ancestorId: query.areaId } },
-                      },
-                    },
-                  ],
-                }
-              : {}),
+            ...(queryDescendantAreaIds.length
+              ? { eventAreaId: { in: queryDescendantAreaIds } }
+              : query.areaId
+                ? { eventAreaId: query.areaId }
+                : {}),
           },
         },
         deletedAt: null,
@@ -3957,28 +3940,22 @@ export class IntelligenceProductsService {
   ) {
     await this.scope.assertArea(context, query.areaId);
     const scope = await this.scope.resolve(context);
+    const descendantAreaIds = await resolveDescendantAreaIds(
+      this.prisma,
+      query.areaId,
+    );
     const now = new Date();
     const [alerts, emergencies, bakets, personnelAssignments, boundary] =
       await Promise.all([
         this.prisma.alert.count({
           where: {
-            OR: [
-              { areaId: query.areaId },
-              {
-                area: { ancestorLinks: { some: { ancestorId: query.areaId } } },
-              },
-            ],
+            areaId: { in: descendantAreaIds },
             ...this.buildCommonDateWhere('createdAt', query.from, query.to),
           },
         }),
         this.prisma.emergencyIncident.count({
           where: {
-            OR: [
-              { areaId: query.areaId },
-              {
-                area: { ancestorLinks: { some: { ancestorId: query.areaId } } },
-              },
-            ],
+            areaId: { in: descendantAreaIds },
             ...this.buildCommonDateWhere('createdAt', query.from, query.to),
           },
         }),
@@ -3986,14 +3963,7 @@ export class IntelligenceProductsService {
           where: {
             versions: {
               some: {
-                OR: [
-                  { eventAreaId: query.areaId },
-                  {
-                    eventArea: {
-                      ancestorLinks: { some: { ancestorId: query.areaId } },
-                    },
-                  },
-                ],
+                eventAreaId: { in: descendantAreaIds },
               },
             },
           },
@@ -4008,16 +3978,7 @@ export class IntelligenceProductsService {
             areaScopes: {
               some: {
                 validUntil: null,
-                OR: [
-                  { areaId: query.areaId },
-                  {
-                    area: {
-                      ancestorLinks: {
-                        some: { ancestorId: query.areaId },
-                      },
-                    },
-                  },
-                ],
+                areaId: { in: descendantAreaIds },
               },
             },
           },
@@ -4138,24 +4099,16 @@ export class IntelligenceProductsService {
   ): Promise<any> {
     const scope = await this.scope.resolve(context);
     if (query.areaId) await this.scope.assertArea(context, query.areaId);
+    const descendantAreaIds = scope.areaRootIds.length
+      ? await resolveDescendantAreaIds(this.prisma, scope.areaRootIds)
+      : [];
     const items = await this.prisma.emergencyIncident.findMany({
       where: {
         AND: [
           {
             OR: [
-              ...(scope.areaRootIds.length
-                ? [
-                    { areaId: { in: scope.areaRootIds } },
-                    {
-                      area: {
-                        ancestorLinks: {
-                          some: {
-                            ancestorId: { in: scope.areaRootIds },
-                          },
-                        },
-                      },
-                    },
-                  ]
+              ...(descendantAreaIds.length
+                ? [{ areaId: { in: descendantAreaIds } }]
                 : []),
               { reportedByAssignmentId: { in: scope.assignmentIds } },
             ],
@@ -4193,24 +4146,16 @@ export class IntelligenceProductsService {
   ): Promise<any> {
     const scope = await this.scope.resolve(context);
     if (query.areaId) await this.scope.assertArea(context, query.areaId);
+    const descendantAreaIds = scope.areaRootIds.length
+      ? await resolveDescendantAreaIds(this.prisma, scope.areaRootIds)
+      : [];
     const items = await this.prisma.alert.findMany({
       where: {
         AND: [
           {
             OR: [
-              ...(scope.areaRootIds.length
-                ? [
-                    { areaId: { in: scope.areaRootIds } },
-                    {
-                      area: {
-                        ancestorLinks: {
-                          some: {
-                            ancestorId: { in: scope.areaRootIds },
-                          },
-                        },
-                      },
-                    },
-                  ]
+              ...(descendantAreaIds.length
+                ? [{ areaId: { in: descendantAreaIds } }]
                 : []),
               { assignedAssignmentId: { in: scope.assignmentIds } },
               {

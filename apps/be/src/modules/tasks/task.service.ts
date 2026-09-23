@@ -9,6 +9,7 @@ import {
 } from '../../generated/prisma/client.js';
 import { ApiException } from '../../common/api/api-exception.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
+import { resolveHierarchicalAreaIds } from '../../common/utils/area-closure.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type {
   AssignTaskDto,
@@ -38,51 +39,24 @@ const CLOSED_ASSIGNMENT_STATUSES = [
 export class TaskService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private areaVisibilityWhere(
-    areaIds: string[],
-  ): Prisma.AdministrativeAreaWhereInput | undefined {
-    if (areaIds.length === 0) {
-      return undefined;
-    }
-
-    return {
-      OR: [
-        { id: { in: areaIds } },
-        {
-          ancestorLinks: {
-            some: {
-              ancestorId: { in: areaIds },
-            },
-          },
-        },
-        {
-          descendantLinks: {
-            some: {
-              descendantId: { in: areaIds },
-            },
-          },
-        },
-      ],
-    };
-  }
-
   private areaIds(context: AuthorizationContext) {
     return context.areaScopes.map((scope) => scope.areaId);
   }
 
-  private areaOverlapWhere(
+  private async areaOverlapWhere(
     areaIds: string[],
-  ): Prisma.TaskWhereInput | undefined {
-    const areaWhere = this.areaVisibilityWhere(areaIds);
-
-    if (!areaWhere) {
+  ): Promise<Prisma.TaskWhereInput | undefined> {
+    if (!areaIds.length) {
       return undefined;
     }
-
+    const hierarchicalIds = await resolveHierarchicalAreaIds(
+      this.prisma,
+      areaIds,
+    );
     return {
       targetAreas: {
         some: {
-          area: areaWhere,
+          areaId: { in: hierarchicalIds },
         },
       },
     };
@@ -99,11 +73,11 @@ export class TaskService {
     };
   }
 
-  private taskAccessWhere(
+  private async taskAccessWhere(
     context: AuthorizationContext,
     extra: Prisma.TaskWhereInput = {},
-  ): Prisma.TaskWhereInput {
-    const areaVisibility = this.areaOverlapWhere(this.areaIds(context));
+  ): Promise<Prisma.TaskWhereInput> {
+    const areaVisibility = await this.areaOverlapWhere(this.areaIds(context));
 
     const visibilityBranches: Prisma.TaskWhereInput[] = [
       { createdByAssignmentId: context.primaryAssignmentId },
@@ -270,7 +244,7 @@ export class TaskService {
 
   private async taskDetail(taskId: string, context: AuthorizationContext) {
     return this.prisma.task.findFirstOrThrow({
-      where: this.taskAccessWhere(context, { id: taskId }),
+      where: await this.taskAccessWhere(context, { id: taskId }),
       include: this.taskDetailInclude(),
     });
   }
@@ -282,7 +256,7 @@ export class TaskService {
     return this.prisma.taskAssignment.findFirstOrThrow({
       where: {
         id: assignmentId,
-        task: this.taskAccessWhere(context),
+        task: await this.taskAccessWhere(context),
       },
       include: this.assignmentDetailInclude(),
     });
@@ -521,7 +495,7 @@ export class TaskService {
         : {}),
     };
 
-    const where = this.taskAccessWhere(context, {
+    const where = await this.taskAccessWhere(context, {
       AND: [
         ...(search
           ? [
@@ -695,20 +669,11 @@ export class TaskService {
         ? {
             targetAreas: {
               some: {
-                area: {
-                  OR: [
-                    { id: query.areaId },
-                    {
-                      ancestorLinks: {
-                        some: { ancestorId: query.areaId },
-                      },
-                    },
-                    {
-                      descendantLinks: {
-                        some: { descendantId: query.areaId },
-                      },
-                    },
-                  ],
+                areaId: {
+                  in: await resolveHierarchicalAreaIds(
+                    this.prisma,
+                    query.areaId,
+                  ),
                 },
               },
             },
