@@ -46,8 +46,8 @@ export default async function JaringReportPrintPage({ searchParams }: PrintPageP
     end = cachedData.metadata.periodEnd;
   } else {
     const principal = await getSessionPrincipal();
-    // Strict RBAC: only executive (Deputi II) may access this report
-    if (principal?.role !== "executive") {
+    // Strict RBAC: only admin_system (Superadmin) may access this report
+    if (principal?.role !== "admin_system") {
       redirect("/unauthorized");
     }
 
@@ -77,10 +77,10 @@ export default async function JaringReportPrintPage({ searchParams }: PrintPageP
               {error instanceof Error ? error.message : "Kesalahan tidak dikenal."}
             </p>
             <a
-              href="/dashboard/deputi"
+              href="/dashboard/admin-system"
               className="inline-block rounded bg-slate-700 px-4 py-2 font-semibold text-white text-xs hover:bg-slate-600"
             >
-              Kembali ke Dashboard Deputi
+              Kembali ke Dashboard Admin Sistem
             </a>
           </div>
         </div>

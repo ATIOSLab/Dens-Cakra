@@ -2,7 +2,7 @@ import type { ElementType } from "react";
 
 import Link from "next/link";
 
-import { ArrowRight, CheckCircle2, Mail, ShieldCheck, Sliders, UserCog } from "lucide-react";
+import { ArrowRight, CheckCircle2, Mail, Printer, ShieldCheck, Sliders, UserCog } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ type AdminModule = {
   href: string;
   Icon: ElementType;
   iconClass: string;
+  newTab?: boolean;
 };
 
 type AdminModuleGroup = {
@@ -79,6 +80,14 @@ const adminModuleGroups: AdminModuleGroup[] = [
         href: "/dashboard/admin-system/konfigurasi-sistem",
         Icon: Sliders,
         iconClass: "text-amber-500",
+      },
+      {
+        title: "Laporan Rekap Jaring",
+        label: "Pratinjau cetak dan unduh dokumen PDF Rekap Aktivitas & Pembinaan Jaring (13 Halaman A4).",
+        href: "/reports/jaring/print",
+        Icon: Printer,
+        iconClass: "text-emerald-500",
+        newTab: true,
       },
     ],
   },
@@ -162,6 +171,18 @@ export async function AdminSystemDashboardPage() {
             </Badge>
             <Badge variant="outline">{DOMAIN_TERMS.systemAccount}</Badge>
           </div>
+        }
+        actions={
+          <Button
+            asChild
+            variant="outline"
+            className="border-emerald-500/40 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-600 hover:text-white dark:text-emerald-300"
+          >
+            <Link href="/reports/jaring/print" target="_blank" rel="noreferrer">
+              <Printer className="size-4" />
+              Laporan Rekap Jaring
+            </Link>
+          </Button>
         }
       />
 
@@ -249,7 +270,11 @@ export async function AdminSystemDashboardPage() {
                   <CardContent className="flex items-center justify-between gap-3">
                     <p className="min-w-0 text-sm text-muted-foreground">{module.label}</p>
                     <Button asChild size="sm" variant="outline" className="shrink-0">
-                      <Link href={module.href}>
+                      <Link
+                        href={module.href}
+                        target={module.newTab ? "_blank" : undefined}
+                        rel={module.newTab ? "noreferrer" : undefined}
+                      >
                         Buka
                         <ArrowRight data-icon="inline-end" />
                       </Link>

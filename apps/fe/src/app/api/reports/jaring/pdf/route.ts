@@ -14,14 +14,14 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   const principal = await getSessionPrincipal();
 
-  // Strict RBAC: only executive (Deputi II) can generate or download this report
-  if (principal?.role !== "executive") {
+  // Strict RBAC: only admin_system (Superadmin) can generate or download this report
+  if (principal?.role !== "admin_system") {
     return NextResponse.json(
       {
         success: false,
         error: {
           code: "FORBIDDEN",
-          message: "Akses laporan rekap Jaring hanya diizinkan untuk Deputi II.",
+          message: "Akses laporan rekap Jaring hanya diizinkan untuk Admin Sistem.",
         },
       },
       { status: 403 },

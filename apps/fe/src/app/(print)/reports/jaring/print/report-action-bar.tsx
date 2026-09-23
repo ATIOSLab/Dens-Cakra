@@ -73,14 +73,14 @@ export function ReportActionBar({
     <header className="no-print sticky top-0 z-50 flex w-full flex-col shadow-md">
       <nav className="flex w-full flex-wrap items-center justify-between gap-4 border-[#2AA8C3]/30 border-b bg-[#174D6B] px-6 py-3 text-white">
         <div className="flex items-center gap-3">
-          <Link href="/dashboard/deputi">
+          <Link href="/dashboard/admin-system">
             <Button
               variant="ghost"
               size="sm"
               className="flex items-center gap-1.5 text-white hover:bg-white/10 hover:text-white"
             >
               <ArrowLeft className="size-4" />
-              <span>Dashboard Deputi</span>
+              <span>Dashboard Admin Sistem</span>
             </Button>
           </Link>
           <div className="h-5 w-px bg-white/20" />

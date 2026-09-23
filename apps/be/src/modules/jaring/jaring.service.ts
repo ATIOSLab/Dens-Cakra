@@ -3632,10 +3632,10 @@ export class JaringService {
     query: JaringRekapJangkauanQueryDto,
     context?: AuthorizationContext,
   ) {
-    if (context && context.authRole !== 'executive') {
+    if (context && context.authRole !== 'admin_system') {
       throw new ApiException(
         'FORBIDDEN_ACCESS',
-        'Akses rekap jangkauan Jaring hanya diizinkan untuk Deputi II.',
+        'Akses rekap jangkauan Jaring hanya diizinkan untuk Admin Sistem.',
         403,
       );
     }

@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, MapPinned, Printer, RotateCcw, ShieldCheck, SlidersHorizontal } from "lucide-react";
+import { CalendarDays, MapPinned, RotateCcw, ShieldCheck, SlidersHorizontal } from "lucide-react";
 
 import { DashboardLiveStatus } from "@/app/(main)/dashboard/_components/dashboard-live-status";
 import { Badge } from "@/components/ui/badge";
@@ -312,19 +312,6 @@ export function DashboardHeaderFilter({
     onChange(key, value === ALL_FILTERS ? "" : value);
   };
 
-  const handlePrintRekapPdf = () => {
-    let startDate = data.period.from ? data.period.from.slice(0, 10) : "2026-09-01";
-    let endDate = data.period.to ? data.period.to.slice(0, 10) : "2026-09-23";
-
-    if (query.period === "CUSTOM" && query.from && query.to) {
-      startDate = query.from;
-      endDate = query.to;
-    }
-
-    const printUrl = `/reports/jaring/print?start=${encodeURIComponent(startDate)}&end=${encodeURIComponent(endDate)}`;
-    window.open(printUrl, "_blank");
-  };
-
   return (
     <section className="overflow-hidden rounded-xl border border-[var(--dc-border-subtle)] bg-card shadow-[var(--dc-shadow-card)]">
       <div className="relative border-b border-[var(--dc-border-subtle)] px-4 py-5 sm:px-6">
@@ -402,16 +389,6 @@ export function DashboardHeaderFilter({
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {isDeputyScope ? (
-              <Button
-                className="min-h-10 border-[var(--dc-primary)] bg-[var(--dc-primary-soft)] text-[var(--dc-primary)] hover:bg-[var(--dc-primary)] hover:text-white"
-                variant="outline"
-                onClick={handlePrintRekapPdf}
-              >
-                <Printer className="size-4" />
-                Cetak Rekap PDF
-              </Button>
-            ) : null}
             {activeFilterCount > 0 ? (
               <Badge variant="outline" className="min-h-8 border-[var(--dc-primary)] text-[var(--dc-primary)]">
                 {activeFilterCount} filter aktif

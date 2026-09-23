@@ -276,7 +276,7 @@ export class JaringController {
     contractId: 'API-JAR-REKAP-JANGKAUAN',
     summary: 'Rekap jangkauan, aktivitas, dan pembinaan Jaring',
     roles: [
-      'executive',
+      'admin_system',
     ],
   })
   async rekapJangkauan(

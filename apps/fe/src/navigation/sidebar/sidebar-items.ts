@@ -253,6 +253,13 @@ export const sidebarItems: NavGroup[] = [
             url: "/dashboard/admin-system/konfigurasi-sistem",
             roles: ADMIN_SYSTEM_ROLE,
           },
+          {
+            id: "admin-system-rekap-jaring",
+            title: "Laporan Rekap Jaring",
+            url: "/reports/jaring/print",
+            newTab: true,
+            roles: ADMIN_SYSTEM_ROLE,
+          },
         ],
       },
       {
