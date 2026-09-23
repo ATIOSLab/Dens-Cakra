@@ -294,10 +294,13 @@ export function JaringVerificationListClient() {
   const isDeputyRole = activeRole === SYSTEM_ROLES.EXECUTIVE;
   const [items, setItems] = useState<RegistrationJaring[]>([]);
   const [scopedAreas, setScopedAreas] = useState<AdministrativeAreaFilterScope[]>([]);
+  const [isScopesLoaded, setIsScopesLoaded] = useState(false);
   const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
   const [statusFilter, setStatusFilter] = useState<string>(() => {
     const value = searchParams.get("registrationStatus");
-    return value === "PENDING" || value === "APPROVED" || value === "REJECTED" || value === "SUSPENDED" ? value : "ALL";
+    return value === "ALL" || value === "PENDING" || value === "APPROVED" || value === "REJECTED" || value === "SUSPENDED"
+      ? value
+      : "APPROVED";
   });
   const [activeStatusFilter, setActiveStatusFilter] = useState<string>(() => {
     const value = searchParams.get("activityStatus");
@@ -357,13 +360,23 @@ export function JaringVerificationListClient() {
               parentOfficialCode: area.parentOfficialCode ?? null,
             })),
           );
+          setIsScopesLoaded(true);
         }
       } catch {
         // Area options are non-blocking; the list still loads without them.
+        setIsScopesLoaded(true);
       }
     };
     void loadScopes();
-    return () => controller.abort();
+
+    const fallbackTimer = setTimeout(() => {
+      setIsScopesLoaded(true);
+    }, 250);
+
+    return () => {
+      controller.abort();
+      clearTimeout(fallbackTimer);
+    };
   }, []);
 
   // Extract unique provinces, cities, districts, villages & officers for filter options
@@ -390,7 +403,7 @@ export function JaringVerificationListClient() {
     const timer = setTimeout(() => {
       const params = new URLSearchParams();
       if (search.trim()) params.set("search", search.trim());
-      if (statusFilter !== "ALL") params.set("registrationStatus", statusFilter);
+      if (statusFilter !== "APPROVED") params.set("registrationStatus", statusFilter);
       if (activeStatusFilter !== "ALL") params.set("activityStatus", activeStatusFilter);
       if (periodFilter !== "ALL") params.set("period", periodFilter);
       if (periodStartDate) params.set("periodStart", periodStartDate);
@@ -454,49 +467,91 @@ export function JaringVerificationListClient() {
 
   const [isLoadingItems, setIsLoadingItems] = useState(false);
   const loadRequestRef = useRef(0);
+  const [debouncedSearch, setDebouncedSearch] = useState(search);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search.trim());
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const isReadyToLoad =
+    isScopesLoaded ||
+    didApplyDefaultProvinceFilter.current ||
+    !isNationalRole ||
+    Boolean(searchParams.get("provinceId"));
+
+  const statusFilterRef = useRef(statusFilter);
+  statusFilterRef.current = statusFilter;
 
   const loadItems = useCallback(async () => {
     const requestId = ++loadRequestRef.current;
     setIsLoadingItems(true);
+
+    const activeTab = statusFilterRef.current;
+    const primaryStatus: RegistrationJaring["registrationStatus"] =
+      activeTab !== "ALL" ? (activeTab as RegistrationJaring["registrationStatus"]) : "APPROVED";
+
+    const fetchStatus = async (registrationStatus: RegistrationJaring["registrationStatus"]) => {
+      const results: RegistrationJaring[] = [];
+      let page = 1;
+      let batch: RegistrationJaring[];
+      do {
+        batch = await apiBrowserFetch<RegistrationJaring[]>("/jaring", {
+          query: {
+            registrationStatus,
+            search: debouncedSearch || undefined,
+            areaId: serverAreaId,
+            page,
+            limit: 500,
+          },
+        });
+        results.push(...batch);
+        page += 1;
+      } while (batch.length === 500);
+      return results;
+    };
+
     try {
-      const fetchStatus = async (registrationStatus: RegistrationJaring["registrationStatus"]) => {
-        const results: RegistrationJaring[] = [];
-        let page = 1;
-        let batch: RegistrationJaring[];
-        do {
-          batch = await apiBrowserFetch<RegistrationJaring[]>("/jaring", {
-            query: {
-              registrationStatus,
-              search: search.trim() || undefined,
-              areaId: serverAreaId,
-              page,
-              limit: 500,
-            },
-          });
-          results.push(...batch);
-          page += 1;
-        } while (batch.length === 500);
-        return results;
-      };
-      const lists = await Promise.all((["PENDING", "APPROVED", "REJECTED", "SUSPENDED"] as const).map(fetchStatus));
+      // 1. Fetch primary status first for instantaneous UI rendering
+      const primaryResults = await fetchStatus(primaryStatus);
       if (requestId !== loadRequestRef.current) return;
-      setItems(lists.flat());
+
+      setItems(primaryResults);
       setPage(1);
+      setIsLoadingItems(false);
+
+      // 2. Fetch remaining statuses concurrently in background to populate metrics / other tabs
+      const remainingStatuses = (["PENDING", "APPROVED", "REJECTED", "SUSPENDED"] as const).filter(
+        (s) => s !== primaryStatus,
+      );
+      const remainingLists = await Promise.all(remainingStatuses.map(fetchStatus));
+      if (requestId !== loadRequestRef.current) return;
+
+      const flatRemaining = remainingLists.flat();
+      setItems((prev) => {
+        const map = new Map(prev.map((i) => [i.id, i]));
+        for (const item of flatRemaining) {
+          map.set(item.id, item);
+        }
+        return Array.from(map.values());
+      });
     } catch {
       if (requestId === loadRequestRef.current) {
         toast.error("Gagal memuat data Jaring dari server.");
       }
     } finally {
-      if (requestId === loadRequestRef.current) setIsLoadingItems(false);
+      if (requestId === loadRequestRef.current) {
+        setIsLoadingItems(false);
+      }
     }
-  }, [search, serverAreaId]);
+  }, [debouncedSearch, serverAreaId]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      void loadItems();
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [loadItems]);
+    if (!isReadyToLoad) return;
+    void loadItems();
+  }, [loadItems, isReadyToLoad]);
 
   // Non-status filters (area, search, officer) are applied server-side, so the
   // fetched list is already narrowed; status filtering remains client-side.
@@ -592,7 +647,7 @@ export function JaringVerificationListClient() {
 
   const hasActiveFilters =
     search.trim() !== "" ||
-    statusFilter !== "ALL" ||
+    statusFilter !== "APPROVED" ||
     activeStatusFilter !== "ALL" ||
     periodFilter !== "ALL" ||
     provinceFilter !== (defaultProvinceFilter || "ALL") ||
@@ -674,10 +729,10 @@ export function JaringVerificationListClient() {
       });
     }
 
-    if (statusFilter !== "ALL") {
+    if (statusFilter !== "APPROVED") {
       const statusLabels: Record<string, string> = {
+        ALL: "Semua Status",
         PENDING: "Menunggu Tinjauan",
-        APPROVED: "Disetujui",
         REJECTED: "Ditolak",
         SUSPENDED: "Ditangguhkan",
       };
@@ -686,7 +741,7 @@ export function JaringVerificationListClient() {
         label: "Status",
         value: statusLabels[statusFilter] || statusFilter,
         onRemove: () => {
-          setStatusFilter("ALL");
+          setStatusFilter("APPROVED");
           setPage(1);
         },
       });
@@ -756,7 +811,7 @@ export function JaringVerificationListClient() {
 
   function handleResetFilters() {
     setSearch("");
-    setStatusFilter("ALL");
+    setStatusFilter("APPROVED");
     setActiveStatusFilter("ALL");
     setPeriodFilter("ALL");
     setPeriodStartDate("");
@@ -1080,7 +1135,7 @@ export function JaringVerificationListClient() {
           {/* BARIS 2: KELOMPOK STATUS & PARAMETER OPERASIONAL */}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             {/* Status Verifikasi */}
-            <FilterField label="Status Verifikasi" icon={ShieldCheck} isActive={statusFilter !== "ALL"}>
+            <FilterField label="Status Verifikasi" icon={ShieldCheck} isActive={statusFilter !== "APPROVED"}>
               <NativeSelect
                 aria-label="Filter Status"
                 value={statusFilter}
@@ -1088,12 +1143,12 @@ export function JaringVerificationListClient() {
                   setStatusFilter(e.target.value);
                   setPage(1);
                 }}
-                isActive={statusFilter !== "ALL"}
+                isActive={statusFilter !== "APPROVED"}
                 className="h-9 w-full text-xs"
               >
+                <option value="APPROVED">Disetujui (Terverifikasi)</option>
                 <option value="ALL">Semua Status</option>
                 <option value="PENDING">Menunggu Tinjauan</option>
-                <option value="APPROVED">Disetujui</option>
                 <option value="REJECTED">Ditolak</option>
                 <option value="SUSPENDED">Ditangguhkan</option>
               </NativeSelect>
@@ -1461,7 +1516,25 @@ export function JaringVerificationListClient() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginatedItems.map((item) => {
+                {isLoadingItems && !items.length ? (
+                  Array.from({ length: 6 }).map((_, index) => (
+                    <TableRow key={`skeleton-${index}`} className="border-slate-100 border-b dark:border-slate-800">
+                      <TableCell colSpan={visibleColumns.length + 1} className="py-4 px-6">
+                        <div className="flex items-center space-x-4 animate-pulse">
+                          <div className="size-9 shrink-0 rounded-full bg-slate-200 dark:bg-slate-700" />
+                          <div className="flex-1 space-y-2">
+                            <div className="h-4 w-1/4 rounded bg-slate-200 dark:bg-slate-700" />
+                            <div className="h-3 w-1/6 rounded bg-slate-100 dark:bg-slate-800" />
+                          </div>
+                          <div className="hidden h-4 w-28 rounded bg-slate-200 md:block dark:bg-slate-700" />
+                          <div className="hidden h-4 w-20 rounded bg-slate-200 md:block dark:bg-slate-700" />
+                          <div className="h-6 w-24 shrink-0 rounded-full bg-slate-200 dark:bg-slate-700" />
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  paginatedItems.map((item) => {
                   const photo = profilePhotoUrl(item);
                   const foName = officerName(item);
                   const district = jaringDistrict(item);
@@ -1761,13 +1834,13 @@ export function JaringVerificationListClient() {
                       </TableCell>
                     </TableRow>
                   );
-                })}
+                }))}
               </TableBody>
             </Table>
           </div>
 
           {/* EMPTY STATE */}
-          {!paginatedItems.length ? (
+          {!isLoadingItems && !paginatedItems.length ? (
             <div className="my-6 flex flex-col items-center justify-center space-y-4 p-12 text-center">
               <div className="flex size-16 items-center justify-center rounded-2xl border border-border/50 bg-muted/60 text-muted-foreground shadow-xs">
                 <DOMAIN_VISUALS.jaring.Icon className="size-8 stroke-[1.5]" />
