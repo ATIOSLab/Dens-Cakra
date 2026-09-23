@@ -491,7 +491,8 @@ export function LaporanPembinaanClient() {
           {pagedReports.map((report) => (
             <Card
               key={report.id}
-              className="hover:shadow-md transition-shadow flex flex-col justify-between border-border/80"
+              onClick={() => setPreviewReport(report)}
+              className="cursor-pointer hover:shadow-md transition-shadow flex flex-col justify-between border-border/80"
             >
               <CardHeader className="p-4 pb-2 space-y-2">
                 <div className="flex items-start justify-between gap-2">
@@ -533,7 +534,10 @@ export function LaporanPembinaanClient() {
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => setPreviewReport(report)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPreviewReport(report);
+                    }}
                     className="h-7 gap-1 px-2.5 border-sky-500/30 text-sky-600 hover:bg-sky-500/10 dark:text-sky-400 text-xs font-medium rounded-md"
                   >
                     <Eye className="size-3.5" />
@@ -543,6 +547,7 @@ export function LaporanPembinaanClient() {
                     asChild
                     variant="ghost"
                     size="icon-sm"
+                    onClick={(e) => e.stopPropagation()}
                     title="Buka di tab baru"
                     className="h-7 w-7 text-muted-foreground hover:text-foreground"
                   >

@@ -1007,7 +1007,8 @@ export function LaporanPembinaanCoordinatorClient({ role }: { role?: SystemRole 
             {paginatedReports.map((report) => (
               <Card
                 key={report.id}
-                className="flex flex-col justify-between border-slate-200/80 dark:border-white/10 hover:shadow-md transition-all duration-200"
+                onClick={() => setPreviewReport(report)}
+                className="cursor-pointer flex flex-col justify-between border-slate-200/80 dark:border-white/10 hover:shadow-md transition-all duration-200"
               >
                 <CardHeader className="space-y-2 p-4 pb-2">
                   <div className="flex items-center justify-end gap-2">
@@ -1048,7 +1049,10 @@ export function LaporanPembinaanCoordinatorClient({ role }: { role?: SystemRole 
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => setPreviewReport(report)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPreviewReport(report);
+                      }}
                       className="mt-1 h-8 flex-1 gap-1 border-sky-500/30 font-semibold text-sky-600 text-xs hover:bg-sky-500/10 dark:text-sky-400"
                     >
                       <Eye className="size-3.5" /> Lihat Detail
@@ -1057,6 +1061,7 @@ export function LaporanPembinaanCoordinatorClient({ role }: { role?: SystemRole 
                       asChild
                       variant="ghost"
                       size="icon-sm"
+                      onClick={(e) => e.stopPropagation()}
                       title="Buka di tab baru"
                       className="mt-1 h-8 w-8 text-muted-foreground hover:text-foreground"
                     >

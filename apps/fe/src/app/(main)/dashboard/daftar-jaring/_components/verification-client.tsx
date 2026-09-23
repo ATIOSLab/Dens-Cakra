@@ -91,6 +91,7 @@ import { cn } from "@/lib/utils";
 import { SYSTEM_ROLES } from "@/navigation/sidebar/system-roles";
 
 import { JaringExportPdfDialog } from "./jaring-export-pdf-dialog";
+import { JaringPreviewModal } from "./jaring-preview-modal";
 
 export type { RegistrationJaring } from "@/app/(main)/dashboard/koordinator-wilayah/_components/jaring-types";
 
@@ -333,6 +334,7 @@ export function JaringVerificationListClient() {
   const [rejectionReason, setRejectionReason] = useState("");
   const [isSubmittingAction, setIsSubmittingAction] = useState(false);
   const [exportPdfOpen, setExportPdfOpen] = useState(false);
+  const [previewJaring, setPreviewJaring] = useState<RegistrationJaring | null>(null);
 
   // Load scoped administrative areas (province/city/district/village) for the area filter.
   useEffect(() => {
@@ -1470,7 +1472,8 @@ export function JaringVerificationListClient() {
                   return (
                     <TableRow
                       key={item.id}
-                      className="border-slate-100 border-b transition-colors duration-180 hover:bg-slate-50/50 dark:border-slate-800 dark:hover:bg-white/5"
+                      onClick={() => setPreviewJaring(item)}
+                      className="cursor-pointer border-slate-100 border-b transition-colors duration-180 hover:bg-slate-50/50 dark:border-slate-800 dark:hover:bg-white/5"
                     >
                       {isColumnVisible("registeredAt") ? (
                         <TableCell className="whitespace-nowrap py-3 align-middle font-mono text-muted-foreground text-xs">
@@ -1515,6 +1518,7 @@ export function JaringVerificationListClient() {
                               href={`https://wa.me/${item.whatsappNumber.replace(/\D/g, "")}`}
                               target="_blank"
                               rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
                               className="font-mono font-semibold text-emerald-700 text-xs hover:underline dark:text-emerald-400"
                             >
                               {maskedWhatsappNumber(item.whatsappNumber)}
@@ -1644,14 +1648,34 @@ export function JaringVerificationListClient() {
                       <TableCell className="py-3 pr-6 text-right align-middle">
                         <div className="flex items-center justify-end gap-1.5">
                           <Button
-                            asChild
+                            type="button"
                             size="sm"
                             variant="outline"
-                            className="h-8 gap-1.5 rounded-lg border-border text-xs hover:border-primary hover:bg-primary/5 hover:text-primary"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPreviewJaring(item);
+                            }}
+                            className="h-8 gap-1.5 rounded-lg border-sky-500/30 px-2.5 font-medium text-sky-600 text-xs hover:bg-sky-500/10 dark:text-sky-400"
                           >
-                            <Link href={`/dashboard/daftar-jaring/${item.id}`}>
-                              <Eye className="size-3.5" />
-                              <span>Detail</span>
+                            <Eye className="size-3.5" />
+                            <span>Detail</span>
+                          </Button>
+
+                          <Button
+                            asChild
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={(e) => e.stopPropagation()}
+                            title="Buka di tab baru"
+                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                          >
+                            <Link
+                              href={`/dashboard/daftar-jaring/${item.id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <ExternalLink className="size-3.5" />
+                              <span className="sr-only">Buka di tab baru</span>
                             </Link>
                           </Button>
 
@@ -1660,6 +1684,7 @@ export function JaringVerificationListClient() {
                               asChild
                               size="sm"
                               variant="outline"
+                              onClick={(e) => e.stopPropagation()}
                               className="h-8 gap-1.5 rounded-lg border-border text-xs hover:border-sky-500 hover:bg-sky-500/5 hover:text-sky-600"
                             >
                               <Link href={`/dashboard/daftar-jaring/${item.id}/edit`}>
@@ -1674,7 +1699,10 @@ export function JaringVerificationListClient() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => setSelectedItemForAction({ item, action: "reject" })}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedItemForAction({ item, action: "reject" });
+                                }}
                                 className="h-8 rounded-lg border-rose-500/30 bg-rose-500/10 px-2.5 font-medium text-rose-700 text-xs hover:bg-rose-500/20 hover:text-rose-800 dark:text-rose-400 dark:hover:text-rose-300"
                                 title="Tolak Pengajuan"
                               >
@@ -1685,7 +1713,10 @@ export function JaringVerificationListClient() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => setSelectedItemForAction({ item, action: "approve" })}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedItemForAction({ item, action: "approve" });
+                                }}
                                 className="h-8 rounded-lg border-emerald-500/30 bg-emerald-500/10 px-2.5 font-medium text-emerald-700 text-xs hover:bg-emerald-500/20 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300"
                                 title="Setujui Pengajuan"
                               >
@@ -1699,7 +1730,10 @@ export function JaringVerificationListClient() {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => setSelectedItemForAction({ item, action: "suspend" })}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedItemForAction({ item, action: "suspend" });
+                              }}
                               className="h-8 rounded-lg border-rose-600/30 bg-rose-600/10 px-2.5 font-medium text-rose-700 text-xs hover:bg-rose-600/20 hover:text-rose-800 dark:text-rose-400 dark:hover:text-rose-300"
                               title="Tangguhkan Jaring (Suspend)"
                             >
@@ -1712,7 +1746,10 @@ export function JaringVerificationListClient() {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => setSelectedItemForAction({ item, action: "unsuspend" })}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedItemForAction({ item, action: "unsuspend" });
+                              }}
                               className="h-8 rounded-lg border-emerald-600/30 bg-emerald-600/10 px-2.5 font-medium text-emerald-700 text-xs hover:bg-emerald-600/20 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300"
                               title="Pulihkan Jaring (Batalkan Penangguhan)"
                             >
@@ -1896,6 +1933,14 @@ export function JaringVerificationListClient() {
           areaSubtitle,
         }}
         filteredItemIds={filteredItems.map((item) => item.id)}
+      />
+
+      <JaringPreviewModal
+        jaring={previewJaring}
+        open={Boolean(previewJaring)}
+        onOpenChange={(open) => {
+          if (!open) setPreviewJaring(null);
+        }}
       />
     </main>
   );
@@ -2133,6 +2178,7 @@ function JaringCoachingCardItem({
   return (
     <div className="overflow-hidden rounded-lg border border-slate-200 bg-white transition-all duration-150 dark:border-blue-400/12 dark:bg-[#111827]">
       {/* Header / Summary Bar */}
+      {/* biome-ignore lint/a11y/useSemanticElements: interactive card container containing child action buttons */}
       <div
         role="button"
         tabIndex={0}
