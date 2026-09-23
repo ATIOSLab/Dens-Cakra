@@ -28,6 +28,7 @@ import {
   JaringOccupationQuery,
   JaringExportPdfQueryDto,
   JaringQuery,
+  JaringRekapJangkauanQueryDto,
   JaringReportQuery,
   ReportCategoryQuery,
   ReasonDto,
@@ -267,6 +268,22 @@ export class JaringController {
     return apiResult(
       await this.jaringService.allCoachingReports(query, context),
     );
+  }
+
+  @Get('rekap-jangkauan')
+  @ApiContract({
+    operationId: 'apiJarRekapJangkauan',
+    contractId: 'API-JAR-REKAP-JANGKAUAN',
+    summary: 'Rekap jangkauan, aktivitas, dan pembinaan Jaring',
+    roles: [
+      'executive',
+    ],
+  })
+  async rekapJangkauan(
+    @Query() query: JaringRekapJangkauanQueryDto,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.jaringService.rekapJangkauan(query, context));
   }
 
   @Get(':jaringId')

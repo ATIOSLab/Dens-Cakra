@@ -32,6 +32,7 @@ import type {
   JaringCoachingReportQuery,
   JaringOccupationQuery,
   JaringQuery,
+  JaringRekapJangkauanQueryDto,
   JaringReportQuery,
   ReportCategoryQuery,
   ReasonDto,
@@ -3624,6 +3625,482 @@ export class JaringService {
       ].sort(
         (left, right) => right.createdAt.getTime() - left.createdAt.getTime(),
       ),
+    };
+  }
+
+  async rekapJangkauan(
+    query: JaringRekapJangkauanQueryDto,
+    context?: AuthorizationContext,
+  ) {
+    if (context && context.authRole !== 'executive') {
+      throw new ApiException(
+        'FORBIDDEN_ACCESS',
+        'Akses rekap jangkauan Jaring hanya diizinkan untuk Deputi II.',
+        403,
+      );
+    }
+
+    const now = new Date();
+    const nowWib = new Date(now.getTime() + 7 * 60 * 60 * 1000);
+    const curYear = nowWib.getUTCFullYear();
+    const curMonth = String(nowWib.getUTCMonth() + 1).padStart(2, '0');
+    const curDay = String(nowWib.getUTCDate()).padStart(2, '0');
+
+    const parseDateParam = (input?: string | null): string | null => {
+      if (!input) return null;
+      const trimmed = String(input).trim();
+      if (!trimmed) return null;
+
+      const ymdMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (ymdMatch) {
+        return `${ymdMatch[1]}-${ymdMatch[2]}-${ymdMatch[3]}`;
+      }
+
+      const ymMatch = trimmed.match(/^(\d{4})-(\d{2})$/);
+      if (ymMatch) {
+        return `${ymMatch[1]}-${ymMatch[2]}-01`;
+      }
+
+      const parsed = new Date(trimmed);
+      if (!isNaN(parsed.getTime())) {
+        const wib = new Date(parsed.getTime() + 7 * 60 * 60 * 1000);
+        const y = wib.getUTCFullYear();
+        const m = String(wib.getUTCMonth() + 1).padStart(2, '0');
+        const d = String(wib.getUTCDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+      }
+
+      return null;
+    };
+
+    let startDateStr: string | null = null;
+    let endDateStr: string | null = null;
+
+    if (query.period) {
+      const pTrim = String(query.period).trim();
+      const ymMatch = pTrim.match(/^(\d{4})-(\d{2})$/);
+      if (ymMatch) {
+        const year = Number(ymMatch[1]);
+        const month = Number(ymMatch[2]);
+        startDateStr = `${year}-${String(month).padStart(2, '0')}-01`;
+        const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+        endDateStr = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+      } else {
+        const parts = pTrim.split(/[_:.]+|\s+to\s+|\s+s\.d\.\s+/i);
+        if (parts.length >= 2) {
+          startDateStr = parseDateParam(parts[0]);
+          endDateStr = parseDateParam(parts[1]);
+        }
+      }
+    }
+
+    if (!startDateStr) {
+      startDateStr = parseDateParam(query.startDate ?? query.start);
+    }
+    if (!endDateStr) {
+      endDateStr = parseDateParam(query.endDate ?? query.end);
+    }
+
+    if (!startDateStr) {
+      startDateStr = `${curYear}-${curMonth}-01`;
+    }
+    if (!endDateStr) {
+      endDateStr = `${curYear}-${curMonth}-${curDay}`;
+    }
+
+    if (startDateStr > endDateStr) {
+      const temp = startDateStr;
+      startDateStr = endDateStr;
+      endDateStr = temp;
+    }
+
+    const startPeriod = `${startDateStr} 00:00:00+07`;
+    const [eY, eM, eD] = endDateStr.split('-').map(Number);
+    const nextDay = new Date(Date.UTC(eY, eM - 1, eD + 1));
+    const nextDayStr = `${nextDay.getUTCFullYear()}-${String(nextDay.getUTCMonth() + 1).padStart(2, '0')}-${String(nextDay.getUTCDate()).padStart(2, '0')}`;
+    const endPeriodExclusive = `${nextDayStr} 00:00:00+07`;
+
+    let pullDate: Date;
+    if (query.pullAt && query.pullAt !== 'now' && query.pullAt !== 'current') {
+      pullDate = new Date(query.pullAt);
+      if (isNaN(pullDate.getTime())) {
+        pullDate = now;
+      }
+    } else if (query.pullAt === 'now' || query.pullAt === 'current') {
+      pullDate = now;
+    } else {
+      const endOfDay = new Date(`${endDateStr}T23:59:59.999+07:00`);
+      if (now.getTime() > endOfDay.getTime()) {
+        pullDate = endOfDay;
+      } else {
+        pullDate = now;
+      }
+    }
+
+    const ninetyDaysAgo = new Date(pullDate.getTime() - 90 * 24 * 60 * 60 * 1000);
+    const pullTimeStr = pullDate.toISOString();
+    const ninetyDaysStr = ninetyDaysAgo.toISOString();
+
+    const [
+      totalApprovedRows,
+      activeRows,
+      periodReportsRows,
+      coachingStatsRows,
+      detailsRows,
+    ] = await Promise.all([
+      this.prisma.$queryRaw<Array<{ count: number }>>(Prisma.sql`
+        SELECT count(*)::int as count 
+        FROM "Jaring" 
+        WHERE "registrationStatus" = 'APPROVED' AND "deletedAt" IS NULL
+      `),
+      this.prisma.$queryRaw<Array<{ count: number }>>(Prisma.sql`
+        WITH approved_jaring AS (
+          SELECT id FROM "Jaring" WHERE "registrationStatus" = 'APPROVED' AND "deletedAt" IS NULL
+        ),
+        active_reporters AS (
+          SELECT DISTINCT "jaringId" FROM "WhatsAppReportSession"
+          WHERE "submittedAt" >= ${ninetyDaysStr}::timestamptz AND "submittedAt" <= ${pullTimeStr}::timestamptz
+          UNION
+          SELECT DISTINCT "jaringId" FROM "WhatsAppMessage"
+          WHERE "receivedAt" >= ${ninetyDaysStr}::timestamptz AND "receivedAt" <= ${pullTimeStr}::timestamptz
+        )
+        SELECT count(*)::int as count
+        FROM approved_jaring j
+        JOIN active_reporters a ON j.id = a."jaringId"
+      `),
+      this.prisma.$queryRaw<Array<{ total_reports: number; reporting_jaring: number }>>(Prisma.sql`
+        SELECT 
+          count(*)::int as total_reports,
+          count(DISTINCT "jaringId")::int as reporting_jaring
+        FROM "WhatsAppReportSession"
+        WHERE "submittedAt" >= ${startPeriod}::timestamptz AND "submittedAt" < ${endPeriodExclusive}::timestamptz
+      `),
+      this.prisma.$queryRaw<Array<{
+        total_coaching_all: number;
+        coached_jaring_all: number;
+        total_coaching_approved: number;
+        coached_jaring_approved: number;
+      }>>(Prisma.sql`
+        SELECT 
+          count(*)::int as total_coaching_all,
+          count(DISTINCT "jaringId")::int as coached_jaring_all,
+          count(CASE WHEN j."registrationStatus" = 'APPROVED' AND j."deletedAt" IS NULL THEN 1 END)::int as total_coaching_approved,
+          count(DISTINCT CASE WHEN j."registrationStatus" = 'APPROVED' AND j."deletedAt" IS NULL THEN c."jaringId" END)::int as coached_jaring_approved
+        FROM "JaringCoachingReport" c
+        LEFT JOIN "Jaring" j ON c."jaringId" = j.id
+        WHERE c."reportedAt" >= ${startPeriod}::timestamptz AND c."reportedAt" < ${endPeriodExclusive}::timestamptz
+      `),
+      this.prisma.$queryRaw<Array<{
+        regency_name: string;
+        district_name: string;
+        total_jaring: number;
+        jaring_aktif: number;
+        jaring_tidak_aktif: number;
+        laporan_masuk: number;
+        pembinaan_jaring: number;
+      }>>(Prisma.sql`
+        WITH ranked_coverage AS (
+          SELECT 
+            jac."jaringId",
+            jac."areaId",
+            ROW_NUMBER() OVER (PARTITION BY jac."jaringId" ORDER BY jac."isPrimary" DESC, jac."id" ASC) as rn
+          FROM "JaringAreaCoverage" jac
+          WHERE jac."validUntil" IS NULL OR jac."validUntil" > NOW()
+        ),
+        jaring_base AS (
+          SELECT 
+            j.id as "jaringId",
+            rc."areaId"
+          FROM "Jaring" j
+          JOIN ranked_coverage rc ON j.id = rc."jaringId" AND rc.rn = 1
+          WHERE j."registrationStatus" = 'APPROVED' AND j."deletedAt" IS NULL
+        ),
+        jaring_hierarchy AS (
+          SELECT 
+            jb."jaringId",
+            jb."areaId",
+            TRIM((
+              SELECT reg.name 
+              FROM "AdministrativeAreaClosure" aac
+              JOIN "AdministrativeArea" reg ON aac."ancestorId" = reg.id AND reg.level IN ('REGENCY', 'CITY')
+              WHERE aac."descendantId" = jb."areaId"
+              LIMIT 1
+            )) as regency_name,
+            TRIM((
+              SELECT dist.name 
+              FROM "AdministrativeAreaClosure" aac
+              JOIN "AdministrativeArea" dist ON aac."ancestorId" = dist.id AND dist.level = 'DISTRICT'
+              WHERE aac."descendantId" = jb."areaId"
+              LIMIT 1
+            )) as district_name
+          FROM jaring_base jb
+        ),
+        active_reporters AS (
+          SELECT DISTINCT "jaringId" FROM "WhatsAppReportSession"
+          WHERE "submittedAt" >= ${ninetyDaysStr}::timestamptz AND "submittedAt" <= ${pullTimeStr}::timestamptz
+          UNION
+          SELECT DISTINCT "jaringId" FROM "WhatsAppMessage"
+          WHERE "receivedAt" >= ${ninetyDaysStr}::timestamptz AND "receivedAt" <= ${pullTimeStr}::timestamptz
+        ),
+        period_reports AS (
+          SELECT "jaringId", count(*)::int as rep_count
+          FROM "WhatsAppReportSession"
+          WHERE "submittedAt" >= ${startPeriod}::timestamptz AND "submittedAt" < ${endPeriodExclusive}::timestamptz
+          GROUP BY "jaringId"
+        ),
+        period_coaching AS (
+          SELECT "jaringId", count(*)::int as coach_count
+          FROM "JaringCoachingReport"
+          WHERE "reportedAt" >= ${startPeriod}::timestamptz AND "reportedAt" < ${endPeriodExclusive}::timestamptz
+          GROUP BY "jaringId"
+        )
+        SELECT 
+          jh.regency_name,
+          jh.district_name,
+          count(DISTINCT jh."jaringId")::int as total_jaring,
+          count(DISTINCT CASE WHEN ar."jaringId" IS NOT NULL THEN jh."jaringId" END)::int as jaring_aktif,
+          (count(DISTINCT jh."jaringId") - count(DISTINCT CASE WHEN ar."jaringId" IS NOT NULL THEN jh."jaringId" END))::int as jaring_tidak_aktif,
+          COALESCE(sum(pr.rep_count), 0)::int as laporan_masuk,
+          COALESCE(sum(pc.coach_count), 0)::int as pembinaan_jaring
+        FROM jaring_hierarchy jh
+        LEFT JOIN active_reporters ar ON jh."jaringId" = ar."jaringId"
+        LEFT JOIN period_reports pr ON jh."jaringId" = pr."jaringId"
+        LEFT JOIN period_coaching pc ON jh."jaringId" = pc."jaringId"
+        WHERE jh.regency_name IS NOT NULL AND jh.district_name IS NOT NULL
+        GROUP BY jh.regency_name, jh.district_name
+        ORDER BY jh.regency_name, jh.district_name
+      `),
+    ]);
+
+    const total = Number(totalApprovedRows[0]?.count ?? 0);
+    const active = Number(activeRows[0]?.count ?? 0);
+    const inactive = total - active;
+    const reports = Number(periodReportsRows[0]?.total_reports ?? 0);
+    const reporters = Number(periodReportsRows[0]?.reporting_jaring ?? 0);
+
+    const cStats = coachingStatsRows[0] ?? {
+      total_coaching_all: 0,
+      coached_jaring_all: 0,
+      total_coaching_approved: 0,
+      coached_jaring_approved: 0,
+    };
+    const coachingActivities = Number(cStats.total_coaching_approved ?? 0);
+    const coachingActivitiesAll = Number(cStats.total_coaching_all ?? 0);
+    const coachedUnique = Number(cStats.coached_jaring_approved ?? 0);
+    const coachedUniqueAll = Number(cStats.coached_jaring_all ?? 0);
+
+    const coaching = {
+      activities: coachingActivities,
+      activitiesIncludingPending: coachingActivitiesAll,
+      uniqueJaring: coachedUnique,
+      uniqueJaringIncludingPending: coachedUniqueAll,
+      pendingActivities: coachingActivitiesAll - coachingActivities,
+      pendingJaring: coachedUniqueAll - coachedUnique,
+    };
+
+    const regencyMap = new Map<
+      string,
+      {
+        name: string;
+        fullName: string;
+        total: number;
+        active: number;
+        inactive: number;
+        reports: number;
+        coaching: number;
+      }
+    >();
+
+    for (const d of detailsRows) {
+      if (!regencyMap.has(d.regency_name)) {
+        const shortName = d.regency_name
+          .replace('Kota Administrasi ', '')
+          .replace('Kabupaten Administrasi ', '');
+        regencyMap.set(d.regency_name, {
+          name: shortName,
+          fullName: d.regency_name,
+          total: 0,
+          active: 0,
+          inactive: 0,
+          reports: 0,
+          coaching: 0,
+        });
+      }
+      const r = regencyMap.get(d.regency_name)!;
+      r.total += Number(d.total_jaring ?? 0);
+      r.active += Number(d.jaring_aktif ?? 0);
+      r.inactive += Number(d.jaring_tidak_aktif ?? 0);
+      r.reports += Number(d.laporan_masuk ?? 0);
+      r.coaching += Number(d.pembinaan_jaring ?? 0);
+    }
+
+    const regionOrder = [
+      'Jakarta Selatan',
+      'Jakarta Timur',
+      'Jakarta Pusat',
+      'Jakarta Barat',
+      'Jakarta Utara',
+      'Kepulauan Seribu',
+    ];
+
+    const roundToTwo = (val: number): number =>
+      Math.round((val + Number.EPSILON) * 100) / 100;
+
+    const regions = Array.from(regencyMap.values())
+      .map((r) => {
+        const activeRate = r.total > 0 ? roundToTwo((r.active / r.total) * 100) : 0;
+        const inactiveRate = r.total > 0 ? roundToTwo((r.inactive / r.total) * 100) : 0;
+        const reportsPerActive = r.active > 0 ? roundToTwo(r.reports / r.active) : 0;
+        const coachingShare =
+          coaching.activities > 0
+            ? roundToTwo((r.coaching / coaching.activities) * 100)
+            : 0;
+        return {
+          ...r,
+          activeRate,
+          inactiveRate,
+          reportsPerActive,
+          coachingShare,
+        };
+      })
+      .sort((a, b) => {
+        const idxA = regionOrder.indexOf(a.name);
+        const idxB = regionOrder.indexOf(b.name);
+        return (idxA !== -1 ? idxA : 99) - (idxB !== -1 ? idxB : 99);
+      });
+
+    const districts = detailsRows.map((d) => {
+      const shortRegion = d.regency_name
+        .replace('Kota Administrasi ', '')
+        .replace('Kabupaten Administrasi ', '');
+      const reg = regencyMap.get(d.regency_name);
+      const regReports = reg ? reg.reports : 0;
+
+      const dTotal = Number(d.total_jaring ?? 0);
+      const dActive = Number(d.jaring_aktif ?? 0);
+      const dInactive = Number(d.jaring_tidak_aktif ?? 0);
+      const dReports = Number(d.laporan_masuk ?? 0);
+      const dCoaching = Number(d.pembinaan_jaring ?? 0);
+
+      const activeRate = dTotal > 0 ? roundToTwo((dActive / dTotal) * 100) : 0;
+      const inactiveRate = dTotal > 0 ? roundToTwo((dInactive / dTotal) * 100) : 0;
+      const reportsPerActive = dActive > 0 ? roundToTwo(dReports / dActive) : 0;
+      const reportConcentration =
+        regReports > 0 ? roundToTwo((dReports / regReports) * 100) : 0;
+
+      return {
+        region: shortRegion,
+        regionFullName: d.regency_name,
+        name: d.district_name,
+        total: dTotal,
+        active: dActive,
+        inactive: dInactive,
+        reports: dReports,
+        coaching: dCoaching,
+        activeRate,
+        inactiveRate,
+        reportsPerActive,
+        reportConcentration,
+      };
+    });
+
+    const indonesianMonthNames = [
+      'Januari',
+      'Februari',
+      'Maret',
+      'April',
+      'Mei',
+      'Juni',
+      'Juli',
+      'Agustus',
+      'September',
+      'Oktober',
+      'November',
+      'Desember',
+    ];
+
+    const formatWibDate = (date: Date): string => {
+      const wibTime = new Date(date.getTime() + 7 * 60 * 60 * 1000);
+      const day = wibTime.getUTCDate();
+      const month = indonesianMonthNames[wibTime.getUTCMonth()];
+      const year = wibTime.getUTCFullYear();
+      const hours = String(wibTime.getUTCHours()).padStart(2, '0');
+      const minutes = String(wibTime.getUTCMinutes()).padStart(2, '0');
+      return `${day} ${month} ${year}, ${hours}.${minutes} WIB`;
+    };
+
+    const formatPeriodLabel = (sStr: string, eStr: string): string => {
+      const [sY, sM, sD] = sStr.split('-').map(Number);
+      const [eY, eM, eD] = eStr.split('-').map(Number);
+
+      if (sY === eY && sM === eM && sD === eD) {
+        return `${sD} ${indonesianMonthNames[sM - 1]} ${sY}`;
+      }
+      if (sY === eY && sM === eM) {
+        return `${sD}-${eD} ${indonesianMonthNames[sM - 1]} ${sY}`;
+      }
+      if (sY === eY) {
+        return `${sD} ${indonesianMonthNames[sM - 1]} - ${eD} ${indonesianMonthNames[eM - 1]} ${sY}`;
+      }
+      return `${sD} ${indonesianMonthNames[sM - 1]} ${sY} - ${eD} ${indonesianMonthNames[eM - 1]} ${eY}`;
+    };
+
+    const sDate = new Date(`${startDateStr}T00:00:00+07:00`);
+    const eDate = new Date(`${endDateStr}T00:00:00+07:00`);
+    const periodDays =
+      Math.round(
+        (eDate.getTime() - sDate.getTime()) / (24 * 60 * 60 * 1000),
+      ) + 1;
+
+    const highestActiveRegion =
+      [...regions].sort((a, b) => b.activeRate - a.activeRate)[0]?.name ?? '';
+    const highestReportRegion =
+      [...regions].sort((a, b) => b.reports - a.reports)[0]?.name ?? '';
+    const mostProductiveRegion =
+      [...regions].sort((a, b) => b.reportsPerActive - a.reportsPerActive)[0]
+        ?.name ?? '';
+    const districtsWithoutReports = districts.filter(
+      (d) => d.reports === 0,
+    ).length;
+    const topDistricts = [...districts]
+      .sort((a, b) => b.reports - a.reports)
+      .slice(0, 10)
+      .map((d, index) => ({
+        rank: index + 1,
+        name: d.name,
+        region: d.region,
+        reports: d.reports,
+        active: d.active,
+        total: d.total,
+        activeRate: d.activeRate,
+      }));
+
+    return {
+      metadata: {
+        periodStart: startDateStr,
+        periodEnd: endDateStr,
+        periodLabel: formatPeriodLabel(startDateStr, endDateStr),
+        pullAt: formatWibDate(pullDate),
+        activityWindowStart: formatWibDate(ninetyDaysAgo),
+        periodDays,
+      },
+      summary: {
+        total,
+        active,
+        inactive,
+        reporters,
+        reports,
+      },
+      coaching,
+      regions,
+      districts,
+      highlights: {
+        highestActiveRegion,
+        highestReportRegion,
+        mostProductiveRegion,
+        districtsWithoutReports,
+        topDistricts,
+      },
     };
   }
 }

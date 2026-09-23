@@ -1,0 +1,60 @@
+@page {
+  size: A4 portrait;
+  margin: 0;
+}
+
+@media print {
+  html,
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .report-container,
+  .report-container > div,
+  .report-container > div > div {
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: auto !important;
+    height: auto !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  .report-page {
+    display: block !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    width: 210mm !important;
+    height: 296.5mm !important;
+    page-break-after: always !important;
+    break-after: page !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    overflow: hidden !important;
+  }
+
+  .report-page:last-child {
+    page-break-after: auto !important;
+    break-after: auto !important;
+  }
+}
+
+.report-page {
+  width: 210mm;
+  height: 297mm;
+  position: relative;
+  background: #ffffff;
+  overflow: hidden;
+  box-sizing: border-box;
+}

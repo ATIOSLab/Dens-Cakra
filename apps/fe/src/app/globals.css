@@ -1123,20 +1123,15 @@ html {
 }
 
 @media print {
-  @page {
-    size: Letter;
-    margin: 0;
-  }
-
-  html,
-  body {
+  html:has([data-print-root]),
+  body:has([data-print-root]) {
     width: 8.5in !important;
     height: 11in !important;
     margin: 0 !important;
     overflow: hidden !important;
   }
 
-  body > *:not([data-print-root]) {
+  body:has([data-print-root]) > *:not([data-print-root]) {
     display: none !important;
   }
 

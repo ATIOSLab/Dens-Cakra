@@ -2061,7 +2061,7 @@ export class JaringExportService {
   ): Promise<number> {
     const startX = 36;
     const colWidths = [40, 150, 430, 149]; // Total = 769 pt
-    const colHeaders = ['NO', 'KODE JARING', 'IDENTITAS', 'FOTO'];
+    const colHeaders = ['NO', 'NAMA (KODE JARING)', 'IDENTITAS', 'FOTO'];
     const cardHeight = 224;
 
     let currentY = 48;
@@ -2075,7 +2075,7 @@ export class JaringExportService {
         .font('Helvetica-Bold')
         .fillColor('#ffffff')
         .text(
-          `WILAYAH PENEMPATAN: PROVINSI ${provinceName.toUpperCase()} — ${city.cityName.toUpperCase()}`,
+          city.cityName.toUpperCase(),
           startX + 8,
           currentY + 6,
         );
@@ -2154,23 +2154,24 @@ export class JaringExportService {
           align: 'center',
         });
 
-      // Kolom 2: KODE JARING (Penyesuaian Butir 5: Kode Jaring bold, Nama di bawahnya)
+      // Kolom 2: NAMA (KODE JARING) (Nama bold di atas, Kode Jaring di bawahnya)
       const codeX = startX + colWidths[0] + 8;
-      const jaringCode = item.aliasName || item.fullName || '-';
+      const displayName = item.fullName || item.aliasName || '-';
+      const jaringCode = item.aliasName || '-';
       doc
         .fontSize(10)
         .font('Helvetica-Bold')
         .fillColor('#0f172a')
-        .text(jaringCode, codeX, rowTop + 14, {
+        .text(displayName, codeX, rowTop + 14, {
           width: colWidths[1] - 16,
         });
 
-      if (item.fullName && item.fullName !== jaringCode) {
+      if (jaringCode && jaringCode !== '-' && jaringCode !== displayName) {
         doc
           .fontSize(8.5)
           .font('Helvetica')
           .fillColor('#475569')
-          .text(`Nama: ${item.fullName}`, codeX, doc.y + 4, {
+          .text(`Kode: ${jaringCode}`, codeX, doc.y + 4, {
             width: colWidths[1] - 16,
           });
       }
