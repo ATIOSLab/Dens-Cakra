@@ -248,7 +248,7 @@ export function ExecutiveSummaryPage({ data }: { data: ReportPayload }) {
               <div className="rounded border border-[#C9D9E1] bg-white p-2">
                 <span className="block font-medium text-[#67839A] text-[10px] uppercase">Kegiatan Pembinaan</span>
                 <span className="font-black text-[#174D6B] text-base">{formatNumber(data.coaching.activities)}</span>
-                <span className="block text-[#3A9D69] text-[9px]">Terlaksana & Disetujui</span>
+                <span className="block text-[#3A9D69] text-[9px]">Total Pembinaan</span>
               </div>
               <div className="rounded border border-[#C9D9E1] bg-white p-2">
                 <span className="block font-medium text-[#67839A] text-[10px] uppercase">Jaring Dibina</span>

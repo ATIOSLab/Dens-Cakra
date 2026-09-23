@@ -212,7 +212,7 @@ function PdfExecutiveSummaryPage({ data }: { data: ReportPayload }) {
               <Text style={{ fontSize: 11, fontWeight: "bold", color: PDF_COLORS.primary }}>
                 {formatNumber(data.coaching.activities)}
               </Text>
-              <Text style={{ fontSize: 6.5, color: PDF_COLORS.green }}>Terlaksana & Disetujui</Text>
+              <Text style={{ fontSize: 6.5, color: PDF_COLORS.green }}>Total Pembinaan</Text>
             </View>
             <View style={{ width: "47%", backgroundColor: PDF_COLORS.white, padding: 5, borderRadius: 3 }}>
               <Text style={{ fontSize: 7, color: PDF_COLORS.textMuted }}>Jaring Dibina</Text>

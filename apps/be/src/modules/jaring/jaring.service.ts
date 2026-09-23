@@ -3810,14 +3810,16 @@ export class JaringService {
         jaring_base AS (
           SELECT 
             j.id as "jaringId",
+            j."registrationStatus",
             rc."areaId"
           FROM "Jaring" j
           JOIN ranked_coverage rc ON j.id = rc."jaringId" AND rc.rn = 1
-          WHERE j."registrationStatus" = 'APPROVED' AND j."deletedAt" IS NULL
+          WHERE j."deletedAt" IS NULL
         ),
         jaring_hierarchy AS (
           SELECT 
             jb."jaringId",
+            jb."registrationStatus",
             jb."areaId",
             TRIM((
               SELECT reg.name 
@@ -3857,9 +3859,9 @@ export class JaringService {
         SELECT 
           jh.regency_name,
           jh.district_name,
-          count(DISTINCT jh."jaringId")::int as total_jaring,
-          count(DISTINCT CASE WHEN ar."jaringId" IS NOT NULL THEN jh."jaringId" END)::int as jaring_aktif,
-          (count(DISTINCT jh."jaringId") - count(DISTINCT CASE WHEN ar."jaringId" IS NOT NULL THEN jh."jaringId" END))::int as jaring_tidak_aktif,
+          count(DISTINCT CASE WHEN jh."registrationStatus" = 'APPROVED' THEN jh."jaringId" END)::int as total_jaring,
+          count(DISTINCT CASE WHEN jh."registrationStatus" = 'APPROVED' AND ar."jaringId" IS NOT NULL THEN jh."jaringId" END)::int as jaring_aktif,
+          (count(DISTINCT CASE WHEN jh."registrationStatus" = 'APPROVED' THEN jh."jaringId" END) - count(DISTINCT CASE WHEN jh."registrationStatus" = 'APPROVED' AND ar."jaringId" IS NOT NULL THEN jh."jaringId" END))::int as jaring_tidak_aktif,
           COALESCE(sum(pr.rep_count), 0)::int as laporan_masuk,
           COALESCE(sum(pc.coach_count), 0)::int as pembinaan_jaring
         FROM jaring_hierarchy jh
@@ -3890,10 +3892,12 @@ export class JaringService {
     const coachedUniqueAll = Number(cStats.coached_jaring_all ?? 0);
 
     const coaching = {
-      activities: coachingActivities,
+      activities: coachingActivitiesAll,
       activitiesIncludingPending: coachingActivitiesAll,
-      uniqueJaring: coachedUnique,
+      uniqueJaring: coachedUniqueAll,
       uniqueJaringIncludingPending: coachedUniqueAll,
+      approvedActivities: coachingActivities,
+      approvedJaring: coachedUnique,
       pendingActivities: coachingActivitiesAll - coachingActivities,
       pendingJaring: coachedUniqueAll - coachedUnique,
     };
