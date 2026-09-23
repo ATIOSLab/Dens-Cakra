@@ -3788,7 +3788,7 @@ export class JaringService {
           count(DISTINCT CASE WHEN j."registrationStatus" = 'APPROVED' AND j."deletedAt" IS NULL THEN c."jaringId" END)::int as coached_jaring_approved
         FROM "JaringCoachingReport" c
         LEFT JOIN "Jaring" j ON c."jaringId" = j.id
-        WHERE c."reportedAt" >= ${startPeriod}::timestamptz AND c."reportedAt" < ${endPeriodExclusive}::timestamptz
+        WHERE c."createdAt" >= ${startPeriod}::timestamptz AND c."createdAt" < ${endPeriodExclusive}::timestamptz
       `),
       this.prisma.$queryRaw<Array<{
         regency_name: string;
@@ -3851,7 +3851,7 @@ export class JaringService {
         period_coaching AS (
           SELECT "jaringId", count(*)::int as coach_count
           FROM "JaringCoachingReport"
-          WHERE "reportedAt" >= ${startPeriod}::timestamptz AND "reportedAt" < ${endPeriodExclusive}::timestamptz
+          WHERE "createdAt" >= ${startPeriod}::timestamptz AND "createdAt" < ${endPeriodExclusive}::timestamptz
           GROUP BY "jaringId"
         )
         SELECT 

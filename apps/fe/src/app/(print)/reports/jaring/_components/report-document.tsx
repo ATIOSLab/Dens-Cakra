@@ -511,7 +511,7 @@ export function MethodologyPage({ data }: { data: ReportPayload }) {
             </div>
             <p className="text-[#243B4D] text-[11px] leading-relaxed">
               Kegiatan pembinaan, pengarahan, dan evaluasi terhadap Jaring yang tercatat dalam periode laporan (
-              {data.metadata.periodLabel}) berdasarkan waktu pelaksanaan (<strong>reportedAt</strong>).
+              {data.metadata.periodLabel}) berdasarkan waktu pengiriman/pencatatan laporan (<strong>createdAt</strong>).
             </p>
           </div>
         </div>
