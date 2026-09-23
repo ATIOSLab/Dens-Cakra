@@ -45,10 +45,21 @@ export class TaskService {
 
   private async areaOverlapWhere(
     areaIds: string[],
+    context?: AuthorizationContext,
   ): Promise<Prisma.TaskWhereInput | undefined> {
     if (!areaIds.length) {
       return undefined;
     }
+    const isNational =
+      context?.authRole === 'executive' ||
+      context?.authRole === 'national_leader' ||
+      context?.authRole === 'admin_system' ||
+      context?.areaScopes.some((scope) => scope.level === 'COUNTRY');
+
+    if (isNational) {
+      return undefined;
+    }
+
     const hierarchicalIds = await resolveHierarchicalAreaIds(
       this.prisma,
       areaIds,
@@ -77,7 +88,7 @@ export class TaskService {
     context: AuthorizationContext,
     extra: Prisma.TaskWhereInput = {},
   ): Promise<Prisma.TaskWhereInput> {
-    const areaVisibility = await this.areaOverlapWhere(this.areaIds(context));
+    const areaVisibility = await this.areaOverlapWhere(this.areaIds(context), context);
 
     const visibilityBranches: Prisma.TaskWhereInput[] = [
       { createdByAssignmentId: context.primaryAssignmentId },

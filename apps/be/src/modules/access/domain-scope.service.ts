@@ -190,10 +190,17 @@ export class DomainScopeService {
   }
 
   private async loadAreaTree(context: AuthorizationContext) {
+    const isNational =
+      context.authRole === SYSTEM_ROLES.EXECUTIVE ||
+      context.authRole === SYSTEM_ROLES.NATIONAL_LEADER ||
+      context.authRole === SYSTEM_ROLES.ADMIN_SYSTEM ||
+      context.areaScopes.some((scope) => scope.level === 'COUNTRY');
+
     const scope = await this.resolve(context);
-    const filterAreaIds = scope.areaRootIds.length
-      ? await resolveDescendantAreaIds(this.prisma, scope.areaRootIds)
-      : [];
+    const filterAreaIds =
+      isNational || scope.areaRootIds.length === 0
+        ? []
+        : await resolveDescendantAreaIds(this.prisma, scope.areaRootIds);
     const areas = await this.prisma.administrativeArea.findMany({
       where: {
         ...(filterAreaIds.length

@@ -24,6 +24,7 @@ import type {
   UpdateDirectiveVersionDto,
   VersionRecipientDto,
 } from './directive.dto.js';
+import { SYSTEM_ROLES } from '../../common/constants/system-role.js';
 import { DirectiveSortField } from './directive.dto.js';
 
 @Injectable()
@@ -114,6 +115,16 @@ export class DirectiveService {
     context: AuthorizationContext,
     hierarchicalAreaIds?: string[],
   ): Prisma.DirectiveWhereInput | undefined {
+    const isNational =
+      context.authRole === SYSTEM_ROLES.EXECUTIVE ||
+      context.authRole === SYSTEM_ROLES.NATIONAL_LEADER ||
+      context.authRole === SYSTEM_ROLES.ADMIN_SYSTEM ||
+      context.areaScopes.some((scope) => scope.level === 'COUNTRY');
+
+    if (isNational) {
+      return undefined;
+    }
+
     const areaIds = this.areaIds(context);
 
     if (areaIds.length === 0) {
@@ -173,6 +184,18 @@ export class DirectiveService {
     extra: Prisma.DirectiveWhereInput = {},
     hierarchicalAreaIds?: string[],
   ): Prisma.DirectiveWhereInput {
+    const isNational =
+      context.authRole === SYSTEM_ROLES.EXECUTIVE ||
+      context.authRole === SYSTEM_ROLES.NATIONAL_LEADER ||
+      context.authRole === SYSTEM_ROLES.ADMIN_SYSTEM ||
+      context.areaScopes.some((scope) => scope.level === 'COUNTRY');
+
+    if (isNational) {
+      return {
+        AND: [{ deletedAt: null }, extra],
+      };
+    }
+
     const areaScope = this.areaScopeWhere(context, hierarchicalAreaIds);
     const visibilityBranches: Prisma.DirectiveWhereInput[] = [
       { ownerAssignmentId: context.primaryAssignmentId },
@@ -477,12 +500,18 @@ export class DirectiveService {
     query: DirectiveQuery,
     context: AuthorizationContext,
   ): Promise<Prisma.DirectiveWhereInput> {
-    const areaIds = this.areaIds(context);
+    const isNational =
+      context.authRole === SYSTEM_ROLES.EXECUTIVE ||
+      context.authRole === SYSTEM_ROLES.NATIONAL_LEADER ||
+      context.authRole === SYSTEM_ROLES.ADMIN_SYSTEM ||
+      context.areaScopes.some((scope) => scope.level === 'COUNTRY');
+
+    const areaIds = isNational ? [] : this.areaIds(context);
     const [hierarchicalContextAreaIds, hierarchicalQueryAreaIds] =
       await Promise.all([
         areaIds.length
           ? resolveHierarchicalAreaIds(this.prisma, areaIds)
-          : Promise.resolve([]),
+          : Promise.resolve(undefined),
         query.areaId
           ? resolveHierarchicalAreaIds(this.prisma, query.areaId)
           : Promise.resolve([]),

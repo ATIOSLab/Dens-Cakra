@@ -76,7 +76,9 @@ describe('DomainScopeService', () => {
     expect(administrativeAreaFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          id: { in: expect.arrayContaining(['indonesia']) },
+          isActive: true,
+          deletedAt: null,
+          level: { in: ['PROVINCE', 'REGENCY', 'CITY', 'DISTRICT'] },
         }),
       }),
     );

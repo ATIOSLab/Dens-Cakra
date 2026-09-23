@@ -18,6 +18,7 @@ import type {
   SectionDto,
   UukQuery,
 } from './uuk.dto.js';
+import { SYSTEM_ROLES } from '../../common/constants/system-role.js';
 import { UukSortField } from './uuk.dto.js';
 
 const REQUIRED_UUK_SECTION_TYPES = new Set<UukStrSectionType>([
@@ -54,6 +55,16 @@ export class UukService {
   private async areaScopeWhere(
     context: AuthorizationContext,
   ): Promise<Prisma.UukStrWhereInput | undefined> {
+    const isNational =
+      context.authRole === SYSTEM_ROLES.EXECUTIVE ||
+      context.authRole === SYSTEM_ROLES.NATIONAL_LEADER ||
+      context.authRole === SYSTEM_ROLES.ADMIN_SYSTEM ||
+      context.areaScopes.some((scope) => scope.level === 'COUNTRY');
+
+    if (isNational) {
+      return undefined;
+    }
+
     const areaIds = this.areaIds(context);
 
     if (areaIds.length === 0) {
@@ -99,6 +110,18 @@ export class UukService {
     context: AuthorizationContext,
     extra: Prisma.UukStrWhereInput = {},
   ): Promise<Prisma.UukStrWhereInput> {
+    const isNational =
+      context.authRole === SYSTEM_ROLES.EXECUTIVE ||
+      context.authRole === SYSTEM_ROLES.NATIONAL_LEADER ||
+      context.authRole === SYSTEM_ROLES.ADMIN_SYSTEM ||
+      context.areaScopes.some((scope) => scope.level === 'COUNTRY');
+
+    if (isNational) {
+      return {
+        AND: [{ deletedAt: null }, extra],
+      };
+    }
+
     const areaScope = await this.areaScopeWhere(context);
     const visibilityBranches: Prisma.UukStrWhereInput[] = [
       { ownerAssignmentId: context.primaryAssignmentId },
