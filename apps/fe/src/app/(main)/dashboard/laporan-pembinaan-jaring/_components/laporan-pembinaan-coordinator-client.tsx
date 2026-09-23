@@ -4,7 +4,18 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import Link from "next/link";
 
-import { Calendar, Download, ExternalLink, Eye, FileText, RefreshCw, Search, User, X } from "lucide-react";
+import {
+  Calendar,
+  ExternalLink,
+  Eye,
+  FileSpreadsheet,
+  FileText,
+  RefreshCw,
+  Search,
+  User,
+  X,
+} from "lucide-react";
+import { toast } from "sonner";
 
 import { ViewModeToggle } from "@/app/(main)/dashboard/_components/view-mode-toggle";
 import { GaswilEntityLink } from "@/components/domain/gaswil-entity-link";
@@ -44,6 +55,7 @@ import {
 import { jakartaBoundaryIso, jakartaDateKey, resolveJakartaPeriodRange } from "@/lib/domain/date-time";
 import { resolveJaringIdentity } from "@/lib/domain/jaring-identity";
 import { DC_CONTROLS, DC_TYPOGRAPHY, DOMAIN_VISUALS } from "@/lib/domain/visual-system";
+import { exportToExcel } from "@/lib/export/excel-export";
 import { cn } from "@/lib/utils";
 import { SYSTEM_ROLES, type SystemRole } from "@/navigation/sidebar/system-roles";
 
@@ -553,8 +565,8 @@ export function LaporanPembinaanCoordinatorClient({ role }: { role?: SystemRole 
     setPage(1);
   };
 
-  // CSV Export
-  const handleExportCSV = async () => {
+  // Excel (.xlsx) Export
+  const handleExportExcel = async () => {
     if (totalReports === 0 || exporting) return;
 
     setExporting(true);
@@ -573,36 +585,45 @@ export function LaporanPembinaanCoordinatorClient({ role }: { role?: SystemRole 
       } while (exportPage <= totalPages);
 
       const headers = [
+        "No.",
         "ID Pembinaan",
         "Kode Jaring",
         "Nama Jaring",
+        "Wilayah Penugasan",
         "Judul Pembinaan",
         "Ringkasan Kegiatan",
         "Petugas Wilayah (Gaswil)",
-        "Waktu Pengiriman Laporan",
+        "Waktu Pembinaan",
+        "Waktu Laporan Dibuat",
       ];
 
-      const rows = allReports.map((r) => [
-        `"${r.id}"`,
-        `"${r.jaringAlias || r.jaringCode || "-"}"`,
-        `"${r.jaringName || "-"}"`,
-        `"${(r.title || "-").replace(/"/g, '""')}"`,
-        `"${(r.content || "-").replace(/"/g, '""')}"`,
-        `"${r.fieldOfficer?.userProfile?.fullName || "-"}"`,
-        `"${formatDateTime(r.createdAt || r.reportedAt)}"`,
+      const rows = allReports.map((r, index) => [
+        index + 1,
+        r.id,
+        r.jaringAlias || r.jaringCode || "-",
+        r.jaringName || "-",
+        r.villageName || r.assignedArea?.name || "-",
+        r.title || "-",
+        r.content || "-",
+        r.fieldOfficer?.userProfile?.fullName || "-",
+        formatDateTime(r.reportedAt || r.createdAt),
+        formatDateTime(r.createdAt),
       ]);
 
-      const csvContent = [headers.join(","), ...rows.map((row) => row.join(","))].join("\n");
-      const objectUrl = URL.createObjectURL(new Blob([`\uFEFF${csvContent}`], { type: "text/csv;charset=utf-8" }));
-      const link = document.createElement("a");
-      link.href = objectUrl;
-      link.download = `pembinaan-jaring-${jakartaDateKey(new Date())}.csv`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(objectUrl);
+      const colWidths = [6, 16, 16, 24, 26, 32, 45, 26, 22, 22];
+
+      await exportToExcel({
+        filename: `pembinaan-jaring-${jakartaDateKey(new Date())}.xlsx`,
+        sheetName: "Riwayat Pembinaan",
+        headers,
+        rows,
+        colWidths,
+      });
+
+      toast.success(`Berhasil mengekspor ${allReports.length} data pembinaan Jaring ke Excel (.xlsx)`);
     } catch (error) {
       console.error("Gagal mengekspor laporan pembinaan Jaring:", error);
+      toast.error("Gagal mengekspor data pembinaan Jaring ke Excel.");
     } finally {
       setExporting(false);
     }
@@ -657,12 +678,12 @@ export function LaporanPembinaanCoordinatorClient({ role }: { role?: SystemRole 
           <Button
             variant="outline"
             size="sm"
-            onClick={() => void handleExportCSV()}
+            onClick={() => void handleExportExcel()}
             disabled={totalReports === 0 || exporting}
             className={cn(DC_CONTROLS.selectTrigger, "gap-2")}
           >
-            <Download className="size-4 text-sky-500" />
-            {exporting ? "Mengekspor..." : "Ekspor CSV"}
+            <FileSpreadsheet className="size-4 text-emerald-600 dark:text-emerald-400" />
+            {exporting ? "Mengekspor..." : "Ekspor Excel"}
           </Button>
         </div>
       </div>

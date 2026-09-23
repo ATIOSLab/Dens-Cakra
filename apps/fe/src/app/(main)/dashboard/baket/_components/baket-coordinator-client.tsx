@@ -9,9 +9,9 @@ import {
   AlertTriangle,
   Calendar,
   Clock,
-  Download,
   ExternalLink,
   Eye,
+  FileSpreadsheet,
   ImageIcon,
   Layers,
   MapPin,
@@ -23,6 +23,7 @@ import {
   User,
   X,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import { ViewModeToggle } from "@/app/(main)/dashboard/_components/view-mode-toggle";
 import { GaswilEntityLink } from "@/components/domain/gaswil-entity-link";
@@ -66,6 +67,7 @@ import {
 import { resolveJaringIdentity } from "@/lib/domain/jaring-identity";
 import { sortReportCategories } from "@/lib/domain/report-category-order";
 import { DC_CONTROLS, DC_TYPOGRAPHY, DOMAIN_VISUALS } from "@/lib/domain/visual-system";
+import { exportToExcel } from "@/lib/export/excel-export";
 import { cn } from "@/lib/utils";
 import {
   SYSTEM_ROLE_HOME_ROUTES,
@@ -218,6 +220,7 @@ export function BaketCoordinatorClient({ role }: { role?: SystemRole } = {}) {
   const [areaScopes, setAreaScopes] = useState<AdministrativeAreaScope[]>([]);
   const [loadingList, setLoadingList] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
   const didApplyDefaultProvinceFilter = useRef(false);
 
   // Column visibility state
@@ -648,46 +651,59 @@ export function BaketCoordinatorClient({ role }: { role?: SystemRole } = {}) {
 
   const activeFilterCount = activeFilterChips.length;
 
-  // CSV Export
-  const handleExportCSV = () => {
-    if (filteredReports.length === 0) return;
+  // Excel (.xlsx) Export
+  const handleExportExcel = async () => {
+    if (filteredReports.length === 0 || exporting) return;
 
-    const headers = [
-      "No Baket",
-      "Kode Sumber",
-      "Judul Baket",
-      "Versi Baket",
-      "Urgensi",
-      "Kategori",
-      "Lokasi Baket",
-      "Wilayah Sumber",
-      "Tanggal Baket",
-    ];
-
-    const rows = filteredReports.map((r) => {
-      const identity = resolveJaringIdentity(getBaketJaringIdentitySource(r));
-      const version = currentBaketVersion(r);
-      return [
-        `"${getBaketReferenceLabel(r)}"`,
-        `"${identity.code}"`,
-        `"${getBaketDisplayTitle(r).replace(/"/g, '""')}"`,
-        `"${getBaketVersionLabel(r)}"`,
-        `"${getUrgencyCardStyle(version?.urgency).label}"`,
-        `"${r.reportCategory?.name ?? "-"}"`,
-        `"${formatBaketAreaName(version?.eventArea)}"`,
-        `"${identity.placementArea}"`,
-        `"${formatDateTime(getBaketDate(r))}"`,
+    setExporting(true);
+    try {
+      const headers = [
+        "No.",
+        "No Baket",
+        "Kode Sumber",
+        "Judul Baket",
+        "Versi Baket",
+        "Urgensi",
+        "Kategori",
+        "Lokasi Baket",
+        "Wilayah Sumber",
+        "Tanggal Baket",
       ];
-    });
 
-    const csvContent = `data:text/csv;charset=utf-8,${[headers.join(","), ...rows.map((e) => e.join(","))].join("\n")}`;
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `baket-${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      const rows = filteredReports.map((r, index) => {
+        const identity = resolveJaringIdentity(getBaketJaringIdentitySource(r));
+        const version = currentBaketVersion(r);
+        return [
+          index + 1,
+          getBaketReferenceLabel(r),
+          identity.code,
+          getBaketDisplayTitle(r),
+          getBaketVersionLabel(r),
+          getUrgencyCardStyle(version?.urgency).label,
+          r.reportCategory?.name ?? "-",
+          formatBaketAreaName(version?.eventArea),
+          identity.placementArea,
+          formatDateTime(getBaketDate(r)),
+        ];
+      });
+
+      const colWidths = [6, 18, 16, 40, 16, 16, 22, 28, 28, 22];
+
+      await exportToExcel({
+        filename: `baket-${new Date().toISOString().slice(0, 10)}.xlsx`,
+        sheetName: "Bahan Keterangan",
+        headers,
+        rows,
+        colWidths,
+      });
+
+      toast.success(`Berhasil mengekspor ${filteredReports.length} data Bahan Keterangan (Baket) ke Excel (.xlsx)`);
+    } catch (error) {
+      console.error("Gagal mengekspor data baket:", error);
+      toast.error("Gagal mengekspor data Baket ke Excel.");
+    } finally {
+      setExporting(false);
+    }
   };
 
   const hasAreaFilter =
@@ -737,12 +753,12 @@ export function BaketCoordinatorClient({ role }: { role?: SystemRole } = {}) {
           <Button
             variant="outline"
             size="sm"
-            onClick={handleExportCSV}
-            disabled={filteredReports.length === 0}
+            onClick={() => void handleExportExcel()}
+            disabled={filteredReports.length === 0 || exporting}
             className="h-9 gap-2 border-slate-200 dark:border-white/10"
           >
-            <Download className="size-4 text-sky-500" />
-            Ekspor CSV
+            <FileSpreadsheet className="size-4 text-emerald-600 dark:text-emerald-400" />
+            {exporting ? "Mengekspor..." : "Ekspor Excel"}
           </Button>
         </div>
       </div>

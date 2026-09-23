@@ -8,9 +8,9 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Calendar,
   Clock,
-  Download,
   ExternalLink,
   Eye,
+  FileSpreadsheet,
   ImageIcon,
   MapPin,
   MessageSquare,
@@ -22,6 +22,7 @@ import {
   Users,
   X,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import { ViewModeToggle } from "@/app/(main)/dashboard/_components/view-mode-toggle";
 import { GaswilEntityLink } from "@/components/domain/gaswil-entity-link";
@@ -61,6 +62,7 @@ import {
 import { jakartaBoundaryIso, resolveJakartaPeriodRange } from "@/lib/domain/date-time";
 import { resolveJaringIdentity } from "@/lib/domain/jaring-identity";
 import { DC_CONTROLS, DC_TYPOGRAPHY, DOMAIN_VISUALS } from "@/lib/domain/visual-system";
+import { exportToExcel } from "@/lib/export/excel-export";
 import { cn } from "@/lib/utils";
 import {
   SYSTEM_ROLE_HOME_ROUTES,
@@ -306,6 +308,7 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
   const [areaScopes, setAreaScopes] = useState<AdministrativeAreaScope[]>([]);
   const [loadingList, setLoadingList] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   // Column visibility state
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({});
@@ -962,52 +965,70 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
     endDate,
   ]);
 
-  // CSV Export
-  const handleExportCSV = async () => {
-    if (reportTotal === 0) return;
+  // Excel (.xlsx) Export
+  const handleExportExcel = async () => {
+    if (reportTotal === 0 || exporting) return;
 
-    const exportedReports: JaringReportSessionDetail[] = [];
-    let exportPage = 1;
-    let totalPages = 1;
-    do {
-      const response = await apiBrowserFetch<PaginatedReportResponse>("/jaring/reports", {
-        query: reportQuery(exportPage, 100),
+    setExporting(true);
+    try {
+      const exportedReports: JaringReportSessionDetail[] = [];
+      const exportLimit = 100;
+      let exportPage = 1;
+      let totalPages = 1;
+      do {
+        const response = await apiBrowserFetch<PaginatedReportResponse>("/jaring/reports", {
+          query: reportQuery(exportPage, exportLimit),
+        });
+        exportedReports.push(...(response.items ?? []));
+        totalPages = Math.max(1, response.pagination?.totalPages ?? 1);
+        exportPage += 1;
+      } while (exportPage <= totalPages);
+
+      const headers = [
+        "No.",
+        "No Ref",
+        "Kode Jaring",
+        "Nama / Alias Jaring",
+        "Kategori",
+        "Sorotan Isi Laporan",
+        "Urgensi",
+        "Status Proses",
+        "Wilayah",
+        "Petugas Wilayah (Gaswil)",
+        "Waktu Pelaporan",
+      ];
+
+      const rows = exportedReports.map((r, index) => [
+        index + 1,
+        r.referenceNumber || r.id,
+        r.jaringAlias || r.jaringCode || "-",
+        r.jaringFullName || r.jaringAlias || "-",
+        r.reportCategory?.name || "-",
+        r.displayTitle || r.content || "-",
+        r.urgency || "Belum ditentukan",
+        verificationStatusLabel(getReportDisplayStatus(r)),
+        r.resolvedArea?.name || "-",
+        r.gaswilName || "-",
+        formatDateTime(r.reportedAt),
+      ]);
+
+      const colWidths = [6, 16, 16, 24, 20, 45, 18, 20, 24, 24, 22];
+
+      await exportToExcel({
+        filename: `laporan-jaring-${new Date().toISOString().slice(0, 10)}.xlsx`,
+        sheetName: "Laporan Jaring",
+        headers,
+        rows,
+        colWidths,
       });
-      exportedReports.push(...(response.items ?? []));
-      totalPages = Math.max(1, response.pagination?.totalPages ?? 1);
-      exportPage += 1;
-    } while (exportPage <= totalPages);
 
-    const headers = [
-      "No Ref",
-      "Kode Jaring",
-      "Sorotan Isi",
-      "Urgensi",
-      "Status Proses",
-      "Wilayah",
-      "Waktu Pelaporan",
-      "Waktu Pelaporan (Status)",
-    ];
-
-    const rows = exportedReports.map((r) => [
-      `"${r.referenceNumber || r.id}"`,
-      `"${r.jaringAlias || r.jaringCode || "-"}"`,
-      `"${(r.displayTitle || r.content || "-").replace(/"/g, '""')}"`,
-      `"${r.urgency || "Belum ditentukan"}"`,
-      `"${verificationStatusLabel(getReportDisplayStatus(r))}"`,
-      `"${r.resolvedArea?.name || "-"}"`,
-      `"${formatDateTime(r.reportedAt)}"`,
-      `"${formatDateTime(r.reportedAt)}"`,
-    ]);
-
-    const csvContent = `data:text/csv;charset=utf-8,${[headers.join(","), ...rows.map((e) => e.join(","))].join("\n")}`;
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `laporan-jaring-${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      toast.success(`Berhasil mengekspor ${exportedReports.length} data Laporan Jaring ke Excel (.xlsx)`);
+    } catch (error) {
+      console.error("Gagal mengekspor laporan jaring:", error);
+      toast.error("Gagal mengekspor data Laporan Jaring ke Excel.");
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
@@ -1063,12 +1084,12 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
           <Button
             variant="outline"
             size="sm"
-            onClick={() => void handleExportCSV()}
-            disabled={reportTotal === 0}
+            onClick={() => void handleExportExcel()}
+            disabled={reportTotal === 0 || exporting}
             className="h-9 gap-2 border-slate-200 dark:border-white/10"
           >
-            <Download className="size-4 text-sky-500" />
-            Ekspor CSV
+            <FileSpreadsheet className="size-4 text-emerald-600 dark:text-emerald-400" />
+            {exporting ? "Mengekspor..." : "Ekspor Excel"}
           </Button>
         </div>
       </div>
