@@ -96,6 +96,8 @@ export default async function JaringReportPrintPage({ searchParams }: PrintPageP
         periodLabel={reportData.metadata.periodLabel}
         start={start}
         end={end}
+        period={params.period}
+        provinceCode={params.provinceCode ?? "31"}
         isValid={validation.valid}
       />
 

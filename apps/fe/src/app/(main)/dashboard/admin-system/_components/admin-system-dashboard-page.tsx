@@ -14,6 +14,8 @@ import { DC_TYPOGRAPHY, DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 import { SYSTEM_ROLES } from "@/navigation/sidebar/system-roles";
 
+import { AdminRekapJaringFilterCard, AdminRekapJaringModalTrigger } from "./admin-rekap-jaring-filter-card";
+
 type AdminModule = {
   title: string;
   label: string;
@@ -172,18 +174,7 @@ export async function AdminSystemDashboardPage() {
             <Badge variant="outline">{DOMAIN_TERMS.systemAccount}</Badge>
           </div>
         }
-        actions={
-          <Button
-            asChild
-            variant="outline"
-            className="border-emerald-500/40 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-600 hover:text-white dark:text-emerald-300"
-          >
-            <Link href="/reports/jaring/print" target="_blank" rel="noreferrer">
-              <Printer className="size-4" />
-              Laporan Rekap Jaring
-            </Link>
-          </Button>
-        }
+        actions={<AdminRekapJaringModalTrigger />}
       />
 
       <section className="grid gap-3 md:grid-cols-3">
@@ -238,6 +229,8 @@ export async function AdminSystemDashboardPage() {
           </CardContent>
         </Card>
       </section>
+
+      <AdminRekapJaringFilterCard />
 
       {adminModuleGroups.map((group) => (
         <section key={group.title} className="space-y-3">
