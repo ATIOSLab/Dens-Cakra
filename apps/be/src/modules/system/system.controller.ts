@@ -84,6 +84,8 @@ export class SystemController {
     @Body() body: UpdateSystemConfigDto,
     @CurrentAccessContext() context: AuthorizationContext,
   ) {
-    return apiResult(await this.systemConfig.updateConfiguration(body, context));
+    return apiResult(
+      await this.systemConfig.updateConfiguration(body, context),
+    );
   }
 }

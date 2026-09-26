@@ -199,7 +199,9 @@ describe('WhatsAppReportFlowService simplified collector', () => {
       }),
     );
     expect(input.reply).toHaveBeenCalledWith([
-      expect.stringContaining('Nomor WhatsApp Anda telah terverifikasi sebagai Jaring'),
+      expect.stringContaining(
+        'Nomor WhatsApp Anda telah terverifikasi sebagai Jaring',
+      ),
     ]);
     expect(input.reply).toHaveBeenCalledWith([
       expect.stringContaining('*1945*'),

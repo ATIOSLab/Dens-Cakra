@@ -310,7 +310,10 @@ export class UukService {
     });
   }
 
-  private async versionDetail(versionId: string, context?: AuthorizationContext) {
+  private async versionDetail(
+    versionId: string,
+    context?: AuthorizationContext,
+  ) {
     return this.prisma.uukStrVersion.findFirstOrThrow({
       where: context
         ? {

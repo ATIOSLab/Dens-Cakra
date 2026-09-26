@@ -416,7 +416,10 @@ export class DirectiveService {
     });
   }
 
-  private async versionDetail(versionId: string, context?: AuthorizationContext) {
+  private async versionDetail(
+    versionId: string,
+    context?: AuthorizationContext,
+  ) {
     const where = await this.versionWhere(versionId, context);
     return this.prisma.directiveVersion.findFirstOrThrow({
       where,
@@ -650,7 +653,10 @@ export class DirectiveService {
           ? {
               OR: [
                 {
-                  commandNumber: { contains: query.search, mode: 'insensitive' },
+                  commandNumber: {
+                    contains: query.search,
+                    mode: 'insensitive',
+                  },
                 },
                 {
                   versions: {

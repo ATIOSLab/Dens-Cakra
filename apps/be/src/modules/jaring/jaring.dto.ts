@@ -317,33 +317,55 @@ export class JaringExportPdfQueryDto {
   includeRecap?: boolean = true;
 
   @IsOptional()
+  @IsBoolean()
+  @Type(() => Boolean)
+  includeMap?: boolean = true;
+
+  @IsOptional()
+  @IsBoolean()
+  @Type(() => Boolean)
+  includeInfographic?: boolean = true;
+
+  @IsOptional()
   @IsString()
   jaringIds?: string;
 }
 
 export class JaringRekapJangkauanQueryDto {
   @IsOptional()
-  @IsString({ message: 'Format tanggal mulai (startDate) harus berupa teks tanggal.' })
+  @IsString({
+    message: 'Format tanggal mulai (startDate) harus berupa teks tanggal.',
+  })
   startDate?: string;
 
   @IsOptional()
-  @IsString({ message: 'Format tanggal mulai (start) harus berupa teks tanggal.' })
+  @IsString({
+    message: 'Format tanggal mulai (start) harus berupa teks tanggal.',
+  })
   start?: string;
 
   @IsOptional()
-  @IsString({ message: 'Format tanggal akhir (endDate) harus berupa teks tanggal.' })
+  @IsString({
+    message: 'Format tanggal akhir (endDate) harus berupa teks tanggal.',
+  })
   endDate?: string;
 
   @IsOptional()
-  @IsString({ message: 'Format tanggal akhir (end) harus berupa teks tanggal.' })
+  @IsString({
+    message: 'Format tanggal akhir (end) harus berupa teks tanggal.',
+  })
   end?: string;
 
   @IsOptional()
-  @IsString({ message: 'Format rentang periode (period) harus berupa teks tanggal.' })
+  @IsString({
+    message: 'Format rentang periode (period) harus berupa teks tanggal.',
+  })
   period?: string;
 
   @IsOptional()
-  @IsString({ message: 'Format waktu penarikan data (pullAt) harus berupa teks waktu.' })
+  @IsString({
+    message: 'Format waktu penarikan data (pullAt) harus berupa teks waktu.',
+  })
   pullAt?: string;
 
   @IsOptional()

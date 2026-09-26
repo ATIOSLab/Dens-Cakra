@@ -1,5 +1,9 @@
 import type React from "react";
 
+import { JakartaDistributionMap } from "@/components/report/maps/JakartaDistributionMap";
+import { RegionMap } from "@/components/report/maps/RegionMap";
+import { buildReportStatistics } from "@/components/report/report-data-helper";
+
 import { formatDecimal, formatNumber, formatPercent } from "./report-styles";
 import type { ReportPayload } from "./report-types";
 import { REGION_PAGE_ORDER } from "./report-types";
@@ -9,11 +13,13 @@ import { REGION_PAGE_ORDER } from "./report-types";
 export function ReportPage({
   children,
   pageNumber,
+  totalPages = 13,
   showHeader = true,
   periodLabel,
 }: {
   children: React.ReactNode;
   pageNumber?: number;
+  totalPages?: number;
   showHeader?: boolean;
   periodLabel?: string;
 }) {
@@ -38,7 +44,9 @@ export function ReportPage({
       {pageNumber ? (
         <footer className="mt-4 flex w-full shrink-0 items-center justify-between border-[#C9D9E1] border-t pt-2 text-[#67839A] text-[9px]">
           <span>Sumber Data: Sistem Operasional Terpadu</span>
-          <span className="font-semibold text-[#174D6B]">Halaman {pageNumber} dari 13</span>
+          <span className="font-semibold text-[#174D6B]">
+            Halaman {pageNumber} dari {totalPages}
+          </span>
         </footer>
       ) : (
         <div />
@@ -307,92 +315,55 @@ export function ExecutiveSummaryPage({ data }: { data: ReportPayload }) {
   );
 }
 
-// ─── Page 3: Regional Analysis ────────────────────────────────────────────────
+// ─── Page 3: Regional Analysis & Geographic Map ───────────────────────────────
 
 export function RegionalAnalysisPage({ data }: { data: ReportPayload }) {
-  const byActiveRate = [...data.regions].sort((a, b) => b.activeRate - a.activeRate);
-  const byReports = [...data.regions].sort((a, b) => b.reports - a.reports);
-  const maxReports = Math.max(...data.regions.map((r) => r.reports), 1);
+  const stats = buildReportStatistics(data);
 
   return (
-    <ReportPage pageNumber={3} periodLabel={data.metadata.periodLabel}>
-      <div>
-        <h2 className="font-black text-[#174D6B] text-xl uppercase tracking-tight">Analisis Per Wilayah</h2>
-        <p className="mt-0.5 text-[#67839A] text-xs">
-          Perbandingan keaktifan, volume laporan, dan produktivitas 6 Kabupaten/Kota di DKI Jakarta.
-        </p>
-
-        {/* 2 Charts Grid */}
-        <div className="mt-4 grid grid-cols-2 gap-4">
-          {/* Chart 1: Tingkat Keaktifan */}
-          <div className="rounded-lg border border-[#C9D9E1] bg-[#EAF5FA] p-3">
-            <h3 className="mb-2 font-bold text-[#174D6B] text-xs uppercase tracking-wider">
-              Peringkat Tingkat Keaktifan (%)
-            </h3>
-            <div className="mt-2 space-y-2">
-              {byActiveRate.map((r) => (
-                <div key={r.name} className="text-xs">
-                  <div className="mb-0.5 flex justify-between text-[11px]">
-                    <span className="truncate font-semibold text-[#243B4D]">{r.name}</span>
-                    <span className="font-bold text-[#3A9D69]">{formatPercent(r.activeRate)}</span>
-                  </div>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-[#E4F0F5]">
-                    <div
-                      className="h-full rounded-full bg-[#3A9D69]"
-                      style={{ width: `${Math.min(100, Math.max(5, r.activeRate))}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Chart 2: Volume Laporan */}
-          <div className="rounded-lg border border-[#C9D9E1] bg-[#EAF5FA] p-3">
-            <h3 className="mb-2 font-bold text-[#174D6B] text-xs uppercase tracking-wider">Volume Laporan Masuk</h3>
-            <div className="mt-2 space-y-2">
-              {byReports.map((r) => (
-                <div key={r.name} className="text-xs">
-                  <div className="mb-0.5 flex justify-between text-[11px]">
-                    <span className="truncate font-semibold text-[#243B4D]">{r.name}</span>
-                    <span className="font-bold text-[#1485B0]">{formatNumber(r.reports)}</span>
-                  </div>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-[#E4F0F5]">
-                    <div
-                      className="h-full rounded-full bg-[#1485B0]"
-                      style={{ width: `${Math.min(100, Math.max(5, (r.reports / maxReports) * 100))}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+    <ReportPage pageNumber={3} totalPages={13} periodLabel={data.metadata.periodLabel}>
+      <div className="flex h-full flex-col justify-between gap-2.5">
+        <div>
+          <h2 className="font-black text-[#174D6B] text-xl uppercase tracking-tight">
+            Peta Sebaran & Analisis Wilayah
+          </h2>
+          <p className="mt-0.5 text-[#67839A] text-xs">
+            Visualisasi geografis batas administratif DKI Jakarta dengan model Choropleth SVG dan rekapitulasi data 6
+            Kota/Kabupaten.
+          </p>
         </div>
 
+        {/* Peta Geografis DKI Jakarta (SVG Choropleth) */}
+        <JakartaDistributionMap data={stats.region} summary={stats.summary} height={380} showKpiPanel={false} />
+
         {/* Tabel Ringkasan Wilayah */}
-        <div className="mt-5 overflow-hidden rounded-lg border border-[#C9D9E1] shadow-xs">
+        <div className="overflow-hidden rounded-lg border border-[#C9D9E1] shadow-xs">
           <table className="w-full border-collapse text-left text-xs">
             <thead>
               <tr className="bg-[#174D6B] font-bold text-[10px] text-white uppercase tracking-wider">
-                <th className="px-3 py-2">Wilayah</th>
-                <th className="px-3 py-2 text-right">Total Jaring</th>
-                <th className="px-3 py-2 text-right">Jaring Aktif</th>
-                <th className="px-3 py-2 text-right">Laporan Masuk</th>
-                <th className="px-3 py-2 text-right">Laporan / Aktif</th>
-                <th className="px-3 py-2 text-right">Keaktifan</th>
+                <th className="px-3 py-1.5">Wilayah</th>
+                <th className="px-3 py-1.5 text-right">Total Jaring</th>
+                <th className="px-3 py-1.5 text-right">Jaring Aktif</th>
+                <th className="px-3 py-1.5 text-right">Laporan Masuk</th>
+                <th className="px-3 py-1.5 text-right">Laporan / Aktif</th>
+                <th className="px-3 py-1.5 text-right">Keaktifan</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#C9D9E1]">
               {data.regions.map((r, i) => (
                 <tr key={r.name} className={i % 2 === 0 ? "bg-white" : "bg-[#EDF4F7]"}>
-                  <td className="px-3 py-2 font-semibold text-[#243B4D]">{r.name}</td>
-                  <td className="px-3 py-2 text-right font-mono">{formatNumber(r.total)}</td>
-                  <td className="px-3 py-2 text-right font-medium font-mono text-[#3A9D69]">
+                  <td className="px-3 py-1.5 font-semibold text-[#243B4D]">{r.name}</td>
+                  <td className="px-3 py-1.5 text-right font-mono">{formatNumber(r.total)}</td>
+                  <td className="px-3 py-1.5 text-right font-medium font-mono text-[#3A9D69]">
                     {formatNumber(r.active)}
                   </td>
-                  <td className="px-3 py-2 text-right font-bold font-mono text-[#1485B0]">{formatNumber(r.reports)}</td>
-                  <td className="px-3 py-2 text-right font-mono text-[#174D6B]">{formatDecimal(r.reportsPerActive)}</td>
-                  <td className="px-3 py-2 text-right font-mono font-semibold text-[#3A9D69]">
+                  <td className="px-3 py-1.5 text-right font-bold font-mono text-[#1485B0]">
+                    {formatNumber(r.reports)}
+                  </td>
+                  <td className="px-3 py-1.5 text-right font-mono text-[#174D6B]">
+                    {formatDecimal(r.reportsPerActive)}
+                  </td>
+                  <td className="px-3 py-1.5 text-right font-mono font-semibold text-[#3A9D69]">
                     {formatPercent(r.activeRate)}
                   </td>
                 </tr>
@@ -400,16 +371,16 @@ export function RegionalAnalysisPage({ data }: { data: ReportPayload }) {
             </tbody>
             <tfoot>
               <tr className="border-[#174D6B] border-t-2 bg-[#EAF5FA] font-bold text-[#174D6B]">
-                <td className="px-3 py-2.5 uppercase">Total / Rata-rata</td>
-                <td className="px-3 py-2.5 text-right font-mono">{formatNumber(data.summary.total)}</td>
-                <td className="px-3 py-2.5 text-right font-mono text-[#3A9D69]">{formatNumber(data.summary.active)}</td>
-                <td className="px-3 py-2.5 text-right font-mono text-[#1485B0]">
+                <td className="px-3 py-1.5 uppercase">Total / Rata-rata</td>
+                <td className="px-3 py-1.5 text-right font-mono">{formatNumber(data.summary.total)}</td>
+                <td className="px-3 py-1.5 text-right font-mono text-[#3A9D69]">{formatNumber(data.summary.active)}</td>
+                <td className="px-3 py-1.5 text-right font-mono text-[#1485B0]">
                   {formatNumber(data.summary.reports)}
                 </td>
-                <td className="px-3 py-2.5 text-right font-mono">
+                <td className="px-3 py-1.5 text-right font-mono">
                   {formatDecimal(data.summary.active > 0 ? data.summary.reports / data.summary.active : 0)}
                 </td>
-                <td className="px-3 py-2.5 text-right font-mono text-[#3A9D69]">
+                <td className="px-3 py-1.5 text-right font-mono text-[#3A9D69]">
                   {formatPercent((data.summary.active / data.summary.total) * 100)}
                 </td>
               </tr>
@@ -696,118 +667,125 @@ export function RegionDetailPage({
 
   return (
     <ReportPage pageNumber={pageNumber} periodLabel={data.metadata.periodLabel}>
-      <div>
-        <h2 className="font-black text-[#174D6B] text-xl uppercase tracking-tight">
-          Detail Wilayah — {region.fullName}
-        </h2>
-        <p className="mt-0.5 text-[#67839A] text-xs">
-          Rincian jangkauan, keaktifan, produktivitas pelaporan, dan pembinaan tingkat kecamatan.
-        </p>
+      <div className="flex h-full flex-col justify-between">
+        <div>
+          <h2 className="font-black text-[#174D6B] text-xl uppercase tracking-tight">
+            Detail Wilayah — {region.fullName}
+          </h2>
+          <p className="mt-0.5 text-[#67839A] text-xs">
+            Rincian jangkauan, keaktifan, produktivitas pelaporan, dan pembinaan tingkat kecamatan.
+          </p>
 
-        {/* 4 KPI Cards */}
-        <div className="mt-3 grid grid-cols-4 gap-3">
-          <KpiCard title="Total Jaring" value={region.total} subtitle="Jaring Terverifikasi" accent="dark" />
-          <KpiCard
-            title="Aktif 90 Hari"
-            value={region.active}
-            subtitle={`${formatPercent(region.activeRate)} tingkat aktif`}
-            accent="green"
-          />
-          <KpiCard
-            title="Tidak Aktif"
-            value={region.inactive}
-            subtitle={`${formatPercent(region.inactiveRate)} belum melapor`}
-            accent="orange"
-          />
-          <KpiCard
-            title="Laporan Masuk"
-            value={region.reports}
-            subtitle={`${formatDecimal(region.reportsPerActive)} lap/aktif`}
-            accent="blue"
-          />
-        </div>
+          {/* 4 KPI Cards */}
+          <div className="mt-2.5 grid grid-cols-4 gap-2.5">
+            <KpiCard title="Total Jaring" value={region.total} subtitle="Jaring Terverifikasi" accent="dark" />
+            <KpiCard
+              title="Aktif 90 Hari"
+              value={region.active}
+              subtitle={`${formatPercent(region.activeRate)} tingkat aktif`}
+              accent="green"
+            />
+            <KpiCard
+              title="Tidak Aktif"
+              value={region.inactive}
+              subtitle={`${formatPercent(region.inactiveRate)} belum melapor`}
+              accent="orange"
+            />
+            <KpiCard
+              title="Laporan Masuk"
+              value={region.reports}
+              subtitle={`${formatDecimal(region.reportsPerActive)} lap/aktif`}
+              accent="blue"
+            />
+          </div>
 
-        {/* Tabel Kecamatan */}
-        <div className="mt-4 overflow-hidden rounded-lg border border-[#C9D9E1] shadow-xs">
-          <table className="w-full border-collapse text-left text-xs">
-            <thead>
-              <tr className="bg-[#174D6B] font-bold text-[10px] text-white uppercase tracking-wider">
-                <th className="w-8 px-3 py-1.5 text-center">No</th>
-                <th className="px-3 py-1.5">Kecamatan</th>
-                <th className="px-3 py-1.5 text-right">Total Jaring</th>
-                <th className="px-3 py-1.5 text-right">Aktif</th>
-                <th className="px-3 py-1.5 text-right">Tidak Aktif</th>
-                <th className="px-3 py-1.5 text-right">Laporan Masuk</th>
-                <th className="px-3 py-1.5 text-right">Pembinaan</th>
-                <th className="px-3 py-1.5 text-right">Keaktifan</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#C9D9E1]">
-              {districts.map((d, i) => (
-                <tr key={d.name} className={i % 2 === 0 ? "bg-white" : "bg-[#EDF4F7]"}>
-                  <td className="px-3 py-1.5 text-center text-[#67839A] text-[11px]">{i + 1}</td>
-                  <td className="px-3 py-1.5 font-semibold text-[#243B4D]">{d.name}</td>
-                  <td className="px-3 py-1.5 text-right font-mono">{formatNumber(d.total)}</td>
-                  <td className="px-3 py-1.5 text-right font-medium font-mono text-[#3A9D69]">
-                    {formatNumber(d.active)}
-                  </td>
-                  <td className="px-3 py-1.5 text-right font-mono text-[#67839A]">{formatNumber(d.inactive)}</td>
-                  <td className="px-3 py-1.5 text-right font-bold font-mono text-[#1485B0]">
-                    {formatNumber(d.reports)}
-                  </td>
-                  <td className="px-3 py-1.5 text-right font-mono text-[#174D6B]">{formatNumber(d.coaching)}</td>
-                  <td className="px-3 py-1.5 text-right font-mono font-semibold text-[#3A9D69]">
-                    {formatPercent(d.activeRate)}
-                  </td>
+          {/* Peta Sebaran Tingkat Kecamatan (Choropleth SVG) */}
+          <div className="mt-2.5">
+            <RegionMap level="city" cityName={region.name} districtData={districts} height={140} />
+          </div>
+
+          {/* Tabel Kecamatan */}
+          <div className="mt-2.5 overflow-hidden rounded-lg border border-[#C9D9E1] shadow-xs">
+            <table className="w-full border-collapse text-left text-xs">
+              <thead>
+                <tr className="bg-[#174D6B] font-bold text-[10px] text-white uppercase tracking-wider">
+                  <th className="w-8 px-3 py-1.5 text-center">No</th>
+                  <th className="px-3 py-1.5">Kecamatan</th>
+                  <th className="px-3 py-1.5 text-right">Total Jaring</th>
+                  <th className="px-3 py-1.5 text-right">Aktif</th>
+                  <th className="px-3 py-1.5 text-right">Tidak Aktif</th>
+                  <th className="px-3 py-1.5 text-right">Laporan Masuk</th>
+                  <th className="px-3 py-1.5 text-right">Pembinaan</th>
+                  <th className="px-3 py-1.5 text-right">Keaktifan</th>
                 </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr className="border-[#174D6B] border-t-2 bg-[#EAF5FA] font-bold text-[#174D6B]">
-                <td colSpan={2} className="px-3 py-2 uppercase">
-                  Total Wilayah
-                </td>
-                <td className="px-3 py-2 text-right font-mono">{formatNumber(region.total)}</td>
-                <td className="px-3 py-2 text-right font-mono text-[#3A9D69]">{formatNumber(region.active)}</td>
-                <td className="px-3 py-2 text-right font-mono">{formatNumber(region.inactive)}</td>
-                <td className="px-3 py-2 text-right font-mono text-[#1485B0]">{formatNumber(region.reports)}</td>
-                <td className="px-3 py-2 text-right font-mono">{formatNumber(region.coaching)}</td>
-                <td className="px-3 py-2 text-right font-mono text-[#3A9D69]">{formatPercent(region.activeRate)}</td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-[#C9D9E1]">
+                {districts.map((d, i) => (
+                  <tr key={d.name} className={i % 2 === 0 ? "bg-white" : "bg-[#EDF4F7]"}>
+                    <td className="px-3 py-1.5 text-center text-[#67839A] text-[11px]">{i + 1}</td>
+                    <td className="px-3 py-1.5 font-semibold text-[#243B4D]">{d.name}</td>
+                    <td className="px-3 py-1.5 text-right font-mono">{formatNumber(d.total)}</td>
+                    <td className="px-3 py-1.5 text-right font-medium font-mono text-[#3A9D69]">
+                      {formatNumber(d.active)}
+                    </td>
+                    <td className="px-3 py-1.5 text-right font-mono text-[#67839A]">{formatNumber(d.inactive)}</td>
+                    <td className="px-3 py-1.5 text-right font-bold font-mono text-[#1485B0]">
+                      {formatNumber(d.reports)}
+                    </td>
+                    <td className="px-3 py-1.5 text-right font-mono text-[#174D6B]">{formatNumber(d.coaching)}</td>
+                    <td className="px-3 py-1.5 text-right font-mono font-semibold text-[#3A9D69]">
+                      {formatPercent(d.activeRate)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="border-[#174D6B] border-t-2 bg-[#EAF5FA] font-bold text-[#174D6B]">
+                  <td colSpan={2} className="px-3 py-2 uppercase">
+                    Total Wilayah
+                  </td>
+                  <td className="px-3 py-2 text-right font-mono">{formatNumber(region.total)}</td>
+                  <td className="px-3 py-2 text-right font-mono text-[#3A9D69]">{formatNumber(region.active)}</td>
+                  <td className="px-3 py-2 text-right font-mono">{formatNumber(region.inactive)}</td>
+                  <td className="px-3 py-2 text-right font-mono text-[#1485B0]">{formatNumber(region.reports)}</td>
+                  <td className="px-3 py-2 text-right font-mono">{formatNumber(region.coaching)}</td>
+                  <td className="px-3 py-2 text-right font-mono text-[#3A9D69]">{formatPercent(region.activeRate)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
 
-        {/* Highlight Box */}
-        <div className="mt-4 rounded-lg border border-[#C9D9E1] bg-white p-3 shadow-xs">
-          <h3 className="mb-1.5 font-bold text-[#174D6B] text-xs uppercase tracking-wider">
-            Sorotan Wilayah {region.name}
-          </h3>
-          <div className="grid grid-cols-3 gap-3 text-xs">
-            <div className="rounded border border-[#C9D9E1] bg-[#EAF5FA] p-2">
-              <span className="block text-[#67839A] text-[10px] uppercase">Laporan Terbanyak</span>
-              <span className="block truncate font-bold text-[#1485B0]">Kec. {mostReports?.name ?? "-"}</span>
-              <span className="font-mono text-[#243B4D] text-[11px]">
-                {formatNumber(mostReports?.reports ?? 0)} laporan
-              </span>
-            </div>
+          {/* Highlight Box */}
+          <div className="mt-2.5 rounded-lg border border-[#C9D9E1] bg-white p-3 shadow-xs">
+            <h3 className="mb-1.5 font-bold text-[#174D6B] text-xs uppercase tracking-wider">
+              Sorotan Wilayah {region.name}
+            </h3>
+            <div className="grid grid-cols-3 gap-3 text-xs">
+              <div className="rounded border border-[#C9D9E1] bg-[#EAF5FA] p-2">
+                <span className="block text-[#67839A] text-[10px] uppercase">Laporan Terbanyak</span>
+                <span className="block truncate font-bold text-[#1485B0]">Kec. {mostReports?.name ?? "-"}</span>
+                <span className="font-mono text-[#243B4D] text-[11px]">
+                  {formatNumber(mostReports?.reports ?? 0)} laporan
+                </span>
+              </div>
 
-            <div className="rounded border border-[#C9D9E1] bg-[#EAF5FA] p-2">
-              <span className="block text-[#67839A] text-[10px] uppercase">Keaktifan Tertinggi</span>
-              <span className="block truncate font-bold text-[#3A9D69]">Kec. {highestActive?.name ?? "-"}</span>
-              <span className="font-mono text-[#243B4D] text-[11px]">
-                {formatPercent(highestActive?.activeRate ?? 0)} aktif
-              </span>
-            </div>
+              <div className="rounded border border-[#C9D9E1] bg-[#EAF5FA] p-2">
+                <span className="block text-[#67839A] text-[10px] uppercase">Keaktifan Tertinggi</span>
+                <span className="block truncate font-bold text-[#3A9D69]">Kec. {highestActive?.name ?? "-"}</span>
+                <span className="font-mono text-[#243B4D] text-[11px]">
+                  {formatPercent(highestActive?.activeRate ?? 0)} aktif
+                </span>
+              </div>
 
-            <div className="rounded border border-[#C9D9E1] bg-[#EAF5FA] p-2">
-              <span className="block text-[#67839A] text-[10px] uppercase">Pembinaan Terbanyak</span>
-              <span className="block truncate font-bold text-[#174D6B]">
-                Kec. {mostCoaching && mostCoaching.coaching > 0 ? mostCoaching.name : "-"}
-              </span>
-              <span className="font-mono text-[#243B4D] text-[11px]">
-                {formatNumber(mostCoaching?.coaching ?? 0)} kegiatan
-              </span>
+              <div className="rounded border border-[#C9D9E1] bg-[#EAF5FA] p-2">
+                <span className="block text-[#67839A] text-[10px] uppercase">Pembinaan Terbanyak</span>
+                <span className="block truncate font-bold text-[#174D6B]">
+                  Kec. {mostCoaching && mostCoaching.coaching > 0 ? mostCoaching.name : "-"}
+                </span>
+                <span className="font-mono text-[#243B4D] text-[11px]">
+                  {formatNumber(mostCoaching?.coaching ?? 0)} kegiatan
+                </span>
+              </div>
             </div>
           </div>
         </div>

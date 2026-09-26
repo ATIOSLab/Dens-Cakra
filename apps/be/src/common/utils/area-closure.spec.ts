@@ -22,11 +22,13 @@ describe('resolveDescendantAreaIds', () => {
   it('resolves descendants and includes original IDs without duplicates', async () => {
     const prisma = {
       administrativeAreaClosure: {
-        findMany: jest.fn().mockResolvedValue([
-          { descendantId: 'area-1' },
-          { descendantId: 'area-2' },
-          { descendantId: 'area-3' },
-        ]),
+        findMany: jest
+          .fn()
+          .mockResolvedValue([
+            { descendantId: 'area-1' },
+            { descendantId: 'area-2' },
+            { descendantId: 'area-3' },
+          ]),
       },
     };
 
@@ -41,10 +43,12 @@ describe('resolveDescendantAreaIds', () => {
   it('handles array of area IDs', async () => {
     const prisma = {
       administrativeAreaClosure: {
-        findMany: jest.fn().mockResolvedValue([
-          { descendantId: 'child-1' },
-          { descendantId: 'child-2' },
-        ]),
+        findMany: jest
+          .fn()
+          .mockResolvedValue([
+            { descendantId: 'child-1' },
+            { descendantId: 'child-2' },
+          ]),
       },
     };
 
@@ -73,10 +77,12 @@ describe('resolveAncestorAreaIds', () => {
   it('resolves ancestors and includes original IDs', async () => {
     const prisma = {
       administrativeAreaClosure: {
-        findMany: jest.fn().mockResolvedValue([
-          { ancestorId: 'parent-1' },
-          { ancestorId: 'grandparent-1' },
-        ]),
+        findMany: jest
+          .fn()
+          .mockResolvedValue([
+            { ancestorId: 'parent-1' },
+            { ancestorId: 'grandparent-1' },
+          ]),
       },
     };
 
@@ -106,4 +112,3 @@ describe('resolveHierarchicalAreaIds', () => {
     expect(result).toContain('child-1');
   });
 });
-

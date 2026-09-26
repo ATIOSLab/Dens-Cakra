@@ -203,9 +203,7 @@ export class DomainScopeService {
         : await resolveDescendantAreaIds(this.prisma, scope.areaRootIds);
     const areas = await this.prisma.administrativeArea.findMany({
       where: {
-        ...(filterAreaIds.length
-          ? { id: { in: filterAreaIds } }
-          : {}),
+        ...(filterAreaIds.length ? { id: { in: filterAreaIds } } : {}),
         isActive: true,
         deletedAt: null,
         level: { in: ['PROVINCE', 'REGENCY', 'CITY', 'DISTRICT'] },

@@ -1,4 +1,4 @@
-import { Hash, MapPin, Phone, UserCheck, UserRound } from "lucide-react";
+import { Hash, MapPin, Phone, ShieldCheck, UserCheck, UserRound } from "lucide-react";
 
 import { GaswilEntityLink } from "@/components/domain/gaswil-entity-link";
 import { JaringEntityLink } from "@/components/domain/jaring-entity-link";
@@ -15,6 +15,12 @@ const IDENTITY_ROWS = [
     label: DOMAIN_TERMS.jaringCaretaker,
     icon: UserCheck,
     tone: "text-amber-600 dark:text-amber-400",
+  },
+  {
+    key: "korwilName",
+    label: DOMAIN_TERMS.fieldCoordinatorRole,
+    icon: ShieldCheck,
+    tone: "text-blue-600 dark:text-blue-400",
   },
   {
     key: "placementArea",
@@ -85,10 +91,11 @@ export function JaringIdentitySummary({
                   {displayLabel}
                 </dt>
                 <dd
+                  title={typeof value === "string" ? value : undefined}
                   className={cn(
                     "mt-0.5 min-w-0 font-medium text-foreground text-xs",
                     (key === "code" || key === "whatsappNumber") && "font-mono",
-                    compact && key !== "placementArea" ? "truncate" : "break-words",
+                    compact ? (key === "placementArea" ? "line-clamp-2" : "truncate") : "break-words",
                   )}
                 >
                   {isPhone && linkWhatsApp ? (

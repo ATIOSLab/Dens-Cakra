@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 type NativeSelectProps = Omit<React.ComponentProps<"select">, "size"> & {
   size?: "sm" | "default";
   isActive?: boolean;
+  selectClassName?: string;
 };
 
 function NativeSelect({
@@ -14,6 +15,7 @@ function NativeSelect({
   size = "default",
   isActive: propIsActive,
   value,
+  selectClassName,
   ...props
 }: NativeSelectProps) {
   const isValueActive =
@@ -24,7 +26,7 @@ function NativeSelect({
   return (
     <div
       className={cn(
-        "group/native-select relative w-fit max-w-full has-[select:disabled]:opacity-50",
+        "group/native-select relative w-fit max-w-full has-[select:disabled]:opacity-60",
         className,
       )}
       data-slot="native-select-wrapper"
@@ -39,6 +41,7 @@ function NativeSelect({
           DC_TYPOGRAPHY.control,
           "w-full min-w-0 appearance-none py-1 pr-8 pl-2.5 outline-none select-none transition-colors selection:bg-primary selection:text-primary-foreground placeholder:text-muted-foreground disabled:cursor-not-allowed aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20 data-[size=sm]:h-8 data-[size=sm]:rounded-[min(var(--radius-md),10px)] dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&>option]:bg-background [&>option]:text-foreground dark:[&>option]:bg-slate-900 dark:[&>option]:text-slate-100",
           isValueActive && "border-primary/45 bg-primary/[0.04] font-medium text-foreground dark:bg-primary/10 hover:border-primary/60",
+          selectClassName,
         )}
         {...props}
       />

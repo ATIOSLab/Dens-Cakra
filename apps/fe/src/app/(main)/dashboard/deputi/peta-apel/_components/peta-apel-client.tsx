@@ -755,224 +755,244 @@ export function PetaApelClient() {
           </div>
         </div>
 
-        {/* FILTER BAR TIER 1: Tanggal Absensi, Pilihan Sesi Apel, & Reset Filter */}
-        <div className="mt-4 pt-4 border-t border-slate-800/80 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {/* Filter 1: Tanggal Absensi */}
-          <div className="space-y-1">
-            <label
-              htmlFor="apel-date-filter"
-              className="text-[11px] font-semibold text-slate-400 flex items-center gap-1.5"
-            >
-              <Calendar className="h-3.5 w-3.5 text-cyan-400" />
-              <span>Filter Tanggal Absensi:</span>
-            </label>
-            <Input
-              id="apel-date-filter"
-              type="date"
-              value={selectedDate}
-              onChange={(e) => {
-                const newDate = e.target.value;
-                setSelectedDate(newDate);
-                loadData({ date: newDate, sessionId: "" });
-              }}
-              className="h-9 text-xs bg-slate-950 border-slate-700 text-slate-200 focus:border-cyan-500"
-            />
-          </div>
-
-          {/* Filter 2: Sesi Apel (2 Kolom di Desktop) */}
-          <div className="space-y-1 sm:col-span-1 lg:col-span-2">
-            <label
-              htmlFor="apel-session-filter"
-              className="text-[11px] font-semibold text-slate-400 flex items-center gap-1.5"
-            >
-              <Radio className="h-3.5 w-3.5 text-emerald-400" />
-              <span>Pilihan Sesi Apel:</span>
-            </label>
-            <NativeSelect
-              id="apel-session-filter"
-              value={selectedSessionId}
-              onChange={(e) => {
-                const newSession = e.target.value;
-                setSelectedSessionId(newSession);
-                setSelectedAttendance(null);
-                loadData({ sessionId: newSession });
-              }}
-              className={cn(DC_CONTROLS.selectTrigger, "h-9 text-xs bg-slate-950 border-slate-700 text-slate-200")}
-            >
-              {data?.availableSessions && data.availableSessions.length > 0 ? (
-                data.availableSessions.map((s) => (
-                  <NativeSelectOption key={s.id} value={s.id}>
-                    {s.title} ({new Date(s.sessionDate).toLocaleDateString("id-ID", { day: "2-digit", month: "short" })}
-                    )
-                  </NativeSelectOption>
-                ))
-              ) : (
-                <NativeSelectOption value="">{session ? session.title : "Tidak ada sesi tersedia"}</NativeSelectOption>
-              )}
-            </NativeSelect>
-          </div>
-
-          {/* Filter 3: Reset Filter Action */}
-          <div className="space-y-1 flex flex-col justify-end">
-            <span className="text-[11px] font-semibold text-transparent select-none hidden lg:inline">Aksi</span>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleResetFilters}
-              disabled={!isFilterActive && !selectedSessionId}
-              className="h-9 border-slate-700 bg-slate-900/80 text-slate-300 hover:text-white hover:border-slate-600 text-xs gap-1.5 w-full justify-center"
-            >
-              <RotateCcw className="h-3.5 w-3.5 text-slate-400" />
-              <span>Reset Semua Filter</span>
-            </Button>
-          </div>
-        </div>
-
-        {/* FILTER BAR TIER 2: Filter Wilayah Berjenjang 4 Tingkat (Provinsi -> Kota/Kabupaten -> Kecamatan -> Kelurahan) */}
-        <div className="mt-3 pt-3 border-t border-slate-800/60 space-y-2">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-300">
-              <MapPin className="h-3.5 w-3.5 text-blue-400" />
-              <span>Filter Wilayah Penugasan (Hierarkis 4 Tingkat):</span>
+        {/* PANEL FILTER PETA APEL: Waktu Operasional & Hierarki Wilayah */}
+        <div className="mt-4 rounded-xl border border-slate-800/80 bg-slate-950/60 p-3.5 sm:p-4 shadow-inner space-y-3.5">
+          {/* Baris 1: Parameter Sesi Apel, Tanggal Absensi, & Reset */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
+            {/* Filter 1: Tanggal Absensi (3 Kolom di Desktop) */}
+            <div className="space-y-1.5 lg:col-span-3">
+              <label
+                htmlFor="apel-date-filter"
+                className="text-xs font-medium text-slate-300 flex items-center gap-1.5"
+              >
+                <Calendar className="h-3.5 w-3.5 text-cyan-400" />
+                <span>Tanggal Absensi</span>
+              </label>
+              <Input
+                id="apel-date-filter"
+                type="date"
+                value={selectedDate}
+                onChange={(e) => {
+                  const newDate = e.target.value;
+                  setSelectedDate(newDate);
+                  loadData({ date: newDate, sessionId: "" });
+                }}
+                className="h-9 w-full bg-slate-900/90 border-slate-700/80 text-xs text-slate-200 focus:border-cyan-500 focus:ring-cyan-500/20"
+              />
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] text-slate-400">Cakupan Wilayah:</span>
-              <Badge
+
+            {/* Filter 2: Sesi Apel (7 Kolom di Desktop) */}
+            <div className="space-y-1.5 lg:col-span-7">
+              <label
+                htmlFor="apel-session-filter"
+                className="text-xs font-medium text-slate-300 flex items-center gap-1.5"
+              >
+                <Radio className="h-3.5 w-3.5 text-emerald-400" />
+                <span>Pilihan Sesi Apel Jaring</span>
+              </label>
+              <NativeSelect
+                id="apel-session-filter"
+                value={selectedSessionId}
+                onChange={(e) => {
+                  const newSession = e.target.value;
+                  setSelectedSessionId(newSession);
+                  setSelectedAttendance(null);
+                  loadData({ sessionId: newSession });
+                }}
+                className="w-full"
+                selectClassName="h-9 w-full bg-slate-900/90 border-slate-700/80 text-xs text-slate-200 focus:border-cyan-500 focus:ring-cyan-500/20"
+              >
+                {data?.availableSessions && data.availableSessions.length > 0 ? (
+                  data.availableSessions.map((s) => (
+                    <NativeSelectOption key={s.id} value={s.id}>
+                      {s.title} ({new Date(s.sessionDate).toLocaleDateString("id-ID", { day: "2-digit", month: "short" })})
+                    </NativeSelectOption>
+                  ))
+                ) : (
+                  <NativeSelectOption value="">{session ? session.title : "Tidak ada sesi tersedia"}</NativeSelectOption>
+                )}
+              </NativeSelect>
+            </div>
+
+            {/* Filter 3: Reset Filter Action (2 Kolom di Desktop) */}
+            <div className="space-y-1.5 sm:col-span-2 lg:col-span-2">
+              <span className="hidden lg:block text-xs font-medium text-transparent select-none">Aksi</span>
+              <Button
+                type="button"
                 variant="outline"
-                className="border-blue-500/40 bg-blue-950/40 text-blue-300 text-[10px] px-2 py-0.5 max-w-[360px] truncate"
-                title={activeAreaHierarchyLabel}
+                size="sm"
+                onClick={handleResetFilters}
+                disabled={!isFilterActive && !selectedSessionId}
+                className="h-9 w-full border-slate-700/80 bg-slate-900/80 text-slate-300 hover:text-white hover:border-slate-600 text-xs gap-1.5 justify-center cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                title="Kembalikan semua filter ke sesi nasional default"
               >
-                {activeAreaHierarchyLabel}
-              </Badge>
-              {selectedProvinceId !== "ALL" && (
-                <button
-                  type="button"
-                  onClick={() => handleProvinceChange("ALL")}
-                  className="text-[10px] text-slate-400 hover:text-rose-400 underline transition-colors cursor-pointer"
-                >
-                  Reset Wilayah
-                </button>
-              )}
+                <RotateCcw className="h-3.5 w-3.5 text-slate-400" />
+                <span>Reset Filter</span>
+              </Button>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {/* Tingkat 1: Provinsi */}
-            <div className="space-y-1">
-              <label htmlFor="filter-provinsi" className="text-[10px] font-medium text-slate-400">
-                1. Tingkat Provinsi:
-              </label>
-              <NativeSelect
-                id="filter-provinsi"
-                value={selectedProvinceId}
-                onChange={(e) => handleProvinceChange(e.target.value)}
-                className={cn(DC_CONTROLS.selectTrigger, "h-8 text-xs bg-slate-950 border-slate-700 text-slate-200")}
-              >
-                <NativeSelectOption value="ALL">Semua Provinsi (Nasional)</NativeSelectOption>
-                {provinces.map((prov) => (
-                  <NativeSelectOption key={prov.id} value={prov.id}>
-                    {prov.name}
-                  </NativeSelectOption>
-                ))}
-              </NativeSelect>
+          {/* Pemisah Antara Sesi & Wilayah */}
+          <div className="border-t border-slate-800/60" />
+
+          {/* Baris 2: Filter Wilayah Berjenjang 4 Tingkat */}
+          <div className="space-y-2.5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <div className="flex h-5 w-5 items-center justify-center rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                  <MapPin className="h-3 w-3" />
+                </div>
+                <span className="text-xs font-semibold text-slate-200">Filter Hierarki Wilayah Penugasan</span>
+                <span className="text-[11px] text-slate-500 hidden sm:inline">(Provinsi &rarr; Kota/Kab &rarr; Kecamatan &rarr; Kelurahan)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] text-slate-400">Cakupan Wilayah:</span>
+                <Badge
+                  variant="outline"
+                  className="border-blue-500/40 bg-blue-950/40 text-blue-300 font-mono text-[11px] px-2.5 py-0.5 max-w-[340px] truncate"
+                  title={activeAreaHierarchyLabel}
+                >
+                  {activeAreaHierarchyLabel}
+                </Badge>
+                {selectedProvinceId !== "ALL" && (
+                  <button
+                    type="button"
+                    onClick={() => handleProvinceChange("ALL")}
+                    className="flex items-center gap-1 text-[11px] font-medium text-slate-400 hover:text-rose-400 underline transition-colors cursor-pointer ml-1"
+                  >
+                    <X className="h-3 w-3" />
+                    <span>Reset Wilayah</span>
+                  </button>
+                )}
+              </div>
             </div>
 
-            {/* Tingkat 2: Kota / Kabupaten */}
-            <div className="space-y-1">
-              <label htmlFor="filter-kota" className="text-[10px] font-medium text-slate-400">
-                2. Tingkat Kota / Kabupaten:
-              </label>
-              <NativeSelect
-                id="filter-kota"
-                value={selectedRegencyId}
-                onChange={(e) => handleRegencyChange(e.target.value)}
-                disabled={selectedProvinceId === "ALL"}
-                className={cn(
-                  DC_CONTROLS.selectTrigger,
-                  "h-8 text-xs bg-slate-950 border-slate-700 text-slate-200",
-                  selectedProvinceId === "ALL" && "opacity-50 cursor-not-allowed",
-                )}
-              >
-                <NativeSelectOption value="ALL">
-                  {selectedProvinceId === "ALL" ? "Pilih Provinsi Dahulu" : "Seluruh Kota / Kabupaten"}
-                </NativeSelectOption>
-                {regenciesForSelectedProv.map((city) => (
-                  <NativeSelectOption key={city.id} value={city.id}>
-                    {city.name}
-                  </NativeSelectOption>
-                ))}
-              </NativeSelect>
-            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {/* Tingkat 1: Provinsi */}
+              <div className="space-y-1.5">
+                <label htmlFor="filter-provinsi" className="text-xs font-medium text-slate-300 flex items-center justify-between">
+                  <span>Provinsi</span>
+                  <span className="text-[10px] font-mono text-slate-500">Tingkat 1</span>
+                </label>
+                <NativeSelect
+                  id="filter-provinsi"
+                  value={selectedProvinceId}
+                  onChange={(e) => handleProvinceChange(e.target.value)}
+                  className="w-full"
+                  selectClassName="h-9 w-full bg-slate-900/90 border-slate-700/80 text-xs text-slate-200 focus:border-cyan-500 focus:ring-cyan-500/20"
+                >
+                  <NativeSelectOption value="ALL">Semua Provinsi (Nasional)</NativeSelectOption>
+                  {provinces.map((prov) => (
+                    <NativeSelectOption key={prov.id} value={prov.id}>
+                      {prov.name}
+                    </NativeSelectOption>
+                  ))}
+                </NativeSelect>
+              </div>
 
-            {/* Tingkat 3: Kecamatan */}
-            <div className="space-y-1">
-              <label
-                htmlFor="filter-kecamatan"
-                className="text-[10px] font-medium text-slate-400 flex items-center justify-between"
-              >
-                <span>3. Tingkat Kecamatan:</span>
-                {loadingDistricts && <span className="text-[9px] text-cyan-400 animate-pulse">Memuat...</span>}
-              </label>
-              <NativeSelect
-                id="filter-kecamatan"
-                value={selectedDistrictId}
-                onChange={(e) => handleDistrictChange(e.target.value)}
-                disabled={selectedRegencyId === "ALL" || loadingDistricts}
-                className={cn(
-                  DC_CONTROLS.selectTrigger,
-                  "h-8 text-xs bg-slate-950 border-slate-700 text-slate-200",
-                  (selectedRegencyId === "ALL" || loadingDistricts) && "opacity-50 cursor-not-allowed",
-                )}
-              >
-                <NativeSelectOption value="ALL">
-                  {selectedRegencyId === "ALL"
-                    ? "Pilih Kota/Kab Dahulu"
-                    : loadingDistricts
-                      ? "Memuat Kecamatan..."
-                      : "Seluruh Kecamatan"}
-                </NativeSelectOption>
-                {districtOptions.map((dist) => (
-                  <NativeSelectOption key={dist.id} value={dist.id}>
-                    {dist.name}
+              {/* Tingkat 2: Kota / Kabupaten */}
+              <div className="space-y-1.5">
+                <label htmlFor="filter-kota" className="text-xs font-medium text-slate-300 flex items-center justify-between">
+                  <span>Kota / Kabupaten</span>
+                  <span className="text-[10px] font-mono text-slate-500">Tingkat 2</span>
+                </label>
+                <NativeSelect
+                  id="filter-kota"
+                  value={selectedRegencyId}
+                  onChange={(e) => handleRegencyChange(e.target.value)}
+                  disabled={selectedProvinceId === "ALL"}
+                  className="w-full"
+                  selectClassName={cn(
+                    "h-9 w-full bg-slate-900/90 border-slate-700/80 text-xs text-slate-200 focus:border-cyan-500 focus:ring-cyan-500/20",
+                    selectedProvinceId === "ALL" && "bg-slate-950/60 border-slate-800/80 text-slate-500 cursor-not-allowed",
+                  )}
+                >
+                  <NativeSelectOption value="ALL">
+                    {selectedProvinceId === "ALL" ? "Pilih Provinsi dahulu" : "Semua Kota / Kabupaten"}
                   </NativeSelectOption>
-                ))}
-              </NativeSelect>
-            </div>
+                  {regenciesForSelectedProv.map((city) => (
+                    <NativeSelectOption key={city.id} value={city.id}>
+                      {city.name}
+                    </NativeSelectOption>
+                  ))}
+                </NativeSelect>
+              </div>
 
-            {/* Tingkat 4: Kelurahan / Desa */}
-            <div className="space-y-1">
-              <label
-                htmlFor="filter-kelurahan"
-                className="text-[10px] font-medium text-slate-400 flex items-center justify-between"
-              >
-                <span>4. Tingkat Kelurahan / Desa:</span>
-                {loadingVillages && <span className="text-[9px] text-cyan-400 animate-pulse">Memuat...</span>}
-              </label>
-              <NativeSelect
-                id="filter-kelurahan"
-                value={selectedVillageId}
-                onChange={(e) => handleVillageChange(e.target.value)}
-                disabled={selectedDistrictId === "ALL" || loadingVillages}
-                className={cn(
-                  DC_CONTROLS.selectTrigger,
-                  "h-8 text-xs bg-slate-950 border-slate-700 text-slate-200",
-                  (selectedDistrictId === "ALL" || loadingVillages) && "opacity-50 cursor-not-allowed",
-                )}
-              >
-                <NativeSelectOption value="ALL">
-                  {selectedDistrictId === "ALL"
-                    ? "Pilih Kecamatan Dahulu"
-                    : loadingVillages
-                      ? "Memuat Kelurahan..."
-                      : "Seluruh Kelurahan"}
-                </NativeSelectOption>
-                {villageOptions.map((vill) => (
-                  <NativeSelectOption key={vill.id} value={vill.id}>
-                    {vill.name}
+              {/* Tingkat 3: Kecamatan */}
+              <div className="space-y-1.5">
+                <label
+                  htmlFor="filter-kecamatan"
+                  className="text-xs font-medium text-slate-300 flex items-center justify-between"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <span>Kecamatan</span>
+                    {loadingDistricts && <RefreshCw className="h-2.5 w-2.5 text-cyan-400 animate-spin" />}
+                  </span>
+                  <span className="text-[10px] font-mono text-slate-500">Tingkat 3</span>
+                </label>
+                <NativeSelect
+                  id="filter-kecamatan"
+                  value={selectedDistrictId}
+                  onChange={(e) => handleDistrictChange(e.target.value)}
+                  disabled={selectedRegencyId === "ALL" || loadingDistricts}
+                  className="w-full"
+                  selectClassName={cn(
+                    "h-9 w-full bg-slate-900/90 border-slate-700/80 text-xs text-slate-200 focus:border-cyan-500 focus:ring-cyan-500/20",
+                    (selectedRegencyId === "ALL" || loadingDistricts) && "bg-slate-950/60 border-slate-800/80 text-slate-500 cursor-not-allowed",
+                  )}
+                >
+                  <NativeSelectOption value="ALL">
+                    {selectedRegencyId === "ALL"
+                      ? "Pilih Kota/Kab dahulu"
+                      : loadingDistricts
+                        ? "Memuat Kecamatan..."
+                        : "Semua Kecamatan"}
                   </NativeSelectOption>
-                ))}
-              </NativeSelect>
+                  {districtOptions.map((dist) => (
+                    <NativeSelectOption key={dist.id} value={dist.id}>
+                      {dist.name}
+                    </NativeSelectOption>
+                  ))}
+                </NativeSelect>
+              </div>
+
+              {/* Tingkat 4: Kelurahan / Desa */}
+              <div className="space-y-1.5">
+                <label
+                  htmlFor="filter-kelurahan"
+                  className="text-xs font-medium text-slate-300 flex items-center justify-between"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <span>Kelurahan / Desa</span>
+                    {loadingVillages && <RefreshCw className="h-2.5 w-2.5 text-cyan-400 animate-spin" />}
+                  </span>
+                  <span className="text-[10px] font-mono text-slate-500">Tingkat 4</span>
+                </label>
+                <NativeSelect
+                  id="filter-kelurahan"
+                  value={selectedVillageId}
+                  onChange={(e) => handleVillageChange(e.target.value)}
+                  disabled={selectedDistrictId === "ALL" || loadingVillages}
+                  className="w-full"
+                  selectClassName={cn(
+                    "h-9 w-full bg-slate-900/90 border-slate-700/80 text-xs text-slate-200 focus:border-cyan-500 focus:ring-cyan-500/20",
+                    (selectedDistrictId === "ALL" || loadingVillages) && "bg-slate-950/60 border-slate-800/80 text-slate-500 cursor-not-allowed",
+                  )}
+                >
+                  <NativeSelectOption value="ALL">
+                    {selectedDistrictId === "ALL"
+                      ? "Pilih Kecamatan dahulu"
+                      : loadingVillages
+                        ? "Memuat Kelurahan..."
+                        : "Semua Kelurahan"}
+                  </NativeSelectOption>
+                  {villageOptions.map((vill) => (
+                    <NativeSelectOption key={vill.id} value={vill.id}>
+                      {vill.name}
+                    </NativeSelectOption>
+                  ))}
+                </NativeSelect>
+              </div>
             </div>
           </div>
         </div>

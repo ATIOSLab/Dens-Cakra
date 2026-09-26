@@ -122,10 +122,12 @@ Silakan sampaikan informasi dengan urutan berikut:
 
 • Untuk membatalkan seluruh informasi yang sedang dibuat, ketik *BATAL*.`;
 
-export function formatFirstContactGreeting(jaring?: {
-  fullName?: string | null;
-  aliasName?: string | null;
-} | null) {
+export function formatFirstContactGreeting(
+  jaring?: {
+    fullName?: string | null;
+    aliasName?: string | null;
+  } | null,
+) {
   const name = jaring?.fullName?.trim() || jaring?.aliasName?.trim() || '';
   const greetingTarget = name ? ` ${name}` : '';
   return `Salam hormat Bapak/Ibu${greetingTarget}.

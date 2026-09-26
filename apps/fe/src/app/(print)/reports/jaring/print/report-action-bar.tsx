@@ -160,7 +160,7 @@ export function ReportActionBar({
   return (
     <header className="no-print sticky top-0 z-50 flex w-full flex-col shadow-md">
       {/* Baris Utama Navigasi & Aksi Cetak */}
-      <nav className="flex w-full flex-wrap items-center justify-between gap-3 border-b border-[#2AA8C3]/30 bg-[#174D6B] px-5 py-2.5 text-white">
+      <nav className="flex w-full flex-wrap items-center justify-between gap-3 border-[#2AA8C3]/30 border-b bg-[#174D6B] px-5 py-2.5 text-white">
         <div className="flex items-center gap-3">
           <Link href="/dashboard/admin-system">
             <Button
@@ -175,15 +175,15 @@ export function ReportActionBar({
           <div className="h-5 w-px bg-white/20" />
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-sm font-bold tracking-wide">Laporan Rekap Jaring (13 Halaman A4)</h1>
+              <h1 className="font-bold text-sm tracking-wide">Laporan Rekap Jaring (14 Halaman A4)</h1>
               {isValid ? (
-                <span className="inline-flex items-center gap-1 rounded border border-[#3A9D69]/40 bg-[#3A9D69]/20 px-2 py-0.5 text-[11px] font-semibold text-[#6ee7b7]">
+                <span className="inline-flex items-center gap-1 rounded border border-[#3A9D69]/40 bg-[#3A9D69]/20 px-2 py-0.5 font-semibold text-[#6ee7b7] text-[11px]">
                   <ShieldCheck className="size-3" />
                   Valid
                 </span>
               ) : null}
             </div>
-            <p className="text-xs text-white/70">
+            <p className="text-white/70 text-xs">
               Periode Aktif: <span className="font-semibold text-white">{periodLabel}</span>
             </p>
           </div>
@@ -195,7 +195,7 @@ export function ReportActionBar({
             variant="outline"
             size="sm"
             onClick={() => setIsFilterBarOpen((prev) => !prev)}
-            className="flex cursor-pointer items-center gap-1.5 border-white/30 bg-white/10 text-xs font-semibold text-white hover:bg-white/20"
+            className="flex cursor-pointer items-center gap-1.5 border-white/30 bg-white/10 font-semibold text-white text-xs hover:bg-white/20"
           >
             <SlidersHorizontal className="size-3.5" />
             <span>Filter</span>
@@ -207,7 +207,7 @@ export function ReportActionBar({
             variant="secondary"
             size="sm"
             onClick={handlePrint}
-            className="flex cursor-pointer items-center gap-1.5 bg-white text-xs font-semibold text-[#174D6B] shadow-sm hover:bg-white/90"
+            className="flex cursor-pointer items-center gap-1.5 bg-white font-semibold text-[#174D6B] text-xs shadow-sm hover:bg-white/90"
             title="Buka dialog cetak browser dan pilih 'Simpan sebagai PDF'"
           >
             <Printer className="size-3.5" />
@@ -220,7 +220,7 @@ export function ReportActionBar({
             size="sm"
             onClick={handleDownloadPdf}
             disabled={downloading}
-            className="flex cursor-pointer items-center gap-1.5 border-emerald-400/40 bg-emerald-600 text-xs font-semibold text-white shadow-sm hover:bg-emerald-700"
+            className="flex cursor-pointer items-center gap-1.5 border-emerald-400/40 bg-emerald-600 font-semibold text-white text-xs shadow-sm hover:bg-emerald-700"
             title="Unduh langsung dari server atau dialihkan ke cetak PDF"
           >
             {downloading ? <RefreshCw className="size-3.5 animate-spin" /> : <Download className="size-3.5" />}
@@ -231,7 +231,7 @@ export function ReportActionBar({
 
       {/* Baris Toolbar Filter Lengkap */}
       {isFilterBarOpen ? (
-        <div className="flex w-full flex-wrap items-center justify-between gap-3 border-b border-[#2AA8C3]/20 bg-[#12384e] px-5 py-2.5 text-xs text-white">
+        <div className="flex w-full flex-wrap items-center justify-between gap-3 border-[#2AA8C3]/20 border-b bg-[#12384e] px-5 py-2.5 text-white text-xs">
           <div className="flex flex-wrap items-center gap-3">
             {/* Pilihan Preset Periode */}
             <div className="flex items-center gap-1.5">
@@ -242,7 +242,7 @@ export function ReportActionBar({
               <select
                 value={selectedPreset}
                 onChange={(e) => handlePresetChange(e.target.value)}
-                className="h-8 rounded border border-white/25 bg-[#0e2c3d] px-2.5 text-xs font-medium text-white shadow-inner focus:border-[#2AA8C3] focus:outline-none"
+                className="h-8 rounded border border-white/25 bg-[#0e2c3d] px-2.5 font-medium text-white text-xs shadow-inner focus:border-[#2AA8C3] focus:outline-none"
               >
                 {REPORT_PERIOD_PRESETS.map((p) => (
                   <option key={p.value} value={p.value} className="bg-slate-800 text-white">
@@ -259,7 +259,7 @@ export function ReportActionBar({
                 type="date"
                 value={currentStart}
                 onChange={(e) => handleStartDateChange(e.target.value)}
-                className="h-8 w-36 rounded border-white/25 bg-[#0e2c3d] font-mono text-xs text-white focus:border-[#2AA8C3]"
+                className="h-8 w-36 rounded border-white/25 bg-[#0e2c3d] font-mono text-white text-xs focus:border-[#2AA8C3]"
               />
             </div>
 
@@ -270,7 +270,7 @@ export function ReportActionBar({
                 type="date"
                 value={currentEnd}
                 onChange={(e) => handleEndDateChange(e.target.value)}
-                className="h-8 w-36 rounded border-white/25 bg-[#0e2c3d] font-mono text-xs text-white focus:border-[#2AA8C3]"
+                className="h-8 w-36 rounded border-white/25 bg-[#0e2c3d] font-mono text-white text-xs focus:border-[#2AA8C3]"
               />
             </div>
 
@@ -283,7 +283,7 @@ export function ReportActionBar({
               <select
                 value={selectedRegency}
                 onChange={(e) => setSelectedRegency(e.target.value)}
-                className="h-8 max-w-xs rounded border border-white/25 bg-[#0e2c3d] px-2.5 text-xs font-medium text-white shadow-inner focus:border-[#2AA8C3] focus:outline-none"
+                className="h-8 max-w-xs rounded border border-white/25 bg-[#0e2c3d] px-2.5 font-medium text-white text-xs shadow-inner focus:border-[#2AA8C3] focus:outline-none"
               >
                 {REPORT_DKI_REGENCY_OPTIONS.map((r) => (
                   <option key={r.value} value={r.value} className="bg-slate-800 text-white">
@@ -301,7 +301,7 @@ export function ReportActionBar({
               size="sm"
               onClick={handleApplyFilter}
               disabled={isApplying}
-              className="h-8 gap-1.5 bg-[#2AA8C3] text-xs font-semibold text-slate-950 hover:bg-[#2AA8C3]/90"
+              className="h-8 gap-1.5 bg-[#2AA8C3] font-semibold text-slate-950 text-xs hover:bg-[#2AA8C3]/90"
             >
               {isApplying ? <RefreshCw className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}
               <span>Terapkan Filter</span>
@@ -312,7 +312,7 @@ export function ReportActionBar({
               variant="ghost"
               size="sm"
               onClick={handleResetFilter}
-              className="h-8 gap-1 text-xs text-white/70 hover:bg-white/10 hover:text-white"
+              className="h-8 gap-1 text-white/70 text-xs hover:bg-white/10 hover:text-white"
             >
               <RotateCcw className="size-3" />
               <span>Reset</span>
@@ -323,7 +323,7 @@ export function ReportActionBar({
 
       {/* Pemberitahuan Fallback Cetak */}
       {notice ? (
-        <div className="flex items-center justify-between gap-3 border-b border-amber-400/40 bg-amber-500/25 px-5 py-2.5 text-xs text-amber-100 backdrop-blur-md">
+        <div className="flex items-center justify-between gap-3 border-amber-400/40 border-b bg-amber-500/25 px-5 py-2.5 text-amber-100 text-xs backdrop-blur-md">
           <div className="flex items-center gap-2">
             <Info className="size-4 shrink-0 text-amber-300" />
             <span>{notice}</span>
@@ -333,7 +333,7 @@ export function ReportActionBar({
               variant="outline"
               size="sm"
               onClick={handlePrint}
-              className="h-7 cursor-pointer border-amber-300/50 bg-amber-400/20 px-2.5 text-xs text-amber-100 hover:bg-amber-400/30 hover:text-white"
+              className="h-7 cursor-pointer border-amber-300/50 bg-amber-400/20 px-2.5 text-amber-100 text-xs hover:bg-amber-400/30 hover:text-white"
             >
               <Printer className="mr-1 size-3.5" />
               Buka Dialog Cetak

@@ -9,6 +9,8 @@ import {
   ExternalLink,
   FileCheck2,
   ImageIcon,
+  Mail,
+  MailOpen,
   MapPin,
   RefreshCw,
 } from "lucide-react";
@@ -30,12 +32,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EvidenceAttachmentViewer } from "@/features/baket/components/evidence-attachment-viewer";
-import { apiBrowserFetch } from "@/lib/api/browser-client";
+import { apiBrowserFetch, apiBrowserMutation } from "@/lib/api/browser-client";
 import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
+import { cn } from "@/lib/utils";
 
 import { LaporanJaringLocationMap } from "./laporan-jaring-location-map";
 import {
   formatDateTime,
+  formatHierarchyReadStatusBadge,
   urgencyBadgeClass,
   urgencyLabel,
   verificationStatusBadgeVariant,
@@ -171,6 +175,51 @@ export function LaporanJaringLeadershipDetailClient({
                     <CheckCircle2 />
                     {verificationStatusLabel(reportDisplayStatus)}
                   </Badge>
+                  {/* Gaswil Status */}
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      "inline-flex items-center gap-1 font-semibold",
+                      report.gaswilReadAt
+                        ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                        : "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+                    )}
+                    title={
+                      report.gaswilReadAt
+                        ? `Gaswil sudah membaca: ${report.gaswilReadByName || report.gaswilName || ""} (${formatDateTime(report.gaswilReadAt)})`
+                        : `Belum dibaca Petugas Wilayah: ${report.gaswilName || "Belum ditetapkan"}`
+                    }
+                  >
+                    {report.gaswilReadAt ? <MailOpen className="size-3 shrink-0" /> : <Mail className="size-3 shrink-0" />}
+                    {formatHierarchyReadStatusBadge("Gaswil", {
+                      readAt: report.gaswilReadAt,
+                      readByName: report.gaswilReadByName,
+                      officerName: report.gaswilName,
+                    })}
+                  </Badge>
+
+                  {/* Korwil Status */}
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      "inline-flex items-center gap-1 font-semibold",
+                      report.korwilReadAt
+                        ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                        : "border-slate-500/30 bg-slate-500/10 text-slate-600 dark:text-slate-400",
+                    )}
+                    title={
+                      report.korwilReadAt
+                        ? `Korwil sudah membaca: ${report.korwilReadByName || report.korwilName || ""} (${formatDateTime(report.korwilReadAt)})`
+                        : `Belum dibaca Koordinator Wilayah: ${report.korwilName || "Belum ditetapkan"}`
+                    }
+                  >
+                    {report.korwilReadAt ? <MailOpen className="size-3 shrink-0" /> : <Mail className="size-3 shrink-0" />}
+                    {formatHierarchyReadStatusBadge("Korwil", {
+                      readAt: report.korwilReadAt,
+                      readByName: report.korwilReadByName,
+                      officerName: report.korwilName,
+                    })}
+                  </Badge>
                   {reportHasBaket && report.urgency ? (
                     <Badge variant="outline" className={urgencyBadgeClass(report.urgency)}>
                       {urgencyLabel(report.urgency)}
@@ -209,6 +258,9 @@ export function LaporanJaringLeadershipDetailClient({
                   gaswilName: report.gaswilName,
                   gaswilAssignmentId: report.gaswilAssignmentId,
                   gaswilUserProfileId: report.gaswilUserProfileId,
+                  korwilName: report.korwilName,
+                  korwilAssignmentId: report.korwilAssignmentId,
+                  korwilUserProfileId: report.korwilUserProfileId,
                   placementArea: report.placementArea,
                 }}
                 className="sm:col-span-2 lg:col-span-2"
@@ -216,15 +268,40 @@ export function LaporanJaringLeadershipDetailClient({
               <div className="flex gap-3">
                 <Clock className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
                 <div>
-                  <dt className="text-xs text-muted-foreground">Laporan diterima</dt>
+                  <dt className="text-xs text-muted-foreground">Waktu pelaporan</dt>
                   <dd className="font-semibold">{formatDateTime(report.reportedAt)}</dd>
                 </div>
               </div>
               <div className="flex gap-3">
-                <CalendarClock className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                <MailOpen className={cn("mt-0.5 size-4 shrink-0", report.gaswilReadAt ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400")} />
                 <div>
-                  <dt className="text-xs text-muted-foreground">Waktu pelaporan</dt>
-                  <dd className="font-semibold">{formatDateTime(report.reportedAt)}</dd>
+                  <dt className="text-xs text-muted-foreground">Dibaca Gaswil</dt>
+                  <dd className="font-semibold text-xs">
+                    {report.gaswilReadAt ? (
+                      <span>
+                        <span className="font-mono text-emerald-600 dark:text-emerald-400">{formatDateTime(report.gaswilReadAt)}</span>
+                        {` (${report.gaswilReadByName || report.gaswilName || "Gaswil"})`}
+                      </span>
+                    ) : (
+                      <span className="text-amber-600 dark:text-amber-400 font-medium">Belum dibaca ({report.gaswilName || "Petugas Wilayah"})</span>
+                    )}
+                  </dd>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <MailOpen className={cn("mt-0.5 size-4 shrink-0", report.korwilReadAt ? "text-emerald-600 dark:text-emerald-400" : "text-slate-500")} />
+                <div>
+                  <dt className="text-xs text-muted-foreground">Dibaca Korwil</dt>
+                  <dd className="font-semibold text-xs">
+                    {report.korwilReadAt ? (
+                      <span>
+                        <span className="font-mono text-emerald-600 dark:text-emerald-400">{formatDateTime(report.korwilReadAt)}</span>
+                        {` (${report.korwilReadByName || report.korwilName || "Korwil"})`}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground font-medium">Belum dibaca ({report.korwilName || "Koordinator Wilayah"})</span>
+                    )}
+                  </dd>
                 </div>
               </div>
               <div className="flex gap-3">

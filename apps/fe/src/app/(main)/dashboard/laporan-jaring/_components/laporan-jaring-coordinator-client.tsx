@@ -6,12 +6,16 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import {
+  ArrowDown,
+  ArrowUp,
   Calendar,
   Clock,
   ExternalLink,
   Eye,
   FileSpreadsheet,
   ImageIcon,
+  Mail,
+  MailOpen,
   MapPin,
   MessageSquare,
   RefreshCw,
@@ -74,6 +78,7 @@ import {
 import {
   alignJaringReportCategorySummary,
   formatDateTime,
+  formatHierarchyReadStatusBadge,
   formatReportNumber,
   verificationStatusBadgeVariant,
   verificationStatusLabel,
@@ -279,9 +284,10 @@ const LAPORAN_JARING_COLUMNS: ColumnOption[] = [
   { id: "kodeJaring", label: "Kode Jaring" },
   { id: "gaswil", label: "Petugas Wilayah (Gaswil)" },
   { id: "whatsapp", label: "Nomor WhatsApp", defaultVisible: false },
-  { id: "judulIsi", label: "Judul & Isi Laporan", alwaysVisible: true },
+  { id: "judulIsi", label: "Isi Laporan", alwaysVisible: true },
   { id: "wilayahSumber", label: "Lokasi Aktual Laporan" },
   { id: "wilayahPenempatan", label: "Wilayah Penempatan Jaring" },
+  { id: "statusDibaca", label: "Status Keterbacaan", alwaysVisible: true },
   { id: "statusProses", label: "Status Proses" },
   { id: "refNum", label: "Nomor Referensi" },
 ];
@@ -331,18 +337,49 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
     }
   }, [isFieldOfficer]);
 
-  function markReportAsRead(reportId: string) {
+  async function markReportAsRead(reportId: string) {
     if (!reportId) return;
-    void apiBrowserMutation("PATCH", `/jaring/reports/${reportId}/read`).catch(() => undefined);
+    // Pimpinan/Deputi hanya memantau status; hanya Gaswil atau Korwil yang menandai dibaca
+    if (!isFieldOfficer && !isFieldCoordinator) return;
     try {
-      const stored: string[] = JSON.parse(localStorage.getItem("read_reports_jaring") || "[]");
-      if (!stored.includes(reportId)) {
-        stored.push(reportId);
-        localStorage.setItem("read_reports_jaring", JSON.stringify(stored));
-        setReadReportIds(new Set(stored));
+      const updated = await apiBrowserMutation<JaringReportSessionDetail>(
+        "PATCH",
+        `/jaring/reports/${reportId}/read`,
+      );
+      if (updated) {
+        setReports((prev) =>
+          prev.map((r) =>
+            r.id === reportId
+              ? {
+                  ...r,
+                  ...updated,
+                }
+              : r,
+          ),
+        );
+        setPreviewReport((prev) =>
+          prev && prev.id === reportId
+            ? {
+                ...prev,
+                ...updated,
+              }
+            : prev,
+        );
       }
     } catch {
-      // Abaikan cache lokal yang tidak dapat ditulis.
+      // Abaikan kegagalan mutation
+    }
+    if (isFieldOfficer) {
+      try {
+        const stored: string[] = JSON.parse(localStorage.getItem("read_reports_jaring") || "[]");
+        if (!stored.includes(reportId)) {
+          stored.push(reportId);
+          localStorage.setItem("read_reports_jaring", JSON.stringify(stored));
+          setReadReportIds(new Set(stored));
+        }
+      } catch {
+        // Abaikan cache lokal yang tidak dapat ditulis.
+      }
     }
   }
 
@@ -350,8 +387,10 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
   const [previewReport, setPreviewReport] = useState<JaringReportSessionDetail | null>(null);
 
   function handleOpenPreview(item: JaringReportSessionDetail) {
-    if (isFieldOfficer && item.status === "SUBMITTED") {
-      markReportAsRead(item.id);
+    if (isFieldOfficer && !item.gaswilReadAt) {
+      void markReportAsRead(item.id);
+    } else if (isFieldCoordinator && !item.korwilReadAt) {
+      void markReportAsRead(item.id);
     }
     setPreviewReport(item);
   }
@@ -390,12 +429,16 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
   const [startDate, setStartDate] = useState<string>(() => jakartaDateInput(searchParams.get("from")));
   const [endDate, setEndDate] = useState<string>(() => jakartaDateInput(searchParams.get("to")));
 
-  // Pagination
+  // Pagination & Sorting
   const [page, setPage] = useState(() => {
     const parsed = Number.parseInt(searchParams.get("page") ?? "1", 10);
     return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
   });
   const [limit, setLimit] = useState(12);
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">(() => {
+    const param = searchParams.get("sortOrder");
+    return param === "asc" ? "asc" : "desc";
+  });
   const reportRequestId = useRef(0);
   const didHydrateAreaHierarchy = useRef(false);
   const selectedJaringAreaId = useMemo(
@@ -411,7 +454,7 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
       limit: requestedLimit,
       stage: "ALL",
       sortBy: "reportedAt",
-      sortOrder: "desc",
+      sortOrder,
       search: debouncedSearch || undefined,
       urgency: urgencyFilter === "ALL" ? undefined : urgencyFilter,
       jaringId: jaringFilter === "ALL" ? undefined : jaringFilter,
@@ -497,6 +540,7 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
       if (startDate) params.set("from", startDate);
       if (endDate) params.set("to", endDate);
     }
+    if (sortOrder !== "desc") params.set("sortOrder", sortOrder);
     if (page > 1) params.set("page", String(page));
     const queryString = params.toString();
     router.replace(queryString ? `${pathname}?${queryString}` : pathname, { scroll: false });
@@ -518,6 +562,7 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
     periodPreset,
     startDate,
     endDate,
+    sortOrder,
     page,
     pathname,
     router,
@@ -574,6 +619,7 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
     periodPreset,
     startDate,
     endDate,
+    sortOrder,
     page,
     limit,
   ]);
@@ -1497,6 +1543,9 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                 item.jaringCode ||
                 `# ${item.id.slice(0, 8)}`;
               const isUnread = isFieldOfficer && !readReportIds.has(item.id);
+              const rawTitle = (item.displayTitle || "").replace(/[….\s]+$/, "").trim().toLowerCase();
+              const rawContent = (item.content || "").trim().toLowerCase();
+              const isDerivedTitle = !item.displayTitle || (rawTitle.length > 0 && rawContent.startsWith(rawTitle));
               const title = item.displayTitle || item.content || "Laporan sedang dibuat";
               const mediaCount = item.media?.length || item.counts?.media || 0;
               const partsCount = item.messages?.length || item.counts?.contentParts || 0;
@@ -1511,38 +1560,37 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                     hasBaketUrgency ? urgencyStyle.border : "border-border",
                   )}
                 >
-                  {/* Card Header Pills */}
-                  <div className="space-y-3">
+                  {/* Card Header */}
+                  <div className="space-y-2.5">
+                    {/* Baris 1: Nomor Referensi & Urgensi di Kiri, Status Proses di Kanan */}
                     <div className="flex items-center justify-between gap-2">
-                      <div className="flex flex-wrap items-center gap-2">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="shrink-0 rounded bg-slate-100 dark:bg-white/10 px-2 py-0.5 font-bold font-mono text-[11px] text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 whitespace-nowrap">
+                          {refNum}
+                        </span>
                         {hasBaketUrgency ? (
                           <Badge
                             variant="outline"
-                            className={cn("font-extrabold text-[10px] tracking-wider", urgencyStyle.badge)}
+                            className={cn("shrink-0 font-extrabold text-[9px] uppercase tracking-wider", urgencyStyle.badge)}
                           >
                             {urgencyStyle.label}
                           </Badge>
                         ) : null}
-
-                        {/* Reference / Code Badge */}
-                        <span className="rounded bg-slate-100 px-2 py-0.5 font-medium font-mono text-[11px] text-slate-700 dark:bg-white/10 dark:text-slate-300">
-                          {refNum}
-                        </span>
                         {isUnread ? (
                           <Badge
                             variant="outline"
-                            className="h-4 border-amber-500/40 bg-amber-500/10 px-1 py-0 font-mono font-semibold text-[9px] text-amber-600 dark:text-amber-400"
+                            className="shrink-0 h-4 border-amber-500/40 bg-amber-500/10 px-1 py-0 font-mono font-semibold text-[9px] text-amber-600 dark:text-amber-400"
                           >
                             BARU
                           </Badge>
                         ) : null}
                       </div>
 
-                      {/* Verification Status Badge */}
+                      {/* Status Proses (SIAP DIBUAT BAKET, dll) */}
                       <Badge
                         variant="outline"
                         className={cn(
-                          "shrink-0 px-2 py-0.5 font-medium text-[10px]",
+                          "shrink-0 px-2 py-0.5 font-semibold text-[10px] tracking-wide uppercase whitespace-nowrap",
                           verificationStatusBadgeVariant(displayStatus),
                         )}
                       >
@@ -1550,55 +1598,127 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                       </Badge>
                     </div>
 
-                    {/* Title */}
-                    <div>
-                      <h3 className="line-clamp-2 font-semibold text-base text-foreground leading-snug">{title}</h3>
-                      <p className="mt-1 line-clamp-2 text-muted-foreground text-xs">{item.content || "-"}</p>
+                    {/* Baris 2: Status Keterbacaan Hierarki (Gaswil & Korwil) */}
+                    <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium transition-colors",
+                          item.gaswilReadAt
+                            ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                            : "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+                        )}
+                        title={
+                          item.gaswilReadAt
+                            ? `Gaswil sudah membaca: ${item.gaswilReadByName || item.gaswilName || ""} (${formatDateTime(item.gaswilReadAt)})`
+                            : `Belum dibaca Petugas Wilayah: ${item.gaswilName || "Belum ditetapkan"}`
+                        }
+                      >
+                        {item.gaswilReadAt ? <MailOpen className="size-3 shrink-0" /> : <Mail className="size-3 shrink-0" />}
+                        <span>
+                          {formatHierarchyReadStatusBadge("Gaswil", {
+                            readAt: item.gaswilReadAt,
+                            readByName: item.gaswilReadByName,
+                            officerName: item.gaswilName,
+                          })}
+                        </span>
+                      </Badge>
+
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium transition-colors",
+                          item.korwilReadAt
+                            ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                            : "border-slate-500/30 bg-slate-500/10 text-slate-600 dark:text-slate-400",
+                        )}
+                        title={
+                          item.korwilReadAt
+                            ? `Korwil sudah membaca: ${item.korwilReadByName || item.korwilName || ""} (${formatDateTime(item.korwilReadAt)})`
+                            : `Belum dibaca Koordinator Wilayah: ${item.korwilName || "Belum ditetapkan"}`
+                        }
+                      >
+                        {item.korwilReadAt ? <MailOpen className="size-3 shrink-0" /> : <Mail className="size-3 shrink-0" />}
+                        <span>
+                          {formatHierarchyReadStatusBadge("Korwil", {
+                            readAt: item.korwilReadAt,
+                            readByName: item.korwilReadByName,
+                            officerName: item.korwilName,
+                          })}
+                        </span>
+                      </Badge>
                     </div>
-                    <JaringIdentitySummary
-                      compact
-                      source={{
-                        id: item.jaringId,
-                        jaringFullName: item.jaringFullName,
-                        jaringAlias: item.jaringAlias,
-                        jaringCode: item.jaringCode,
-                        jaringWhatsAppNumber: item.jaringWhatsAppNumber,
-                        jaringProfilePhotoFileId: item.jaringProfilePhotoFileId,
-                        profilePhotoUrl: item.jaringProfilePhotoUrl,
-                        gaswilName: item.gaswilName,
-                        gaswilAssignmentId: item.gaswilAssignmentId,
-                        gaswilUserProfileId: item.gaswilUserProfileId,
-                        placementArea: item.placementArea,
-                      }}
-                    />
+
+                    {/* Cuplikan Konten / Isi Laporan */}
+                    <div className="pt-0.5">
+                      {isDerivedTitle ? (
+                        <p className="line-clamp-3 text-xs leading-relaxed text-foreground/90 font-normal">
+                          {item.content || title}
+                        </p>
+                      ) : (
+                        <div className="space-y-1">
+                          <h3 className="line-clamp-1 font-semibold text-sm text-foreground leading-snug">
+                            {title}
+                          </h3>
+                          {item.content ? (
+                            <p className="line-clamp-2 text-muted-foreground text-xs leading-relaxed">
+                              {item.content}
+                            </p>
+                          ) : null}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Identitas Jaring Card */}
+                    <div className="rounded-lg border border-border/60 bg-muted/20 p-2.5">
+                      <JaringIdentitySummary
+                        compact
+                        source={{
+                          id: item.jaringId,
+                          jaringFullName: item.jaringFullName,
+                          jaringAlias: item.jaringAlias,
+                          jaringCode: item.jaringCode,
+                          jaringWhatsAppNumber: item.jaringWhatsAppNumber,
+                          jaringProfilePhotoFileId: item.jaringProfilePhotoFileId,
+                          profilePhotoUrl: item.jaringProfilePhotoUrl,
+                          gaswilName: item.gaswilName,
+                          gaswilAssignmentId: item.gaswilAssignmentId,
+                          gaswilUserProfileId: item.gaswilUserProfileId,
+                          korwilName: item.korwilName,
+                          korwilAssignmentId: item.korwilAssignmentId,
+                          korwilUserProfileId: item.korwilUserProfileId,
+                          placementArea: item.placementArea,
+                        }}
+                      />
+                    </div>
                   </div>
 
                   {/* Card Footer Info & Actions */}
-                  <div className="mt-4 space-y-3 border-slate-100 border-t pt-3 dark:border-white/10">
+                  <div className="mt-3.5 space-y-2.5 border-slate-100 border-t pt-3 dark:border-white/10">
                     {/* Metadata indicators row */}
-                    <div className="flex flex-wrap items-center justify-between gap-2 text-muted-foreground text-xs">
+                    <div className="flex items-center justify-between text-muted-foreground text-xs">
                       <div className="flex items-center gap-3">
-                        <span className="flex items-center gap-1">
-                          <MessageSquare className="size-3.5 text-sky-500" /> {partsCount} pesan
+                        <span className="flex items-center gap-1 text-[11px] font-medium">
+                          <MessageSquare className="size-3 text-sky-500" /> {partsCount} pesan
                         </span>
-                        <span className="flex items-center gap-1">
-                          <ImageIcon className="size-3.5 text-amber-500" /> {mediaCount} foto
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <MapPin className="size-3.5 text-emerald-500" /> {locationName}
+                        <span className="flex items-center gap-1 text-[11px] font-medium">
+                          <ImageIcon className="size-3 text-amber-500" /> {mediaCount} foto
                         </span>
                       </div>
-                    </div>
-
-                    {/* Timestamp */}
-                    <div className="flex items-center text-[11px] text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Clock className="size-3" /> {formatDateTime(item.reportedAt)}
+                      <span className="flex items-center gap-1 font-mono text-[11px] text-muted-foreground">
+                        <Clock className="size-3 text-muted-foreground" /> {formatDateTime(item.reportedAt)}
                       </span>
                     </div>
 
+                    {locationName && locationName !== "-" ? (
+                      <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                        <MapPin className="size-3 shrink-0 text-emerald-500" />
+                        <span className="truncate" title={locationName}>{locationName}</span>
+                      </div>
+                    ) : null}
+
                     {/* Action buttons */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 pt-0.5">
                       <Button
                         type="button"
                         variant="outline"
@@ -1606,9 +1726,9 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                           e.stopPropagation();
                           handleOpenPreview(item);
                         }}
-                        className="h-9 flex-1 gap-2 border-emerald-500/40 font-bold text-emerald-600 text-xs uppercase tracking-wider transition-colors hover:bg-emerald-500/10 hover:text-emerald-500 dark:text-emerald-400"
+                        className="h-9 flex-1 gap-1.5 border-emerald-500/40 font-bold text-emerald-600 text-xs uppercase tracking-wider transition-colors hover:bg-emerald-500/10 hover:text-emerald-500 dark:text-emerald-400"
                       >
-                        <Eye className="size-4" /> Lihat Detail
+                        <Eye className="size-3.5" /> Lihat Detail
                       </Button>
                       <Button
                         asChild
@@ -1616,13 +1736,14 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                         size="icon"
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (isFieldOfficer && item.status === "SUBMITTED") markReportAsRead(item.id);
+                          if (isFieldOfficer && !item.gaswilReadAt) void markReportAsRead(item.id);
+                          else if (isFieldCoordinator && !item.korwilReadAt) void markReportAsRead(item.id);
                         }}
                         title="Buka di tab baru"
                         className="h-9 w-9 shrink-0 border-slate-300 text-muted-foreground hover:text-foreground dark:border-slate-700"
                       >
                         <Link href={`/dashboard/laporan-jaring/${item.id}`} target="_blank" rel="noopener noreferrer">
-                          <ExternalLink className="size-4" />
+                          <ExternalLink className="size-3.5" />
                           <span className="sr-only">Buka di tab baru</span>
                         </Link>
                       </Button>
@@ -1654,7 +1775,22 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                 <TableRow className="border-slate-200 border-b dark:border-slate-800">
                   {isColVisible("waktuMasuk") && (
                     <TableHead className="whitespace-nowrap font-bold text-xs uppercase tracking-wider">
-                      Waktu Masuk
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"));
+                          setPage(1);
+                        }}
+                        className="inline-flex items-center gap-1.5 transition-colors hover:text-foreground cursor-pointer group"
+                        title="Klik untuk mengubah urutan waktu masuk (Terbaru / Terlama)"
+                      >
+                        <span>Waktu Masuk</span>
+                        {sortOrder === "desc" ? (
+                          <ArrowDown className="size-3.5 text-sky-500" />
+                        ) : (
+                          <ArrowUp className="size-3.5 text-sky-500" />
+                        )}
+                      </button>
                     </TableHead>
                   )}
                   {isColVisible("foto") && (
@@ -1675,8 +1811,8 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                     <TableHead className="font-bold text-xs uppercase tracking-wider">Nomor WhatsApp</TableHead>
                   )}
                   {isColVisible("judulIsi") && (
-                    <TableHead className="min-w-[200px] font-bold text-xs uppercase tracking-wider">
-                      Judul & Isi Laporan
+                    <TableHead className="min-w-[260px] max-w-[460px] font-bold text-xs uppercase tracking-wider">
+                      Isi Laporan
                     </TableHead>
                   )}
                   {isColVisible("wilayahSumber") && (
@@ -1685,6 +1821,14 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                   {isColVisible("wilayahPenempatan") && (
                     <TableHead className="font-bold text-xs uppercase tracking-wider">
                       Wilayah Penempatan Jaring
+                    </TableHead>
+                  )}
+                  {isColVisible("statusDibaca") && (
+                    <TableHead className="text-center whitespace-nowrap font-bold text-xs uppercase tracking-wider">
+                      <span className="inline-flex items-center justify-center gap-1.5">
+                        <Mail className="size-3.5 text-muted-foreground" />
+                        Status Keterbacaan
+                      </span>
                     </TableHead>
                   )}
                   {isColVisible("statusProses") && (
@@ -1786,14 +1930,29 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                       )}
 
                       {isColVisible("judulIsi") && (
-                        <TableCell className="max-w-[280px] align-middle">
-                          <p className="line-clamp-1 font-semibold text-foreground text-xs">
-                            {item.displayTitle || item.content || "Laporan sedang dibuat"}
+                        <TableCell className="min-w-[260px] max-w-[460px] align-middle">
+                          {item.displayTitle && item.displayTitle !== item.content ? (
+                            <p className="line-clamp-1 font-semibold text-foreground text-xs">
+                              {item.displayTitle}
+                            </p>
+                          ) : null}
+                          <p
+                            className={cn(
+                              "text-xs leading-relaxed text-slate-800 dark:text-slate-200 line-clamp-4 whitespace-pre-wrap",
+                              item.displayTitle && item.displayTitle !== item.content ? "mt-1 text-[11px]" : "",
+                            )}
+                          >
+                            {item.content || "Laporan sedang dibuat"}
                           </p>
-                          <p className="mt-0.5 line-clamp-1 text-[11px] text-muted-foreground">{item.content || "-"}</p>
-                          <p className="mt-0.5 text-[10px] text-muted-foreground">
-                            {messageCount} pesan - {mediaCount} media
-                          </p>
+                          <div className="mt-1.5 flex items-center gap-2 text-[10px] text-muted-foreground">
+                            <span className="inline-flex items-center gap-1 font-medium">
+                              <MessageSquare className="size-3 text-sky-500" /> {messageCount} pesan
+                            </span>
+                            <span>•</span>
+                            <span className="inline-flex items-center gap-1 font-medium">
+                              <ImageIcon className="size-3 text-amber-500" /> {mediaCount} media
+                            </span>
+                          </div>
                         </TableCell>
                       )}
 
@@ -1806,6 +1965,82 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                       {isColVisible("wilayahPenempatan") && (
                         <TableCell className="align-middle font-mono text-foreground text-xs">
                           {identity.placementArea}
+                        </TableCell>
+                      )}
+
+                      {isColVisible("statusDibaca") && (
+                        <TableCell className="align-middle">
+                          <div className="flex flex-col gap-2 min-w-[155px]">
+                            {/* Status Gaswil */}
+                            <div className="flex flex-col gap-0.5">
+                              <Badge
+                                variant="outline"
+                                className={cn(
+                                  "inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-semibold w-fit",
+                                  item.gaswilReadAt
+                                    ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                    : "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+                                )}
+                                title={
+                                  item.gaswilReadAt
+                                    ? `Gaswil sudah membaca: ${item.gaswilReadByName || item.gaswilName || ""} (${formatDateTime(item.gaswilReadAt)})`
+                                    : `Belum dibaca Petugas Wilayah: ${item.gaswilName || "Belum ditetapkan"}`
+                                }
+                              >
+                                {item.gaswilReadAt ? (
+                                  <MailOpen className="size-3 shrink-0" />
+                                ) : (
+                                  <Mail className="size-3 shrink-0" />
+                                )}
+                                <span>Gaswil: {item.gaswilReadAt ? "Sudah Dibaca" : "Belum Dibaca"}</span>
+                              </Badge>
+                              {item.gaswilReadAt ? (
+                                <span className="text-[10px] font-mono text-muted-foreground whitespace-nowrap pl-0.5">
+                                  {formatDateTime(item.gaswilReadAt)}
+                                  {` (${item.gaswilReadByName || item.gaswilName || "Gaswil"})`}
+                                </span>
+                              ) : (
+                                <span className="text-[10px] text-muted-foreground whitespace-nowrap pl-0.5">
+                                  Gaswil: {item.gaswilName || "Belum ditetapkan"}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Status Korwil */}
+                            <div className="flex flex-col gap-0.5">
+                              <Badge
+                                variant="outline"
+                                className={cn(
+                                  "inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-semibold w-fit",
+                                  item.korwilReadAt
+                                    ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                    : "border-slate-500/30 bg-slate-500/10 text-slate-600 dark:text-slate-400",
+                                )}
+                                title={
+                                  item.korwilReadAt
+                                    ? `Korwil sudah membaca: ${item.korwilReadByName || item.korwilName || ""} (${formatDateTime(item.korwilReadAt)})`
+                                    : `Belum dibaca Koordinator Wilayah: ${item.korwilName || "Belum ditetapkan"}`
+                                }
+                              >
+                                {item.korwilReadAt ? (
+                                  <MailOpen className="size-3 shrink-0" />
+                                ) : (
+                                  <Mail className="size-3 shrink-0" />
+                                )}
+                                <span>Korwil: {item.korwilReadAt ? "Sudah Dibaca" : "Belum Dibaca"}</span>
+                              </Badge>
+                              {item.korwilReadAt ? (
+                                <span className="text-[10px] font-mono text-muted-foreground whitespace-nowrap pl-0.5">
+                                  {formatDateTime(item.korwilReadAt)}
+                                  {` (${item.korwilReadByName || item.korwilName || "Korwil"})`}
+                                </span>
+                              ) : (
+                                <span className="text-[10px] text-muted-foreground whitespace-nowrap pl-0.5">
+                                  Korwil: {item.korwilName || "Belum ditetapkan"}
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </TableCell>
                       )}
 
@@ -1859,7 +2094,7 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                             size="icon-sm"
                             onClick={(e) => {
                               e.stopPropagation();
-                              if (isFieldOfficer && item.status === "SUBMITTED") markReportAsRead(item.id);
+                              if (item.status === "SUBMITTED" && !item.isRead) void markReportAsRead(item.id);
                             }}
                             title="Buka di tab baru"
                             className="h-8 w-8 text-muted-foreground hover:text-foreground"

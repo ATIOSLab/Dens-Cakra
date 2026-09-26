@@ -115,3 +115,23 @@ export function verificationStatusLabel(status: VerificationStatus) {
 export function verificationStatusBadgeVariant(status: VerificationStatus) {
   return getVerificationStatusBadgeClass(status);
 }
+
+export function formatHierarchyReadStatusBadge(
+  role: "Gaswil" | "Korwil",
+  options: {
+    readAt?: string | null;
+    readByName?: string | null;
+    officerName?: string | null;
+  },
+) {
+  const { readAt, readByName, officerName } = options;
+  if (readAt) {
+    const timeFormatted = formatDateTime(readAt);
+    const actorName = readByName || officerName;
+    return actorName
+      ? `${role}: Sudah Dibaca (${actorName} • ${timeFormatted})`
+      : `${role}: Sudah Dibaca (${timeFormatted})`;
+  }
+  const defaultOfficer = officerName || (role === "Gaswil" ? "Petugas Wilayah" : "Koordinator Wilayah");
+  return `${role}: Belum Dibaca (${defaultOfficer})`;
+}

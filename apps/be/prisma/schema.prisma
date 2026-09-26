@@ -617,6 +617,9 @@ model UserProfile {
   auditLogs              AuditLog[]                  @relation("AuditActor")
   receivedDistributions  ProductDistribution[]       @relation("DistributionTargetUser")
   whatsappDeviceLogs     WhatsAppDeviceActivityLog[] @relation("WhatsAppDeviceActivityUser")
+  readWhatsAppReportSessions WhatsAppReportSession[]     @relation("WhatsAppReportReadBy")
+  gaswilReadWhatsAppReportSessions WhatsAppReportSession[] @relation("WhatsAppReportGaswilReadBy")
+  korwilReadWhatsAppReportSessions WhatsAppReportSession[] @relation("WhatsAppReportKorwilReadBy")
 
   @@index([isActive, deletedAt])
   @@index([status, deletedAt])
@@ -1412,6 +1415,11 @@ model WhatsAppReportSession {
   submittedAt              DateTime?
   closedAt                 DateTime?
   readAt                   DateTime?
+  readByUserProfileId      String?                     @db.Uuid
+  gaswilReadAt             DateTime?
+  gaswilReadByUserProfileId String?                    @db.Uuid
+  korwilReadAt             DateTime?
+  korwilReadByUserProfileId String?                    @db.Uuid
   createdAt                DateTime                    @default(now())
   updatedAt                DateTime                    @updatedAt
 
@@ -1420,6 +1428,9 @@ model WhatsAppReportSession {
   fieldOfficerAssignment UserOperationalAssignment   @relation("WhatsAppReportFieldOfficer", fields: [fieldOfficerAssignmentId], references: [id], onDelete: Restrict)
   submittedMessage       WhatsAppMessage?            @relation(fields: [submittedMessageId], references: [id], onDelete: SetNull)
   pendingFile            FileAsset?                  @relation("WhatsAppReportPendingFile", fields: [pendingFileId], references: [id], onDelete: SetNull)
+  readByUserProfile      UserProfile?                @relation("WhatsAppReportReadBy", fields: [readByUserProfileId], references: [id], onDelete: SetNull)
+  gaswilReadByUserProfile UserProfile?               @relation("WhatsAppReportGaswilReadBy", fields: [gaswilReadByUserProfileId], references: [id], onDelete: SetNull)
+  korwilReadByUserProfile UserProfile?               @relation("WhatsAppReportKorwilReadBy", fields: [korwilReadByUserProfileId], references: [id], onDelete: SetNull)
   contentParts           WhatsAppReportContentPart[]
   media                  WhatsAppReportMedia[]
   history                WhatsAppReportHistory[]
@@ -1431,6 +1442,9 @@ model WhatsAppReportSession {
   @@index([submittedAt, id])
   @@index([fieldOfficerAssignmentId, submittedAt])
   @@index([expiresAt, status])
+  @@index([readByUserProfileId])
+  @@index([gaswilReadByUserProfileId])
+  @@index([korwilReadByUserProfileId])
 }
 
 model WhatsAppReportContentPart {

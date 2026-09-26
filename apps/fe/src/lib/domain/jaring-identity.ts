@@ -28,6 +28,11 @@ export type JaringIdentitySource = {
   gaswilUserProfileId?: string | null;
   fieldOfficerUserProfileId?: string | null;
   gaswilHref?: string | null;
+  korwilName?: string | null;
+  fieldCoordinatorName?: string | null;
+  korwilAssignmentId?: string | null;
+  korwilUserProfileId?: string | null;
+  korwilHref?: string | null;
   placementArea?: JaringIdentityArea | null;
   assignedArea?: JaringIdentityArea | null;
   villageName?: string | null;
@@ -44,6 +49,10 @@ export type JaringIdentity = {
   gaswilAssignmentId: string | null;
   gaswilUserProfileId: string | null;
   gaswilHref: string | null;
+  korwilName: string;
+  korwilAssignmentId: string | null;
+  korwilUserProfileId: string | null;
+  korwilHref: string | null;
   placementArea: string;
   avatarUrl: string | null;
 };
@@ -91,6 +100,10 @@ export function resolveJaringIdentity(source: JaringIdentitySource): JaringIdent
     gaswilAssignmentId: firstValue(source.gaswilAssignmentId, source.fieldOfficerAssignmentId) ?? null,
     gaswilUserProfileId: firstValue(source.gaswilUserProfileId, source.fieldOfficerUserProfileId) ?? null,
     gaswilHref: firstValue(source.gaswilHref) ?? null,
+    korwilName: firstValue(source.korwilName, source.fieldCoordinatorName) ?? UNASSIGNED_VALUE,
+    korwilAssignmentId: source.korwilAssignmentId ?? null,
+    korwilUserProfileId: source.korwilUserProfileId ?? null,
+    korwilHref: source.korwilHref ?? null,
     placementArea:
       firstValue(formatJaringArea(source.placementArea ?? source.assignedArea), placementFromNames) ?? UNASSIGNED_VALUE,
     avatarUrl:

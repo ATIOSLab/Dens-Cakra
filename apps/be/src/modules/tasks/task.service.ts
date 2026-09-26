@@ -88,7 +88,10 @@ export class TaskService {
     context: AuthorizationContext,
     extra: Prisma.TaskWhereInput = {},
   ): Promise<Prisma.TaskWhereInput> {
-    const areaVisibility = await this.areaOverlapWhere(this.areaIds(context), context);
+    const areaVisibility = await this.areaOverlapWhere(
+      this.areaIds(context),
+      context,
+    );
 
     const visibilityBranches: Prisma.TaskWhereInput[] = [
       { createdByAssignmentId: context.primaryAssignmentId },

@@ -1,6 +1,8 @@
 export type PrismaClosureClient = {
   administrativeAreaClosure?: {
-    findMany: (args: any) => Promise<Array<{ ancestorId?: string; descendantId?: string }>>;
+    findMany: (
+      args: any,
+    ) => Promise<Array<{ ancestorId?: string; descendantId?: string }>>;
   };
 };
 
@@ -28,7 +30,10 @@ export async function resolveDescendantAreaIds(
       select: { descendantId: true },
     });
     return Array.from(
-      new Set([...rawIds, ...closures.map((c) => c.descendantId!).filter(Boolean)]),
+      new Set([
+        ...rawIds,
+        ...closures.map((c) => c.descendantId!).filter(Boolean),
+      ]),
     );
   } catch {
     return rawIds;
@@ -54,7 +59,10 @@ export async function resolveAncestorAreaIds(
       select: { ancestorId: true },
     });
     return Array.from(
-      new Set([...rawIds, ...closures.map((c) => c.ancestorId!).filter(Boolean)]),
+      new Set([
+        ...rawIds,
+        ...closures.map((c) => c.ancestorId!).filter(Boolean),
+      ]),
     );
   } catch {
     return rawIds;
@@ -77,10 +85,7 @@ export async function resolveHierarchicalAreaIds(
   try {
     const closures = await prisma.administrativeAreaClosure.findMany({
       where: {
-        OR: [
-          { ancestorId: { in: rawIds } },
-          { descendantId: { in: rawIds } },
-        ],
+        OR: [{ ancestorId: { in: rawIds } }, { descendantId: { in: rawIds } }],
       },
       select: { ancestorId: true, descendantId: true },
     });
@@ -94,4 +99,3 @@ export async function resolveHierarchicalAreaIds(
     return rawIds;
   }
 }
-

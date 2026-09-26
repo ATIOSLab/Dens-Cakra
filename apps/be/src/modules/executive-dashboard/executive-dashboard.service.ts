@@ -557,14 +557,18 @@ export class ExecutiveDashboardService {
       deletedAt: null,
       createdAt: { gte: range.from, lte: range.to },
       ...(query.productTypeId ? { productTypeId: query.productTypeId } : {}),
-      ...(filterAreaIds.length ? { AND: [this.productAreaFilter(filterAreaIds)] } : {}),
+      ...(filterAreaIds.length
+        ? { AND: [this.productAreaFilter(filterAreaIds)] }
+        : {}),
     };
     const productPreviousWhere: Prisma.IntelligenceProductWhereInput = {
       ...productWhere,
       deletedAt: null,
       createdAt: { gte: range.previousFrom, lte: range.previousTo },
       ...(query.productTypeId ? { productTypeId: query.productTypeId } : {}),
-      ...(filterAreaIds.length ? { AND: [this.productAreaFilter(filterAreaIds)] } : {}),
+      ...(filterAreaIds.length
+        ? { AND: [this.productAreaFilter(filterAreaIds)] }
+        : {}),
     };
     const scopedJaringWhere: Prisma.JaringWhereInput = {
       ...jaringScope,

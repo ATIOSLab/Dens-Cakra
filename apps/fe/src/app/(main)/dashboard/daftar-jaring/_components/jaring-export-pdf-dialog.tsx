@@ -45,8 +45,10 @@ export function JaringExportPdfDialog({
   const [title, setTitle] = useState("BUKU PROFILING DAN REKAPITULASI DATA JARING");
   const [exportScope, setExportScope] = useState<"filtered" | "approved">("filtered");
   const [includeCover, setIncludeCover] = useState(true);
+  const [includeMap, setIncludeMap] = useState(true);
   const [includeToc, setIncludeToc] = useState(true);
   const [includeRecap, setIncludeRecap] = useState(true);
+  const [includeInfographic, setIncludeInfographic] = useState(true);
   const [isDownloading, setIsDownloading] = useState(false);
 
   const selectedCount = exportScope === "filtered" ? filteredCount : totalApprovedCount;
@@ -64,8 +66,10 @@ export function JaringExportPdfDialog({
         params.set("title", title.trim());
       }
       params.set("includeCover", String(includeCover));
+      params.set("includeMap", String(includeMap));
       params.set("includeToc", String(includeToc));
       params.set("includeRecap", String(includeRecap));
+      params.set("includeInfographic", String(includeInfographic));
 
       if (exportScope === "filtered") {
         if (currentFilters.search?.trim()) {
@@ -218,11 +222,11 @@ export function JaringExportPdfDialog({
             </div>
           </div>
 
-          {/* Bagian Dokumen (Checkboxes in a clean 3-col grid) */}
+          {/* Bagian Dokumen (Checkboxes in a clean grid) */}
           <div className="space-y-1.5 rounded-lg border border-border/80 bg-slate-50/50 p-2.5 dark:bg-slate-900/30">
             <Label className="font-semibold text-foreground text-xs">Bagian Dokumen yang Disertakan</Label>
 
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               <label
                 htmlFor="include-cover"
                 className="flex items-center gap-2 rounded-md border border-border/60 bg-background/80 px-2.5 py-1.5 cursor-pointer hover:bg-muted/40 transition-colors"
@@ -233,6 +237,30 @@ export function JaringExportPdfDialog({
                   onCheckedChange={(checked) => setIncludeCover(Boolean(checked))}
                 />
                 <span className="font-medium text-foreground text-xs">Halaman Cover</span>
+              </label>
+
+              <label
+                htmlFor="include-map"
+                className="flex items-center gap-2 rounded-md border border-border/60 bg-background/80 px-2.5 py-1.5 cursor-pointer hover:bg-muted/40 transition-colors"
+              >
+                <Checkbox
+                  id="include-map"
+                  checked={includeMap}
+                  onCheckedChange={(checked) => setIncludeMap(Boolean(checked))}
+                />
+                <span className="font-medium text-foreground text-xs">Peta Sebaran DKI</span>
+              </label>
+
+              <label
+                htmlFor="include-infographic"
+                className="flex items-center gap-2 rounded-md border border-border/60 bg-background/80 px-2.5 py-1.5 cursor-pointer hover:bg-muted/40 transition-colors"
+              >
+                <Checkbox
+                  id="include-infographic"
+                  checked={includeInfographic}
+                  onCheckedChange={(checked) => setIncludeInfographic(Boolean(checked))}
+                />
+                <span className="font-medium text-foreground text-xs">Infografis & Visualisasi Chart</span>
               </label>
 
               <label
@@ -256,7 +284,7 @@ export function JaringExportPdfDialog({
                   checked={includeRecap}
                   onCheckedChange={(checked) => setIncludeRecap(Boolean(checked))}
                 />
-                <span className="font-medium text-foreground text-xs">Rekapitulasi</span>
+                <span className="font-medium text-foreground text-xs">Rekap Wilayah & Profesi</span>
               </label>
             </div>
           </div>

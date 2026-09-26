@@ -1276,11 +1276,7 @@ describe('JaringService registration security', () => {
       expect.objectContaining({
         skip: 20,
         take: 10,
-        orderBy: [
-          { title: 'asc' },
-          { createdAt: 'desc' },
-          { id: 'desc' },
-        ],
+        orderBy: [{ title: 'asc' }, { createdAt: 'desc' }, { id: 'desc' }],
         where: expect.objectContaining({
           jaring: {
             AND: [
@@ -1547,4 +1543,3 @@ describe('JaringService registration security', () => {
     });
   });
 });
-

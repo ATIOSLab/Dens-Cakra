@@ -67,13 +67,7 @@ type AliasAdministrativeArea = {
   officialCode: string | null;
   name: string;
   level: AdministrativeLevel;
-  parent: {
-    id: string;
-    code: string;
-    officialCode: string | null;
-    name: string;
-    level: AdministrativeLevel;
-  } | null;
+  parent?: AliasAdministrativeArea | null;
 };
 
 type AdministrativeCodeArea = Pick<
@@ -88,6 +82,18 @@ type JaringIdentityConflict = {
   caretakerAssignments?: Array<{
     fieldOfficerAssignmentId: string;
   }>;
+};
+
+type KorwilInfo = {
+  id: string;
+  name: string;
+  assignmentId: string;
+};
+
+type KorwilLookup = {
+  byAreaId: Map<string, KorwilInfo>;
+  byOfficialCode: Map<string, KorwilInfo>;
+  allKorwils: KorwilInfo[];
 };
 
 const areaSelectWithParents = {
@@ -190,6 +196,32 @@ const jaringReportSessionSelect = {
   submittedAt: true,
   closedAt: true,
   readAt: true,
+  readByUserProfileId: true,
+  readByUserProfile: {
+    select: {
+      id: true,
+      fullName: true,
+      username: true,
+    },
+  },
+  gaswilReadAt: true,
+  gaswilReadByUserProfileId: true,
+  gaswilReadByUserProfile: {
+    select: {
+      id: true,
+      fullName: true,
+      username: true,
+    },
+  },
+  korwilReadAt: true,
+  korwilReadByUserProfileId: true,
+  korwilReadByUserProfile: {
+    select: {
+      id: true,
+      fullName: true,
+      username: true,
+    },
+  },
   createdAt: true,
   updatedAt: true,
   submittedMessage: {
@@ -389,6 +421,117 @@ export class JaringService {
     private readonly domainScope: DomainScopeService,
     private readonly cache: ApplicationCacheService,
   ) {}
+
+  private korwilCache: { expiresAt: number; lookup: KorwilLookup } | null =
+    null;
+
+  private async getKorwilLookup(): Promise<KorwilLookup> {
+    if (!this.prisma.userOperationalAssignment?.findMany) {
+      return { byAreaId: new Map(), byOfficialCode: new Map(), allKorwils: [] };
+    }
+
+    const now = Date.now();
+    if (this.korwilCache && this.korwilCache.expiresAt > now) {
+      return this.korwilCache.lookup;
+    }
+
+    try {
+      const assignments = await this.prisma.userOperationalAssignment.findMany({
+        where: {
+          isActive: true,
+          role: { code: RoleCode.FIELD_COORDINATOR },
+        },
+        select: {
+          id: true,
+          userProfile: {
+            select: {
+              id: true,
+              fullName: true,
+              username: true,
+            },
+          },
+          areaScopes: {
+            where: { validUntil: null },
+            select: {
+              areaId: true,
+              area: {
+                select: {
+                  id: true,
+                  officialCode: true,
+                  code: true,
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const byAreaId = new Map<string, KorwilInfo>();
+      const byOfficialCode = new Map<string, KorwilInfo>();
+      const allKorwils: KorwilInfo[] = [];
+
+      for (const assignment of assignments) {
+        const name =
+          assignment.userProfile?.fullName ??
+          assignment.userProfile?.username ??
+          'Koordinator Wilayah';
+        const info: KorwilInfo = {
+          id: assignment.userProfile?.id ?? assignment.id,
+          assignmentId: assignment.id,
+          name,
+        };
+        allKorwils.push(info);
+        for (const scope of assignment.areaScopes) {
+          if (scope.areaId) byAreaId.set(scope.areaId, info);
+          if (scope.area?.officialCode)
+            byOfficialCode.set(scope.area.officialCode, info);
+          if (scope.area?.code) byOfficialCode.set(scope.area.code, info);
+        }
+      }
+
+      const lookup: KorwilLookup = { byAreaId, byOfficialCode, allKorwils };
+      this.korwilCache = { expiresAt: now + 60_000, lookup };
+      return lookup;
+    } catch {
+      return { byAreaId: new Map(), byOfficialCode: new Map(), allKorwils: [] };
+    }
+  }
+
+  private resolveKorwilForSession(
+    session: JaringReportSessionRecord,
+    lookup: KorwilLookup,
+  ): KorwilInfo | null {
+    const primaryCoverage =
+      session.jaring?.areaCoverages.find((coverage) => coverage.isPrimary) ??
+      session.jaring?.areaCoverages[0] ??
+      null;
+    const areasToCheck = [
+      primaryCoverage?.area,
+      session.submittedMessage?.resolvedArea,
+    ].filter(Boolean);
+
+    for (const area of areasToCheck) {
+      let curr: any = area;
+      while (curr) {
+        if (curr.id && lookup.byAreaId.has(curr.id)) {
+          return lookup.byAreaId.get(curr.id)!;
+        }
+        if (curr.officialCode && lookup.byOfficialCode.has(curr.officialCode)) {
+          return lookup.byOfficialCode.get(curr.officialCode)!;
+        }
+        if (curr.officialCode) {
+          const prefix2 = curr.officialCode.slice(0, 5);
+          if (lookup.byOfficialCode.has(prefix2)) {
+            return lookup.byOfficialCode.get(prefix2)!;
+          }
+        }
+        curr = curr.parent;
+      }
+    }
+
+    return null;
+  }
 
   private referenceCode(value: string) {
     const normalized = value
@@ -826,7 +969,10 @@ export class JaringService {
     return words.length > 6 ? `${headline}…` : headline;
   }
 
-  private serializeJaringReportSession(session: JaringReportSessionRecord) {
+  private serializeJaringReportSession(
+    session: JaringReportSessionRecord,
+    korwilLookup?: KorwilLookup | null,
+  ) {
     const submittedMessage = session.submittedMessage;
     const baket = submittedMessage?.convertedBaket ?? null;
     const latestVersion = baket?.versions[0] ?? null;
@@ -894,6 +1040,24 @@ export class JaringService {
       session.jaring?.areaCoverages[0] ??
       null;
 
+    const korwil = korwilLookup
+      ? this.resolveKorwilForSession(session, korwilLookup)
+      : null;
+    const regencyArea = (() => {
+      let curr: any =
+        primaryCoverage?.area ?? session.submittedMessage?.resolvedArea;
+      while (curr) {
+        if (curr.level === 'REGENCY' || curr.level === 'CITY') return curr;
+        curr = curr.parent;
+      }
+      return null;
+    })();
+    const korwilName =
+      session.korwilReadByUserProfile?.fullName ??
+      session.korwilReadByUserProfile?.username ??
+      korwil?.name ??
+      (regencyArea?.name ? `Korwil ${regencyArea.name}` : null);
+
     return {
       id: session.id,
       reportSessionId: session.id,
@@ -908,6 +1072,9 @@ export class JaringService {
       gaswilName,
       gaswilAssignmentId: activeCaretakerAssignment?.id ?? null,
       gaswilUserProfileId: activeCaretaker?.id ?? null,
+      korwilName,
+      korwilAssignmentId: korwil?.assignmentId ?? null,
+      korwilUserProfileId: korwil?.id ?? null,
       placementArea: primaryCoverage?.area ?? null,
       referenceNumber:
         session.referenceNumber ?? submittedMessage?.referenceNumber ?? null,
@@ -954,10 +1121,38 @@ export class JaringService {
       expiresAt: session.expiresAt,
       submittedAt: session.submittedAt,
       closedAt: session.closedAt,
-      readAt: session.readAt,
-      isRead: Boolean(session.readAt),
-      fieldOfficerReadAt: session.readAt,
-      isReadByFieldOfficer: Boolean(session.readAt),
+      readAt: session.gaswilReadAt ?? session.readAt ?? null,
+      readByUserProfileId:
+        session.gaswilReadByUserProfileId ??
+        session.readByUserProfileId ??
+        null,
+      readByName:
+        session.gaswilReadByUserProfile?.fullName ??
+        session.gaswilReadByUserProfile?.username ??
+        session.readByUserProfile?.fullName ??
+        session.readByUserProfile?.username ??
+        null,
+      isRead: Boolean(session.gaswilReadAt || session.readAt),
+      readStatus:
+        session.gaswilReadAt || session.readAt
+          ? 'SUDAH_DIBACA'
+          : 'BELUM_DIBACA',
+      fieldOfficerReadAt: session.gaswilReadAt ?? session.readAt ?? null,
+      isReadByFieldOfficer: Boolean(session.gaswilReadAt || session.readAt),
+      gaswilReadAt: session.gaswilReadAt ?? null,
+      gaswilReadByUserProfileId: session.gaswilReadByUserProfileId ?? null,
+      gaswilReadByName:
+        session.gaswilReadByUserProfile?.fullName ??
+        session.gaswilReadByUserProfile?.username ??
+        gaswilName,
+      gaswilReadStatus: session.gaswilReadAt ? 'SUDAH_DIBACA' : 'BELUM_DIBACA',
+      korwilReadAt: session.korwilReadAt ?? null,
+      korwilReadByUserProfileId: session.korwilReadByUserProfileId ?? null,
+      korwilReadByName:
+        session.korwilReadByUserProfile?.fullName ??
+        session.korwilReadByUserProfile?.username ??
+        korwilName,
+      korwilReadStatus: session.korwilReadAt ? 'SUDAH_DIBACA' : 'BELUM_DIBACA',
       createdAt: session.createdAt,
       updatedAt: session.updatedAt,
       timezone: session.timezone,
@@ -1271,7 +1466,11 @@ export class JaringService {
               take: 50,
             })
             .then(async (matchedAreas) => {
-              if (matchedAreas.length === 0 || !this.prisma.administrativeAreaClosure) return [];
+              if (
+                matchedAreas.length === 0 ||
+                !this.prisma.administrativeAreaClosure
+              )
+                return [];
               const rawIds = matchedAreas.map((a) => a.id);
               const closures =
                 await this.prisma.administrativeAreaClosure.findMany({
@@ -1384,7 +1583,10 @@ export class JaringService {
                         fieldOfficerAssignmentId: { in: scope.assignmentIds },
                       }),
                   isActive: true,
-                  OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
+                  OR: [
+                    { validUntil: null },
+                    { validUntil: { gt: new Date() } },
+                  ],
                 },
               },
             }),
@@ -2574,87 +2776,85 @@ export class JaringService {
       filterJaring,
       configSetting,
     ] = await Promise.all([
-        this.prisma.jaringCoachingReport.findMany({
-          where,
-          skip: (page - 1) * limit,
-          take: limit,
-          orderBy: [
-            { [sortBy]: sortOrder },
-            ...(sortBy === 'createdAt'
-              ? []
-              : [{ createdAt: 'desc' as const }]),
-            { id: 'desc' },
+      this.prisma.jaringCoachingReport.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: [
+          { [sortBy]: sortOrder },
+          ...(sortBy === 'createdAt' ? [] : [{ createdAt: 'desc' as const }]),
+          { id: 'desc' },
+        ],
+        select: jaringCoachingReportSelect,
+      }),
+      this.prisma.jaringCoachingReport.count({ where }),
+      this.prisma.jaringCoachingReport.groupBy({
+        by: ['jaringId'],
+        where,
+      }),
+      this.prisma.jaringCoachingReport.count({
+        where: {
+          AND: [
+            where,
+            {
+              createdAt: {
+                gte: currentMonth.from,
+                lt: currentMonth.to,
+              },
+            },
           ],
-          select: jaringCoachingReportSelect,
-        }),
-        this.prisma.jaringCoachingReport.count({ where }),
-        this.prisma.jaringCoachingReport.groupBy({
-          by: ['jaringId'],
-          where,
-        }),
-        this.prisma.jaringCoachingReport.count({
-          where: {
-            AND: [
-              where,
-              {
-                createdAt: {
-                  gte: currentMonth.from,
-                  lt: currentMonth.to,
-                },
-              },
-            ],
-          },
-        }),
-        this.prisma.jaring.findMany({
-          where: scopedJaringWhere,
-          orderBy: [{ aliasName: 'asc' }, { fullName: 'asc' }, { id: 'asc' }],
-          select: {
-            id: true,
-            aliasName: true,
-            fullName: true,
-            registrationStatus: true,
-            caretakerAssignments: {
-              where: {
-                isActive: true,
-                OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
-              },
-              take: 1,
-              select: {
-                id: true,
-                fieldOfficerAssignmentId: true,
-                isActive: true,
-                validFrom: true,
-                validUntil: true,
-                fieldOfficerAssignment: {
-                  select: {
-                    id: true,
-                    userProfile: {
-                      select: { id: true, fullName: true },
-                    },
+        },
+      }),
+      this.prisma.jaring.findMany({
+        where: scopedJaringWhere,
+        orderBy: [{ aliasName: 'asc' }, { fullName: 'asc' }, { id: 'asc' }],
+        select: {
+          id: true,
+          aliasName: true,
+          fullName: true,
+          registrationStatus: true,
+          caretakerAssignments: {
+            where: {
+              isActive: true,
+              OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
+            },
+            take: 1,
+            select: {
+              id: true,
+              fieldOfficerAssignmentId: true,
+              isActive: true,
+              validFrom: true,
+              validUntil: true,
+              fieldOfficerAssignment: {
+                select: {
+                  id: true,
+                  userProfile: {
+                    select: { id: true, fullName: true },
                   },
                 },
               },
             },
-            areaCoverages: {
-              where: { validUntil: null },
-              orderBy: [{ isPrimary: 'desc' }, { validFrom: 'desc' }],
-              select: {
-                id: true,
-                areaId: true,
-                isPrimary: true,
-                validFrom: true,
-                validUntil: true,
-                area: { select: areaSelectWithParents },
-              },
+          },
+          areaCoverages: {
+            where: { validUntil: null },
+            orderBy: [{ isPrimary: 'desc' }, { validFrom: 'desc' }],
+            select: {
+              id: true,
+              areaId: true,
+              isPrimary: true,
+              validFrom: true,
+              validUntil: true,
+              area: { select: areaSelectWithParents },
             },
           },
-        }),
-        this.prisma.systemSetting?.findUnique
-          ? this.prisma.systemSetting.findUnique({
-              where: { key: 'features.coaching_report.enabled' },
-            })
-          : Promise.resolve(null),
-      ]);
+        },
+      }),
+      this.prisma.systemSetting?.findUnique
+        ? this.prisma.systemSetting.findUnique({
+            where: { key: 'features.coaching_report.enabled' },
+          })
+        : Promise.resolve(null),
+    ]);
 
     const isCreationEnabled = configSetting?.value === false ? false : true;
 
@@ -3129,26 +3329,28 @@ export class JaringService {
       AND: [...filters],
     };
 
-    const [sessions, total, statusCounts, summary] = await Promise.all([
-      this.prisma.whatsAppReportSession.findMany({
-        where,
-        skip: (page - 1) * limit,
-        take: limit,
-        orderBy: this.reportOrderBy(query),
-        select: jaringReportSessionSelect,
-      }),
-      this.prisma.whatsAppReportSession.count({ where }),
-      this.prisma.whatsAppReportSession.groupBy({
-        by: ['status'],
-        where,
-        _count: { _all: true },
-      }),
-      this.summarizeReportSessions(summaryWhere),
-    ]);
+    const [sessions, total, statusCounts, summary, korwilLookup] =
+      await Promise.all([
+        this.prisma.whatsAppReportSession.findMany({
+          where,
+          skip: (page - 1) * limit,
+          take: limit,
+          orderBy: this.reportOrderBy(query),
+          select: jaringReportSessionSelect,
+        }),
+        this.prisma.whatsAppReportSession.count({ where }),
+        this.prisma.whatsAppReportSession.groupBy({
+          by: ['status'],
+          where,
+          _count: { _all: true },
+        }),
+        this.summarizeReportSessions(summaryWhere),
+        this.getKorwilLookup(),
+      ]);
 
     return {
       items: (sessions as JaringReportSessionRecord[]).map((session) =>
-        this.serializeJaringReportSession(session),
+        this.serializeJaringReportSession(session, korwilLookup),
       ),
       pagination: {
         page,
@@ -3183,16 +3385,12 @@ export class JaringService {
       ...(query.status ? { status: query.status } : {}),
     };
 
-    const [sessions, total, statusCounts] = await Promise.all([
+    const [sessions, total, statusCounts, korwilLookup] = await Promise.all([
       this.prisma.whatsAppReportSession.findMany({
         where,
         skip: (page - 1) * limit,
         take: limit,
-        orderBy: [
-          { submittedAt: 'desc' },
-          { updatedAt: 'desc' },
-          { id: 'desc' },
-        ],
+        orderBy: this.reportOrderBy(query),
         select: jaringReportSessionSelect,
       }),
       this.prisma.whatsAppReportSession.count({ where }),
@@ -3201,11 +3399,12 @@ export class JaringService {
         where: { jaringId: id },
         _count: { _all: true },
       }),
+      this.getKorwilLookup(),
     ]);
 
     return {
       items: (sessions as JaringReportSessionRecord[]).map((session) =>
-        this.serializeJaringReportSession(session),
+        this.serializeJaringReportSession(session, korwilLookup),
       ),
       pagination: {
         page,
@@ -3225,10 +3424,13 @@ export class JaringService {
   }
 
   async report(id: string, context: AuthorizationContext) {
-    const session = await this.prisma.whatsAppReportSession.findUnique({
-      where: { id },
-      select: jaringReportSessionSelect,
-    });
+    const [session, korwilLookup] = await Promise.all([
+      this.prisma.whatsAppReportSession.findUnique({
+        where: { id },
+        select: jaringReportSessionSelect,
+      }),
+      this.getKorwilLookup(),
+    ]);
     if (!session) {
       throw new ApiException(
         'JARING_REPORT_NOT_FOUND',
@@ -3239,22 +3441,17 @@ export class JaringService {
 
     await this.domainScope.assertJaring(context, session.jaringId);
 
-    return this.serializeJaringReportSession(session);
+    return this.serializeJaringReportSession(session, korwilLookup);
   }
 
   async markReportAsRead(id: string, context: AuthorizationContext) {
-    if (context.roleCode !== RoleCode.FIELD_OFFICER) {
-      throw new ApiException(
-        'JARING_REPORT_READ_FORBIDDEN',
-        'Hanya Petugas Wilayah (Gaswil) yang dapat menandai Laporan Jaring sebagai sudah dibaca petugas.',
-        403,
-      );
-    }
-
-    let session = await this.prisma.whatsAppReportSession.findUnique({
-      where: { id },
-      select: jaringReportSessionSelect,
-    });
+    let [session, korwilLookup] = await Promise.all([
+      this.prisma.whatsAppReportSession.findUnique({
+        where: { id },
+        select: jaringReportSessionSelect,
+      }),
+      this.getKorwilLookup(),
+    ]);
     if (!session) {
       throw new ApiException(
         'JARING_REPORT_NOT_FOUND',
@@ -3273,16 +3470,55 @@ export class JaringService {
       );
     }
 
-    if (!session.readAt) {
-      const now = new Date();
-      await this.prisma.whatsAppReportSession.update({
-        where: { id },
-        data: { readAt: now },
-      });
-      session = { ...session, readAt: now };
+    const isGaswil =
+      context.roleCode === RoleCode.FIELD_OFFICER ||
+      context.authRole === 'field_officer';
+    const isKorwil =
+      context.roleCode === RoleCode.FIELD_COORDINATOR ||
+      context.authRole === 'field_coordinator';
+
+    // Jika yang membuka adalah pimpinan/deputi (bukan gaswil atau korwil),
+    // pimpinan hanya memantau status hierarki lapangan tanpa menandai baca untuk gaswil/korwil.
+    if (!isGaswil && !isKorwil) {
+      return this.serializeJaringReportSession(session, korwilLookup);
     }
 
-    return this.serializeJaringReportSession(session);
+    const now = new Date();
+    const updateData: {
+      gaswilReadAt?: Date;
+      gaswilReadByUserProfileId?: string | null;
+      korwilReadAt?: Date;
+      korwilReadByUserProfileId?: string | null;
+      readAt?: Date;
+      readByUserProfileId?: string | null;
+    } = {};
+
+    if (isGaswil && !session.gaswilReadAt) {
+      updateData.gaswilReadAt = now;
+      updateData.gaswilReadByUserProfileId = context.userProfileId ?? null;
+      if (!session.readAt) {
+        updateData.readAt = now;
+        updateData.readByUserProfileId = context.userProfileId ?? null;
+      }
+    }
+
+    if (isKorwil && !session.korwilReadAt) {
+      updateData.korwilReadAt = now;
+      updateData.korwilReadByUserProfileId = context.userProfileId ?? null;
+    }
+
+    if (Object.keys(updateData).length > 0) {
+      await this.prisma.whatsAppReportSession.update({
+        where: { id },
+        data: updateData,
+      });
+      session = await this.prisma.whatsAppReportSession.findUniqueOrThrow({
+        where: { id },
+        select: jaringReportSessionSelect,
+      });
+    }
+
+    return this.serializeJaringReportSession(session, korwilLookup);
   }
 
   async updateReportMetadata(
@@ -3732,7 +3968,9 @@ export class JaringService {
       }
     }
 
-    const ninetyDaysAgo = new Date(pullDate.getTime() - 90 * 24 * 60 * 60 * 1000);
+    const ninetyDaysAgo = new Date(
+      pullDate.getTime() - 90 * 24 * 60 * 60 * 1000,
+    );
     const pullTimeStr = pullDate.toISOString();
     const ninetyDaysStr = ninetyDaysAgo.toISOString();
 
@@ -3763,19 +4001,23 @@ export class JaringService {
         FROM approved_jaring j
         JOIN active_reporters a ON j.id = a."jaringId"
       `),
-      this.prisma.$queryRaw<Array<{ total_reports: number; reporting_jaring: number }>>(Prisma.sql`
+      this.prisma.$queryRaw<
+        Array<{ total_reports: number; reporting_jaring: number }>
+      >(Prisma.sql`
         SELECT 
           count(*)::int as total_reports,
           count(DISTINCT "jaringId")::int as reporting_jaring
         FROM "WhatsAppReportSession"
         WHERE "submittedAt" >= ${startPeriod}::timestamptz AND "submittedAt" < ${endPeriodExclusive}::timestamptz
       `),
-      this.prisma.$queryRaw<Array<{
-        total_coaching_all: number;
-        coached_jaring_all: number;
-        total_coaching_approved: number;
-        coached_jaring_approved: number;
-      }>>(Prisma.sql`
+      this.prisma.$queryRaw<
+        Array<{
+          total_coaching_all: number;
+          coached_jaring_all: number;
+          total_coaching_approved: number;
+          coached_jaring_approved: number;
+        }>
+      >(Prisma.sql`
         SELECT 
           count(*)::int as total_coaching_all,
           count(DISTINCT "jaringId")::int as coached_jaring_all,
@@ -3785,15 +4027,17 @@ export class JaringService {
         LEFT JOIN "Jaring" j ON c."jaringId" = j.id
         WHERE c."createdAt" >= ${startPeriod}::timestamptz AND c."createdAt" < ${endPeriodExclusive}::timestamptz
       `),
-      this.prisma.$queryRaw<Array<{
-        regency_name: string;
-        district_name: string;
-        total_jaring: number;
-        jaring_aktif: number;
-        jaring_tidak_aktif: number;
-        laporan_masuk: number;
-        pembinaan_jaring: number;
-      }>>(Prisma.sql`
+      this.prisma.$queryRaw<
+        Array<{
+          regency_name: string;
+          district_name: string;
+          total_jaring: number;
+          jaring_aktif: number;
+          jaring_tidak_aktif: number;
+          laporan_masuk: number;
+          pembinaan_jaring: number;
+        }>
+      >(Prisma.sql`
         WITH ranked_coverage AS (
           SELECT 
             jac."jaringId",
@@ -3947,9 +4191,12 @@ export class JaringService {
 
     const regions = Array.from(regencyMap.values())
       .map((r) => {
-        const activeRate = r.total > 0 ? roundToTwo((r.active / r.total) * 100) : 0;
-        const inactiveRate = r.total > 0 ? roundToTwo((r.inactive / r.total) * 100) : 0;
-        const reportsPerActive = r.active > 0 ? roundToTwo(r.reports / r.active) : 0;
+        const activeRate =
+          r.total > 0 ? roundToTwo((r.active / r.total) * 100) : 0;
+        const inactiveRate =
+          r.total > 0 ? roundToTwo((r.inactive / r.total) * 100) : 0;
+        const reportsPerActive =
+          r.active > 0 ? roundToTwo(r.reports / r.active) : 0;
         const coachingShare =
           coaching.activities > 0
             ? roundToTwo((r.coaching / coaching.activities) * 100)
@@ -3982,7 +4229,8 @@ export class JaringService {
       const dCoaching = Number(d.pembinaan_jaring ?? 0);
 
       const activeRate = dTotal > 0 ? roundToTwo((dActive / dTotal) * 100) : 0;
-      const inactiveRate = dTotal > 0 ? roundToTwo((dInactive / dTotal) * 100) : 0;
+      const inactiveRate =
+        dTotal > 0 ? roundToTwo((dInactive / dTotal) * 100) : 0;
       const reportsPerActive = dActive > 0 ? roundToTwo(dReports / dActive) : 0;
       const reportConcentration =
         regReports > 0 ? roundToTwo((dReports / regReports) * 100) : 0;
@@ -4047,9 +4295,8 @@ export class JaringService {
     const sDate = new Date(`${startDateStr}T00:00:00+07:00`);
     const eDate = new Date(`${endDateStr}T00:00:00+07:00`);
     const periodDays =
-      Math.round(
-        (eDate.getTime() - sDate.getTime()) / (24 * 60 * 60 * 1000),
-      ) + 1;
+      Math.round((eDate.getTime() - sDate.getTime()) / (24 * 60 * 60 * 1000)) +
+      1;
 
     const highestActiveRegion =
       [...regions].sort((a, b) => b.activeRate - a.activeRate)[0]?.name ?? '';

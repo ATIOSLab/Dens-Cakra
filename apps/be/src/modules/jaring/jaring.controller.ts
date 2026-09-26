@@ -275,9 +275,7 @@ export class JaringController {
     operationId: 'apiJarRekapJangkauan',
     contractId: 'API-JAR-REKAP-JANGKAUAN',
     summary: 'Rekap jangkauan, aktivitas, dan pembinaan Jaring',
-    roles: [
-      'admin_system',
-    ],
+    roles: ['admin_system'],
   })
   async rekapJangkauan(
     @Query() query: JaringRekapJangkauanQueryDto,
@@ -543,9 +541,15 @@ export class JaringController {
   @ApiContract({
     operationId: 'apiJar016b',
     contractId: 'API-JAR-016B',
-    summary:
-      'Tandai laporan Jaring sebagai sudah dibaca Petugas Wilayah (Gaswil)',
-    roles: ['field_officer'],
+    summary: 'Tandai laporan Jaring sebagai sudah dibaca',
+    roles: [
+      'executive',
+      'regional_commander',
+      'field_coordinator',
+      'field_officer',
+      'national_leader',
+      'admin_system',
+    ],
   })
   async markReportAsRead(
     @Param('reportSessionId', ParseUUIDPipe) id: string,

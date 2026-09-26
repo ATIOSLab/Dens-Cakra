@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 
-import { Clock, ExternalLink, FileText, ImageIcon, MapPin, MessageSquare, ShieldAlert } from "lucide-react";
+import { Clock, ExternalLink, FileText, ImageIcon, Mail, MailOpen, MapPin, MessageSquare, ShieldAlert } from "lucide-react";
 
 import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +18,12 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
-import { formatDateTime, verificationStatusBadgeVariant, verificationStatusLabel } from "./laporan-jaring-presentation";
+import {
+  formatDateTime,
+  formatHierarchyReadStatusBadge,
+  verificationStatusBadgeVariant,
+  verificationStatusLabel,
+} from "./laporan-jaring-presentation";
 import { formatFullAreaName, type JaringReportSessionDetail, type PriorityLevel } from "./laporan-jaring-types";
 
 type LaporanJaringPreviewModalProps = {
@@ -108,29 +113,118 @@ export function LaporanJaringPreviewModal({ report, open, onOpenChange }: Lapora
             >
               {verificationStatusLabel(displayStatus)}
             </Badge>
+
+            {/* Gaswil Status */}
+            <Badge
+              variant="outline"
+              className={cn(
+                "inline-flex items-center gap-1 font-semibold text-[10px]",
+                report.gaswilReadAt
+                  ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                  : "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+              )}
+              title={
+                report.gaswilReadAt
+                  ? `Gaswil sudah membaca: ${report.gaswilReadByName || report.gaswilName || ""} (${formatDateTime(report.gaswilReadAt)})`
+                  : `Belum dibaca Petugas Wilayah: ${report.gaswilName || "Belum ditetapkan"}`
+              }
+            >
+              {report.gaswilReadAt ? <MailOpen className="size-3 shrink-0" /> : <Mail className="size-3 shrink-0" />}
+              {formatHierarchyReadStatusBadge("Gaswil", {
+                readAt: report.gaswilReadAt,
+                readByName: report.gaswilReadByName,
+                officerName: report.gaswilName,
+              })}
+            </Badge>
+
+            {/* Korwil Status */}
+            <Badge
+              variant="outline"
+              className={cn(
+                "inline-flex items-center gap-1 font-semibold text-[10px]",
+                report.korwilReadAt
+                  ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                  : "border-slate-500/30 bg-slate-500/10 text-slate-600 dark:text-slate-400",
+              )}
+              title={
+                report.korwilReadAt
+                  ? `Korwil sudah membaca: ${report.korwilReadByName || report.korwilName || ""} (${formatDateTime(report.korwilReadAt)})`
+                  : `Belum dibaca Koordinator Wilayah: ${report.korwilName || "Belum ditetapkan"}`
+              }
+            >
+              {report.korwilReadAt ? <MailOpen className="size-3 shrink-0" /> : <Mail className="size-3 shrink-0" />}
+              {formatHierarchyReadStatusBadge("Korwil", {
+                readAt: report.korwilReadAt,
+                readByName: report.korwilReadByName,
+                officerName: report.korwilName,
+              })}
+            </Badge>
           </div>
 
           <DialogTitle className="mt-2 text-left font-bold font-heading text-lg text-foreground leading-snug">
             {title}
           </DialogTitle>
 
-          <DialogDescription className="mt-1 flex flex-wrap items-center gap-3 text-muted-foreground text-xs">
-            <span className="flex items-center gap-1">
-              <Clock className="size-3.5 text-muted-foreground" />
-              {formatDateTime(report.reportedAt)}
-            </span>
-            <span className="flex items-center gap-1">
-              <MapPin className="size-3.5 text-emerald-600 dark:text-emerald-400" />
-              {locationName}
-            </span>
-            <span className="flex items-center gap-1">
-              <MessageSquare className="size-3.5 text-sky-500" />
-              {messagesCount} pesan
-            </span>
-            <span className="flex items-center gap-1">
-              <ImageIcon className="size-3.5 text-amber-500" />
-              {mediaCount} media
-            </span>
+          <DialogDescription className="mt-1 flex flex-col gap-2 text-muted-foreground text-xs">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="flex items-center gap-1 font-mono">
+                <Clock className="size-3.5 text-muted-foreground" />
+                {formatDateTime(report.reportedAt)}
+              </span>
+              <span className="flex items-center gap-1">
+                <MapPin className="size-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                {report.location?.latitude && report.location?.longitude ? (
+                  <a
+                    href={`https://www.google.com/maps?q=${report.location.latitude},${report.location.longitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-emerald-600 hover:text-emerald-500 hover:underline dark:text-emerald-400"
+                    title="Buka lokasi di Google Maps"
+                  >
+                    <span>{locationName}</span>
+                    <ExternalLink className="size-3 opacity-70" />
+                  </a>
+                ) : (
+                  locationName
+                )}
+              </span>
+              <span className="flex items-center gap-1">
+                <MessageSquare className="size-3.5 text-sky-500" />
+                {messagesCount} pesan
+              </span>
+              <span className="flex items-center gap-1">
+                <ImageIcon className="size-3.5 text-amber-500" />
+                {mediaCount} media
+              </span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-1.5 text-[11px] border-t border-border/50">
+              <span className="inline-flex items-center gap-1">
+                <span className="font-semibold text-foreground">Keterbacaan Gaswil:</span>
+                {report.gaswilReadAt ? (
+                  <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                    Sudah dibaca oleh {report.gaswilReadByName || report.gaswilName || "Petugas Wilayah"} ({formatDateTime(report.gaswilReadAt)})
+                  </span>
+                ) : (
+                  <span className="text-amber-600 dark:text-amber-400 font-medium">
+                    Belum dibaca (Pembina: {report.gaswilName || "Petugas Wilayah"})
+                  </span>
+                )}
+              </span>
+              <span className="text-muted-foreground/60">•</span>
+              <span className="inline-flex items-center gap-1">
+                <span className="font-semibold text-foreground">Keterbacaan Korwil:</span>
+                {report.korwilReadAt ? (
+                  <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                    Sudah dibaca oleh {report.korwilReadByName || report.korwilName || "Koordinator Wilayah"} ({formatDateTime(report.korwilReadAt)})
+                  </span>
+                ) : (
+                  <span className="text-slate-600 dark:text-slate-400 font-medium">
+                    Belum dibaca (Koordinator: {report.korwilName || "Koordinator Wilayah"})
+                  </span>
+                )}
+              </span>
+            </div>
           </DialogDescription>
         </DialogHeader>
 
@@ -154,6 +248,9 @@ export function LaporanJaringPreviewModal({ report, open, onOpenChange }: Lapora
                   gaswilName: report.gaswilName,
                   gaswilAssignmentId: report.gaswilAssignmentId,
                   gaswilUserProfileId: report.gaswilUserProfileId,
+                  korwilName: report.korwilName,
+                  korwilAssignmentId: report.korwilAssignmentId,
+                  korwilUserProfileId: report.korwilUserProfileId,
                   placementArea: report.placementArea,
                 }}
                 compact={false}
@@ -253,12 +350,20 @@ export function LaporanJaringPreviewModal({ report, open, onOpenChange }: Lapora
                       </div>
                     )}
                     {msg.kind === "LIVE_LOCATION" && (
-                      <div className="flex items-center gap-1 font-mono text-emerald-600 dark:text-emerald-400">
-                        <MapPin className="size-3.5" />
+                      <a
+                        href={`https://www.google.com/maps?q=${msg.latitude},${msg.longitude}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 font-mono text-emerald-600 hover:text-emerald-500 hover:underline dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors"
+                        title="Klik untuk membuka lokasi di Google Maps"
+                      >
+                        <MapPin className="size-3.5 shrink-0" />
                         <span>
                           {msg.latitude}, {msg.longitude}
                         </span>
-                      </div>
+                        <ExternalLink className="size-3 opacity-70 shrink-0" />
+                        <span className="text-[10px] text-muted-foreground ml-1">(Buka Google Maps)</span>
+                      </a>
                     )}
                   </div>
                 ))}
