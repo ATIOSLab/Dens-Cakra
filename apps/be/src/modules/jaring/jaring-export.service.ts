@@ -1627,7 +1627,165 @@ export class JaringExportService {
 
     // Visual Peta DKI Jakarta (SVG -> PNG via sharp)
     const mapPngBuffer = await this.generateDkiMapPng(stats);
-    doc.image(mapPngBuffer, startX, currentY, { width: 769, height: 320 });
+    const mapY = currentY;
+    doc.image(mapPngBuffer, startX, mapY, { width: 769, height: 320 });
+
+    // Overlay callout badges & text via native PDFKit (eliminates host OS font missing issues in Docker and keeps text 100% crisp vector)
+    const dki = stats.wilayah.dkiCounts;
+    const total = stats.summary.total || 1;
+    const getPct = (cnt: number) => {
+      return total > 0
+        ? `${(Math.round((cnt / total) * 1000) / 10).toFixed(1)}%`
+        : '0%';
+    };
+
+    // 1. Inset Kepulauan Seribu - Judul dan Subtitle
+    doc
+      .font('Helvetica-Bold')
+      .fontSize(8.5)
+      .fillColor('#ffffff')
+      .text('Kepulauan Seribu - Inset', startX + 20, mapY + 16 + 7, {
+        width: 180,
+        align: 'center',
+      });
+    doc
+      .font('Helvetica')
+      .fontSize(7)
+      .fillColor('#0369a1')
+      .text('Laut Jawa / Teluk Jakarta', startX + 20, mapY + 16 + 28, {
+        width: 180,
+        align: 'center',
+      });
+
+    // Inset Summary Badge
+    const insetBadgeX = startX + 35;
+    const insetBadgeY = mapY + 242;
+    doc
+      .roundedRect(insetBadgeX, insetBadgeY, 150, 48, 6)
+      .fillColor('#ffffff')
+      .fill();
+    doc
+      .roundedRect(insetBadgeX, insetBadgeY, 150, 48, 6)
+      .lineWidth(1)
+      .strokeColor('#94a3b8')
+      .stroke();
+    doc
+      .font('Helvetica-Bold')
+      .fontSize(8.5)
+      .fillColor('#1e293b')
+      .text('KAB. KEP. SERIBU', insetBadgeX, insetBadgeY + 7, {
+        width: 150,
+        align: 'center',
+      });
+    doc
+      .font('Helvetica-Bold')
+      .fontSize(11)
+      .fillColor('#0284c7')
+      .text(
+        `${dki.kepulauanSeribu.toLocaleString('id-ID')} Orang`,
+        insetBadgeX,
+        insetBadgeY + 19,
+        { width: 150, align: 'center' },
+      );
+    doc
+      .font('Helvetica')
+      .fontSize(7)
+      .fillColor('#64748b')
+      .text(`Proporsi: ${getPct(dki.kepulauanSeribu)}`, insetBadgeX, insetBadgeY + 33, {
+        width: 150,
+        align: 'center',
+      });
+
+    // 2. Mainland Badges (5 Kota Administrasi)
+    const mapBadges = [
+      {
+        name: 'KOTA ADM. JAKARTA UTARA',
+        count: dki.jakartaUtara,
+        pct: getPct(dki.jakartaUtara),
+        x: 485,
+        y: 50,
+        w: 145,
+        h: 42,
+      },
+      {
+        name: 'JAKARTA BARAT',
+        count: dki.jakartaBarat,
+        pct: getPct(dki.jakartaBarat),
+        x: 310,
+        y: 110,
+        w: 125,
+        h: 42,
+      },
+      {
+        name: 'JAKARTA PUSAT',
+        count: dki.jakartaPusat,
+        pct: getPct(dki.jakartaPusat),
+        x: 440,
+        y: 130,
+        w: 110,
+        h: 42,
+      },
+      {
+        name: 'JAKARTA SELATAN',
+        count: dki.jakartaSelatan,
+        pct: getPct(dki.jakartaSelatan),
+        x: 375,
+        y: 220,
+        w: 135,
+        h: 42,
+      },
+      {
+        name: 'JAKARTA TIMUR',
+        count: dki.jakartaTimur,
+        pct: getPct(dki.jakartaTimur),
+        x: 580,
+        y: 185,
+        w: 145,
+        h: 42,
+      },
+    ];
+
+    for (const b of mapBadges) {
+      const bx = startX + b.x - b.w / 2;
+      const by = mapY + b.y - b.h / 2;
+      doc.roundedRect(bx, by, b.w, b.h, 5).fillColor('#ffffff').fill();
+      doc
+        .roundedRect(bx, by, b.w, b.h, 5)
+        .lineWidth(1)
+        .strokeColor('#94a3b8')
+        .stroke();
+      doc
+        .font('Helvetica-Bold')
+        .fontSize(8.5)
+        .fillColor('#1e293b')
+        .text(b.name, bx, by + 5, { width: b.w, align: 'center' });
+      doc
+        .font('Helvetica-Bold')
+        .fontSize(11)
+        .fillColor('#0284c7')
+        .text(`${b.count.toLocaleString('id-ID')} Orang`, bx, by + 16, {
+          width: b.w,
+          align: 'center',
+        });
+      doc
+        .font('Helvetica')
+        .fontSize(7)
+        .fillColor('#64748b')
+        .text(`Proporsi: ${b.pct}`, bx, by + 29, {
+          width: b.w,
+          align: 'center',
+        });
+    }
+
+    // 3. Arah Mata Angin (Kompas Rose 'U')
+    doc
+      .font('Helvetica-Bold')
+      .fontSize(7.5)
+      .fillColor('#dc2626')
+      .text('U', startX + 730 - 10, mapY + 36 - 15, {
+        width: 20,
+        align: 'center',
+      });
 
     currentY += 326;
 
@@ -1704,7 +1862,6 @@ export class JaringExportService {
 
   private async generateDkiMapPng(stats: ProfilingStatistics): Promise<Buffer> {
     const dki = stats.wilayah.dkiCounts;
-    const total = stats.summary.total;
     const maxVal = Math.max(
       1,
       dki.jakartaPusat,
@@ -1724,12 +1881,6 @@ export class JaringExportService {
       return '#0369a1';
     };
 
-    const getPct = (val: number): string => {
-      return total > 0
-        ? `${(Math.round((val / total) * 1000) / 10).toFixed(1)}%`
-        : '0%';
-    };
-
     const cPusat = getColor(dki.jakartaPusat);
     const cUtara = getColor(dki.jakartaUtara);
     const cBarat = getColor(dki.jakartaBarat);
@@ -1739,66 +1890,6 @@ export class JaringExportService {
 
     const width = 769;
     const height = 320;
-
-    const badges = [
-      {
-        name: 'KOTA ADM. JAKARTA UTARA',
-        count: dki.jakartaUtara,
-        pct: getPct(dki.jakartaUtara),
-        x: 485,
-        y: 50,
-        w: 145,
-        h: 42,
-      },
-      {
-        name: 'JAKARTA BARAT',
-        count: dki.jakartaBarat,
-        pct: getPct(dki.jakartaBarat),
-        x: 310,
-        y: 110,
-        w: 125,
-        h: 42,
-      },
-      {
-        name: 'JAKARTA PUSAT',
-        count: dki.jakartaPusat,
-        pct: getPct(dki.jakartaPusat),
-        x: 440,
-        y: 130,
-        w: 110,
-        h: 42,
-      },
-      {
-        name: 'JAKARTA SELATAN',
-        count: dki.jakartaSelatan,
-        pct: getPct(dki.jakartaSelatan),
-        x: 375,
-        y: 220,
-        w: 135,
-        h: 42,
-      },
-      {
-        name: 'JAKARTA TIMUR',
-        count: dki.jakartaTimur,
-        pct: getPct(dki.jakartaTimur),
-        x: 580,
-        y: 185,
-        w: 145,
-        h: 42,
-      },
-    ];
-
-    let badgeSvgs = '';
-    for (const b of badges) {
-      badgeSvgs += `
-        <g transform="translate(${b.x - b.w / 2}, ${b.y - b.h / 2})">
-          <rect width="${b.w}" height="${b.h}" rx="5" fill="#ffffff" fill-opacity="0.95" stroke="#94a3b8" stroke-width="1"/>
-          <text x="${b.w / 2}" y="14" font-family="Helvetica, Arial, sans-serif" font-size="8.5" font-weight="bold" fill="#1e293b" text-anchor="middle">${b.name}</text>
-          <text x="${b.w / 2}" y="28" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="bold" fill="#0284c7" text-anchor="middle">${b.count.toLocaleString('id-ID')} Orang</text>
-          <text x="${b.w / 2}" y="38" font-family="Helvetica, Arial, sans-serif" font-size="7" fill="#64748b" text-anchor="middle">Proporsi: ${b.pct}</text>
-        </g>
-      `;
-    }
 
     const svg = `
 <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
@@ -1821,30 +1912,16 @@ export class JaringExportService {
     <!-- Inset Header Banner -->
     <rect width="180" height="24" rx="8" fill="#0284c7"/>
     <rect y="14" width="180" height="10" fill="#0284c7"/>
-    <text x="90" y="16" font-family="Helvetica, Arial, sans-serif" font-size="8.5" font-weight="bold" fill="#ffffff" text-anchor="middle" letter-spacing="0.03em">Kepulauan Seribu - Inset</text>
-    <text x="90" y="38" font-family="Helvetica, Arial, sans-serif" font-size="7" fill="#0369a1" text-anchor="middle">Laut Jawa / Teluk Jakarta</text>
 
     <!-- Real Islands MultiPolygon -->
     <path d="${DKI_MAP_PATHS.kepulauanSeribu}" fill="${cSeribu}" stroke="#0284c7" stroke-width="1" stroke-linejoin="round"/>
-
-    <!-- Inset Summary Badge -->
-    <g transform="translate(15, 226)">
-      <rect width="150" height="48" rx="6" fill="#ffffff" fill-opacity="0.97" stroke="#94a3b8" stroke-width="1"/>
-      <text x="75" y="15" font-family="Helvetica, Arial, sans-serif" font-size="8.5" font-weight="bold" fill="#1e293b" text-anchor="middle">KAB. KEP. SERIBU</text>
-      <text x="75" y="30" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="bold" fill="#0284c7" text-anchor="middle">${dki.kepulauanSeribu.toLocaleString('id-ID')} Orang</text>
-      <text x="75" y="42" font-family="Helvetica, Arial, sans-serif" font-size="7" fill="#64748b" text-anchor="middle">Proporsi: ${getPct(dki.kepulauanSeribu)}</text>
-    </g>
   </g>
-
-  <!-- Centroid Badges on Mainland -->
-  ${badgeSvgs}
 
   <!-- Arah Mata Angin (Kompas Rose) -->
   <g transform="translate(730, 36)">
     <circle cx="0" cy="0" r="16" fill="#ffffff" stroke="#cbd5e1" stroke-width="1"/>
     <polygon points="0,-12 3.5,0 -3.5,0" fill="#dc2626"/>
     <polygon points="0,12 3.5,0 -3.5,0" fill="#94a3b8"/>
-    <text x="0" y="-14" font-family="Helvetica, Arial, sans-serif" font-size="7" font-weight="bold" fill="#dc2626" text-anchor="middle">U</text>
   </g>
 </svg>
     `;

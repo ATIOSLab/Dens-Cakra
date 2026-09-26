@@ -1,4 +1,5 @@
 import { jest } from '@jest/globals';
+import zlib from 'node:zlib';
 import { Test, TestingModule } from '@nestjs/testing';
 import {
   JaringExportService,
@@ -48,6 +49,10 @@ describe('JaringExportService', () => {
     }).compile();
 
     service = module.get<JaringExportService>(JaringExportService);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it('should be defined', () => {
@@ -514,6 +519,63 @@ describe('JaringExportService', () => {
       expect(mapPageIndex).toBeGreaterThan(0);
       expect(infographicPageIndex).toBeGreaterThan(mapPageIndex);
       expect(recapTerritoryPageIndex).toBeGreaterThan(infographicPageIndex);
+    });
+
+    it('merender renderMapPage secara end-to-end dan memuat teks badge peta dalam stream PDFKit', async () => {
+      prisma.jaring.findMany.mockResolvedValue(mockJarings);
+      prisma.administrativeArea.findUnique.mockResolvedValue({
+        id: 'area-prov-1',
+        name: 'DKI Jakarta',
+        level: AdministrativeLevel.PROVINCE,
+      });
+
+      const context: any = {
+        authRole: 'national_leader',
+        userProfileId: 'user-1',
+        primaryAssignmentId: 'assign-1',
+        organizationUnitId: 'bin-1',
+      };
+
+      const result = await service.exportPdf(
+        {
+          includeCover: false,
+          includeMap: true,
+          includeToc: false,
+          includeRecap: false,
+          includeInfographic: false,
+        },
+        context,
+      );
+
+      expect(result.buffer.length).toBeGreaterThan(0);
+
+      // Decompress streams to verify native PDFKit text
+      const rawPdf = result.buffer.toString('binary');
+      const streamRegex = /stream[\r\n]+([\s\S]*?)[\r\n]+endstream/g;
+      let match: RegExpExecArray | null;
+      let decompressedAll = '';
+      while ((match = streamRegex.exec(rawPdf)) !== null) {
+        try {
+          const inflated = zlib.inflateSync(Buffer.from(match[1], 'binary'));
+          decompressedAll += inflated.toString('latin1') + '\n';
+        } catch {
+          // not flate-encoded
+        }
+      }
+      // PDFKit encodes standard Type 1 fonts as hex byte strings <hex> inside TJ arrays with kerning offsets
+      const decodedText = decompressedAll.replace(/<([0-9a-fA-F]+)>/g, (_, hex) =>
+        Buffer.from(hex, 'hex').toString('latin1'),
+      );
+      const lettersOnly = decodedText.replace(/[^a-zA-Z]/g, '');
+
+      expect(lettersOnly).toContain('PETASEBARANJARING');
+      expect(lettersOnly).toContain('KepulauanSeribu');
+      expect(lettersOnly).toContain('KABKEPSERIBU');
+      expect(lettersOnly).toContain('JAKARTAUTARA');
+      expect(lettersOnly).toContain('JAKARTAPUSAT');
+      expect(lettersOnly).toContain('JAKARTABARAT');
+      expect(lettersOnly).toContain('JAKARTASELATAN');
+      expect(lettersOnly).toContain('JAKARTATIMUR');
     });
 
     it('memastikan buildProfilingStatistics konsisten: Wiraswasta tersendiri, Lainnya paling bawah, dan total sinkron', () => {
