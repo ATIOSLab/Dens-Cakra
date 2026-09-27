@@ -21,6 +21,7 @@ import {
 
 import { ViewModeToggle } from "@/app/(main)/dashboard/_components/view-mode-toggle";
 import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";
+import { Badge } from "@/components/ui/badge";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -94,6 +95,8 @@ export function LaporanPembinaanClient() {
   // Filter states
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [coachingPeriodFilter, setCoachingPeriodFilter] = useState<string>("ALL");
+  const [availablePeriods, setAvailablePeriods] = useState<number[]>([1]);
   const [periodeFilter, setPeriodeFilter] = useState<PeriodeFilterOption>("ALL");
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
@@ -116,6 +119,7 @@ export function LaporanPembinaanClient() {
 
   const hasActiveFilters =
     Boolean(search.trim()) ||
+    coachingPeriodFilter !== "ALL" ||
     jaringFilter !== "ALL" ||
     villageFilter !== "ALL" ||
     periodeFilter !== "ALL" ||
@@ -162,6 +166,7 @@ export function LaporanPembinaanClient() {
         sortOrder: "desc",
       });
       if (debouncedSearch) params.set("search", debouncedSearch);
+      if (coachingPeriodFilter !== "ALL") params.set("periodNumber", coachingPeriodFilter);
       if (jaringFilter !== "ALL") params.set("jaringId", jaringFilter);
       if (villageFilter !== "ALL") params.set("areaId", villageFilter);
       if (periodRange.from) params.set("from", jakartaBoundaryIso(periodRange.from));
@@ -171,12 +176,22 @@ export function LaporanPembinaanClient() {
         items?: CoachingReportItem[];
         pagination?: { total: number };
         isCreationEnabled?: boolean;
+        activePeriod?: number;
+        availablePeriods?: number[];
+        filterOptions?: {
+          periods?: number[];
+        };
       }>(`/jaring/coaching-reports?${params.toString()}`);
       if (requestId !== requestSequence.current) return;
       setReports(result.items ?? []);
       setTotalReports(result.pagination?.total ?? 0);
       if (result.isCreationEnabled !== undefined) {
         setIsCreationEnabled(result.isCreationEnabled);
+      }
+      if (Array.isArray(result.availablePeriods) && result.availablePeriods.length > 0) {
+        setAvailablePeriods(result.availablePeriods);
+      } else if (Array.isArray(result.filterOptions?.periods) && result.filterOptions.periods.length > 0) {
+        setAvailablePeriods(result.filterOptions.periods);
       }
     } catch (err) {
       if (requestId === requestSequence.current) {
@@ -185,7 +200,7 @@ export function LaporanPembinaanClient() {
     } finally {
       if (requestId === requestSequence.current) setLoadingReports(false);
     }
-  }, [debouncedSearch, jaringFilter, limit, page, periodRange, villageFilter]);
+  }, [coachingPeriodFilter, debouncedSearch, jaringFilter, limit, page, periodRange, villageFilter]);
 
   useEffect(() => {
     void loadWorkspace();
@@ -209,6 +224,7 @@ export function LaporanPembinaanClient() {
 
   function resetFilters() {
     setSearch("");
+    setCoachingPeriodFilter("ALL");
     setJaringFilter("ALL");
     setVillageFilter("ALL");
     setPeriodeFilter("ALL");
@@ -383,7 +399,7 @@ export function LaporanPembinaanClient() {
           </div>
         </div>
 
-        <div className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-4">
           <NativeSelect
             aria-label="Filter Kelurahan/Desa"
             value={villageFilter}
@@ -415,6 +431,23 @@ export function LaporanPembinaanClient() {
             disabled={loadingWorkspace || connectedJaringOptions.length === 0}
             className="h-9 w-full text-xs"
           />
+
+          <NativeSelect
+            aria-label="Filter Periode Pembinaan"
+            value={coachingPeriodFilter}
+            onChange={(e) => {
+              setCoachingPeriodFilter(e.target.value);
+              setPage(1);
+            }}
+            className="h-9 w-full border-slate-200 dark:border-white/10"
+          >
+            <option value="ALL">Semua Periode Pembinaan</option>
+            {availablePeriods.map((p) => (
+              <option key={p} value={String(p)}>
+                Periode {p}
+              </option>
+            ))}
+          </NativeSelect>
 
           <NativeSelect
             aria-label="Filter Periode Waktu"
@@ -513,10 +546,18 @@ export function LaporanPembinaanClient() {
                     }}
                     className="flex-1"
                   />
-                  <span className="text-[11px] text-muted-foreground flex items-center gap-1 whitespace-nowrap">
-                    <Calendar className="h-3 w-3" />
-                    {formatDateOnly(report.createdAt || report.reportedAt)}
-                  </span>
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    <Badge
+                      variant="outline"
+                      className="border-sky-500/30 bg-sky-500/5 text-sky-700 dark:text-sky-300 font-mono text-[10px]"
+                    >
+                      Periode {report.periodNumber ?? 1}
+                    </Badge>
+                    <span className="text-[11px] text-muted-foreground flex items-center gap-1 whitespace-nowrap">
+                      <Calendar className="h-3 w-3" />
+                      {formatDateOnly(report.createdAt || report.reportedAt)}
+                    </span>
+                  </div>
                 </div>
 
                 <CardTitle className="text-base font-semibold text-foreground line-clamp-2 leading-snug">
@@ -573,6 +614,9 @@ export function LaporanPembinaanClient() {
               <TableHeader className="bg-slate-50 dark:bg-white/5">
                 <TableRow className="border-b border-slate-200 dark:border-slate-800">
                   <TableHead className="w-[45px] text-center font-bold text-xs uppercase tracking-wider">No</TableHead>
+                  <TableHead className="font-bold text-xs uppercase tracking-wider whitespace-nowrap">
+                    Periode
+                  </TableHead>
                   <TableHead className="w-12 text-center font-bold text-xs uppercase tracking-wider">Foto</TableHead>
                   <TableHead className="font-bold text-xs uppercase tracking-wider">Nama Jaring</TableHead>
                   <TableHead className="font-bold text-xs uppercase tracking-wider">Kode Jaring</TableHead>
@@ -608,6 +652,15 @@ export function LaporanPembinaanClient() {
                     >
                       <TableCell className="text-center font-mono text-muted-foreground align-middle">
                         {(currentPage - 1) * limit + idx + 1}
+                      </TableCell>
+
+                      <TableCell className="align-middle whitespace-nowrap">
+                        <Badge
+                          variant="outline"
+                          className="border-sky-500/30 bg-sky-500/5 text-sky-700 dark:text-sky-300 font-mono text-[11px]"
+                        >
+                          Periode {report.periodNumber ?? 1}
+                        </Badge>
                       </TableCell>
 
                       <TableCell className="align-middle">

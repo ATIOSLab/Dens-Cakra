@@ -1,6 +1,12 @@
-import { IsBoolean } from 'class-validator';
+import { IsBoolean, IsInt, IsOptional, Min } from 'class-validator';
 
 export class UpdateSystemConfigDto {
+  @IsOptional()
   @IsBoolean()
-  coachingReportEnabled!: boolean;
+  coachingReportEnabled?: boolean;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  coachingReportActivePeriod?: number;
 }

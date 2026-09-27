@@ -298,7 +298,11 @@ export function JaringVerificationListClient() {
   const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
   const [statusFilter, setStatusFilter] = useState<string>(() => {
     const value = searchParams.get("registrationStatus");
-    return value === "ALL" || value === "PENDING" || value === "APPROVED" || value === "REJECTED" || value === "SUSPENDED"
+    return value === "ALL" ||
+      value === "PENDING" ||
+      value === "APPROVED" ||
+      value === "REJECTED" ||
+      value === "SUSPENDED"
       ? value
       : "APPROVED";
   });
@@ -1516,325 +1520,324 @@ export function JaringVerificationListClient() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoadingItems && !items.length ? (
-                  Array.from({ length: 6 }).map((_, index) => (
-                    <TableRow key={`skeleton-${index}`} className="border-slate-100 border-b dark:border-slate-800">
-                      <TableCell colSpan={visibleColumns.length + 1} className="py-4 px-6">
-                        <div className="flex items-center space-x-4 animate-pulse">
-                          <div className="size-9 shrink-0 rounded-full bg-slate-200 dark:bg-slate-700" />
-                          <div className="flex-1 space-y-2">
-                            <div className="h-4 w-1/4 rounded bg-slate-200 dark:bg-slate-700" />
-                            <div className="h-3 w-1/6 rounded bg-slate-100 dark:bg-slate-800" />
-                          </div>
-                          <div className="hidden h-4 w-28 rounded bg-slate-200 md:block dark:bg-slate-700" />
-                          <div className="hidden h-4 w-20 rounded bg-slate-200 md:block dark:bg-slate-700" />
-                          <div className="h-6 w-24 shrink-0 rounded-full bg-slate-200 dark:bg-slate-700" />
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  paginatedItems.map((item) => {
-                  const photo = profilePhotoUrl(item);
-                  const foName = officerName(item);
-                  const district = jaringDistrict(item);
-                  const placementRows = jaringPlacementRows(item);
-                  const districtName = district ? district.name : "-";
-                  const identityNote = jaringIdentityNote(item);
-                  const isPending = item.registrationStatus === "PENDING";
-                  return (
-                    <TableRow
-                      key={item.id}
-                      onClick={() => setPreviewJaring(item)}
-                      className="cursor-pointer border-slate-100 border-b transition-colors duration-180 hover:bg-slate-50/50 dark:border-slate-800 dark:hover:bg-white/5"
-                    >
-                      {isColumnVisible("registeredAt") ? (
-                        <TableCell className="whitespace-nowrap py-3 align-middle font-mono text-muted-foreground text-xs">
-                          {formatDateTime(item.registeredAt ?? item.createdAt)}
-                        </TableCell>
-                      ) : null}
-
-                      {isColumnVisible("photo") ? (
-                        <TableCell className="py-3 align-middle">
-                          <div className="flex size-8 items-center justify-center overflow-hidden border border-slate-300 bg-slate-100 dark:border-slate-700 dark:bg-slate-900">
-                            {photo ? (
-                              <Avatar className="size-full rounded-none">
-                                <AvatarImage src={photo} alt={jaringDisplayName(item)} />
-                                <AvatarFallback className="rounded-none bg-primary/10 font-semibold text-[10px] text-primary">
-                                  {getInitials(jaringDisplayName(item))}
-                                </AvatarFallback>
-                              </Avatar>
-                            ) : (
-                              <ImageIcon className="size-4 text-muted-foreground" />
-                            )}
-                          </div>
-                        </TableCell>
-                      ) : null}
-
-                      {isColumnVisible("name") ? (
-                        <TableCell className="py-3 align-middle font-bold font-mono text-foreground text-xs">
-                          <div className="min-w-0 max-w-[220px]">
-                            <p className="truncate">{jaringDisplayName(item)}</p>
-                            {identityNote ? (
-                              <p className="mt-0.5 truncate font-normal text-[11px] text-muted-foreground">
-                                {identityNote}
-                              </p>
-                            ) : null}
-                          </div>
-                        </TableCell>
-                      ) : null}
-
-                      {isColumnVisible("whatsapp") ? (
-                        <TableCell className="py-3 align-middle font-mono text-xs">
-                          {item.whatsappNumber ? (
-                            <a
-                              href={`https://wa.me/${item.whatsappNumber.replace(/\D/g, "")}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              className="font-mono font-semibold text-emerald-700 text-xs hover:underline dark:text-emerald-400"
-                            >
-                              {maskedWhatsappNumber(item.whatsappNumber)}
-                            </a>
-                          ) : (
-                            <span className="text-muted-foreground text-xs">Belum tersedia</span>
-                          )}
-                        </TableCell>
-                      ) : null}
-
-                      {isColumnVisible("alias") ? (
-                        <TableCell className="py-3 align-middle font-mono font-semibold text-violet-700 text-xs dark:text-violet-400">
-                          {item.aliasName || item.id}
-                        </TableCell>
-                      ) : null}
-
-                      {isColumnVisible("fieldOfficer") ? (
-                        <TableCell className="py-3 align-middle font-mono text-xs">
-                          <div className="flex max-w-[220px] items-center gap-2.5">
-                            <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-amber-500/10 font-semibold text-[10px] text-amber-700 dark:text-amber-400">
-                              {getInitials(foName)}
+                {isLoadingItems && !items.length
+                  ? Array.from({ length: 6 }).map((_, index) => (
+                      <TableRow key={`skeleton-${index}`} className="border-slate-100 border-b dark:border-slate-800">
+                        <TableCell colSpan={visibleColumns.length + 1} className="py-4 px-6">
+                          <div className="flex items-center space-x-4 animate-pulse">
+                            <div className="size-9 shrink-0 rounded-full bg-slate-200 dark:bg-slate-700" />
+                            <div className="flex-1 space-y-2">
+                              <div className="h-4 w-1/4 rounded bg-slate-200 dark:bg-slate-700" />
+                              <div className="h-3 w-1/6 rounded bg-slate-100 dark:bg-slate-800" />
                             </div>
-                            <GaswilEntityLink
-                              name={foName}
-                              assignmentId={item.caretakerAssignments[0]?.fieldOfficerAssignment.id}
-                              userProfileId={
-                                item.caretakerAssignments[0]?.fieldOfficerAssignment.userProfile.id ??
-                                item.caretakerAssignments[0]?.fieldOfficerAssignment.userProfileId
-                              }
-                              className="min-w-0 font-medium text-sm"
-                            />
+                            <div className="hidden h-4 w-28 rounded bg-slate-200 md:block dark:bg-slate-700" />
+                            <div className="hidden h-4 w-20 rounded bg-slate-200 md:block dark:bg-slate-700" />
+                            <div className="h-6 w-24 shrink-0 rounded-full bg-slate-200 dark:bg-slate-700" />
                           </div>
                         </TableCell>
-                      ) : null}
-
-                      {isColumnVisible("village") ? (
-                        <TableCell className="py-3 align-middle font-mono text-foreground text-xs">
-                          <div className="flex max-w-[320px] items-start gap-1.5">
-                            <MapPin className="mt-0.5 size-3.5 shrink-0 text-rose-600 dark:text-rose-400" />
-                            {placementRows.length > 0 ? (
-                              <div className="space-y-0.5">
-                                {placementRows.map((row) => (
-                                  <div key={`${row.label}-${row.value}`} className="flex flex-wrap gap-x-1.5">
-                                    <span className="text-[11px] text-muted-foreground uppercase tracking-[0.08em]">
-                                      {row.label}
-                                    </span>
-                                    <span className="font-medium text-foreground">{row.value}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <span className="text-muted-foreground">Belum ditetapkan</span>
-                            )}
-                          </div>
-                        </TableCell>
-                      ) : null}
-
-                      {isColumnVisible("gender") ? (
-                        <TableCell className="py-3 align-middle text-foreground text-sm">
-                          {formatGender(item.gender)}
-                        </TableCell>
-                      ) : null}
-
-                      {isColumnVisible("address") ? (
-                        <TableCell className="py-3 align-middle">
-                          <div
-                            className="max-w-[260px] truncate text-foreground text-sm"
-                            title={item.address ?? undefined}
-                          >
-                            {item.address ?? "-"}
-                          </div>
-                        </TableCell>
-                      ) : null}
-
-                      {isColumnVisible("district") ? (
-                        <TableCell className="py-3 align-middle">
-                          <span className="font-medium text-foreground text-sm">{districtName}</span>
-                        </TableCell>
-                      ) : null}
-
-                      {isColumnVisible("occupation") ? (
-                        <TableCell className="py-3 align-middle">
-                          <div className="flex min-w-0 max-w-[200px] flex-col">
-                            <span className="truncate font-medium text-foreground text-sm">
-                              {item.occupation?.name ?? "-"}
-                            </span>
-                            {item.workplace || item.jobTitle ? (
-                              <span className="truncate text-muted-foreground text-xs">
-                                {[item.jobTitle, item.workplace].filter(Boolean).join(" - ")}
-                              </span>
-                            ) : (
-                              <span className="text-muted-foreground text-xs">-</span>
-                            )}
-                          </div>
-                        </TableCell>
-                      ) : null}
-
-                      {isColumnVisible("status") ? (
-                        <TableCell className="py-3 text-center align-middle">
-                          <span
-                            className={cn(
-                              "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 font-semibold text-[11px] uppercase tracking-[0.08em]",
-                              statusBadgeVariant(item.registrationStatus),
-                            )}
-                          >
-                            {item.registrationStatus === "APPROVED" && <CheckCircle2 className="size-3 shrink-0" />}
-                            {item.registrationStatus === "REJECTED" && <XCircle className="size-3 shrink-0" />}
-                            {item.registrationStatus === "PENDING" && <Clock className="size-3 shrink-0" />}
-                            {statusLabel(item.registrationStatus)}
-                          </span>
-                        </TableCell>
-                      ) : null}
-
-                      {isColumnVisible("kinerja") ? (
-                        <TableCell className="py-3 align-middle">
-                          <span
-                            className={cn(
-                              "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-semibold text-[10px] uppercase tracking-[0.06em]",
-                              operationalStatusTone(item),
-                            )}
-                          >
-                            {operationalStatusLabel(item)}
-                          </span>
-                        </TableCell>
-                      ) : null}
-
-                      <TableCell className="py-3 pr-6 text-right align-middle">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setPreviewJaring(item);
-                            }}
-                            className="h-8 gap-1.5 rounded-lg border-sky-500/30 px-2.5 font-medium text-sky-600 text-xs hover:bg-sky-500/10 dark:text-sky-400"
-                          >
-                            <Eye className="size-3.5" />
-                            <span>Detail</span>
-                          </Button>
-
-                          <Button
-                            asChild
-                            variant="ghost"
-                            size="icon-sm"
-                            onClick={(e) => e.stopPropagation()}
-                            title="Buka di tab baru"
-                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                          >
-                            <Link
-                              href={`/dashboard/daftar-jaring/${item.id}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              <ExternalLink className="size-3.5" />
-                              <span className="sr-only">Buka di tab baru</span>
-                            </Link>
-                          </Button>
-
-                          {isFieldOfficer ? (
-                            <Button
-                              asChild
-                              size="sm"
-                              variant="outline"
-                              onClick={(e) => e.stopPropagation()}
-                              className="h-8 gap-1.5 rounded-lg border-border text-xs hover:border-sky-500 hover:bg-sky-500/5 hover:text-sky-600"
-                            >
-                              <Link href={`/dashboard/daftar-jaring/${item.id}/edit`}>
-                                <Pencil className="size-3.5" />
-                                <span>Ubah</span>
-                              </Link>
-                            </Button>
+                      </TableRow>
+                    ))
+                  : paginatedItems.map((item) => {
+                      const photo = profilePhotoUrl(item);
+                      const foName = officerName(item);
+                      const district = jaringDistrict(item);
+                      const placementRows = jaringPlacementRows(item);
+                      const districtName = district ? district.name : "-";
+                      const identityNote = jaringIdentityNote(item);
+                      const isPending = item.registrationStatus === "PENDING";
+                      return (
+                        <TableRow
+                          key={item.id}
+                          onClick={() => setPreviewJaring(item)}
+                          className="cursor-pointer border-slate-100 border-b transition-colors duration-180 hover:bg-slate-50/50 dark:border-slate-800 dark:hover:bg-white/5"
+                        >
+                          {isColumnVisible("registeredAt") ? (
+                            <TableCell className="whitespace-nowrap py-3 align-middle font-mono text-muted-foreground text-xs">
+                              {formatDateTime(item.registeredAt ?? item.createdAt)}
+                            </TableCell>
                           ) : null}
 
-                          {isPending && canPerformAction && (
-                            <>
+                          {isColumnVisible("photo") ? (
+                            <TableCell className="py-3 align-middle">
+                              <div className="flex size-8 items-center justify-center overflow-hidden border border-slate-300 bg-slate-100 dark:border-slate-700 dark:bg-slate-900">
+                                {photo ? (
+                                  <Avatar className="size-full rounded-none">
+                                    <AvatarImage src={photo} alt={jaringDisplayName(item)} />
+                                    <AvatarFallback className="rounded-none bg-primary/10 font-semibold text-[10px] text-primary">
+                                      {getInitials(jaringDisplayName(item))}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                ) : (
+                                  <ImageIcon className="size-4 text-muted-foreground" />
+                                )}
+                              </div>
+                            </TableCell>
+                          ) : null}
+
+                          {isColumnVisible("name") ? (
+                            <TableCell className="py-3 align-middle font-bold font-mono text-foreground text-xs">
+                              <div className="min-w-0 max-w-[220px]">
+                                <p className="truncate">{jaringDisplayName(item)}</p>
+                                {identityNote ? (
+                                  <p className="mt-0.5 truncate font-normal text-[11px] text-muted-foreground">
+                                    {identityNote}
+                                  </p>
+                                ) : null}
+                              </div>
+                            </TableCell>
+                          ) : null}
+
+                          {isColumnVisible("whatsapp") ? (
+                            <TableCell className="py-3 align-middle font-mono text-xs">
+                              {item.whatsappNumber ? (
+                                <a
+                                  href={`https://wa.me/${item.whatsappNumber.replace(/\D/g, "")}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="font-mono font-semibold text-emerald-700 text-xs hover:underline dark:text-emerald-400"
+                                >
+                                  {maskedWhatsappNumber(item.whatsappNumber)}
+                                </a>
+                              ) : (
+                                <span className="text-muted-foreground text-xs">Belum tersedia</span>
+                              )}
+                            </TableCell>
+                          ) : null}
+
+                          {isColumnVisible("alias") ? (
+                            <TableCell className="py-3 align-middle font-mono font-semibold text-violet-700 text-xs dark:text-violet-400">
+                              {item.aliasName || item.id}
+                            </TableCell>
+                          ) : null}
+
+                          {isColumnVisible("fieldOfficer") ? (
+                            <TableCell className="py-3 align-middle font-mono text-xs">
+                              <div className="flex max-w-[220px] items-center gap-2.5">
+                                <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-amber-500/10 font-semibold text-[10px] text-amber-700 dark:text-amber-400">
+                                  {getInitials(foName)}
+                                </div>
+                                <GaswilEntityLink
+                                  name={foName}
+                                  assignmentId={item.caretakerAssignments[0]?.fieldOfficerAssignment.id}
+                                  userProfileId={
+                                    item.caretakerAssignments[0]?.fieldOfficerAssignment.userProfile.id ??
+                                    item.caretakerAssignments[0]?.fieldOfficerAssignment.userProfileId
+                                  }
+                                  className="min-w-0 font-medium text-sm"
+                                />
+                              </div>
+                            </TableCell>
+                          ) : null}
+
+                          {isColumnVisible("village") ? (
+                            <TableCell className="py-3 align-middle font-mono text-foreground text-xs">
+                              <div className="flex max-w-[320px] items-start gap-1.5">
+                                <MapPin className="mt-0.5 size-3.5 shrink-0 text-rose-600 dark:text-rose-400" />
+                                {placementRows.length > 0 ? (
+                                  <div className="space-y-0.5">
+                                    {placementRows.map((row) => (
+                                      <div key={`${row.label}-${row.value}`} className="flex flex-wrap gap-x-1.5">
+                                        <span className="text-[11px] text-muted-foreground uppercase tracking-[0.08em]">
+                                          {row.label}
+                                        </span>
+                                        <span className="font-medium text-foreground">{row.value}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <span className="text-muted-foreground">Belum ditetapkan</span>
+                                )}
+                              </div>
+                            </TableCell>
+                          ) : null}
+
+                          {isColumnVisible("gender") ? (
+                            <TableCell className="py-3 align-middle text-foreground text-sm">
+                              {formatGender(item.gender)}
+                            </TableCell>
+                          ) : null}
+
+                          {isColumnVisible("address") ? (
+                            <TableCell className="py-3 align-middle">
+                              <div
+                                className="max-w-[260px] truncate text-foreground text-sm"
+                                title={item.address ?? undefined}
+                              >
+                                {item.address ?? "-"}
+                              </div>
+                            </TableCell>
+                          ) : null}
+
+                          {isColumnVisible("district") ? (
+                            <TableCell className="py-3 align-middle">
+                              <span className="font-medium text-foreground text-sm">{districtName}</span>
+                            </TableCell>
+                          ) : null}
+
+                          {isColumnVisible("occupation") ? (
+                            <TableCell className="py-3 align-middle">
+                              <div className="flex min-w-0 max-w-[200px] flex-col">
+                                <span className="truncate font-medium text-foreground text-sm">
+                                  {item.occupation?.name ?? "-"}
+                                </span>
+                                {item.workplace || item.jobTitle ? (
+                                  <span className="truncate text-muted-foreground text-xs">
+                                    {[item.jobTitle, item.workplace].filter(Boolean).join(" - ")}
+                                  </span>
+                                ) : (
+                                  <span className="text-muted-foreground text-xs">-</span>
+                                )}
+                              </div>
+                            </TableCell>
+                          ) : null}
+
+                          {isColumnVisible("status") ? (
+                            <TableCell className="py-3 text-center align-middle">
+                              <span
+                                className={cn(
+                                  "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 font-semibold text-[11px] uppercase tracking-[0.08em]",
+                                  statusBadgeVariant(item.registrationStatus),
+                                )}
+                              >
+                                {item.registrationStatus === "APPROVED" && <CheckCircle2 className="size-3 shrink-0" />}
+                                {item.registrationStatus === "REJECTED" && <XCircle className="size-3 shrink-0" />}
+                                {item.registrationStatus === "PENDING" && <Clock className="size-3 shrink-0" />}
+                                {statusLabel(item.registrationStatus)}
+                              </span>
+                            </TableCell>
+                          ) : null}
+
+                          {isColumnVisible("kinerja") ? (
+                            <TableCell className="py-3 align-middle">
+                              <span
+                                className={cn(
+                                  "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-semibold text-[10px] uppercase tracking-[0.06em]",
+                                  operationalStatusTone(item),
+                                )}
+                              >
+                                {operationalStatusLabel(item)}
+                              </span>
+                            </TableCell>
+                          ) : null}
+
+                          <TableCell className="py-3 pr-6 text-right align-middle">
+                            <div className="flex items-center justify-end gap-1.5">
                               <Button
+                                type="button"
                                 size="sm"
                                 variant="outline"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setSelectedItemForAction({ item, action: "reject" });
+                                  setPreviewJaring(item);
                                 }}
-                                className="h-8 rounded-lg border-rose-500/30 bg-rose-500/10 px-2.5 font-medium text-rose-700 text-xs hover:bg-rose-500/20 hover:text-rose-800 dark:text-rose-400 dark:hover:text-rose-300"
-                                title="Tolak Pengajuan"
+                                className="h-8 gap-1.5 rounded-lg border-sky-500/30 px-2.5 font-medium text-sky-600 text-xs hover:bg-sky-500/10 dark:text-sky-400"
                               >
-                                <XCircle className="size-3.5" />
-                                <span className="hidden xl:inline">Tolak</span>
+                                <Eye className="size-3.5" />
+                                <span>Detail</span>
                               </Button>
 
                               <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedItemForAction({ item, action: "approve" });
-                                }}
-                                className="h-8 rounded-lg border-emerald-500/30 bg-emerald-500/10 px-2.5 font-medium text-emerald-700 text-xs hover:bg-emerald-500/20 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300"
-                                title="Setujui Pengajuan"
+                                asChild
+                                variant="ghost"
+                                size="icon-sm"
+                                onClick={(e) => e.stopPropagation()}
+                                title="Buka di tab baru"
+                                className="h-8 w-8 text-muted-foreground hover:text-foreground"
                               >
-                                <CheckCircle2 className="size-3.5" />
-                                <span className="hidden xl:inline">Setujui</span>
+                                <Link
+                                  href={`/dashboard/daftar-jaring/${item.id}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  <ExternalLink className="size-3.5" />
+                                  <span className="sr-only">Buka di tab baru</span>
+                                </Link>
                               </Button>
-                            </>
-                          )}
 
-                          {isDeputyRole && item.registrationStatus === "APPROVED" && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedItemForAction({ item, action: "suspend" });
-                              }}
-                              className="h-8 rounded-lg border-rose-600/30 bg-rose-600/10 px-2.5 font-medium text-rose-700 text-xs hover:bg-rose-600/20 hover:text-rose-800 dark:text-rose-400 dark:hover:text-rose-300"
-                              title="Tangguhkan Jaring (Suspend)"
-                            >
-                              <Ban className="size-3.5" />
-                              <span className="hidden xl:inline">Suspend</span>
-                            </Button>
-                          )}
+                              {isFieldOfficer ? (
+                                <Button
+                                  asChild
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="h-8 gap-1.5 rounded-lg border-border text-xs hover:border-sky-500 hover:bg-sky-500/5 hover:text-sky-600"
+                                >
+                                  <Link href={`/dashboard/daftar-jaring/${item.id}/edit`}>
+                                    <Pencil className="size-3.5" />
+                                    <span>Ubah</span>
+                                  </Link>
+                                </Button>
+                              ) : null}
 
-                          {isDeputyRole && item.registrationStatus === "SUSPENDED" && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedItemForAction({ item, action: "unsuspend" });
-                              }}
-                              className="h-8 rounded-lg border-emerald-600/30 bg-emerald-600/10 px-2.5 font-medium text-emerald-700 text-xs hover:bg-emerald-600/20 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300"
-                              title="Pulihkan Jaring (Batalkan Penangguhan)"
-                            >
-                              <CheckCircle2 className="size-3.5" />
-                              <span className="hidden xl:inline">Pulihkan</span>
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                }))}
+                              {isPending && canPerformAction && (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedItemForAction({ item, action: "reject" });
+                                    }}
+                                    className="h-8 rounded-lg border-rose-500/30 bg-rose-500/10 px-2.5 font-medium text-rose-700 text-xs hover:bg-rose-500/20 hover:text-rose-800 dark:text-rose-400 dark:hover:text-rose-300"
+                                    title="Tolak Pengajuan"
+                                  >
+                                    <XCircle className="size-3.5" />
+                                    <span className="hidden xl:inline">Tolak</span>
+                                  </Button>
+
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedItemForAction({ item, action: "approve" });
+                                    }}
+                                    className="h-8 rounded-lg border-emerald-500/30 bg-emerald-500/10 px-2.5 font-medium text-emerald-700 text-xs hover:bg-emerald-500/20 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300"
+                                    title="Setujui Pengajuan"
+                                  >
+                                    <CheckCircle2 className="size-3.5" />
+                                    <span className="hidden xl:inline">Setujui</span>
+                                  </Button>
+                                </>
+                              )}
+
+                              {isDeputyRole && item.registrationStatus === "APPROVED" && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedItemForAction({ item, action: "suspend" });
+                                  }}
+                                  className="h-8 rounded-lg border-rose-600/30 bg-rose-600/10 px-2.5 font-medium text-rose-700 text-xs hover:bg-rose-600/20 hover:text-rose-800 dark:text-rose-400 dark:hover:text-rose-300"
+                                  title="Tangguhkan Jaring (Suspend)"
+                                >
+                                  <Ban className="size-3.5" />
+                                  <span className="hidden xl:inline">Suspend</span>
+                                </Button>
+                              )}
+
+                              {isDeputyRole && item.registrationStatus === "SUSPENDED" && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedItemForAction({ item, action: "unsuspend" });
+                                  }}
+                                  className="h-8 rounded-lg border-emerald-600/30 bg-emerald-600/10 px-2.5 font-medium text-emerald-700 text-xs hover:bg-emerald-600/20 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300"
+                                  title="Pulihkan Jaring (Batalkan Penangguhan)"
+                                >
+                                  <CheckCircle2 className="size-3.5" />
+                                  <span className="hidden xl:inline">Pulihkan</span>
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
               </TableBody>
             </Table>
           </div>
@@ -2269,6 +2272,9 @@ function JaringCoachingCardItem({
             <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-0.5 font-mono text-[11px] text-muted-foreground dark:bg-slate-800">
               <Clock className="size-3 text-sky-500" />
               {reportedDate}
+            </span>
+            <span className="inline-flex items-center gap-1 rounded border border-sky-500/20 bg-sky-50 px-2 py-0.5 font-mono text-[11px] text-sky-700 dark:bg-sky-950/40 dark:text-sky-300">
+              Periode {item.periodNumber ?? 1}
             </span>
             {gaswil?.fullName && (
               <span className="inline-flex items-center gap-1 rounded border border-emerald-500/20 bg-emerald-50 px-2 py-0.5 font-mono text-[11px] text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400">

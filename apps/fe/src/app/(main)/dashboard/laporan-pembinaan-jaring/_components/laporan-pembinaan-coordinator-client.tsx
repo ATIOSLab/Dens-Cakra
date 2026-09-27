@@ -4,17 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import Link from "next/link";
 
-import {
-  Calendar,
-  ExternalLink,
-  Eye,
-  FileSpreadsheet,
-  FileText,
-  RefreshCw,
-  Search,
-  User,
-  X,
-} from "lucide-react";
+import { Calendar, ExternalLink, Eye, FileSpreadsheet, FileText, RefreshCw, Search, User, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { ViewModeToggle } from "@/app/(main)/dashboard/_components/view-mode-toggle";
@@ -146,8 +136,12 @@ type CoachingListResponse = {
   items: CoachingReportItem[];
   pagination: { page: number; limit: number; total: number; totalPages: number };
   summary?: { total: number; uniqueJaringCount: number; thisMonthCount: number };
+  isCreationEnabled?: boolean;
+  activePeriod?: number;
+  availablePeriods?: number[];
   filterOptions?: {
     jaring?: RawJaringItem[];
+    periods?: number[];
   };
   scope?: {
     role?: string;
@@ -239,6 +233,7 @@ function resolveJaringGeography(jaring: RawJaringItem): JaringGeography {
 
 const PEMBINAAN_COLUMNS: ColumnOption[] = [
   { id: "foto", label: "Foto Jaring" },
+  { id: "periode", label: "Periode" },
   { id: "namaJaring", label: "Nama Jaring", alwaysVisible: true },
   { id: "kodeJaring", label: "Kode Jaring" },
   { id: "gaswil", label: "Petugas Wilayah (Gaswil)" },
@@ -270,6 +265,8 @@ export function LaporanPembinaanCoordinatorClient({ role }: { role?: SystemRole 
   // Filters
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [coachingPeriodFilter, setCoachingPeriodFilter] = useState<string>("ALL");
+  const [availablePeriods, setAvailablePeriods] = useState<number[]>([1]);
   const [periodeFilter, setPeriodeFilter] = useState<PeriodeFilterOption>("ALL");
   const [jaringFilter, setJaringFilter] = useState<string>("ALL");
   const [gaswilFilter, setGaswilFilter] = useState<string>("ALL");
@@ -323,6 +320,7 @@ export function LaporanPembinaanCoordinatorClient({ role }: { role?: SystemRole 
         sortOrder: "desc",
       });
       if (debouncedSearch) params.set("search", debouncedSearch);
+      if (coachingPeriodFilter !== "ALL") params.set("periodNumber", coachingPeriodFilter);
       if (jaringFilter !== "ALL") params.set("jaringId", jaringFilter);
       if (gaswilFilter !== "ALL") params.set("fieldOfficerAssignmentId", gaswilFilter);
       const areaId = selectedAreaFilterId({ provinceFilter, regencyFilter, districtFilter, villageFilter });
@@ -332,6 +330,7 @@ export function LaporanPembinaanCoordinatorClient({ role }: { role?: SystemRole 
       return params;
     },
     [
+      coachingPeriodFilter,
       debouncedSearch,
       districtFilter,
       gaswilFilter,
@@ -364,6 +363,11 @@ export function LaporanPembinaanCoordinatorClient({ role }: { role?: SystemRole 
         setReports(result.items ?? []);
         setTotalReports(result.pagination?.total ?? 0);
         setJaringList(result.filterOptions?.jaring ?? []);
+        if (Array.isArray(result.filterOptions?.periods) && result.filterOptions.periods.length > 0) {
+          setAvailablePeriods(result.filterOptions.periods);
+        } else if (Array.isArray(result.availablePeriods) && result.availablePeriods.length > 0) {
+          setAvailablePeriods(result.availablePeriods);
+        }
         setReportScope(result.scope ?? null);
         setReportSummary(
           result.summary ?? {
@@ -529,6 +533,7 @@ export function LaporanPembinaanCoordinatorClient({ role }: { role?: SystemRole 
   const paginatedReports = reports;
   const hasActiveFilters =
     Boolean(search.trim()) ||
+    coachingPeriodFilter !== "ALL" ||
     jaringFilter !== "ALL" ||
     gaswilFilter !== "ALL" ||
     provinceFilter !== (defaultProvinceFilter || "ALL") ||
@@ -540,6 +545,7 @@ export function LaporanPembinaanCoordinatorClient({ role }: { role?: SystemRole 
     Boolean(endDate);
   const activeFilterCount = [
     search.trim(),
+    coachingPeriodFilter !== "ALL",
     jaringFilter !== "ALL",
     gaswilFilter !== "ALL",
     provinceFilter !== (defaultProvinceFilter || "ALL"),
@@ -553,6 +559,7 @@ export function LaporanPembinaanCoordinatorClient({ role }: { role?: SystemRole 
 
   const handleResetFilters = () => {
     setSearch("");
+    setCoachingPeriodFilter("ALL");
     setJaringFilter("ALL");
     setGaswilFilter("ALL");
     setProvinceFilter(defaultProvinceFilter || "ALL");
@@ -586,6 +593,7 @@ export function LaporanPembinaanCoordinatorClient({ role }: { role?: SystemRole 
 
       const headers = [
         "No.",
+        "Periode",
         "ID Pembinaan",
         "Kode Jaring",
         "Nama Jaring",
@@ -599,6 +607,7 @@ export function LaporanPembinaanCoordinatorClient({ role }: { role?: SystemRole 
 
       const rows = allReports.map((r, index) => [
         index + 1,
+        `Periode ${r.periodNumber ?? 1}`,
         r.id,
         r.jaringAlias || r.jaringCode || "-",
         r.jaringName || "-",
@@ -610,7 +619,7 @@ export function LaporanPembinaanCoordinatorClient({ role }: { role?: SystemRole 
         formatDateTime(r.createdAt),
       ]);
 
-      const colWidths = [6, 16, 16, 24, 26, 32, 45, 26, 22, 22];
+      const colWidths = [6, 14, 16, 16, 24, 26, 32, 45, 26, 22, 22];
 
       await exportToExcel({
         filename: `pembinaan-jaring-${jakartaDateKey(new Date())}.xlsx`,
@@ -933,7 +942,25 @@ export function LaporanPembinaanCoordinatorClient({ role }: { role?: SystemRole 
               className="h-9 w-full text-xs"
             />
 
-            {/* 6. Filter Periode Waktu */}
+            {/* 6. Filter Periode Pembinaan */}
+            <NativeSelect
+              aria-label="Filter Periode Pembinaan"
+              value={coachingPeriodFilter}
+              onChange={(event) => {
+                setCoachingPeriodFilter(event.target.value);
+                setPage(1);
+              }}
+              className={cn(DC_CONTROLS.selectTrigger, "w-full font-medium")}
+            >
+              <option value="ALL">Semua Periode Pembinaan</option>
+              {availablePeriods.map((p) => (
+                <option key={p} value={String(p)}>
+                  Periode {p}
+                </option>
+              ))}
+            </NativeSelect>
+
+            {/* 7. Filter Periode Waktu */}
             <NativeSelect
               aria-label="Filter Periode Waktu"
               value={periodeFilter}
@@ -1032,7 +1059,13 @@ export function LaporanPembinaanCoordinatorClient({ role }: { role?: SystemRole 
                 className="cursor-pointer flex flex-col justify-between border-slate-200/80 dark:border-white/10 hover:shadow-md transition-all duration-200"
               >
                 <CardHeader className="space-y-2 p-4 pb-2">
-                  <div className="flex items-center justify-end gap-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <Badge
+                      variant="outline"
+                      className="border-sky-500/30 bg-sky-500/5 text-sky-700 dark:text-sky-300 font-mono text-[10px]"
+                    >
+                      Periode {report.periodNumber ?? 1}
+                    </Badge>
                     <span className="flex items-center gap-1 text-[11px] font-mono text-muted-foreground">
                       <Calendar className="size-3 text-sky-500" />
                       {formatDateOnly(report.createdAt || report.reportedAt)}
@@ -1122,6 +1155,11 @@ export function LaporanPembinaanCoordinatorClient({ role }: { role?: SystemRole 
                   {isColVisible("foto") && (
                     <TableHead className="w-12 text-center font-bold text-xs uppercase tracking-wider">Foto</TableHead>
                   )}
+                  {isColVisible("periode") && (
+                    <TableHead className="font-bold text-xs uppercase tracking-wider whitespace-nowrap">
+                      Periode
+                    </TableHead>
+                  )}
                   {isColVisible("namaJaring") && (
                     <TableHead className="font-bold text-xs uppercase tracking-wider">Nama Jaring</TableHead>
                   )}
@@ -1183,6 +1221,17 @@ export function LaporanPembinaanCoordinatorClient({ role }: { role?: SystemRole 
                               <User className="size-4 text-slate-400 dark:text-slate-600" />
                             )}
                           </div>
+                        </TableCell>
+                      )}
+
+                      {isColVisible("periode") && (
+                        <TableCell className="align-middle whitespace-nowrap">
+                          <Badge
+                            variant="outline"
+                            className="border-sky-500/30 bg-sky-500/5 text-sky-700 dark:text-sky-300 font-mono text-[11px]"
+                          >
+                            Periode {report.periodNumber ?? 1}
+                          </Badge>
                         </TableCell>
                       )}
 

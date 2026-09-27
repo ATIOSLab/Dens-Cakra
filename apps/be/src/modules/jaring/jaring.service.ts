@@ -363,6 +363,7 @@ const jaringCoachingReportSelect = {
   reportedAt: true,
   createdAt: true,
   updatedAt: true,
+  periodNumber: true,
   jaring: {
     select: {
       id: true,
@@ -1227,6 +1228,7 @@ export class JaringService {
       reportedAt: report.reportedAt,
       createdAt: report.createdAt,
       updatedAt: report.updatedAt,
+      periodNumber: report.periodNumber ?? 1,
       jaringCode: report.jaring.aliasName ?? report.jaring.id,
       jaringAlias:
         report.jaring.aliasName ?? report.jaring.fullName ?? report.jaring.id,
@@ -2583,6 +2585,9 @@ export class JaringService {
     const search = query.search?.trim();
     const where: Prisma.JaringCoachingReportWhereInput = {
       jaringId: id,
+      ...(query.periodNumber
+        ? { periodNumber: Number(query.periodNumber) }
+        : {}),
       ...(search
         ? {
             OR: [
@@ -2603,37 +2608,49 @@ export class JaringService {
     const sortOrder = query.sortOrder ?? 'desc';
     const sortBy = query.sortBy ?? 'createdAt';
     const currentMonth = this.currentWibMonthRange();
-    const [reports, total, groupedJaring, thisMonthCount] = await Promise.all([
-      this.prisma.jaringCoachingReport.findMany({
-        where,
-        skip: (page - 1) * limit,
-        take: limit,
-        orderBy: [
-          { [sortBy]: sortOrder },
-          ...(sortBy === 'createdAt' ? [] : [{ createdAt: 'desc' as const }]),
-          { id: 'desc' },
-        ],
-        select: jaringCoachingReportSelect,
-      }),
-      this.prisma.jaringCoachingReport.count({ where }),
-      this.prisma.jaringCoachingReport.groupBy({
-        by: ['jaringId'],
-        where,
-      }),
-      this.prisma.jaringCoachingReport.count({
-        where: {
-          AND: [
-            where,
-            {
-              createdAt: {
-                gte: currentMonth.from,
-                lt: currentMonth.to,
-              },
-            },
+    const [reports, total, groupedJaring, thisMonthCount, periodGroups] =
+      await Promise.all([
+        this.prisma.jaringCoachingReport.findMany({
+          where,
+          skip: (page - 1) * limit,
+          take: limit,
+          orderBy: [
+            { [sortBy]: sortOrder },
+            ...(sortBy === 'createdAt'
+              ? []
+              : [{ createdAt: 'desc' as const }]),
+            { id: 'desc' },
           ],
-        },
-      }),
-    ]);
+          select: jaringCoachingReportSelect,
+        }),
+        this.prisma.jaringCoachingReport.count({ where }),
+        this.prisma.jaringCoachingReport.groupBy({
+          by: ['jaringId'],
+          where,
+        }),
+        this.prisma.jaringCoachingReport.count({
+          where: {
+            AND: [
+              where,
+              {
+                createdAt: {
+                  gte: currentMonth.from,
+                  lt: currentMonth.to,
+                },
+              },
+            ],
+          },
+        }),
+        this.prisma.jaringCoachingReport.groupBy({
+          by: ['periodNumber'],
+          where: { jaringId: id },
+          orderBy: { periodNumber: 'asc' },
+        }),
+      ]);
+
+    const availablePeriods = periodGroups
+      .map((g) => g.periodNumber)
+      .sort((a, b) => a - b);
 
     return {
       items: reports.map((report) =>
@@ -2650,6 +2667,7 @@ export class JaringService {
         uniqueJaringCount: groupedJaring.length,
         thisMonthCount,
       },
+      availablePeriods,
     };
   }
 
@@ -2711,6 +2729,9 @@ export class JaringService {
     };
     const where: Prisma.JaringCoachingReportWhereInput = {
       jaring: jaringWhere,
+      ...(query.periodNumber
+        ? { periodNumber: Number(query.periodNumber) }
+        : {}),
       ...(isFieldOfficer
         ? { fieldOfficerAssignmentId: context.primaryAssignmentId }
         : query.fieldOfficerAssignmentId
@@ -2775,6 +2796,8 @@ export class JaringService {
       thisMonthCount,
       filterJaring,
       configSetting,
+      periodSetting,
+      periodGroups,
     ] = await Promise.all([
       this.prisma.jaringCoachingReport.findMany({
         where,
@@ -2854,9 +2877,30 @@ export class JaringService {
             where: { key: 'features.coaching_report.enabled' },
           })
         : Promise.resolve(null),
+      this.prisma.systemSetting?.findUnique
+        ? this.prisma.systemSetting.findUnique({
+            where: { key: 'features.coaching_report.active_period' },
+          })
+        : Promise.resolve(null),
+      this.prisma.jaringCoachingReport.groupBy({
+        by: ['periodNumber'],
+        orderBy: { periodNumber: 'asc' },
+      }),
     ]);
 
     const isCreationEnabled = configSetting?.value === false ? false : true;
+    const activePeriod =
+      typeof periodSetting?.value === 'number' && periodSetting.value >= 1
+        ? Number(periodSetting.value)
+        : 1;
+
+    const existingPeriods = (periodGroups || []).map((p) => p.periodNumber);
+    if (!existingPeriods.includes(activePeriod)) {
+      existingPeriods.push(activePeriod);
+    }
+    const availablePeriods = Array.from(new Set(existingPeriods)).sort(
+      (a, b) => a - b,
+    );
 
     return {
       items: reports.map((report) =>
@@ -2874,21 +2918,37 @@ export class JaringService {
         thisMonthCount,
       },
       isCreationEnabled,
+      activePeriod,
+      availablePeriods,
       filterOptions: {
         jaring: filterJaring,
+        periods: availablePeriods,
       },
       scope: this.domainScope.scopeSummary(context),
     };
   }
 
   async getCoachingReportConfig() {
-    const config = this.prisma.systemSetting?.findUnique
-      ? await this.prisma.systemSetting.findUnique({
-          where: { key: 'features.coaching_report.enabled' },
-        })
-      : null;
+    const [config, periodConfig] = await Promise.all([
+      this.prisma.systemSetting?.findUnique
+        ? this.prisma.systemSetting.findUnique({
+            where: { key: 'features.coaching_report.enabled' },
+          })
+        : null,
+      this.prisma.systemSetting?.findUnique
+        ? this.prisma.systemSetting.findUnique({
+            where: { key: 'features.coaching_report.active_period' },
+          })
+        : null,
+    ]);
+    const enabled = config?.value === false ? false : true;
+    const activePeriod =
+      typeof periodConfig?.value === 'number' && periodConfig.value >= 1
+        ? Number(periodConfig.value)
+        : 1;
     return {
-      enabled: config?.value === false ? false : true,
+      enabled,
+      activePeriod,
     };
   }
 
@@ -2897,11 +2957,18 @@ export class JaringService {
     body: CreateJaringCoachingReportDto,
     context: AuthorizationContext,
   ) {
-    const config = this.prisma.systemSetting?.findUnique
-      ? await this.prisma.systemSetting.findUnique({
-          where: { key: 'features.coaching_report.enabled' },
-        })
-      : null;
+    const [config, periodConfig] = await Promise.all([
+      this.prisma.systemSetting?.findUnique
+        ? this.prisma.systemSetting.findUnique({
+            where: { key: 'features.coaching_report.enabled' },
+          })
+        : null,
+      this.prisma.systemSetting?.findUnique
+        ? this.prisma.systemSetting.findUnique({
+            where: { key: 'features.coaching_report.active_period' },
+          })
+        : null,
+    ]);
     if (config?.value === false) {
       throw new ApiException(
         'JARING_COACHING_REPORT_DISABLED',
@@ -2909,6 +2976,10 @@ export class JaringService {
         403,
       );
     }
+    const periodNumber =
+      typeof periodConfig?.value === 'number' && periodConfig.value >= 1
+        ? Number(periodConfig.value)
+        : 1;
 
     await this.domainScope.assertJaring(context, id);
 
@@ -2976,6 +3047,7 @@ export class JaringService {
           title,
           content,
           reportedAt,
+          periodNumber,
           ...(attachmentFileIds.length > 0
             ? {
                 attachments: {
@@ -2997,6 +3069,7 @@ export class JaringService {
             jaringId: id,
             reportedAt: reportedAt.toISOString(),
             attachmentCount: attachmentFileIds.length,
+            periodNumber,
           },
         },
       });

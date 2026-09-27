@@ -1266,6 +1266,7 @@ model JaringCoachingReport {
   id                       String   @id @default(uuid()) @db.Uuid
   jaringId                 String   @db.Uuid
   fieldOfficerAssignmentId String   @db.Uuid
+  periodNumber             Int      @default(1)
   title                    String   @db.VarChar(300)
   content                  String   @db.Text
   reportedAt               DateTime
@@ -1278,6 +1279,7 @@ model JaringCoachingReport {
 
   @@index([jaringId, reportedAt])
   @@index([fieldOfficerAssignmentId, reportedAt])
+  @@index([periodNumber])
   @@index([createdAt])
 }
 

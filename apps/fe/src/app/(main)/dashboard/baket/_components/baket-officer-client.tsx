@@ -527,7 +527,11 @@ export function BaketOfficerClient() {
               </div>
 
               <div>
-                <FilterField label="Periode Masuk" icon={<Clock className="size-3.5" />} isActive={periodPreset !== "TODAY"}>
+                <FilterField
+                  label="Periode Masuk"
+                  icon={<Clock className="size-3.5" />}
+                  isActive={periodPreset !== "TODAY"}
+                >
                   <NativeSelect
                     aria-label="Filter Periode"
                     value={periodPreset}

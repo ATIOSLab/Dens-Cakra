@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { GaswilEntityLink } from "@/components/domain/gaswil-entity-link";
 import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";
 import { BackButton } from "@/components/ui/back-button";
+import { Badge } from "@/components/ui/badge";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -188,8 +189,15 @@ export function LaporanPembinaanDetailCoordinatorClient({ reportId }: { reportId
             <Card className="border-slate-200/80 dark:border-white/10 shadow-xs">
               <CardHeader className="border-b border-slate-100 dark:border-white/5 pb-4">
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
+                  <Badge
+                    variant="outline"
+                    className="border-sky-500/40 bg-sky-500/10 font-semibold text-[10px] text-sky-700 dark:text-sky-300 font-mono"
+                  >
+                    Periode {report.periodNumber ?? 1}
+                  </Badge>
                   <span className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Clock className="size-3.5" /> Waktu Pengiriman Laporan: {formatDateTime(report.createdAt || report.reportedAt)}
+                    <Clock className="size-3.5" /> Waktu Pengiriman Laporan:{" "}
+                    {formatDateTime(report.createdAt || report.reportedAt)}
                   </span>
                 </div>
 

@@ -1299,7 +1299,9 @@ describe('JaringService registration security', () => {
       uniqueJaringCount: 0,
       thisMonthCount: 0,
     });
-    expect(result.filterOptions).toEqual({ jaring: [] });
+    expect(result.filterOptions).toEqual({ jaring: [], periods: [1] });
+    expect(result.activePeriod).toBe(1);
+    expect(result.availablePeriods).toEqual([1]);
     expect(jaringFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: { in: ['jaring-id'] } },
@@ -1438,7 +1440,7 @@ describe('JaringService registration security', () => {
       };
       const service = createService(prisma);
       const result = await service.getCoachingReportConfig();
-      expect(result).toEqual({ enabled: true });
+      expect(result).toEqual({ enabled: true, activePeriod: 1 });
     });
 
     it('menolak pembuatan laporan pembinaan dengan kode 403 saat fitur dinonaktifkan', async () => {
@@ -1476,6 +1478,7 @@ describe('JaringService registration security', () => {
         reportedAt: new Date(),
         createdAt: new Date(),
         updatedAt: new Date(),
+        periodNumber: 1,
         attachments: [],
         jaring: {
           id: 'jaring-id',
@@ -1536,10 +1539,12 @@ describe('JaringService registration security', () => {
           title: 'Pembinaan Rutin',
           content: 'Hasil koordinasi di lapangan',
           reportedAt: expect.any(Date),
+          periodNumber: 1,
         }),
         select: expect.anything(),
       });
       expect(result.id).toBe('coaching-report-id');
+      expect(result.periodNumber).toBe(1);
     });
   });
 });

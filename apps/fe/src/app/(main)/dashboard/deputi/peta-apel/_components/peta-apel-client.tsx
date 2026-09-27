@@ -805,11 +805,14 @@ export function PetaApelClient() {
                 {data?.availableSessions && data.availableSessions.length > 0 ? (
                   data.availableSessions.map((s) => (
                     <NativeSelectOption key={s.id} value={s.id}>
-                      {s.title} ({new Date(s.sessionDate).toLocaleDateString("id-ID", { day: "2-digit", month: "short" })})
+                      {s.title} (
+                      {new Date(s.sessionDate).toLocaleDateString("id-ID", { day: "2-digit", month: "short" })})
                     </NativeSelectOption>
                   ))
                 ) : (
-                  <NativeSelectOption value="">{session ? session.title : "Tidak ada sesi tersedia"}</NativeSelectOption>
+                  <NativeSelectOption value="">
+                    {session ? session.title : "Tidak ada sesi tersedia"}
+                  </NativeSelectOption>
                 )}
               </NativeSelect>
             </div>
@@ -843,7 +846,9 @@ export function PetaApelClient() {
                   <MapPin className="h-3 w-3" />
                 </div>
                 <span className="text-xs font-semibold text-slate-200">Filter Hierarki Wilayah Penugasan</span>
-                <span className="text-[11px] text-slate-500 hidden sm:inline">(Provinsi &rarr; Kota/Kab &rarr; Kecamatan &rarr; Kelurahan)</span>
+                <span className="text-[11px] text-slate-500 hidden sm:inline">
+                  (Provinsi &rarr; Kota/Kab &rarr; Kecamatan &rarr; Kelurahan)
+                </span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-[11px] text-slate-400">Cakupan Wilayah:</span>
@@ -870,7 +875,10 @@ export function PetaApelClient() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {/* Tingkat 1: Provinsi */}
               <div className="space-y-1.5">
-                <label htmlFor="filter-provinsi" className="text-xs font-medium text-slate-300 flex items-center justify-between">
+                <label
+                  htmlFor="filter-provinsi"
+                  className="text-xs font-medium text-slate-300 flex items-center justify-between"
+                >
                   <span>Provinsi</span>
                   <span className="text-[10px] font-mono text-slate-500">Tingkat 1</span>
                 </label>
@@ -892,7 +900,10 @@ export function PetaApelClient() {
 
               {/* Tingkat 2: Kota / Kabupaten */}
               <div className="space-y-1.5">
-                <label htmlFor="filter-kota" className="text-xs font-medium text-slate-300 flex items-center justify-between">
+                <label
+                  htmlFor="filter-kota"
+                  className="text-xs font-medium text-slate-300 flex items-center justify-between"
+                >
                   <span>Kota / Kabupaten</span>
                   <span className="text-[10px] font-mono text-slate-500">Tingkat 2</span>
                 </label>
@@ -904,7 +915,8 @@ export function PetaApelClient() {
                   className="w-full"
                   selectClassName={cn(
                     "h-9 w-full bg-slate-900/90 border-slate-700/80 text-xs text-slate-200 focus:border-cyan-500 focus:ring-cyan-500/20",
-                    selectedProvinceId === "ALL" && "bg-slate-950/60 border-slate-800/80 text-slate-500 cursor-not-allowed",
+                    selectedProvinceId === "ALL" &&
+                      "bg-slate-950/60 border-slate-800/80 text-slate-500 cursor-not-allowed",
                   )}
                 >
                   <NativeSelectOption value="ALL">
@@ -938,7 +950,8 @@ export function PetaApelClient() {
                   className="w-full"
                   selectClassName={cn(
                     "h-9 w-full bg-slate-900/90 border-slate-700/80 text-xs text-slate-200 focus:border-cyan-500 focus:ring-cyan-500/20",
-                    (selectedRegencyId === "ALL" || loadingDistricts) && "bg-slate-950/60 border-slate-800/80 text-slate-500 cursor-not-allowed",
+                    (selectedRegencyId === "ALL" || loadingDistricts) &&
+                      "bg-slate-950/60 border-slate-800/80 text-slate-500 cursor-not-allowed",
                   )}
                 >
                   <NativeSelectOption value="ALL">
@@ -976,7 +989,8 @@ export function PetaApelClient() {
                   className="w-full"
                   selectClassName={cn(
                     "h-9 w-full bg-slate-900/90 border-slate-700/80 text-xs text-slate-200 focus:border-cyan-500 focus:ring-cyan-500/20",
-                    (selectedDistrictId === "ALL" || loadingVillages) && "bg-slate-950/60 border-slate-800/80 text-slate-500 cursor-not-allowed",
+                    (selectedDistrictId === "ALL" || loadingVillages) &&
+                      "bg-slate-950/60 border-slate-800/80 text-slate-500 cursor-not-allowed",
                   )}
                 >
                   <NativeSelectOption value="ALL">

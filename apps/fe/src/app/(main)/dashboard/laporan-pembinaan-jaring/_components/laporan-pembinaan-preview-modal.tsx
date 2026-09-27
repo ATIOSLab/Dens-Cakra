@@ -97,6 +97,13 @@ export function LaporanPembinaanPreviewModal({
                 Riwayat Pembinaan
               </Badge>
 
+              <Badge
+                variant="outline"
+                className="border-sky-500/40 bg-sky-500/10 font-semibold text-[10px] text-sky-700 dark:text-sky-300 font-mono"
+              >
+                Periode {report.periodNumber ?? 1}
+              </Badge>
+
               {gaswil?.fullName && (
                 <span className="inline-flex items-center gap-1 rounded border border-emerald-500/20 bg-emerald-50 px-2 py-0.5 font-mono text-[11px] text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400">
                   <UserRound className="size-3" />

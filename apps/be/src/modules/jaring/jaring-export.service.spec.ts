@@ -5,6 +5,7 @@ import {
   JaringExportService,
   RecapGranularity,
 } from './jaring-export.service.js';
+import { JaringReportDataService } from './jaring-report-data.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { DomainScopeService } from '../access/domain-scope.service.js';
 import { LocalStorageService } from '../infrastructure/local-storage.service.js';
@@ -33,6 +34,7 @@ describe('JaringExportService', () => {
       resolve: jest.fn().mockResolvedValue({
         commandRouteType: 'DIRECTORATE',
         assignmentIds: ['assignment-1'],
+        areaRootIds: [],
       }),
     };
     storage = {
@@ -42,6 +44,7 @@ describe('JaringExportService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         JaringExportService,
+        JaringReportDataService,
         { provide: PrismaService, useValue: prisma },
         { provide: DomainScopeService, useValue: domainScope },
         { provide: LocalStorageService, useValue: storage },

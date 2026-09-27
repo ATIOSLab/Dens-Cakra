@@ -190,7 +190,11 @@ export function LaporanJaringLeadershipDetailClient({
                         : `Belum dibaca Petugas Wilayah: ${report.gaswilName || "Belum ditetapkan"}`
                     }
                   >
-                    {report.gaswilReadAt ? <MailOpen className="size-3 shrink-0" /> : <Mail className="size-3 shrink-0" />}
+                    {report.gaswilReadAt ? (
+                      <MailOpen className="size-3 shrink-0" />
+                    ) : (
+                      <Mail className="size-3 shrink-0" />
+                    )}
                     {formatHierarchyReadStatusBadge("Gaswil", {
                       readAt: report.gaswilReadAt,
                       readByName: report.gaswilReadByName,
@@ -213,7 +217,11 @@ export function LaporanJaringLeadershipDetailClient({
                         : `Belum dibaca Koordinator Wilayah: ${report.korwilName || "Belum ditetapkan"}`
                     }
                   >
-                    {report.korwilReadAt ? <MailOpen className="size-3 shrink-0" /> : <Mail className="size-3 shrink-0" />}
+                    {report.korwilReadAt ? (
+                      <MailOpen className="size-3 shrink-0" />
+                    ) : (
+                      <Mail className="size-3 shrink-0" />
+                    )}
                     {formatHierarchyReadStatusBadge("Korwil", {
                       readAt: report.korwilReadAt,
                       readByName: report.korwilReadByName,
@@ -273,33 +281,53 @@ export function LaporanJaringLeadershipDetailClient({
                 </div>
               </div>
               <div className="flex gap-3">
-                <MailOpen className={cn("mt-0.5 size-4 shrink-0", report.gaswilReadAt ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400")} />
+                <MailOpen
+                  className={cn(
+                    "mt-0.5 size-4 shrink-0",
+                    report.gaswilReadAt
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : "text-amber-600 dark:text-amber-400",
+                  )}
+                />
                 <div>
                   <dt className="text-xs text-muted-foreground">Dibaca Gaswil</dt>
                   <dd className="font-semibold text-xs">
                     {report.gaswilReadAt ? (
                       <span>
-                        <span className="font-mono text-emerald-600 dark:text-emerald-400">{formatDateTime(report.gaswilReadAt)}</span>
+                        <span className="font-mono text-emerald-600 dark:text-emerald-400">
+                          {formatDateTime(report.gaswilReadAt)}
+                        </span>
                         {` (${report.gaswilReadByName || report.gaswilName || "Gaswil"})`}
                       </span>
                     ) : (
-                      <span className="text-amber-600 dark:text-amber-400 font-medium">Belum dibaca ({report.gaswilName || "Petugas Wilayah"})</span>
+                      <span className="text-amber-600 dark:text-amber-400 font-medium">
+                        Belum dibaca ({report.gaswilName || "Petugas Wilayah"})
+                      </span>
                     )}
                   </dd>
                 </div>
               </div>
               <div className="flex gap-3">
-                <MailOpen className={cn("mt-0.5 size-4 shrink-0", report.korwilReadAt ? "text-emerald-600 dark:text-emerald-400" : "text-slate-500")} />
+                <MailOpen
+                  className={cn(
+                    "mt-0.5 size-4 shrink-0",
+                    report.korwilReadAt ? "text-emerald-600 dark:text-emerald-400" : "text-slate-500",
+                  )}
+                />
                 <div>
                   <dt className="text-xs text-muted-foreground">Dibaca Korwil</dt>
                   <dd className="font-semibold text-xs">
                     {report.korwilReadAt ? (
                       <span>
-                        <span className="font-mono text-emerald-600 dark:text-emerald-400">{formatDateTime(report.korwilReadAt)}</span>
+                        <span className="font-mono text-emerald-600 dark:text-emerald-400">
+                          {formatDateTime(report.korwilReadAt)}
+                        </span>
                         {` (${report.korwilReadByName || report.korwilName || "Korwil"})`}
                       </span>
                     ) : (
-                      <span className="text-muted-foreground font-medium">Belum dibaca ({report.korwilName || "Koordinator Wilayah"})</span>
+                      <span className="text-muted-foreground font-medium">
+                        Belum dibaca ({report.korwilName || "Koordinator Wilayah"})
+                      </span>
                     )}
                   </dd>
                 </div>

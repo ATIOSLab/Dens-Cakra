@@ -342,10 +342,7 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
     // Pimpinan/Deputi hanya memantau status; hanya Gaswil atau Korwil yang menandai dibaca
     if (!isFieldOfficer && !isFieldCoordinator) return;
     try {
-      const updated = await apiBrowserMutation<JaringReportSessionDetail>(
-        "PATCH",
-        `/jaring/reports/${reportId}/read`,
-      );
+      const updated = await apiBrowserMutation<JaringReportSessionDetail>("PATCH", `/jaring/reports/${reportId}/read`);
       if (updated) {
         setReports((prev) =>
           prev.map((r) =>
@@ -1543,7 +1540,10 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                 item.jaringCode ||
                 `# ${item.id.slice(0, 8)}`;
               const isUnread = isFieldOfficer && !readReportIds.has(item.id);
-              const rawTitle = (item.displayTitle || "").replace(/[….\s]+$/, "").trim().toLowerCase();
+              const rawTitle = (item.displayTitle || "")
+                .replace(/[….\s]+$/, "")
+                .trim()
+                .toLowerCase();
               const rawContent = (item.content || "").trim().toLowerCase();
               const isDerivedTitle = !item.displayTitle || (rawTitle.length > 0 && rawContent.startsWith(rawTitle));
               const title = item.displayTitle || item.content || "Laporan sedang dibuat";
@@ -1571,7 +1571,10 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                         {hasBaketUrgency ? (
                           <Badge
                             variant="outline"
-                            className={cn("shrink-0 font-extrabold text-[9px] uppercase tracking-wider", urgencyStyle.badge)}
+                            className={cn(
+                              "shrink-0 font-extrabold text-[9px] uppercase tracking-wider",
+                              urgencyStyle.badge,
+                            )}
                           >
                             {urgencyStyle.label}
                           </Badge>
@@ -1614,7 +1617,11 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                             : `Belum dibaca Petugas Wilayah: ${item.gaswilName || "Belum ditetapkan"}`
                         }
                       >
-                        {item.gaswilReadAt ? <MailOpen className="size-3 shrink-0" /> : <Mail className="size-3 shrink-0" />}
+                        {item.gaswilReadAt ? (
+                          <MailOpen className="size-3 shrink-0" />
+                        ) : (
+                          <Mail className="size-3 shrink-0" />
+                        )}
                         <span>
                           {formatHierarchyReadStatusBadge("Gaswil", {
                             readAt: item.gaswilReadAt,
@@ -1638,7 +1645,11 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                             : `Belum dibaca Koordinator Wilayah: ${item.korwilName || "Belum ditetapkan"}`
                         }
                       >
-                        {item.korwilReadAt ? <MailOpen className="size-3 shrink-0" /> : <Mail className="size-3 shrink-0" />}
+                        {item.korwilReadAt ? (
+                          <MailOpen className="size-3 shrink-0" />
+                        ) : (
+                          <Mail className="size-3 shrink-0" />
+                        )}
                         <span>
                           {formatHierarchyReadStatusBadge("Korwil", {
                             readAt: item.korwilReadAt,
@@ -1657,13 +1668,9 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                         </p>
                       ) : (
                         <div className="space-y-1">
-                          <h3 className="line-clamp-1 font-semibold text-sm text-foreground leading-snug">
-                            {title}
-                          </h3>
+                          <h3 className="line-clamp-1 font-semibold text-sm text-foreground leading-snug">{title}</h3>
                           {item.content ? (
-                            <p className="line-clamp-2 text-muted-foreground text-xs leading-relaxed">
-                              {item.content}
-                            </p>
+                            <p className="line-clamp-2 text-muted-foreground text-xs leading-relaxed">{item.content}</p>
                           ) : null}
                         </div>
                       )}
@@ -1713,7 +1720,9 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                     {locationName && locationName !== "-" ? (
                       <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
                         <MapPin className="size-3 shrink-0 text-emerald-500" />
-                        <span className="truncate" title={locationName}>{locationName}</span>
+                        <span className="truncate" title={locationName}>
+                          {locationName}
+                        </span>
                       </div>
                     ) : null}
 
@@ -1932,9 +1941,7 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                       {isColVisible("judulIsi") && (
                         <TableCell className="min-w-[260px] max-w-[460px] align-middle">
                           {item.displayTitle && item.displayTitle !== item.content ? (
-                            <p className="line-clamp-1 font-semibold text-foreground text-xs">
-                              {item.displayTitle}
-                            </p>
+                            <p className="line-clamp-1 font-semibold text-foreground text-xs">{item.displayTitle}</p>
                           ) : null}
                           <p
                             className={cn(

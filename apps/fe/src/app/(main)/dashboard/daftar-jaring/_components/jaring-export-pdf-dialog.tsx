@@ -88,16 +88,23 @@ export function JaringExportPdfDialog({
       // Syarat mutlak: Dokumen ini hanya mengekspor data Jaring yang berstatus Terverifikasi
       params.set("registrationStatus", "APPROVED");
 
-      const backendUrl = getBrowserBackendUrl();
-      const response = await fetch(`${backendUrl}/api/v1/jaring/export/pdf?${params.toString()}`, {
-        credentials: "include",
-      });
+      // Gunakan Next.js React PDF server pipeline
+      let response = await fetch(`/api/reports/jaring/buku-profiling/pdf?${params.toString()}`);
+
+      // Fallback ke backend PDFKit jika route Next.js mengembalikan error tertentu
+      if (!response.ok && response.status >= 500) {
+        const backendUrl = getBrowserBackendUrl();
+        response = await fetch(`${backendUrl}/api/v1/jaring/export/pdf?${params.toString()}`, {
+          credentials: "include",
+        });
+      }
 
       if (!response.ok) {
         let errDetail = "Ekspor gagal diproses oleh server.";
         try {
           const json = await response.json();
           if (json.message) errDetail = json.message;
+          if (json.error?.message) errDetail = json.error.message;
         } catch {
           // ignore
         }

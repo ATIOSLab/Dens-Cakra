@@ -151,9 +151,7 @@ export function LaporanJaringDetailClient({
         const isFieldOfficer = role === SYSTEM_ROLES.FIELD_OFFICER;
         const isFieldCoordinator = role === SYSTEM_ROLES.FIELD_COORDINATOR;
         if (!silent && !readOnly && (isFieldOfficer || isFieldCoordinator)) {
-          const shouldMark =
-            (isFieldOfficer && !detail.gaswilReadAt) ||
-            (isFieldCoordinator && !detail.korwilReadAt);
+          const shouldMark = (isFieldOfficer && !detail.gaswilReadAt) || (isFieldCoordinator && !detail.korwilReadAt);
           if (shouldMark) {
             void apiBrowserMutation<JaringReportSessionDetail>("PATCH", `/jaring/reports/${laporanId}/read`)
               .then((updated) => {
@@ -349,7 +347,11 @@ export function LaporanJaringDetailClient({
                       : `Belum dibaca Petugas Wilayah: ${activeReport?.gaswilName || "Belum ditetapkan"}`
                   }
                 >
-                  {activeReport?.gaswilReadAt ? <MailOpen className="size-3 shrink-0" /> : <Mail className="size-3 shrink-0" />}
+                  {activeReport?.gaswilReadAt ? (
+                    <MailOpen className="size-3 shrink-0" />
+                  ) : (
+                    <Mail className="size-3 shrink-0" />
+                  )}
                   {formatHierarchyReadStatusBadge("Gaswil", {
                     readAt: activeReport?.gaswilReadAt,
                     readByName: activeReport?.gaswilReadByName,
@@ -371,7 +373,11 @@ export function LaporanJaringDetailClient({
                       : `Belum dibaca Koordinator Wilayah: ${activeReport?.korwilName || "Belum ditetapkan"}`
                   }
                 >
-                  {activeReport?.korwilReadAt ? <MailOpen className="size-3 shrink-0" /> : <Mail className="size-3 shrink-0" />}
+                  {activeReport?.korwilReadAt ? (
+                    <MailOpen className="size-3 shrink-0" />
+                  ) : (
+                    <Mail className="size-3 shrink-0" />
+                  )}
                   {formatHierarchyReadStatusBadge("Korwil", {
                     readAt: activeReport?.korwilReadAt,
                     readByName: activeReport?.korwilReadByName,
@@ -468,46 +474,76 @@ export function LaporanJaringDetailClient({
                           <Clock className="size-3.5 text-sky-600 dark:text-sky-400" />
                           Waktu Dikirim:
                         </span>
-                        <p className="font-mono text-xs text-foreground font-semibold">{formatDateTime(activeReport.reportedAt)}</p>
+                        <p className="font-mono text-xs text-foreground font-semibold">
+                          {formatDateTime(activeReport.reportedAt)}
+                        </p>
                       </div>
 
-                      <div className={cn(
-                        "p-3 rounded-lg border space-y-1",
-                        activeReport.gaswilReadAt
-                          ? "border-emerald-500/30 bg-emerald-500/5"
-                          : "border-amber-500/30 bg-amber-500/5"
-                      )}>
+                      <div
+                        className={cn(
+                          "p-3 rounded-lg border space-y-1",
+                          activeReport.gaswilReadAt
+                            ? "border-emerald-500/30 bg-emerald-500/5"
+                            : "border-amber-500/30 bg-amber-500/5",
+                        )}
+                      >
                         <span className="text-muted-foreground font-medium text-xs flex items-center gap-1.5">
-                          <MailOpen className={cn("size-3.5", activeReport.gaswilReadAt ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400")} />
+                          <MailOpen
+                            className={cn(
+                              "size-3.5",
+                              activeReport.gaswilReadAt
+                                ? "text-emerald-600 dark:text-emerald-400"
+                                : "text-amber-600 dark:text-amber-400",
+                            )}
+                          />
                           Dibaca Gaswil:
                         </span>
                         {activeReport.gaswilReadAt ? (
                           <div className="text-xs">
-                            <p className="font-mono font-semibold text-emerald-700 dark:text-emerald-400">{formatDateTime(activeReport.gaswilReadAt)}</p>
-                            <p className="text-[11px] text-muted-foreground truncate">{activeReport.gaswilReadByName || activeReport.gaswilName || "Petugas Wilayah"}</p>
+                            <p className="font-mono font-semibold text-emerald-700 dark:text-emerald-400">
+                              {formatDateTime(activeReport.gaswilReadAt)}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground truncate">
+                              {activeReport.gaswilReadByName || activeReport.gaswilName || "Petugas Wilayah"}
+                            </p>
                           </div>
                         ) : (
-                          <p className="text-xs font-medium text-amber-700 dark:text-amber-400">Belum dibaca ({activeReport.gaswilName || "Petugas Wilayah"})</p>
+                          <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
+                            Belum dibaca ({activeReport.gaswilName || "Petugas Wilayah"})
+                          </p>
                         )}
                       </div>
 
-                      <div className={cn(
-                        "p-3 rounded-lg border space-y-1",
-                        activeReport.korwilReadAt
-                          ? "border-emerald-500/30 bg-emerald-500/5"
-                          : "border-slate-500/20 bg-slate-500/5"
-                      )}>
+                      <div
+                        className={cn(
+                          "p-3 rounded-lg border space-y-1",
+                          activeReport.korwilReadAt
+                            ? "border-emerald-500/30 bg-emerald-500/5"
+                            : "border-slate-500/20 bg-slate-500/5",
+                        )}
+                      >
                         <span className="text-muted-foreground font-medium text-xs flex items-center gap-1.5">
-                          <MailOpen className={cn("size-3.5", activeReport.korwilReadAt ? "text-emerald-600 dark:text-emerald-400" : "text-slate-500")} />
+                          <MailOpen
+                            className={cn(
+                              "size-3.5",
+                              activeReport.korwilReadAt ? "text-emerald-600 dark:text-emerald-400" : "text-slate-500",
+                            )}
+                          />
                           Dibaca Korwil:
                         </span>
                         {activeReport.korwilReadAt ? (
                           <div className="text-xs">
-                            <p className="font-mono font-semibold text-emerald-700 dark:text-emerald-400">{formatDateTime(activeReport.korwilReadAt)}</p>
-                            <p className="text-[11px] text-muted-foreground truncate">{activeReport.korwilReadByName || activeReport.korwilName || "Koordinator Wilayah"}</p>
+                            <p className="font-mono font-semibold text-emerald-700 dark:text-emerald-400">
+                              {formatDateTime(activeReport.korwilReadAt)}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground truncate">
+                              {activeReport.korwilReadByName || activeReport.korwilName || "Koordinator Wilayah"}
+                            </p>
                           </div>
                         ) : (
-                          <p className="text-xs font-medium text-muted-foreground">Belum dibaca ({activeReport.korwilName || "Koordinator Wilayah"})</p>
+                          <p className="text-xs font-medium text-muted-foreground">
+                            Belum dibaca ({activeReport.korwilName || "Koordinator Wilayah"})
+                          </p>
                         )}
                       </div>
                     </div>

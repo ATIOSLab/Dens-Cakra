@@ -208,6 +208,7 @@ export class JaringCoachingReportQuery {
   @IsOptional() @IsUUID() areaId?: string;
   @IsOptional() @IsDateString() from?: string;
   @IsOptional() @IsDateString() to?: string;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) periodNumber?: number;
   @IsOptional()
   @IsIn(['reportedAt', 'createdAt', 'updatedAt', 'title'])
   sortBy?: 'reportedAt' | 'createdAt' | 'updatedAt' | 'title';

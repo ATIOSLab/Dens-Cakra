@@ -42,6 +42,7 @@ import {
 } from './jaring.dto.js';
 import { JaringService } from './jaring.service.js';
 import { JaringExportService } from './jaring-export.service.js';
+import { JaringReportDataService } from './jaring-report-data.service.js';
 
 @ApiTags('11. Jaring Management')
 @UseGuards(SessionGuard, DomainAccessGuard)
@@ -50,7 +51,29 @@ export class JaringController {
   constructor(
     private readonly jaringService: JaringService,
     private readonly exportService: JaringExportService,
+    private readonly reportDataService: JaringReportDataService,
   ) {}
+
+  @Get('export/data')
+  @ApiContract({
+    operationId: 'apiJarExportData',
+    contractId: 'API-JAR-EXPORT-DATA',
+    summary: 'Dapatkan data terstruktur untuk laporan PDF profiling Jaring',
+    roles: [
+      'executive',
+      'regional_commander',
+      'field_coordinator',
+      'field_officer',
+    ],
+  })
+  async exportData(
+    @Query() query: JaringExportPdfQueryDto,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(
+      await this.reportDataService.getReportData(query, context, true),
+    );
+  }
 
   @Get('export/pdf')
   @ApiContract({

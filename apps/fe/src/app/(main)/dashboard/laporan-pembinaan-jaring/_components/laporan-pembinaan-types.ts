@@ -20,6 +20,7 @@ export interface CoachingReportItem {
   reportedAt: string;
   createdAt: string;
   updatedAt: string;
+  periodNumber?: number;
   fieldOfficer?: CoachingReportFieldOfficer | null;
 
   // Enriched fields for main table/card view

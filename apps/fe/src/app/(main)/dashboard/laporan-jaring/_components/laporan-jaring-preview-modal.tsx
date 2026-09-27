@@ -2,7 +2,17 @@
 
 import Link from "next/link";
 
-import { Clock, ExternalLink, FileText, ImageIcon, Mail, MailOpen, MapPin, MessageSquare, ShieldAlert } from "lucide-react";
+import {
+  Clock,
+  ExternalLink,
+  FileText,
+  ImageIcon,
+  Mail,
+  MailOpen,
+  MapPin,
+  MessageSquare,
+  ShieldAlert,
+} from "lucide-react";
 
 import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";
 import { Badge } from "@/components/ui/badge";
@@ -203,7 +213,8 @@ export function LaporanJaringPreviewModal({ report, open, onOpenChange }: Lapora
                 <span className="font-semibold text-foreground">Keterbacaan Gaswil:</span>
                 {report.gaswilReadAt ? (
                   <span className="text-emerald-600 dark:text-emerald-400 font-medium">
-                    Sudah dibaca oleh {report.gaswilReadByName || report.gaswilName || "Petugas Wilayah"} ({formatDateTime(report.gaswilReadAt)})
+                    Sudah dibaca oleh {report.gaswilReadByName || report.gaswilName || "Petugas Wilayah"} (
+                    {formatDateTime(report.gaswilReadAt)})
                   </span>
                 ) : (
                   <span className="text-amber-600 dark:text-amber-400 font-medium">
@@ -216,7 +227,8 @@ export function LaporanJaringPreviewModal({ report, open, onOpenChange }: Lapora
                 <span className="font-semibold text-foreground">Keterbacaan Korwil:</span>
                 {report.korwilReadAt ? (
                   <span className="text-emerald-600 dark:text-emerald-400 font-medium">
-                    Sudah dibaca oleh {report.korwilReadByName || report.korwilName || "Koordinator Wilayah"} ({formatDateTime(report.korwilReadAt)})
+                    Sudah dibaca oleh {report.korwilReadByName || report.korwilName || "Koordinator Wilayah"} (
+                    {formatDateTime(report.korwilReadAt)})
                   </span>
                 ) : (
                   <span className="text-slate-600 dark:text-slate-400 font-medium">
