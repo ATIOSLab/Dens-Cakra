@@ -1,190 +1,250 @@
-import React from "react";
+import React from 'react';
+import { Page, View, Text } from '@react-pdf/renderer';
+import { reportStyles } from '../report-styles';
+import { PageFooter } from '../components/page-footer';
+import type { JaringReportData } from '../../types/jaring-report.types';
 
-import { Page, Text, View } from "@react-pdf/renderer";
+export type TocEntry = {
+  label: string;
+  page: number;
+  isSubItem: boolean;
+};
 
-import type { JaringReportData } from "../../types/jaring-report.types";
-import { PageFooter } from "../components/page-footer";
-import { PageHeader } from "../components/page-header";
-import { CONTENT_WIDTH, reportStyles } from "../report-styles";
+export function computeTocEntries(data: JaringReportData): TocEntry[] {
+  let currentPage = 1;
+  const hasCover = data.meta.options.includeCover !== false;
+  const hasMap = data.meta.options.includeMap !== false && data.items.length > 0;
+  const hasInfographic = data.meta.options.includeInfographic !== false && data.items.length > 0;
+  const hasToc = data.meta.options.includeToc !== false && data.items.length > 0;
+  const hasRecap = data.meta.options.includeRecap !== false && data.items.length > 0;
+
+  if (hasCover) {
+    currentPage += 1;
+  }
+
+  const entries: TocEntry[] = [];
+
+  if (hasMap) {
+    entries.push({
+      label: 'Peta Sebaran Jaring Intelijen DKI Jakarta',
+      page: currentPage,
+      isSubItem: false,
+    });
+    currentPage += 1;
+  }
+
+  if (hasInfographic) {
+    entries.push({
+      label: 'Infografis & Visualisasi Analitik Jaring',
+      page: currentPage,
+      isSubItem: false,
+    });
+    currentPage += 2; // Infografis takes 2 pages
+  }
+
+  if (hasToc) {
+    currentPage += 1;
+  }
+
+  if (hasRecap) {
+    // 1. Rekapitulasi Persebaran Wilayah Jaring
+    const recapTerritoryPage = currentPage;
+    let territoryRows = 1; // total row
+    for (const prov of data.groups) {
+      if (data.groups.length > 1) territoryRows += 1;
+      for (const city of prov.cities) {
+        territoryRows += 1;
+        for (const dist of city.districts) {
+          territoryRows += 1;
+          territoryRows += dist.villages.length;
+        }
+      }
+    }
+    const territoryPages = Math.max(1, Math.ceil(territoryRows / 22));
+    currentPage += territoryPages;
+
+    // 2. Rekapitulasi Klasifikasi Pekerjaan Jaring
+    const recapOccupationPage = currentPage;
+    let occRows = 1; // total row
+    for (const prov of data.groups) {
+      for (const city of prov.cities) {
+        occRows += Math.max(1, city.occupations.length);
+      }
+    }
+    const occPages = Math.max(1, Math.ceil(occRows / 22));
+    currentPage += occPages;
+
+    entries.push({
+      label: 'Rekapitulasi Persebaran Wilayah Jaring',
+      page: recapTerritoryPage,
+      isSubItem: false,
+    });
+
+    entries.push({
+      label: 'Rekapitulasi Klasifikasi Pekerjaan Jaring',
+      page: recapOccupationPage,
+      isSubItem: false,
+    });
+  }
+
+  // Profiling per Province & City
+  for (const prov of data.groups) {
+    const provStartPage = currentPage;
+    entries.push({
+      label: `${prov.provinceName} (${prov.totalJaring.toLocaleString('id-ID')} Jaring)`,
+      page: provStartPage,
+      isSubItem: false,
+    });
+
+    for (const city of prov.cities) {
+      const cityStartPage = currentPage;
+      entries.push({
+        label: `• ${city.cityName} (${city.totalJaring.toLocaleString('id-ID')} Jaring)`,
+        page: cityStartPage,
+        isSubItem: true,
+      });
+
+      const cityPages = Math.ceil(city.items.length / 2);
+      currentPage += cityPages;
+    }
+  }
+
+  return entries;
+}
 
 interface TocPageProps {
   data: JaringReportData;
 }
 
 export function TocPage({ data }: TocPageProps) {
-  type TocItem = {
-    title: string;
-    subtitle?: string;
-    isSub: boolean;
+  const entries = computeTocEntries(data);
+  const isSingleColumn = entries.length <= 16;
+
+  const renderItem = (item: TocEntry, idx: number, singleCol: boolean) => {
+    const isSub = item.isSubItem;
+    const mainFontSize = singleCol ? 13 : 11;
+    const subFontSize = singleCol ? 11.5 : 9.5;
+    const dotFontSize = singleCol ? 10 : 8.5;
+    const mb = singleCol ? (isSub ? 8 : 13) : isSub ? 5 : 8;
+    const pl = isSub ? (singleCol ? 18 : 12) : 0;
+
+    return (
+      <View
+        key={idx}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'baseline',
+          marginBottom: mb,
+          paddingLeft: pl,
+        }}
+      >
+        {/* Left Label */}
+        <Text
+          style={{
+            fontSize: isSub ? subFontSize : mainFontSize,
+            fontFamily: isSub ? 'Helvetica' : 'Helvetica-Bold',
+            color: isSub ? '#334155' : '#0f172a',
+          }}
+        >
+          {item.label}
+        </Text>
+
+        {/* Dotted Leader Line */}
+        <View
+          style={{
+            flex: 1,
+            overflow: 'hidden',
+            marginHorizontal: 8,
+            height: singleCol ? 14 : 10,
+          }}
+        >
+          <Text
+            style={{
+              color: '#cbd5e1',
+              fontSize: dotFontSize,
+              letterSpacing: 2.5,
+              fontFamily: 'Helvetica',
+            }}
+          >
+            ............................................................................................................................................................................................................
+          </Text>
+        </View>
+
+        {/* Right Page Number */}
+        <Text
+          style={{
+            fontSize: isSub ? subFontSize : mainFontSize,
+            fontFamily: isSub ? 'Helvetica' : 'Helvetica-Bold',
+            color: isSub ? '#475569' : '#0f172a',
+          }}
+        >
+          {`Hal ${item.page}`}
+        </Text>
+      </View>
+    );
   };
 
-  const items: TocItem[] = [];
-
-  if (data.meta.options.includeMap) {
-    items.push({
-      title: "Peta Sebaran Jaring Intelijen DKI Jakarta",
-      subtitle: "Visualisasi geografis 6 wilayah administrasi",
-      isSub: false,
-    });
-  }
-
-  if (data.meta.options.includeInfographic) {
-    items.push({
-      title: "Infografis: Sebaran Wilayah & Status Operasional",
-      subtitle: "Sebaran kota, status aktif/pasif, dan komposisi gender",
-      isSub: false,
-    });
-    items.push({
-      title: "Infografis: Demografi Usia, Generasi & Pekerjaan",
-      subtitle: "Komposisi usia, generasi, dan word cloud profesi",
-      isSub: false,
-    });
-  }
-
-  if (data.meta.options.includeRecap) {
-    items.push({
-      title: "Rekapitulasi Persebaran Wilayah & Klasifikasi",
-      subtitle: "Tabel agregasi hierarki wilayah dan profesi",
-      isSub: false,
-    });
-  }
-
-  // Profiling sections
-  for (const prov of data.groups) {
-    items.push({
-      title: `Dosir Profiling: ${prov.provinceName}`,
-      subtitle: `${prov.totalJaring.toLocaleString("id-ID")} Jaring Terverifikasi`,
-      isSub: false,
-    });
-
-    for (const city of prov.cities) {
-      items.push({
-        title: city.cityName,
-        subtitle: `${city.totalJaring.toLocaleString("id-ID")} Orang (${city.districts.length} Kecamatan)`,
-        isSub: true,
-      });
-    }
-  }
-
-  // Split into 2 columns if more than 10 items
-  const midPoint = Math.ceil(items.length / 2);
-  const leftCol = items.slice(0, midPoint);
-  const rightCol = items.slice(midPoint);
+  const itemsPerCol = isSingleColumn ? entries.length : Math.ceil(entries.length / 2);
+  const colLeft = entries.slice(0, itemsPerCol);
+  const colRight = isSingleColumn ? [] : entries.slice(itemsPerCol);
 
   return (
     <Page size="A4" orientation="landscape" style={reportStyles.page}>
-      <PageHeader
-        title="DAFTAR ISI LAPORAN"
-        subtitle="Struktur dokumen rekapitulasi operasional dan buku profiling jaring terverifikasi."
-      />
-
-      <View
-        style={{
-          flexDirection: "row",
-          justifyContent: "space-between",
-          marginTop: 10,
-        }}
-      >
-        {/* Left Column */}
-        <View style={{ width: (CONTENT_WIDTH - 24) / 2 }}>
-          {leftCol.map((item, idx) => (
-            <View
-              key={idx}
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                paddingVertical: 5,
-                paddingLeft: item.isSub ? 16 : 0,
-                borderBottomWidth: 0.5,
-                borderBottomColor: "#f1f5f9",
-              }}
-            >
-              <View
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: 3,
-                  backgroundColor: item.isSub ? "#0ea5e9" : "#0f172a",
-                  marginRight: 8,
-                }}
-              />
-              <View style={{ flex: 1 }}>
-                <Text
-                  style={{
-                    fontSize: item.isSub ? 8.5 : 9.5,
-                    fontFamily: item.isSub ? "Helvetica" : "Helvetica-Bold",
-                    color: item.isSub ? "#334155" : "#0f172a",
-                  }}
-                >
-                  {item.title}
-                </Text>
-                {item.subtitle ? (
-                  <Text
-                    style={{
-                      fontSize: 7,
-                      fontFamily: "Helvetica",
-                      color: "#64748b",
-                      marginTop: 1,
-                    }}
-                  >
-                    {item.subtitle}
-                  </Text>
-                ) : null}
-              </View>
-            </View>
-          ))}
-        </View>
-
-        {/* Right Column */}
-        <View style={{ width: (CONTENT_WIDTH - 24) / 2 }}>
-          {rightCol.map((item, idx) => (
-            <View
-              key={idx}
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                paddingVertical: 5,
-                paddingLeft: item.isSub ? 16 : 0,
-                borderBottomWidth: 0.5,
-                borderBottomColor: "#f1f5f9",
-              }}
-            >
-              <View
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: 3,
-                  backgroundColor: item.isSub ? "#0ea5e9" : "#0f172a",
-                  marginRight: 8,
-                }}
-              />
-              <View style={{ flex: 1 }}>
-                <Text
-                  style={{
-                    fontSize: item.isSub ? 8.5 : 9.5,
-                    fontFamily: item.isSub ? "Helvetica" : "Helvetica-Bold",
-                    color: item.isSub ? "#334155" : "#0f172a",
-                  }}
-                >
-                  {item.title}
-                </Text>
-                {item.subtitle ? (
-                  <Text
-                    style={{
-                      fontSize: 7,
-                      fontFamily: "Helvetica",
-                      color: "#64748b",
-                      marginTop: 1,
-                    }}
-                  >
-                    {item.subtitle}
-                  </Text>
-                ) : null}
-              </View>
-            </View>
-          ))}
-        </View>
+      {/* Centered Header */}
+      <View style={{ alignItems: 'center', marginTop: 14 }}>
+        <Text
+          style={{
+            fontSize: 24,
+            fontFamily: 'Helvetica-Bold',
+            color: '#0f172a',
+            letterSpacing: 1.5,
+          }}
+        >
+          DAFTAR ISI
+        </Text>
+        <Text
+          style={{
+            fontSize: 12.5,
+            fontFamily: 'Helvetica',
+            color: '#0284c7',
+            marginTop: 6,
+          }}
+        >
+          Rekapitulasi dan Pembagian Wilayah Jaring Kelurahan
+        </Text>
+        <View
+          style={{
+            width: isSingleColumn ? 600 : 720,
+            height: 1.5,
+            backgroundColor: '#e2e8f0',
+            marginTop: 16,
+            marginBottom: 24,
+          }}
+        />
       </View>
+
+      {/* Table of Contents List */}
+      {isSingleColumn ? (
+        <View style={{ width: 600, alignSelf: 'center' }}>
+          {entries.map((item, idx) => renderItem(item, idx, true))}
+        </View>
+      ) : (
+        <View
+          style={{
+            width: 720,
+            alignSelf: 'center',
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+          }}
+        >
+          <View style={{ width: 345 }}>
+            {colLeft.map((item, idx) => renderItem(item, idx, false))}
+          </View>
+          <View style={{ width: 345 }}>
+            {colRight.map((item, idx) => renderItem(item, idx, false))}
+          </View>
+        </View>
+      )}
 
       <PageFooter />
     </Page>

@@ -10,6 +10,7 @@ import { InfographicPage1 } from "./pages/infographic-page-1";
 import { InfographicPage2 } from "./pages/infographic-page-2";
 import { MapPage } from "./pages/map-page";
 import { ProfilingPages } from "./pages/profiling-pages";
+import { RecapOccupationPage } from "./pages/recap-occupation-page";
 import { RecapTerritoryPage } from "./pages/recap-territory-page";
 import { TocPage } from "./pages/toc-page";
 import { reportStyles } from "./report-styles";
@@ -45,8 +46,13 @@ export function JaringReportDocument({ data }: JaringReportDocumentProps) {
       {/* 4. Table of Contents */}
       {data.meta.options.includeToc && hasItems ? <TocPage data={data} /> : null}
 
-      {/* 5. Territory Recap Page */}
-      {data.meta.options.includeRecap && hasItems ? <RecapTerritoryPage data={data} /> : null}
+      {/* 5. Territory & Occupation Recap Pages */}
+      {data.meta.options.includeRecap && hasItems ? (
+        <>
+          <RecapTerritoryPage data={data} />
+          <RecapOccupationPage data={data} />
+        </>
+      ) : null}
 
       {/* 6. Profiling Dossier Pages */}
       {hasItems ? (
