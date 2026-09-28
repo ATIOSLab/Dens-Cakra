@@ -58,7 +58,7 @@ export class JaringExportService {
   ) {
     this.reportDataService =
       reportDataService ??
-      new JaringReportDataService(this.prisma, this.domainScope);
+      new JaringReportDataService(this.prisma, this.domainScope, this.storage);
   }
 
   async exportPdf(
@@ -1120,10 +1120,15 @@ export class JaringExportService {
       .font('Helvetica')
       .fontSize(7)
       .fillColor('#64748b')
-      .text(`Proporsi: ${getPct(dki.kepulauanSeribu)}`, insetBadgeX, insetBadgeY + 33, {
-        width: 150,
-        align: 'center',
-      });
+      .text(
+        `Proporsi: ${getPct(dki.kepulauanSeribu)}`,
+        insetBadgeX,
+        insetBadgeY + 33,
+        {
+          width: 150,
+          align: 'center',
+        },
+      );
 
     // 2. Mainland Badges (5 Kota Administrasi)
     const mapBadges = [
@@ -2030,8 +2035,8 @@ export class JaringExportService {
       'Petani / Nelayan / Peternak': 'Petani / Nelayan',
       'Pelajar / Mahasiswa': 'Pelajar / Mahasiswa',
       'Ibu Rumah Tangga': 'Ibu Rumah Tangga',
-      'Wiraswasta': 'Wiraswasta',
-      'Lainnya': 'Lainnya',
+      Wiraswasta: 'Wiraswasta',
+      Lainnya: 'Lainnya',
     };
 
     const getShortLabel = (fullName: string): string => {
@@ -2907,7 +2912,9 @@ ${textElements}
     }
   }
 
-  buildProfilingRows(item: FormattedJaring): Array<{ label: string; val: string }> {
+  buildProfilingRows(
+    item: FormattedJaring,
+  ): Array<{ label: string; val: string }> {
     return this.reportDataService.buildProfilingRows(item);
   }
 
@@ -3126,11 +3133,7 @@ ${textElements}
 
   private async readStorageFile(storageKey: string): Promise<Buffer | null> {
     try {
-      const resolved = (this.storage as any).resolvePath?.(storageKey);
-      if (resolved) {
-        return await readFile(resolved);
-      }
-      return null;
+      return await this.storage.read(storageKey);
     } catch {
       return null;
     }

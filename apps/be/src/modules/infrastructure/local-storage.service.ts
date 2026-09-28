@@ -98,6 +98,22 @@ export class LocalStorageService implements OnModuleInit {
     await writeFile(filePath, body, { flag: 'wx' });
   }
 
+  async read(storageKey: string): Promise<Buffer> {
+    try {
+      const filePath = this.resolvePath(storageKey);
+      return await readFile(filePath);
+    } catch (error) {
+      if (isFileNotFound(error)) {
+        throw new ApiException(
+          'STORAGE_FILE_NOT_FOUND',
+          'File storage tidak ditemukan.',
+          404,
+        );
+      }
+      throw error;
+    }
+  }
+
   async remove(storageKey: string): Promise<void> {
     await rm(this.resolvePath(storageKey), { force: true });
   }

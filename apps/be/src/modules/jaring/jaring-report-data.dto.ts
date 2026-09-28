@@ -1,6 +1,4 @@
-import {
-  AdministrativeLevel,
-} from '../../generated/prisma/client.js';
+import { AdministrativeLevel } from '../../generated/prisma/client.js';
 
 export type OccupationStat = {
   name: string;
@@ -31,6 +29,7 @@ export type FormattedJaring = {
   gaswilName: string;
   profilePhotoFileId?: string | null;
   profilePhotoStorageKey: string | null;
+  profilePhotoBase64?: string | null;
   profilingRows?: Array<{ label: string; val: string }>;
 };
 

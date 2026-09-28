@@ -8,6 +8,7 @@ import sharp from "sharp";
 import { getJaringReportData } from "@/features/reports/jaring/api/get-jaring-report";
 import { JaringReportDocument } from "@/features/reports/jaring/pdf/jaring-report-document";
 import type { FormattedJaring, JaringReportData } from "@/features/reports/jaring/types/jaring-report.types";
+import { getBackendInternalUrl } from "@/lib/auth/backend-url";
 import { backendApi } from "@/server/backend-api";
 
 export const dynamic = "force-dynamic";
@@ -20,11 +21,21 @@ type AccessUrlResponse = {
 async function resolvePhotosInBatch(items: FormattedJaring[], cookieHeader: string | null): Promise<void> {
   const photoMap = new Map<string, string>();
   const uniqueFileIds = Array.from(
-    new Set(items.map((i) => i.profilePhotoFileId).filter((id): id is string => Boolean(id))),
+    new Set(
+      items
+        .filter((i) => !i.profilePhotoBase64 && Boolean(i.profilePhotoFileId))
+        .map((i) => i.profilePhotoFileId as string),
+    ),
   );
 
-  // Concurrency-limited photo downloader (max 5 simultaneous fetches)
-  const batchSize = 5;
+  if (uniqueFileIds.length === 0) {
+    return;
+  }
+
+  const backendBaseUrl = getBackendInternalUrl();
+
+  // Concurrency-limited photo downloader (max 10 simultaneous fetches)
+  const batchSize = 10;
   for (let i = 0; i < uniqueFileIds.length; i += batchSize) {
     const chunk = uniqueFileIds.slice(i, i + batchSize);
     await Promise.all(
@@ -36,7 +47,8 @@ async function resolvePhotosInBatch(items: FormattedJaring[], cookieHeader: stri
           });
 
           if (res?.url) {
-            const imgRes = await fetch(res.url);
+            const fullUrl = res.url.startsWith("http") ? res.url : `${backendBaseUrl}${res.url}`;
+            const imgRes = await fetch(fullUrl);
             if (imgRes.ok) {
               const arrayBuf = await imgRes.arrayBuffer();
               const rawBuf = Buffer.from(arrayBuf);
@@ -56,7 +68,7 @@ async function resolvePhotosInBatch(items: FormattedJaring[], cookieHeader: stri
 
   // Populate base64 data URIs into items
   for (const item of items) {
-    if (item.profilePhotoFileId && photoMap.has(item.profilePhotoFileId)) {
+    if (!item.profilePhotoBase64 && item.profilePhotoFileId && photoMap.has(item.profilePhotoFileId)) {
       item.profilePhotoBase64 = photoMap.get(item.profilePhotoFileId);
     }
   }
@@ -140,9 +152,11 @@ export async function GET(request: NextRequest) {
     for (const prov of reportData.groups) {
       for (const city of prov.cities) {
         for (const item of city.items) {
-          const matched = reportData.items.find((i) => i.id === item.id);
-          if (matched?.profilePhotoBase64) {
-            item.profilePhotoBase64 = matched.profilePhotoBase64;
+          if (!item.profilePhotoBase64) {
+            const matched = reportData.items.find((i) => i.id === item.id);
+            if (matched?.profilePhotoBase64) {
+              item.profilePhotoBase64 = matched.profilePhotoBase64;
+            }
           }
         }
       }

@@ -24,7 +24,8 @@ export class SystemConfigService {
       }),
     ]);
 
-    const coachingReportEnabled = enabledSetting?.value === false ? false : true;
+    const coachingReportEnabled =
+      enabledSetting?.value === false ? false : true;
     const coachingReportActivePeriod =
       typeof periodSetting?.value === 'number' && periodSetting.value >= 1
         ? Number(periodSetting.value)

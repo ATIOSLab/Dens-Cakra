@@ -218,7 +218,9 @@ describe('JaringExportService', () => {
 
       // 3. Pastikan identitas lainnya tetap lengkap
       expect(rows.find((r) => r.label === 'NIK')?.val).toBe('3171010101010001');
-      expect(rows.find((r) => r.label === 'TTL')?.val).toContain('Jakarta, 09/09/1969');
+      expect(rows.find((r) => r.label === 'TTL')?.val).toContain(
+        'Jakarta, 09/09/1969',
+      );
       expect(rows.find((r) => r.label === 'Alamat')?.val).toBe(
         'Jln. Mawar merah Raya 02/01(34). Pondok kopi Jaktim.',
       );
@@ -566,8 +568,9 @@ describe('JaringExportService', () => {
         }
       }
       // PDFKit encodes standard Type 1 fonts as hex byte strings <hex> inside TJ arrays with kerning offsets
-      const decodedText = decompressedAll.replace(/<([0-9a-fA-F]+)>/g, (_, hex) =>
-        Buffer.from(hex, 'hex').toString('latin1'),
+      const decodedText = decompressedAll.replace(
+        /<([0-9a-fA-F]+)>/g,
+        (_, hex) => Buffer.from(hex, 'hex').toString('latin1'),
       );
       const lettersOnly = decodedText.replace(/[^a-zA-Z]/g, '');
 

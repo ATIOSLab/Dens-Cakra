@@ -1,4 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
+import sharp from 'sharp';
 import {
   AdministrativeLevel,
   JaringRegistrationStatus,
@@ -7,6 +8,7 @@ import {
 } from '../../generated/prisma/client.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
 import { DomainScopeService } from '../access/domain-scope.service.js';
+import { LocalStorageService } from '../infrastructure/local-storage.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SYSTEM_ROLES } from '../../common/constants/system-role.js';
 import { resolveDescendantAreaIds } from '../../common/utils/area-closure.js';
@@ -30,6 +32,7 @@ export class JaringReportDataService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly domainScope: DomainScopeService,
+    @Optional() private readonly storage?: LocalStorageService,
   ) {}
 
   /**
@@ -52,8 +55,7 @@ export class JaringReportDataService {
 
     return {
       meta: {
-        title:
-          query.title || 'BUKU PROFILING DAN REKAPITULASI DATA JARING',
+        title: query.title || 'BUKU PROFILING DAN REKAPITULASI DATA JARING',
         generatedAt: new Date().toISOString(),
         area: filterArea,
         granularity,
@@ -414,6 +416,50 @@ export class JaringReportDataService {
       return formatted;
     });
 
+    if (this.storage) {
+      const storageKeyToPhoto = new Map<string, string | null>();
+      const uniqueKeys = Array.from(
+        new Set(
+          formattedItems
+            .map((i) => i.profilePhotoStorageKey)
+            .filter((k): k is string => Boolean(k)),
+        ),
+      );
+
+      const batchSize = 50;
+      for (let i = 0; i < uniqueKeys.length; i += batchSize) {
+        const chunk = uniqueKeys.slice(i, i + batchSize);
+        await Promise.all(
+          chunk.map(async (key) => {
+            try {
+              const buffer = await this.storage!.read(key);
+              if (buffer && buffer.length > 0) {
+                const resized = await sharp(buffer)
+                  .resize(160, 160, { fit: 'cover' })
+                  .jpeg({ quality: 75 })
+                  .toBuffer();
+                storageKeyToPhoto.set(
+                  key,
+                  `data:image/jpeg;base64,${resized.toString('base64')}`,
+                );
+              } else {
+                storageKeyToPhoto.set(key, null);
+              }
+            } catch {
+              storageKeyToPhoto.set(key, null);
+            }
+          }),
+        );
+      }
+
+      for (const item of formattedItems) {
+        if (item.profilePhotoStorageKey) {
+          item.profilePhotoBase64 =
+            storageKeyToPhoto.get(item.profilePhotoStorageKey) ?? null;
+        }
+      }
+    }
+
     return {
       items: formattedItems,
       filterArea,
@@ -597,9 +643,7 @@ export class JaringReportDataService {
     return groups;
   }
 
-  buildProfilingStatistics(
-    items: FormattedJaring[],
-  ): ProfilingStatistics {
+  buildProfilingStatistics(items: FormattedJaring[]): ProfilingStatistics {
     const total = items.length;
     let active = 0;
     let male = 0;
@@ -955,7 +999,9 @@ export class JaringReportDataService {
     return 'Lainnya';
   }
 
-  buildProfilingRows(item: FormattedJaring): Array<{ label: string; val: string }> {
+  buildProfilingRows(
+    item: FormattedJaring,
+  ): Array<{ label: string; val: string }> {
     const birthDateFormatted = item.birthDate
       ? new Intl.DateTimeFormat('id-ID', {
           day: '2-digit',

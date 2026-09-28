@@ -2616,9 +2616,7 @@ export class JaringService {
           take: limit,
           orderBy: [
             { [sortBy]: sortOrder },
-            ...(sortBy === 'createdAt'
-              ? []
-              : [{ createdAt: 'desc' as const }]),
+            ...(sortBy === 'createdAt' ? [] : [{ createdAt: 'desc' as const }]),
             { id: 'desc' },
           ],
           select: jaringCoachingReportSelect,
