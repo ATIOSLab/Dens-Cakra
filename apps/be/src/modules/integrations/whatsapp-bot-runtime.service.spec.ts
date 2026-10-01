@@ -1004,4 +1004,161 @@ describe('WhatsappBotRuntimeService report intake', () => {
       }),
     });
   });
+
+  it('runWatchdog memulihkan kanal aktif yang kehilangan instance socket', async () => {
+    const channel = {
+      id: 'ch-active',
+      code: 'WHATSAPP-CHANNEL-1',
+      channelType: 'WHATSAPP',
+      status: 'ACTIVE',
+      config: {},
+    };
+    const prisma = {
+      integrationChannel: {
+        findMany: jest.fn(() => Promise.resolve([channel])),
+        update: jest.fn(() => Promise.resolve()),
+      },
+    };
+    const service = createRuntimeService(prisma);
+    const connectChannel = jest.fn(() => Promise.resolve());
+    (
+      service as unknown as {
+        shouldBootstrapChannel: () => Promise<boolean>;
+        connectChannel: typeof connectChannel;
+      }
+    ).shouldBootstrapChannel = jest.fn(() => Promise.resolve(true));
+    (
+      service as unknown as {
+        connectChannel: typeof connectChannel;
+      }
+    ).connectChannel = connectChannel;
+
+    await service.runWatchdog();
+
+    expect(connectChannel).toHaveBeenCalledWith(channel, { force: true });
+  });
+
+  it('runWatchdog memulihkan socket zombie yang gagal saat liveness probe', async () => {
+    const channel = {
+      id: 'ch-zombie',
+      code: 'WHATSAPP-CHANNEL-1',
+      channelType: 'WHATSAPP',
+      status: 'ACTIVE',
+      config: {},
+    };
+    const prisma = {
+      integrationChannel: {
+        findMany: jest.fn(() => Promise.resolve([channel])),
+        update: jest.fn(() => Promise.resolve()),
+      },
+    };
+    const service = createRuntimeService(prisma);
+    const closeMock = jest.fn(() => Promise.resolve());
+    const deadSocket = {
+      ws: {
+        isOpen: true,
+        close: closeMock,
+      },
+      sendPresenceUpdate: jest.fn(() =>
+        Promise.reject(new Error('SOCKET_HANG')),
+      ),
+    };
+    (
+      service as unknown as {
+        shouldBootstrapChannel: () => Promise<boolean>;
+      }
+    ).shouldBootstrapChannel = jest.fn(() => Promise.resolve(true));
+    const connectChannel = jest.fn(() => Promise.resolve());
+    const disconnectChannel = jest.fn(() => Promise.resolve());
+    (
+      service as unknown as {
+        connectChannel: typeof connectChannel;
+        disconnectChannel: typeof disconnectChannel;
+        runtimes: Map<string, unknown>;
+      }
+    ).connectChannel = connectChannel;
+    (
+      service as unknown as {
+        disconnectChannel: typeof disconnectChannel;
+      }
+    ).disconnectChannel = disconnectChannel;
+    (
+      service as unknown as {
+        runtimes: Map<string, unknown>;
+      }
+    ).runtimes.set('ch-zombie', {
+      connecting: false,
+      socket: deadSocket,
+    });
+
+    await service.runWatchdog();
+
+    expect(closeMock).toHaveBeenCalled();
+    expect(disconnectChannel).toHaveBeenCalledWith('ch-zombie', false);
+    expect(connectChannel).toHaveBeenCalledWith(channel, { force: true });
+  });
+
+  it('mereset autoReconnectAttempts ke 0 ketika koneksi berhasil terbuka', async () => {
+    const service = createRuntimeService();
+    const mockSocket = {
+      user: { id: '6281200000001:1@s.whatsapp.net' },
+      authState: {
+        creds: {
+          me: { id: '6281200000001:1@s.whatsapp.net' },
+          account: {},
+          signalIdentities: [{}],
+        },
+      },
+    };
+    const runtimeState = {
+      connecting: true,
+      autoReconnectAttempts: 3,
+      credsSavePromise: Promise.resolve(),
+      socket: mockSocket,
+    };
+    (
+      service as unknown as {
+        runtimes: Map<string, unknown>;
+        persistState: () => Promise<void>;
+        prisma: { integrationChannel: { update: () => Promise<void> } };
+        vault: { encrypt: () => unknown };
+      }
+    ).runtimes.set('channel-id', runtimeState);
+    (
+      service as unknown as {
+        persistState: () => Promise<void>;
+      }
+    ).persistState = jest.fn(() => Promise.resolve());
+    (
+      service as unknown as {
+        prisma: { integrationChannel: { update: () => Promise<void> } };
+      }
+    ).prisma = {
+      integrationChannel: { update: jest.fn(() => Promise.resolve()) },
+    };
+    (
+      service as unknown as {
+        vault: { encrypt: () => unknown };
+      }
+    ).vault = {
+      encrypt: jest.fn(() => ({})),
+    };
+
+    const handleConnectionUpdate = (
+      service as unknown as {
+        handleConnectionUpdate: (...args: unknown[]) => Promise<void>;
+      }
+    ).handleConnectionUpdate.bind(service);
+
+    await handleConnectionUpdate(
+      { id: 'channel-id', code: 'WHATSAPP-CHANNEL-1', config: {} },
+      mockSocket,
+      { connection: 'open' },
+      'qr',
+      '6281200000001',
+    );
+
+    expect(runtimeState.autoReconnectAttempts).toBe(0);
+    expect(runtimeState.connecting).toBe(false);
+  });
 });

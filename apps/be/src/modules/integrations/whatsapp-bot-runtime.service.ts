@@ -9,6 +9,7 @@ import {
   OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
 import makeWASocket, {
   Browsers,
   DisconnectReason,
@@ -664,6 +665,146 @@ export class WhatsappBotRuntimeService
 
     if (!runtime?.socket && channel.status !== IntegrationStatus.INACTIVE) {
       await this.connectChannel(channel, { force: true });
+      return;
+    }
+
+    if (runtime?.socket?.ws) {
+      if (!runtime.socket.ws.isOpen) {
+        await this.disconnectChannel(channel.id, false);
+        await this.connectChannel(channel, { force: true });
+        return;
+      }
+
+      // Pastikan socket merespons ping aktif dalam 10 detik untuk menghindari zombie socket.
+      try {
+        await Promise.race([
+          runtime.socket.sendPresenceUpdate('available'),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('PING_TIMEOUT')), 10_000),
+          ),
+        ]);
+        await this.prisma.integrationChannel.update({
+          where: { id: channel.id },
+          data: { lastHealthAt: new Date() },
+        });
+      } catch {
+        await this.disconnectChannel(channel.id, false);
+        await this.connectChannel(channel, { force: true });
+      }
+    }
+  }
+
+  @Cron('*/2 * * * *')
+  async runWatchdog() {
+    if (this.shuttingDown) {
+      return;
+    }
+
+    try {
+      const channels = await this.prisma.integrationChannel.findMany({
+        where: {
+          deletedAt: null,
+          OR: [
+            { channelType: { contains: 'WHATSAPP', mode: 'insensitive' } },
+            { channelType: { contains: 'WA', mode: 'insensitive' } },
+          ],
+          status: {
+            in: [
+              IntegrationStatus.ACTIVE,
+              IntegrationStatus.DEGRADED,
+              IntegrationStatus.ERROR,
+            ],
+          },
+        },
+        select: {
+          id: true,
+          code: true,
+          channelType: true,
+          status: true,
+          config: true,
+        },
+      });
+
+      for (const channel of channels) {
+        if (!(await this.shouldBootstrapChannel(channel))) {
+          continue;
+        }
+
+        const runtime = this.runtimes.get(channel.id);
+        const socket = runtime?.socket;
+
+        // Pulihkan kanal aktif yang kehilangan instance socket runtime.
+        if (!runtime || (!socket && !runtime.connecting)) {
+          this.logger.warn(
+            `Watchdog: Kanal ${channel.code} tidak memiliki socket aktif. Menghubungkan ulang otomatis...`,
+          );
+          void this.connectChannel(channel, { force: true }).catch(
+            (error: unknown) => {
+              this.logger.error(
+                `Watchdog gagal menghubungkan ulang ${channel.code}: ${this.messageOf(error)}`,
+              );
+            },
+          );
+          continue;
+        }
+
+        if (socket?.ws) {
+          // Jika state socket tertutup/closing, reset koneksi agar tidak hang.
+          if (!socket.ws.isOpen) {
+            this.logger.warn(
+              `Watchdog: Socket ${channel.code} tidak dalam kondisi terbuka. Mereset koneksi...`,
+            );
+            await this.disconnectChannel(channel.id, false);
+            void this.connectChannel(channel, { force: true }).catch(
+              (error: unknown) => {
+                this.logger.error(
+                  `Watchdog gagal menghubungkan ulang ${channel.code}: ${this.messageOf(error)}`,
+                );
+              },
+            );
+            continue;
+          }
+
+          // Liveness probe 10 detik untuk mendeteksi TCP half-open tanpa FIN/RST packet.
+          try {
+            await Promise.race([
+              socket.sendPresenceUpdate('available'),
+              new Promise((_, reject) =>
+                setTimeout(
+                  () => reject(new Error('WATCHDOG_PING_TIMEOUT')),
+                  10_000,
+                ),
+              ),
+            ]);
+
+            await this.prisma.integrationChannel.update({
+              where: { id: channel.id },
+              data: { lastHealthAt: new Date() },
+            });
+          } catch (probeError: unknown) {
+            this.logger.warn(
+              `Watchdog: Liveness probe gagal untuk ${channel.code}: ${this.messageOf(probeError)}. Menghentikan socket zombie...`,
+            );
+            try {
+              await socket.ws.close();
+            } catch {
+              // Abaikan kegagalan penutupan bila socket sudah tidak aktif.
+            }
+            await this.disconnectChannel(channel.id, false);
+            void this.connectChannel(channel, { force: true }).catch(
+              (error: unknown) => {
+                this.logger.error(
+                  `Watchdog gagal menghubungkan ulang ${channel.code}: ${this.messageOf(error)}`,
+                );
+              },
+            );
+          }
+        }
+      }
+    } catch (error: unknown) {
+      this.logger.error(
+        `Watchdog kanal WhatsApp error: ${this.messageOf(error)}`,
+      );
     }
   }
 
@@ -702,11 +843,15 @@ export class WhatsappBotRuntimeService
     try {
       try {
         await runtime.socket.sendPresenceUpdate('composing', remoteJid);
-      } catch {}
+      } catch {
+        // Gagal update presence composing bersifat non-fatal.
+      }
       await sleep(typingMs);
       try {
         await runtime.socket.sendPresenceUpdate('paused', remoteJid);
-      } catch {}
+      } catch {
+        // Gagal update presence paused bersifat non-fatal.
+      }
 
       const sent = await runtime.socket.sendMessage(remoteJid, { text });
       return { success: true, externalMessageId: sent?.key?.id ?? undefined };
@@ -786,6 +931,8 @@ export class WhatsappBotRuntimeService
         auth: state,
         browser: Browsers.ubuntu(`DENS CAKRA ${channel.code}`),
         connectTimeoutMs: 60_000,
+        keepAliveIntervalMs: 15_000,
+        defaultQueryTimeoutMs: 30_000,
         logger: P({ level: 'silent' }),
         markOnlineOnConnect: false,
         printQRInTerminal: false,
@@ -943,6 +1090,7 @@ export class WhatsappBotRuntimeService
       }
 
       runtime.connecting = false;
+      runtime.autoReconnectAttempts = 0;
       await this.persistState(
         channel.id,
         {
