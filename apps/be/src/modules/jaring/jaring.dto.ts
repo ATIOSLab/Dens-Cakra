@@ -40,6 +40,9 @@ export class JaringQuery {
   @IsOptional() @IsUUID() occupationId?: string;
   @IsOptional() @IsUUID() fieldOfficerAssignmentId?: string;
   @IsOptional() @Type(() => Boolean) @IsBoolean() paginated?: boolean;
+  @IsOptional() @IsString() period?: string;
+  @IsOptional() @IsString() periodStart?: string;
+  @IsOptional() @IsString() periodEnd?: string;
 }
 
 export class CreateJaringDto {

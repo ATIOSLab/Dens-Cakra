@@ -82,6 +82,9 @@ function getInitials(name?: string | null) {
 }
 
 function isJaringActive(item: RegistrationJaring): boolean {
+  if (item.status) {
+    return item.status === "ACTIVE";
+  }
   if (!item.lastReportAt) return false;
   const threeMonthsAgo = Date.now() - 90 * 24 * 60 * 60 * 1000;
   return new Date(item.lastReportAt).getTime() >= threeMonthsAgo;

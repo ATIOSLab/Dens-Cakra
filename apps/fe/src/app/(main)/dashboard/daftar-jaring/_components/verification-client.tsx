@@ -472,6 +472,8 @@ export function JaringVerificationListClient() {
   const [isLoadingItems, setIsLoadingItems] = useState(false);
   const loadRequestRef = useRef(0);
   const [debouncedSearch, setDebouncedSearch] = useState(search);
+  const [debouncedPeriodStartDate, setDebouncedPeriodStartDate] = useState(periodStartDate);
+  const [debouncedPeriodEndDate, setDebouncedPeriodEndDate] = useState(periodEndDate);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -479,6 +481,14 @@ export function JaringVerificationListClient() {
     }, 300);
     return () => clearTimeout(timer);
   }, [search]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedPeriodStartDate(periodStartDate.trim());
+      setDebouncedPeriodEndDate(periodEndDate.trim());
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [periodStartDate, periodEndDate]);
 
   const isReadyToLoad =
     isScopesLoaded ||
@@ -497,6 +507,10 @@ export function JaringVerificationListClient() {
     const primaryStatus: RegistrationJaring["registrationStatus"] =
       activeTab !== "ALL" ? (activeTab as RegistrationJaring["registrationStatus"]) : "APPROVED";
 
+    const isCustom = periodFilter === "CUSTOM";
+    const validStartDate = isCustom && debouncedPeriodStartDate ? debouncedPeriodStartDate : undefined;
+    const validEndDate = isCustom && debouncedPeriodEndDate ? debouncedPeriodEndDate : undefined;
+
     const fetchStatus = async (registrationStatus: RegistrationJaring["registrationStatus"]) => {
       const results: RegistrationJaring[] = [];
       let page = 1;
@@ -507,6 +521,9 @@ export function JaringVerificationListClient() {
             registrationStatus,
             search: debouncedSearch || undefined,
             areaId: serverAreaId,
+            period: periodFilter !== "ALL" ? periodFilter : undefined,
+            periodStart: validStartDate,
+            periodEnd: validEndDate,
             page,
             limit: 500,
           },
@@ -550,7 +567,13 @@ export function JaringVerificationListClient() {
         setIsLoadingItems(false);
       }
     }
-  }, [debouncedSearch, serverAreaId]);
+  }, [
+    debouncedSearch,
+    serverAreaId,
+    periodFilter,
+    debouncedPeriodStartDate,
+    debouncedPeriodEndDate,
+  ]);
 
   useEffect(() => {
     if (!isReadyToLoad) return;
@@ -601,7 +624,7 @@ export function JaringVerificationListClient() {
     villageFilter,
   ]);
 
-  // Final filtered items with status/activity/period/officer filters applied
+  // Final filtered items with status/activity/officer filters applied
   const filteredItems = useMemo(() => {
     return baseFilteredItems.filter((item) => {
       if (statusFilter !== "ALL" && item.registrationStatus !== statusFilter) {
@@ -613,23 +636,12 @@ export function JaringVerificationListClient() {
       if (activeStatusFilter === "INACTIVE" && isJaringActive(item)) {
         return false;
       }
-      if (!reportActivityWithinPeriod(item, periodFilter, periodStartDate, periodEndDate)) {
-        return false;
-      }
       if (officerFilter !== "ALL" && officerName(item) !== officerFilter) {
         return false;
       }
       return true;
     });
-  }, [
-    baseFilteredItems,
-    statusFilter,
-    activeStatusFilter,
-    periodFilter,
-    periodStartDate,
-    periodEndDate,
-    officerFilter,
-  ]);
+  }, [baseFilteredItems, statusFilter, activeStatusFilter, officerFilter]);
 
   const sortedItems = useMemo(() => {
     return [...filteredItems].sort((left, right) => {
@@ -3435,6 +3447,9 @@ function detailRegistrationStatusLabel(status: RegistrationJaring["registrationS
 }
 
 function isJaringActive(item: RegistrationJaring): boolean {
+  if (item.status) {
+    return item.status === "ACTIVE";
+  }
   if (!item.lastReportAt) return false;
   const threeMonthsAgo = Date.now() - 90 * 24 * 60 * 60 * 1000;
   return new Date(item.lastReportAt).getTime() >= threeMonthsAgo;

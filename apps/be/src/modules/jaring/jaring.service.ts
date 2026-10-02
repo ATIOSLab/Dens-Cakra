@@ -834,10 +834,13 @@ export class JaringService {
     }
   }
 
-  private calculateJaringReportActivity(item: {
-    messages?: Array<{ receivedAt: Date }>;
-    reportSessions?: Array<{ submittedAt: Date | null }>;
-  }) {
+  private calculateJaringReportActivity(
+    item: {
+      messages?: Array<{ receivedAt: Date }>;
+      reportSessions?: Array<{ submittedAt: Date | null }>;
+    },
+    cutOffDate?: Date,
+  ) {
     const latestMessageDate = item.messages?.[0]?.receivedAt
       ? new Date(item.messages[0].receivedAt).getTime()
       : null;
@@ -854,12 +857,15 @@ export class JaringService {
       lastReportAt = new Date(latestSessionDate);
     }
 
-    const threeMonthsAgo = new Date();
-    threeMonthsAgo.setDate(threeMonthsAgo.getDate() - 90);
+    const refDate = cutOffDate ?? new Date();
+    const threeMonthsAgo = new Date(
+      refDate.getTime() - 90 * 24 * 60 * 60 * 1000,
+    );
 
     const hasReportInLast3Months =
       lastReportAt !== null &&
-      lastReportAt.getTime() >= threeMonthsAgo.getTime();
+      lastReportAt.getTime() >= threeMonthsAgo.getTime() &&
+      lastReportAt.getTime() <= refDate.getTime();
 
     const computedStatus = hasReportInLast3Months
       ? JaringStatus.ACTIVE
@@ -1486,8 +1492,34 @@ export class JaringService {
         : Promise.resolve([]),
     ]);
 
-    const threeMonthsAgo = new Date();
-    threeMonthsAgo.setDate(threeMonthsAgo.getDate() - 90);
+    const now = new Date();
+    let cutOffDate: Date | undefined;
+    if (query.periodEnd) {
+      const parsedEnd = new Date(
+        query.periodEnd.includes('T')
+          ? query.periodEnd
+          : `${query.periodEnd}T23:59:59.999+07:00`,
+      );
+      if (!isNaN(parsedEnd.getTime())) {
+        cutOffDate = parsedEnd.getTime() > now.getTime() ? now : parsedEnd;
+      }
+    } else if (query.period && query.period !== 'ALL') {
+      const p = String(query.period).trim();
+      const ymMatch = p.match(/^(\d{4})-(\d{2})$/);
+      if (ymMatch) {
+        const y = Number(ymMatch[1]);
+        const m = Number(ymMatch[2]);
+        const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate();
+        const endStr = `${y}-${String(m).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}T23:59:59.999+07:00`;
+        const pEnd = new Date(endStr);
+        cutOffDate = pEnd.getTime() > now.getTime() ? now : pEnd;
+      }
+    }
+
+    const refDate = cutOffDate ?? now;
+    const threeMonthsAgo = new Date(
+      refDate.getTime() - 90 * 24 * 60 * 60 * 1000,
+    );
 
     const baseWhere: Prisma.JaringWhereInput = {
       deletedAt: null,
@@ -1599,12 +1631,22 @@ export class JaringService {
             OR: [
               {
                 reportSessions: {
-                  some: { submittedAt: { gte: threeMonthsAgo } },
+                  some: {
+                    submittedAt: {
+                      gte: threeMonthsAgo,
+                      ...(cutOffDate ? { lte: cutOffDate } : {}),
+                    },
+                  },
                 },
               },
               {
                 messages: {
-                  some: { receivedAt: { gte: threeMonthsAgo } },
+                  some: {
+                    receivedAt: {
+                      gte: threeMonthsAgo,
+                      ...(cutOffDate ? { lte: cutOffDate } : {}),
+                    },
+                  },
                 },
               },
             ],
@@ -1621,12 +1663,22 @@ export class JaringService {
                   AND: [
                     {
                       reportSessions: {
-                        none: { submittedAt: { gte: threeMonthsAgo } },
+                        none: {
+                          submittedAt: {
+                            gte: threeMonthsAgo,
+                            ...(cutOffDate ? { lte: cutOffDate } : {}),
+                          },
+                        },
                       },
                     },
                     {
                       messages: {
-                        none: { receivedAt: { gte: threeMonthsAgo } },
+                        none: {
+                          receivedAt: {
+                            gte: threeMonthsAgo,
+                            ...(cutOffDate ? { lte: cutOffDate } : {}),
+                          },
+                        },
                       },
                     },
                   ],
@@ -1761,6 +1813,7 @@ export class JaringService {
         },
         messages: {
           take: 1,
+          where: cutOffDate ? { receivedAt: { lte: cutOffDate } } : undefined,
           orderBy: { receivedAt: 'desc' },
           select: {
             id: true,
@@ -1769,7 +1822,10 @@ export class JaringService {
         },
         reportSessions: {
           take: 1,
-          orderBy: { lastActivityAt: 'desc' },
+          where: cutOffDate
+            ? { submittedAt: { not: null, lte: cutOffDate } }
+            : { submittedAt: { not: null } },
+          orderBy: { submittedAt: 'desc' },
           select: {
             id: true,
             latitude: true,
@@ -1790,7 +1846,7 @@ export class JaringService {
 
     const mappedItems = items.map((item: (typeof items)[number]) => {
       const { lastReportAt, computedStatus } =
-        this.calculateJaringReportActivity(item);
+        this.calculateJaringReportActivity(item, cutOffDate);
       return {
         ...item,
         lastReportAt,
@@ -3516,7 +3572,7 @@ export class JaringService {
   }
 
   async markReportAsRead(id: string, context: AuthorizationContext) {
-    let [session, korwilLookup] = await Promise.all([
+    const [session, korwilLookup] = await Promise.all([
       this.prisma.whatsAppReportSession.findUnique({
         where: { id },
         select: jaringReportSessionSelect,
