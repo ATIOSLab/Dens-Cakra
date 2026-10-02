@@ -26,6 +26,7 @@ type PrintPageProps = {
     end?: string;
     endDate?: string;
     period?: string;
+    activeDays?: string;
     provinceCode?: string;
     token?: string;
   }>;
@@ -62,6 +63,9 @@ export default async function JaringReportPrintPage({ searchParams }: PrintPageP
     if (period) {
       query.period = period;
     }
+    if (params.activeDays) {
+      query.activeDays = params.activeDays;
+    }
 
     try {
       reportData = await apiServerFetch<ReportPayload>("/jaring/rekap-jangkauan", { query });
@@ -97,6 +101,7 @@ export default async function JaringReportPrintPage({ searchParams }: PrintPageP
         start={start}
         end={end}
         period={params.period}
+        activeDays={params.activeDays}
         provinceCode={params.provinceCode ?? "31"}
         isValid={validation.valid}
       />

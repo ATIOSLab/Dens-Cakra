@@ -239,8 +239,9 @@ export class JaringReportDataService {
         }
       : {};
 
-    const threeMonthsAgo = new Date();
-    threeMonthsAgo.setDate(threeMonthsAgo.getDate() - 90);
+    const activeDays = query.activeDays ? Number(query.activeDays) : 90;
+    const windowAgo = new Date();
+    windowAgo.setDate(windowAgo.getDate() - activeDays);
 
     const activityWhere: Prisma.JaringWhereInput =
       query.status === JaringStatus.ACTIVE
@@ -248,12 +249,12 @@ export class JaringReportDataService {
             OR: [
               {
                 reportSessions: {
-                  some: { submittedAt: { gte: threeMonthsAgo } },
+                  some: { submittedAt: { gte: windowAgo } },
                 },
               },
               {
                 messages: {
-                  some: { receivedAt: { gte: threeMonthsAgo } },
+                  some: { receivedAt: { gte: windowAgo } },
                 },
               },
             ],
@@ -263,12 +264,12 @@ export class JaringReportDataService {
               AND: [
                 {
                   reportSessions: {
-                    none: { submittedAt: { gte: threeMonthsAgo } },
+                    none: { submittedAt: { gte: windowAgo } },
                   },
                 },
                 {
                   messages: {
-                    none: { receivedAt: { gte: threeMonthsAgo } },
+                    none: { receivedAt: { gte: windowAgo } },
                   },
                 },
               ],
@@ -382,8 +383,13 @@ export class JaringReportDataService {
           ?.username ||
         '-';
 
-      const { status: computedStatus, lastReportAt } =
-        this.calculateJaringActivity(item);
+      const {
+        status: computedStatus,
+        lastReportAt,
+        isActive30Days,
+        isActive60Days,
+        isActive90Days,
+      } = this.calculateJaringActivity(item, activeDays);
 
       const formatted: FormattedJaring = {
         id: item.id,
@@ -397,6 +403,9 @@ export class JaringReportDataService {
         gender: item.gender || null,
         status: computedStatus,
         lastReportAt,
+        isActive30Days,
+        isActive60Days,
+        isActive90Days,
         jobTitle: item.jobTitle?.trim() || null,
         workplace: item.workplace?.trim() || null,
         occupationName: item.occupation?.name || null,
@@ -466,11 +475,20 @@ export class JaringReportDataService {
     };
   }
 
-  calculateJaringActivity(item: {
-    messages?: Array<{ receivedAt: Date }>;
-    reportSessions?: Array<{ submittedAt: Date | null }>;
-    status?: string;
-  }): { status: 'ACTIVE' | 'INACTIVE'; lastReportAt: string | null } {
+  calculateJaringActivity(
+    item: {
+      messages?: Array<{ receivedAt: Date }>;
+      reportSessions?: Array<{ submittedAt: Date | null }>;
+      status?: string;
+    },
+    activeDays = 90,
+  ): {
+    status: 'ACTIVE' | 'INACTIVE';
+    lastReportAt: string | null;
+    isActive30Days: boolean;
+    isActive60Days: boolean;
+    isActive90Days: boolean;
+  } {
     if (item.messages !== undefined || item.reportSessions !== undefined) {
       const latestMessageDate = item.messages?.[0]?.receivedAt
         ? new Date(item.messages[0].receivedAt).getTime()
@@ -488,25 +506,42 @@ export class JaringReportDataService {
         lastReportAt = new Date(latestSessionDate);
       }
 
-      const threeMonthsAgo = new Date();
-      threeMonthsAgo.setDate(threeMonthsAgo.getDate() - 90);
+      const now = new Date();
+      const windowAgo = new Date();
+      windowAgo.setDate(windowAgo.getDate() - (activeDays || 90));
 
-      const hasReportInLast3Months =
-        lastReportAt !== null &&
-        lastReportAt.getTime() >= threeMonthsAgo.getTime();
+      const hasReportInWindow =
+        lastReportAt !== null && lastReportAt.getTime() >= windowAgo.getTime();
+
+      const ago30 = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      const ago60 = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+      const ago90 = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+
+      const isActive30Days =
+        lastReportAt !== null && lastReportAt.getTime() >= ago30.getTime();
+      const isActive60Days =
+        lastReportAt !== null && lastReportAt.getTime() >= ago60.getTime();
+      const isActive90Days =
+        lastReportAt !== null && lastReportAt.getTime() >= ago90.getTime();
 
       return {
-        status: hasReportInLast3Months ? 'ACTIVE' : 'INACTIVE',
+        status: hasReportInWindow ? 'ACTIVE' : 'INACTIVE',
         lastReportAt: lastReportAt ? lastReportAt.toISOString() : null,
+        isActive30Days,
+        isActive60Days,
+        isActive90Days,
       };
     }
 
     // Fallback if messages/reportSessions relations were not loaded (e.g. unit test mocks)
     const fallbackStatus = (item.status as string) || 'ACTIVE';
+    const isAct = fallbackStatus.toUpperCase() !== 'INACTIVE';
     return {
-      status:
-        fallbackStatus.toUpperCase() === 'INACTIVE' ? 'INACTIVE' : 'ACTIVE',
+      status: isAct ? 'ACTIVE' : 'INACTIVE',
       lastReportAt: null,
+      isActive30Days: isAct,
+      isActive60Days: isAct,
+      isActive90Days: isAct,
     };
   }
 

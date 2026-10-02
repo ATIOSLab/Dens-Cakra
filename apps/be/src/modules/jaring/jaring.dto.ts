@@ -43,6 +43,11 @@ export class JaringQuery {
   @IsOptional() @IsString() period?: string;
   @IsOptional() @IsString() periodStart?: string;
   @IsOptional() @IsString() periodEnd?: string;
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @IsIn([30, 60, 90])
+  activeDays?: number = 90;
 }
 
 export class CreateJaringDto {
@@ -333,6 +338,12 @@ export class JaringExportPdfQueryDto {
   @IsOptional()
   @IsString()
   jaringIds?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @IsIn([30, 60, 90])
+  activeDays?: number = 90;
 }
 
 export class JaringRekapJangkauanQueryDto {
@@ -375,4 +386,10 @@ export class JaringRekapJangkauanQueryDto {
   @IsOptional()
   @IsString()
   provinceCode?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @IsIn([30, 60, 90])
+  activeDays?: number = 90;
 }

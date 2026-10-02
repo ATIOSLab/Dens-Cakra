@@ -32,6 +32,7 @@ export async function GET(request: NextRequest) {
   const start = searchParams.get("start") ?? searchParams.get("startDate") ?? "2026-09-01";
   const end = searchParams.get("end") ?? searchParams.get("endDate") ?? "2026-09-23";
   const period = searchParams.get("period");
+  const activeDays = searchParams.get("activeDays");
   const provinceCode = searchParams.get("provinceCode") ?? "31";
 
   const query: Record<string, string> = {
@@ -41,6 +42,9 @@ export async function GET(request: NextRequest) {
   };
   if (period) {
     query.period = period;
+  }
+  if (activeDays) {
+    query.activeDays = activeDays;
   }
 
   let reportData: ReportPayload;

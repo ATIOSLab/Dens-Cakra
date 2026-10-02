@@ -5,12 +5,16 @@ export interface ReportMetadata {
   pullAt: string;
   activityWindowStart: string;
   periodDays: number;
+  activeDays?: number;
 }
 
 export interface ReportSummary {
   total: number;
   active: number;
   inactive: number;
+  active30?: number;
+  active60?: number;
+  active90?: number;
   reporters: number;
   reports: number;
 }

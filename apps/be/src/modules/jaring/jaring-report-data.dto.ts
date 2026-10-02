@@ -16,6 +16,9 @@ export type FormattedJaring = {
   gender: string | null;
   status: 'ACTIVE' | 'INACTIVE';
   lastReportAt?: string | null;
+  isActive30Days?: boolean;
+  isActive60Days?: boolean;
+  isActive90Days?: boolean;
   jobTitle: string | null;
   workplace: string | null;
   occupationName: string | null;

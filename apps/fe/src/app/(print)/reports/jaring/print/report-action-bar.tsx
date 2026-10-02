@@ -35,6 +35,7 @@ export function ReportActionBar({
   start,
   end,
   period,
+  activeDays,
   provinceCode,
   isValid,
 }: {
@@ -42,6 +43,7 @@ export function ReportActionBar({
   start: string;
   end: string;
   period?: string;
+  activeDays?: string;
   provinceCode?: string;
   isValid: boolean;
 }) {
@@ -53,6 +55,7 @@ export function ReportActionBar({
   const [selectedPreset, setSelectedPreset] = useState<string>(period ?? "CURRENT_MONTH");
   const [currentStart, setCurrentStart] = useState<string>(start);
   const [currentEnd, setCurrentEnd] = useState<string>(end);
+  const [selectedActiveDays, setSelectedActiveDays] = useState<string>(activeDays ? String(activeDays) : "90");
   const [selectedRegency, setSelectedRegency] = useState<string>(
     provinceCode && provinceCode !== "31" ? provinceCode : "ALL",
   );
@@ -91,6 +94,9 @@ export function ReportActionBar({
       period: selectedPreset,
       provinceCode: effectiveProvinceCode,
     });
+    if (selectedActiveDays && selectedActiveDays !== "90") {
+      query.set("activeDays", selectedActiveDays);
+    }
     router.push(`/reports/jaring/print?${query.toString()}`);
     setTimeout(() => {
       setIsApplying(false);
@@ -102,6 +108,7 @@ export function ReportActionBar({
     setSelectedPreset("CURRENT_MONTH");
     setCurrentStart(dates.start);
     setCurrentEnd(dates.end);
+    setSelectedActiveDays("90");
     setSelectedRegency("ALL");
     const query = new URLSearchParams({
       start: dates.start,
@@ -117,7 +124,7 @@ export function ReportActionBar({
     setNotice(null);
     try {
       const effectiveProvinceCode = selectedRegency === "ALL" ? "31" : selectedRegency;
-      const pdfUrl = `/api/reports/jaring/pdf?start=${encodeURIComponent(currentStart)}&end=${encodeURIComponent(currentEnd)}&period=${encodeURIComponent(selectedPreset)}&provinceCode=${encodeURIComponent(effectiveProvinceCode)}&_t=${Date.now()}`;
+      const pdfUrl = `/api/reports/jaring/pdf?start=${encodeURIComponent(currentStart)}&end=${encodeURIComponent(currentEnd)}&period=${encodeURIComponent(selectedPreset)}&provinceCode=${encodeURIComponent(effectiveProvinceCode)}&activeDays=${encodeURIComponent(selectedActiveDays)}&_t=${Date.now()}`;
       const response = await fetch(pdfUrl);
 
       if (response.ok) {
@@ -290,6 +297,29 @@ export function ReportActionBar({
                     {r.label}
                   </option>
                 ))}
+              </select>
+            </div>
+
+            {/* Jendela Aktivitas (30, 60, 90 Hari) */}
+            <div className="flex items-center gap-1.5">
+              <span className="flex items-center gap-1 font-medium text-white/80">
+                <ShieldCheck className="size-3.5 text-emerald-400" />
+                <span>Basis Keaktifan:</span>
+              </span>
+              <select
+                value={selectedActiveDays}
+                onChange={(e) => setSelectedActiveDays(e.target.value)}
+                className="h-8 rounded border border-white/25 bg-[#0e2c3d] px-2.5 font-medium text-white text-xs shadow-inner focus:border-[#2AA8C3] focus:outline-none"
+              >
+                <option value="30" className="bg-slate-800 text-white">
+                  30 Hari
+                </option>
+                <option value="60" className="bg-slate-800 text-white">
+                  60 Hari
+                </option>
+                <option value="90" className="bg-slate-800 text-white">
+                  90 Hari (Standar)
+                </option>
               </select>
             </div>
           </div>

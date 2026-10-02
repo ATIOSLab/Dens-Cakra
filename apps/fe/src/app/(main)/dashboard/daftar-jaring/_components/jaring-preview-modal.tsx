@@ -81,13 +81,43 @@ function getInitials(name?: string | null) {
   return (words[0][0] + words[words.length - 1][0]).toUpperCase();
 }
 
-function isJaringActive(item: RegistrationJaring): boolean {
-  if (item.status) {
-    return item.status === "ACTIVE";
-  }
+function isJaringActiveInDays(item: RegistrationJaring, days: 30 | 60 | 90): boolean {
+  if (days === 30 && typeof item.isActive30Days === "boolean") return item.isActive30Days;
+  if (days === 60 && typeof item.isActive60Days === "boolean") return item.isActive60Days;
+  if (days === 90 && typeof item.isActive90Days === "boolean") return item.isActive90Days;
   if (!item.lastReportAt) return false;
-  const threeMonthsAgo = Date.now() - 90 * 24 * 60 * 60 * 1000;
-  return new Date(item.lastReportAt).getTime() >= threeMonthsAgo;
+  const time = new Date(item.lastReportAt).getTime();
+  if (Number.isNaN(time)) return false;
+  return time >= Date.now() - days * 24 * 60 * 60 * 1000;
+}
+
+function getJaringActivityTier(item: RegistrationJaring) {
+  if (isJaringActiveInDays(item, 30)) {
+    return {
+      label: DOMAIN_TERMS.jaringActive30Days,
+      tier: 30,
+      tone: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-950/40 dark:text-[#22C55E]",
+    };
+  }
+  if (isJaringActiveInDays(item, 60)) {
+    return {
+      label: DOMAIN_TERMS.jaringActive60Days,
+      tier: 60,
+      tone: "border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-500/20 dark:bg-teal-950/40 dark:text-teal-400",
+    };
+  }
+  if (isJaringActiveInDays(item, 90)) {
+    return {
+      label: DOMAIN_TERMS.jaringActive90Days,
+      tier: 90,
+      tone: "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-500/20 dark:bg-sky-950/40 dark:text-sky-400",
+    };
+  }
+  return {
+    label: DOMAIN_TERMS.jaringInactive90Days,
+    tier: 0,
+    tone: "border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300",
+  };
 }
 
 function statusBadgeVariant(status: RegistrationJaring["registrationStatus"]) {
@@ -133,7 +163,7 @@ export function JaringPreviewModal({ jaring, open, onOpenChange }: JaringPreview
 
   const primaryFo = jaring.caretakerAssignments[0]?.fieldOfficerAssignment;
   const foName = primaryFo?.userProfile?.fullName ?? "Belum ditugaskan";
-  const active = isJaringActive(jaring);
+  const activityTier = getJaringActivityTier(jaring);
 
   const hasBirthInfo = Boolean(jaring.birthPlace ?? jaring.birthDate);
   const hasJobInfo = Boolean(jaring.jobTitle ?? jaring.workplace);
@@ -165,12 +195,10 @@ export function JaringPreviewModal({ jaring, open, onOpenChange }: JaringPreview
             <span
               className={cn(
                 "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-semibold text-[10px] uppercase tracking-[0.06em]",
-                active
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-950/40 dark:text-[#22C55E]"
-                  : "border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300",
+                activityTier.tone,
               )}
             >
-              {active ? DOMAIN_TERMS.jaringActive90Days : DOMAIN_TERMS.jaringInactive90Days}
+              {activityTier.label}
             </span>
           </div>
 
@@ -283,7 +311,69 @@ export function JaringPreviewModal({ jaring, open, onOpenChange }: JaringPreview
             </div>
           </div>
 
-          {/* Section 2: Wilayah Penugasan & Petugas Wilayah (Gaswil) */}
+          {/* Section 2: Status & Kinerja Aktivitas */}
+          <div className="space-y-2">
+            <h4 className="font-semibold text-xs text-muted-foreground uppercase tracking-wider">
+              Status & Kinerja Aktivitas
+            </h4>
+            <div className="rounded-lg border border-border/70 bg-card p-3.5 space-y-3 text-xs">
+              <div className="flex items-center justify-between border-b border-border/50 pb-2">
+                <div className="flex items-center gap-1.5 font-medium text-foreground">
+                  <Clock className="size-3.5 text-sky-600 dark:text-sky-400" />
+                  <span>Riwayat Laporan Terakhir</span>
+                </div>
+                <span className="font-mono font-semibold text-foreground">
+                  {jaring.lastReportAt ? formatDateTime(jaring.lastReportAt) : "Belum pernah melapor"}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div
+                  className={cn(
+                    "rounded-md border p-2 text-xs",
+                    isJaringActiveInDays(jaring, 30)
+                      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                      : "border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-800 dark:bg-slate-900/50 dark:text-slate-400",
+                  )}
+                >
+                  <span className="block font-bold text-[10px] uppercase tracking-wide">30 Hari</span>
+                  <span className="mt-0.5 block font-semibold text-xs">
+                    {isJaringActiveInDays(jaring, 30) ? "Aktif" : "Tidak Aktif"}
+                  </span>
+                </div>
+
+                <div
+                  className={cn(
+                    "rounded-md border p-2 text-xs",
+                    isJaringActiveInDays(jaring, 60)
+                      ? "border-teal-500/30 bg-teal-500/10 text-teal-700 dark:text-teal-300"
+                      : "border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-800 dark:bg-slate-900/50 dark:text-slate-400",
+                  )}
+                >
+                  <span className="block font-bold text-[10px] uppercase tracking-wide">60 Hari</span>
+                  <span className="mt-0.5 block font-semibold text-xs">
+                    {isJaringActiveInDays(jaring, 60) ? "Aktif" : "Tidak Aktif"}
+                  </span>
+                </div>
+
+                <div
+                  className={cn(
+                    "rounded-md border p-2 text-xs",
+                    isJaringActiveInDays(jaring, 90)
+                      ? "border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300"
+                      : "border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-800 dark:bg-slate-900/50 dark:text-slate-400",
+                  )}
+                >
+                  <span className="block font-bold text-[10px] uppercase tracking-wide">90 Hari</span>
+                  <span className="mt-0.5 block font-semibold text-xs">
+                    {isJaringActiveInDays(jaring, 90) ? "Aktif" : "Tidak Aktif"}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 3: Wilayah Penugasan & Petugas Wilayah (Gaswil) */}
           <div className="space-y-2">
             <h4 className="font-semibold text-xs text-muted-foreground uppercase tracking-wider">
               {DOMAIN_TERMS.jaringPlacementArea} & {DOMAIN_TERMS.jaringCaretaker}

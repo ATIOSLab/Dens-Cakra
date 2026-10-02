@@ -108,7 +108,7 @@ const COLUMN_OPTIONS = [
   { id: "district", label: "Kecamatan" },
   { id: "occupation", label: "Pekerjaan" },
   { id: "status", label: "Status Registrasi" },
-  { id: "kinerja", label: DOMAIN_TERMS.jaringActivity90Days },
+  { id: "kinerja", label: "Status Aktivitas" },
 ] as const;
 
 type JaringColumn = (typeof COLUMN_OPTIONS)[number]["id"];
@@ -195,10 +195,15 @@ function reportActivityWithinPeriod(
   if (period === "LAST_7_DAYS") return lastReport >= now - 7 * 86_400_000;
   if (period === "LAST_14_DAYS") return lastReport >= now - 14 * 86_400_000;
   if (period === "LAST_30_DAYS") return lastReport >= now - 30 * 86_400_000;
-  const from = startDate ? new Date(`${startDate}T00:00:00+07:00`).getTime() : null;
-  const to = endDate ? new Date(`${endDate}T23:59:59.999+07:00`).getTime() : null;
-  if (from && lastReport < from) return false;
-  if (to && lastReport > to) return false;
+  if (period === "CUSTOM") {
+    const fromTime = startDate ? new Date(`${startDate}T00:00:00+07:00`).getTime() : null;
+    const toTime = endDate ? new Date(`${endDate}T23:59:59.999+07:00`).getTime() : null;
+    const validFrom = fromTime && !Number.isNaN(fromTime) ? fromTime : null;
+    const validTo = toTime && !Number.isNaN(toTime) ? toTime : null;
+    if (validFrom && lastReport < validFrom) return false;
+    if (validTo && lastReport > validTo) return false;
+    return true;
+  }
   return true;
 }
 
@@ -308,7 +313,13 @@ export function JaringVerificationListClient() {
   });
   const [activeStatusFilter, setActiveStatusFilter] = useState<string>(() => {
     const value = searchParams.get("activityStatus");
-    return value === "ACTIVE" || value === "INACTIVE" ? value : "ALL";
+    return value === "ACTIVE" ||
+      value === "ACTIVE_30" ||
+      value === "ACTIVE_60" ||
+      value === "ACTIVE_90" ||
+      value === "INACTIVE"
+      ? value
+      : "ALL";
   });
   const [periodFilter, setPeriodFilter] = useState<ReportPeriodFilter>(() => {
     const value = searchParams.get("period");
@@ -567,13 +578,7 @@ export function JaringVerificationListClient() {
         setIsLoadingItems(false);
       }
     }
-  }, [
-    debouncedSearch,
-    serverAreaId,
-    periodFilter,
-    debouncedPeriodStartDate,
-    debouncedPeriodEndDate,
-  ]);
+  }, [debouncedSearch, serverAreaId, periodFilter, debouncedPeriodStartDate, debouncedPeriodEndDate]);
 
   useEffect(() => {
     if (!isReadyToLoad) return;
@@ -592,9 +597,12 @@ export function JaringVerificationListClient() {
     const rejected = baseFilteredItems.filter((i) => i.registrationStatus === "REJECTED").length;
     const suspended = baseFilteredItems.filter((i) => i.registrationStatus === "SUSPENDED").length;
     const verifiedItems = baseFilteredItems.filter((i) => i.registrationStatus === "APPROVED");
-    const active = verifiedItems.filter(isJaringActive).length;
-    const inactive = verifiedItems.length - active;
-    return { total, pending, approved, rejected, suspended, active, inactive };
+    const active30 = verifiedItems.filter((i) => isJaringActiveInDays(i, 30)).length;
+    const active60 = verifiedItems.filter((i) => isJaringActiveInDays(i, 60)).length;
+    const active90 = verifiedItems.filter((i) => isJaringActiveInDays(i, 90)).length;
+    const active = active90;
+    const inactive = verifiedItems.length - active90;
+    return { total, pending, approved, rejected, suspended, active, active30, active60, active90, inactive };
   }, [baseFilteredItems]);
 
   const areaSubtitle = useMemo(() => {
@@ -630,18 +638,35 @@ export function JaringVerificationListClient() {
       if (statusFilter !== "ALL" && item.registrationStatus !== statusFilter) {
         return false;
       }
-      if (activeStatusFilter === "ACTIVE" && !isJaringActive(item)) {
+      if (activeStatusFilter === "ACTIVE_30" && !isJaringActiveInDays(item, 30)) {
         return false;
       }
-      if (activeStatusFilter === "INACTIVE" && isJaringActive(item)) {
+      if (activeStatusFilter === "ACTIVE_60" && !isJaringActiveInDays(item, 60)) {
+        return false;
+      }
+      if ((activeStatusFilter === "ACTIVE_90" || activeStatusFilter === "ACTIVE") && !isJaringActiveInDays(item, 90)) {
+        return false;
+      }
+      if (activeStatusFilter === "INACTIVE" && isJaringActiveInDays(item, 90)) {
         return false;
       }
       if (officerFilter !== "ALL" && officerName(item) !== officerFilter) {
         return false;
       }
+      if (!reportActivityWithinPeriod(item, periodFilter, periodStartDate, periodEndDate)) {
+        return false;
+      }
       return true;
     });
-  }, [baseFilteredItems, statusFilter, activeStatusFilter, officerFilter]);
+  }, [
+    baseFilteredItems,
+    statusFilter,
+    activeStatusFilter,
+    officerFilter,
+    periodFilter,
+    periodStartDate,
+    periodEndDate,
+  ]);
 
   const sortedItems = useMemo(() => {
     return [...filteredItems].sort((left, right) => {
@@ -764,10 +789,17 @@ export function JaringVerificationListClient() {
     }
 
     if (activeStatusFilter !== "ALL") {
+      let activityLabel: string = DOMAIN_TERMS.jaringActive90Days;
+      if (activeStatusFilter === "ACTIVE_30") activityLabel = DOMAIN_TERMS.jaringActive30Days;
+      else if (activeStatusFilter === "ACTIVE_60") activityLabel = DOMAIN_TERMS.jaringActive60Days;
+      else if (activeStatusFilter === "ACTIVE_90" || activeStatusFilter === "ACTIVE")
+        activityLabel = DOMAIN_TERMS.jaringActive90Days;
+      else if (activeStatusFilter === "INACTIVE") activityLabel = DOMAIN_TERMS.jaringInactive90Days;
+
       chips.push({
         id: "activity",
         label: "Aktivitas",
-        value: activeStatusFilter === "ACTIVE" ? DOMAIN_TERMS.jaringActive90Days : DOMAIN_TERMS.jaringInactive90Days,
+        value: activityLabel,
         onRemove: () => {
           setActiveStatusFilter("ALL");
           setPage(1);
@@ -932,8 +964,8 @@ export function JaringVerificationListClient() {
           <div className="max-w-3xl">
             <h1 className={DC_TYPOGRAPHY.pageTitle}>Daftar Jaring</h1>
             <p className="mt-1.5 max-w-2xl text-muted-foreground text-sm">
-              Kelola data Jaring, wilayah penempatan, Petugas Wilayah (Gaswil), status registrasi, dan aktivitas
-              pelaporan 90 hari.
+              Kelola data Jaring, wilayah penempatan, Petugas Wilayah (Gaswil), status registrasi, dan keaktifan
+              pelaporan (30, 60, dan 90 hari).
             </p>
             <p className="mt-2 font-medium text-foreground text-sm">{areaSubtitle}</p>
           </div>
@@ -949,7 +981,7 @@ export function JaringVerificationListClient() {
         </div>
 
         {/* SUMMARY CARDS */}
-        <div className="grid w-full grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-7">
+        <div className="grid w-full grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 min-[1400px]:grid-cols-9">
           <SummaryCard
             label="Total Jaring Terverifikasi"
             value={summary.approved}
@@ -1007,16 +1039,46 @@ export function JaringVerificationListClient() {
             }}
           />
           <SummaryCard
-            label="Total Jaring Aktif"
-            value={summary.active}
+            label="Total Jaring Aktif 90 Hari"
+            value={summary.active90}
             icon={DOMAIN_VISUALS.jaring.Icon}
             iconClass="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
             valueClass="text-emerald-600 dark:text-emerald-400"
-            selected={statusFilter === "APPROVED" && activeStatusFilter === "ACTIVE"}
+            selected={
+              statusFilter === "APPROVED" && (activeStatusFilter === "ACTIVE_90" || activeStatusFilter === "ACTIVE")
+            }
             selectedClass="border-emerald-500 ring-2 ring-emerald-500/30 bg-emerald-500/5 dark:bg-emerald-500/10"
             onClick={() => {
               setStatusFilter("APPROVED");
-              setActiveStatusFilter("ACTIVE");
+              setActiveStatusFilter("ACTIVE_90");
+              setPage(1);
+            }}
+          />
+          <SummaryCard
+            label="Total Jaring Aktif 60 Hari"
+            value={summary.active60}
+            icon={DOMAIN_VISUALS.jaring.Icon}
+            iconClass="bg-teal-500/10 text-teal-600 dark:text-teal-400"
+            valueClass="text-teal-600 dark:text-teal-400"
+            selected={statusFilter === "APPROVED" && activeStatusFilter === "ACTIVE_60"}
+            selectedClass="border-teal-500 ring-2 ring-teal-500/30 bg-teal-500/5 dark:bg-teal-500/10"
+            onClick={() => {
+              setStatusFilter("APPROVED");
+              setActiveStatusFilter("ACTIVE_60");
+              setPage(1);
+            }}
+          />
+          <SummaryCard
+            label="Total Jaring Aktif 30 Hari"
+            value={summary.active30}
+            icon={DOMAIN_VISUALS.jaring.Icon}
+            iconClass="bg-cyan-500/10 text-cyan-600 dark:text-cyan-400"
+            valueClass="text-cyan-600 dark:text-cyan-400"
+            selected={statusFilter === "APPROVED" && activeStatusFilter === "ACTIVE_30"}
+            selectedClass="border-cyan-500 ring-2 ring-cyan-500/30 bg-cyan-500/5 dark:bg-cyan-500/10"
+            onClick={() => {
+              setStatusFilter("APPROVED");
+              setActiveStatusFilter("ACTIVE_30");
               setPage(1);
             }}
           />
@@ -1170,8 +1232,8 @@ export function JaringVerificationListClient() {
               </NativeSelect>
             </FilterField>
 
-            {/* Aktivitas Laporan 90 Hari */}
-            <FilterField label="Aktivitas (90 Hari)" icon={Clock} isActive={activeStatusFilter !== "ALL"}>
+            {/* Aktivitas Laporan */}
+            <FilterField label="Aktivitas Pelaporan" icon={Clock} isActive={activeStatusFilter !== "ALL"}>
               <NativeSelect
                 aria-label="Filter Aktivitas Laporan"
                 value={activeStatusFilter}
@@ -1183,7 +1245,9 @@ export function JaringVerificationListClient() {
                 className="h-9 w-full text-xs"
               >
                 <option value="ALL">Semua Aktivitas</option>
-                <option value="ACTIVE">{DOMAIN_TERMS.jaringActive90Days}</option>
+                <option value="ACTIVE_30">{DOMAIN_TERMS.jaringActive30Days}</option>
+                <option value="ACTIVE_60">{DOMAIN_TERMS.jaringActive60Days}</option>
+                <option value="ACTIVE_90">{DOMAIN_TERMS.jaringActive90Days}</option>
                 <option value="INACTIVE">{DOMAIN_TERMS.jaringInactive90Days}</option>
               </NativeSelect>
             </FilterField>
@@ -1523,7 +1587,7 @@ export function JaringVerificationListClient() {
                   ) : null}
                   {isColumnVisible("kinerja") ? (
                     <TableHead className={cn(DC_TYPOGRAPHY.tableHeader, "min-w-[190px] py-3.5")}>
-                      {DOMAIN_TERMS.jaringActivity90Days}
+                      Status Aktivitas
                     </TableHead>
                   ) : null}
                   <TableHead className={cn(DC_TYPOGRAPHY.tableHeader, "min-w-[160px] py-3.5 pr-6 text-right")}>
@@ -2842,8 +2906,42 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
               <DetailRow label="Alamat">
                 <span className="whitespace-pre-wrap">{item.address ?? "-"}</span>
               </DetailRow>
-              <DetailRow label={DOMAIN_TERMS.jaringActivity90Days}>
-                <StatusPill tone={operationalStatusTone(item)}>{operationalStatusLabel(item)}</StatusPill>
+              <DetailRow label="Status Aktivitas">
+                <div className="flex flex-col gap-2">
+                  <StatusPill tone={operationalStatusTone(item)}>{operationalStatusLabel(item)}</StatusPill>
+                  <div className="flex flex-wrap gap-1.5 text-[11px]">
+                    <span
+                      className={cn(
+                        "rounded border px-2 py-0.5 font-medium",
+                        isJaringActiveInDays(item, 30)
+                          ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                          : "border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-800 dark:bg-slate-900/50",
+                      )}
+                    >
+                      30 Hari: {isJaringActiveInDays(item, 30) ? "Aktif" : "Tidak Aktif"}
+                    </span>
+                    <span
+                      className={cn(
+                        "rounded border px-2 py-0.5 font-medium",
+                        isJaringActiveInDays(item, 60)
+                          ? "border-teal-500/30 bg-teal-500/10 text-teal-700 dark:text-teal-300"
+                          : "border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-800 dark:bg-slate-900/50",
+                      )}
+                    >
+                      60 Hari: {isJaringActiveInDays(item, 60) ? "Aktif" : "Tidak Aktif"}
+                    </span>
+                    <span
+                      className={cn(
+                        "rounded border px-2 py-0.5 font-medium",
+                        isJaringActiveInDays(item, 90)
+                          ? "border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300"
+                          : "border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-800 dark:bg-slate-900/50",
+                      )}
+                    >
+                      90 Hari: {isJaringActiveInDays(item, 90) ? "Aktif" : "Tidak Aktif"}
+                    </span>
+                  </div>
+                </div>
               </DetailRow>
               <DetailRow label="Terakhir Melapor">
                 <span className="font-medium font-mono">
@@ -3446,24 +3544,59 @@ function detailRegistrationStatusLabel(status: RegistrationJaring["registrationS
   return "DISETUJUI";
 }
 
-function isJaringActive(item: RegistrationJaring): boolean {
-  if (item.status) {
-    return item.status === "ACTIVE";
-  }
+function isJaringActiveInDays(item: RegistrationJaring, days: 30 | 60 | 90): boolean {
+  if (days === 30 && typeof item.isActive30Days === "boolean") return item.isActive30Days;
+  if (days === 60 && typeof item.isActive60Days === "boolean") return item.isActive60Days;
+  if (days === 90 && typeof item.isActive90Days === "boolean") return item.isActive90Days;
   if (!item.lastReportAt) return false;
-  const threeMonthsAgo = Date.now() - 90 * 24 * 60 * 60 * 1000;
-  return new Date(item.lastReportAt).getTime() >= threeMonthsAgo;
+  const time = new Date(item.lastReportAt).getTime();
+  if (Number.isNaN(time)) return false;
+  return time >= Date.now() - days * 24 * 60 * 60 * 1000;
+}
+
+function isJaringActive(item: RegistrationJaring): boolean {
+  return isJaringActiveInDays(item, 90);
+}
+
+function getJaringActivityTier(item: RegistrationJaring) {
+  if (isJaringActiveInDays(item, 30)) {
+    return {
+      tier: 30,
+      label: DOMAIN_TERMS.jaringActive30Days,
+      badgeText: "Aktif 30 Hari",
+      tone: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-950/40 dark:text-[#22C55E]",
+    };
+  }
+  if (isJaringActiveInDays(item, 60)) {
+    return {
+      tier: 60,
+      label: DOMAIN_TERMS.jaringActive60Days,
+      badgeText: "Aktif 60 Hari",
+      tone: "border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-500/20 dark:bg-teal-950/40 dark:text-teal-400",
+    };
+  }
+  if (isJaringActiveInDays(item, 90)) {
+    return {
+      tier: 90,
+      label: DOMAIN_TERMS.jaringActive90Days,
+      badgeText: "Aktif 90 Hari",
+      tone: "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-500/20 dark:bg-sky-950/40 dark:text-sky-400",
+    };
+  }
+  return {
+    tier: 0,
+    label: DOMAIN_TERMS.jaringInactive90Days,
+    badgeText: "Tidak Aktif (>90H)",
+    tone: "border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300",
+  };
 }
 
 function operationalStatusLabel(item: RegistrationJaring) {
-  return isJaringActive(item) ? DOMAIN_TERMS.jaringActive90Days : DOMAIN_TERMS.jaringInactive90Days;
+  return getJaringActivityTier(item).badgeText;
 }
 
 function operationalStatusTone(item: RegistrationJaring) {
-  if (!isJaringActive(item)) {
-    return "border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300";
-  }
-  return "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-950/40 dark:text-[#22C55E]";
+  return getJaringActivityTier(item).tone;
 }
 
 function DetailTabButton({ active, children, onClick }: { active: boolean; children: ReactNode; onClick: () => void }) {
@@ -3533,6 +3666,7 @@ function StatusPill({ children, tone }: { children: ReactNode; tone: string }) {
 function SummaryCard({
   label,
   value,
+  extra,
   icon: Icon,
   iconClass,
   valueClass,
@@ -3542,6 +3676,7 @@ function SummaryCard({
 }: {
   label: string;
   value: number;
+  extra?: ReactNode;
   icon: ComponentType<{ className?: string }>;
   iconClass: string;
   valueClass: string;
@@ -3554,18 +3689,21 @@ function SummaryCard({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex min-w-[170px] cursor-pointer items-center gap-3 rounded-md border bg-card p-3.5 text-left shadow-xs transition-all duration-150 active:scale-[0.98]",
+        "flex min-w-0 cursor-pointer items-center gap-2.5 rounded-md border bg-card p-3 text-left shadow-xs transition-all duration-150 active:scale-[0.98]",
         selected
           ? selectedClass
           : "border-slate-200/80 hover:border-slate-300/60 hover:bg-slate-50/50 dark:border-white/10 dark:hover:bg-slate-900/50",
       )}
     >
-      <div className={cn("flex size-10 shrink-0 items-center justify-center rounded-md", iconClass)}>
-        <Icon className="size-5" />
+      <div className={cn("flex size-9 shrink-0 items-center justify-center rounded-md", iconClass)}>
+        <Icon className="size-4.5" />
       </div>
-      <div className="min-w-0">
-        <p className="font-medium text-[11px] text-muted-foreground uppercase tracking-wider">{label}</p>
-        <p className={cn("font-bold text-xl tracking-normal", valueClass)}>{value}</p>
+      <div className="min-w-0 flex-1">
+        <p className="font-medium text-[10.5px] text-muted-foreground uppercase tracking-wider leading-tight line-clamp-2">
+          {label}
+        </p>
+        <p className={cn("font-bold text-lg sm:text-xl tracking-normal mt-0.5", valueClass)}>{value}</p>
+        {extra}
       </div>
     </button>
   );

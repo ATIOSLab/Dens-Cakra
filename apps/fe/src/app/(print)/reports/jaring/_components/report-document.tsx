@@ -127,12 +127,14 @@ export function CoverPage({ data }: { data: ReportPayload }) {
             <dd className="font-semibold text-[#243B4D]">Provinsi DKI Jakarta (6 Kab/Kota, 44 Kecamatan)</dd>
 
             <dt className="font-medium text-[#67839A]">Basis Pengukuran</dt>
-            <dd className="text-[#243B4D]">Jaring Terverifikasi, Aktivitas 90 Hari, dan Pembinaan</dd>
+            <dd className="text-[#243B4D]">
+              Jaring Terverifikasi, Aktivitas {data.metadata.activeDays ?? 90} Hari, dan Pembinaan
+            </dd>
 
             <dt className="font-medium text-[#67839A]">Penarikan Data</dt>
             <dd className="font-mono text-[#243B4D]">{data.metadata.pullAt}</dd>
 
-            <dt className="font-medium text-[#67839A]">Batas Aktivitas 90 Hari</dt>
+            <dt className="font-medium text-[#67839A]">Batas Aktivitas {data.metadata.activeDays ?? 90} Hari</dt>
             <dd className="font-mono text-[#67839A] text-[11px]">Sejak {data.metadata.activityWindowStart}</dd>
           </dl>
         </div>
@@ -166,7 +168,7 @@ export function ExecutiveSummaryPage({ data }: { data: ReportPayload }) {
         <div className="mt-4 grid grid-cols-4 gap-3">
           <KpiCard title="Total Jaring" value={data.summary.total} subtitle="Jaring Terverifikasi" accent="dark" />
           <KpiCard
-            title="Aktif 90 Hari"
+            title={`Aktif ${data.metadata.activeDays ?? 90} Hari`}
             value={data.summary.active}
             subtitle={`${formatPercent(activeRate)} dari total`}
             accent="green"
@@ -190,7 +192,7 @@ export function ExecutiveSummaryPage({ data }: { data: ReportPayload }) {
           {/* Komposisi Keaktifan */}
           <div className="rounded-lg border border-[#C9D9E1] bg-[#EAF5FA] p-3.5">
             <h3 className="mb-2 font-bold text-[#174D6B] text-xs uppercase tracking-wider">
-              Komposisi Keaktifan (90 Hari Terakhir)
+              Komposisi Keaktifan ({data.metadata.activeDays ?? 90} Hari Terakhir)
             </h3>
             <div className="mt-2 flex items-center gap-4">
               {/* Vector Donut SVG */}
@@ -243,6 +245,23 @@ export function ExecutiveSummaryPage({ data }: { data: ReportPayload }) {
                     <span className="ml-1 text-[#67839A] text-[10px]">({formatPercent(inactiveRate)})</span>
                   </div>
                 </div>
+
+                {data.summary.active30 !== undefined && (
+                  <div className="mt-1 flex items-center justify-between border-t border-[#C9D9E1] pt-1.5 text-[10px] text-[#67839A]">
+                    <span>
+                      30 Hari: <strong className="text-[#174D6B]">{formatNumber(data.summary.active30)}</strong>
+                    </span>
+                    <span>
+                      60 Hari: <strong className="text-[#174D6B]">{formatNumber(data.summary.active60 ?? 0)}</strong>
+                    </span>
+                    <span>
+                      90 Hari:{" "}
+                      <strong className="text-[#174D6B]">
+                        {formatNumber(data.summary.active90 ?? data.summary.active)}
+                      </strong>
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -306,7 +325,8 @@ export function ExecutiveSummaryPage({ data }: { data: ReportPayload }) {
               <strong>
                 {formatNumber(data.summary.inactive)} Jaring ({formatPercent(inactiveRate)})
               </strong>{" "}
-              berstatus tidak aktif dalam 90 hari terakhir dan menjadi fokus prioritas pemulihan kontak dan pembinaan.
+              berstatus tidak aktif dalam {data.metadata.activeDays ?? 90} hari terakhir dan menjadi fokus prioritas
+              pemulihan kontak dan pembinaan.
             </li>
           </ul>
         </div>
@@ -429,7 +449,8 @@ export function MethodologyPage({ data }: { data: ReportPayload }) {
             </div>
             <p className="text-[#243B4D] text-[11px] leading-relaxed">
               Jaring terverifikasi yang memiliki minimal satu catatan aktivitas (laporan masuk atau interaksi pesan
-              WhatsApp) dalam rentang <strong>90 hari terakhir</strong> (sejak {data.metadata.activityWindowStart}).
+              WhatsApp) dalam rentang <strong>{data.metadata.activeDays ?? 90} hari terakhir</strong> (sejak{" "}
+              {data.metadata.activityWindowStart}).
             </p>
           </div>
 
@@ -442,7 +463,7 @@ export function MethodologyPage({ data }: { data: ReportPayload }) {
             </div>
             <p className="text-[#243B4D] text-[11px] leading-relaxed">
               Jaring terverifikasi yang tidak memiliki riwayat aktivitas pelaporan maupun komunikasi sama sekali dalam
-              jendela 90 hari terakhir.
+              jendela {data.metadata.activeDays ?? 90} hari terakhir.
             </p>
           </div>
 
@@ -503,7 +524,7 @@ export function MethodologyPage({ data }: { data: ReportPayload }) {
                 <span className="font-mono font-semibold text-[#174D6B]">Laporan Masuk / Jaring Aktif</span>
               </div>
               <div className="flex justify-between border-[#EDF4F7] border-b pb-1">
-                <span className="text-[#67839A]">Jendela 90 Hari:</span>
+                <span className="text-[#67839A]">Jendela {data.metadata.activeDays ?? 90} Hari:</span>
                 <span className="font-mono text-[#243B4D]">{data.metadata.activityWindowStart} s.d. penarikan</span>
               </div>
               <div className="flex justify-between">
@@ -519,8 +540,8 @@ export function MethodologyPage({ data }: { data: ReportPayload }) {
             <h3 className="mb-2 font-bold text-[#174D6B] text-xs uppercase tracking-wider">Batas Interpretasi Data</h3>
             <ul className="list-disc space-y-1.5 pl-3 text-[#243B4D] text-[11px] marker:text-[#174D6B]">
               <li>
-                Keaktifan 90 hari mencerminkan kesiapan operasional jangka menengah jaring, sedangkan pelapor periode
-                merefleksikan produktivitas langsung pada tanggal berjalan.
+                Keaktifan {data.metadata.activeDays ?? 90} hari mencerminkan kesiapan operasional jangka menengah
+                jaring, sedangkan pelapor periode merefleksikan produktivitas langsung pada tanggal berjalan.
               </li>
               <li>
                 Angka kegiatan pembinaan memprioritaskan kegiatan berstatus terverifikasi/disetujui. Data pembinaan
@@ -680,7 +701,7 @@ export function RegionDetailPage({
           <div className="mt-2.5 grid grid-cols-4 gap-2.5">
             <KpiCard title="Total Jaring" value={region.total} subtitle="Jaring Terverifikasi" accent="dark" />
             <KpiCard
-              title="Aktif 90 Hari"
+              title={`Aktif ${data.metadata.activeDays ?? 90} Hari`}
               value={region.active}
               subtitle={`${formatPercent(region.activeRate)} tingkat aktif`}
               accent="green"
@@ -905,12 +926,13 @@ export function FinalSummaryPage({ data }: { data: ReportPayload }) {
             <strong>
               {formatNumber(data.summary.active)} Jaring aktif ({formatPercent(activeRate)})
             </strong>{" "}
-            dalam 90 hari terakhir. Sebanyak <strong>{formatNumber(data.summary.reporters)} Jaring</strong>{" "}
-            berkontribusi aktif menyerahkan <strong>{formatNumber(data.summary.reports)} laporan intelijen</strong>.
-            Wilayah <strong>{data.highlights.highestReportRegion}</strong> mencatatkan volume laporan tertinggi,
-            sementara <strong>{data.highlights.highestActiveRegion}</strong> memiliki rasio keaktifan terbaik. Pembinaan
-            Jaring telah dilaksanakan sebanyak <strong>{formatNumber(data.coaching.activities)} kegiatan</strong>{" "}
-            membina <strong>{formatNumber(data.coaching.uniqueJaring)} individu Jaring</strong>.
+            dalam {data.metadata.activeDays ?? 90} hari terakhir. Sebanyak{" "}
+            <strong>{formatNumber(data.summary.reporters)} Jaring</strong> berkontribusi aktif menyerahkan{" "}
+            <strong>{formatNumber(data.summary.reports)} laporan intelijen</strong>. Wilayah{" "}
+            <strong>{data.highlights.highestReportRegion}</strong> mencatatkan volume laporan tertinggi, sementara{" "}
+            <strong>{data.highlights.highestActiveRegion}</strong> memiliki rasio keaktifan terbaik. Pembinaan Jaring
+            telah dilaksanakan sebanyak <strong>{formatNumber(data.coaching.activities)} kegiatan</strong> membina{" "}
+            <strong>{formatNumber(data.coaching.uniqueJaring)} individu Jaring</strong>.
           </p>
         </div>
 

@@ -3,10 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { JaringReportDataService } from './jaring-report-data.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { DomainScopeService } from '../access/domain-scope.service.js';
-import {
-  AdministrativeLevel,
-  JaringRegistrationStatus,
-} from '../../generated/prisma/client.js';
+import { AdministrativeLevel } from '../../generated/prisma/client.js';
 import { RecapGranularity } from './jaring-report-data.dto.js';
 
 describe('JaringReportDataService', () => {
@@ -253,6 +250,9 @@ describe('JaringReportDataService', () => {
       });
       expect(activeItem.status).toBe('ACTIVE');
       expect(activeItem.lastReportAt).toBe(recentDate.toISOString());
+      expect(activeItem.isActive30Days).toBe(true);
+      expect(activeItem.isActive60Days).toBe(true);
+      expect(activeItem.isActive90Days).toBe(true);
 
       const oldDate = new Date();
       oldDate.setDate(oldDate.getDate() - 120);
@@ -263,6 +263,52 @@ describe('JaringReportDataService', () => {
       });
       expect(inactiveItem.status).toBe('INACTIVE');
       expect(inactiveItem.lastReportAt).toBe(oldDate.toISOString());
+      expect(inactiveItem.isActive30Days).toBe(false);
+      expect(inactiveItem.isActive60Days).toBe(false);
+      expect(inactiveItem.isActive90Days).toBe(false);
+    });
+
+    it('menghitung status keaktifan jaring untuk jendela 30 hari dan 60 hari', () => {
+      // Melapor 45 hari yang lalu: aktif untuk 60 dan 90 hari, tapi tidak aktif untuk 30 hari
+      const date45DaysAgo = new Date();
+      date45DaysAgo.setDate(date45DaysAgo.getDate() - 45);
+
+      const item45 = service.calculateJaringActivity(
+        {
+          messages: [{ receivedAt: date45DaysAgo }],
+          reportSessions: [],
+        },
+        30,
+      );
+      expect(item45.status).toBe('INACTIVE'); // inactive in 30-day window
+      expect(item45.isActive30Days).toBe(false);
+      expect(item45.isActive60Days).toBe(true);
+      expect(item45.isActive90Days).toBe(true);
+
+      const item45With60Window = service.calculateJaringActivity(
+        {
+          messages: [{ receivedAt: date45DaysAgo }],
+          reportSessions: [],
+        },
+        60,
+      );
+      expect(item45With60Window.status).toBe('ACTIVE'); // active in 60-day window
+
+      // Melapor 15 hari yang lalu: aktif di semua jendela (30, 60, 90)
+      const date15DaysAgo = new Date();
+      date15DaysAgo.setDate(date15DaysAgo.getDate() - 15);
+
+      const item15 = service.calculateJaringActivity(
+        {
+          messages: [{ receivedAt: date15DaysAgo }],
+          reportSessions: [],
+        },
+        30,
+      );
+      expect(item15.status).toBe('ACTIVE');
+      expect(item15.isActive30Days).toBe(true);
+      expect(item15.isActive60Days).toBe(true);
+      expect(item15.isActive90Days).toBe(true);
     });
   });
 });

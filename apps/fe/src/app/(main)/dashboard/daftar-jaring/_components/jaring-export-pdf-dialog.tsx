@@ -76,7 +76,18 @@ export function JaringExportPdfDialog({
           params.set("search", currentFilters.search.trim());
         }
         if (currentFilters.activeStatusFilter && currentFilters.activeStatusFilter !== "ALL") {
-          params.set("status", currentFilters.activeStatusFilter);
+          if (currentFilters.activeStatusFilter === "ACTIVE_30") {
+            params.set("status", "ACTIVE");
+            params.set("activeDays", "30");
+          } else if (currentFilters.activeStatusFilter === "ACTIVE_60") {
+            params.set("status", "ACTIVE");
+            params.set("activeDays", "60");
+          } else if (currentFilters.activeStatusFilter === "ACTIVE_90") {
+            params.set("status", "ACTIVE");
+            params.set("activeDays", "90");
+          } else {
+            params.set("status", currentFilters.activeStatusFilter);
+          }
         }
         if (currentFilters.serverAreaId) {
           params.set("areaId", currentFilters.serverAreaId);

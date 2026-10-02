@@ -246,6 +246,11 @@ Kewenangan tindakan dipisahkan menjadi:
 | Foto Jaring | Foto Jaring | avatar agen | Untuk foto profil Jaring. |
 | Nomor WhatsApp | Nomor WhatsApp | nomor WA jika ruang cukup | WhatsApp adalah nama produk, tetap Inggris. |
 | Kode Jaring | Kode Jaring | pin jaring lama | Pakai hanya bila konsep kode masih aktif. |
+| Jaring Aktif 30 Hari | Jaring Aktif 30 Hari | aktif 1 bulan | Jaring terverifikasi dengan riwayat laporan/pesan dalam 30 hari terakhir. |
+| Jaring Aktif 60 Hari | Jaring Aktif 60 Hari | aktif 2 bulan | Jaring terverifikasi dengan riwayat laporan/pesan dalam 60 hari terakhir. |
+| Jaring Aktif 90 Hari | Jaring Aktif 90 Hari | aktif 3 bulan | Jaring terverifikasi dengan riwayat laporan/pesan dalam 90 hari terakhir (default sistem). |
+| Jaring Tidak Aktif 90 Hari | Jaring Tidak Aktif (>90 Hari) | nonaktif | Jaring terverifikasi tanpa riwayat laporan dalam 90 hari terakhir. |
+| Aktivitas Pelaporan | Aktivitas Pelaporan | Kinerja Laporan | Jendela aktivitas pelaporan Jaring (30, 60, atau 90 hari). |
 | Laporan Jaring | Laporan Jaring | report Jaring, kategori kelengkapan | Untuk informasi masuk dari Jaring. Live location wajib saat dikirim melalui bot WhatsApp, sehingga Laporan Jaring tidak memakai kategori kelengkapan. |
 | Siap Dibuat Baket | Siap Dibuat Baket | Belum diverifikasi laporan | Status proses Laporan Jaring setelah dikirim dan sebelum dibuat menjadi Baket. |
 | Baket Dibuat | Baket Dibuat | Laporan terverifikasi | Status proses Laporan Jaring yang sudah memiliki Bahan Keterangan (Baket). |

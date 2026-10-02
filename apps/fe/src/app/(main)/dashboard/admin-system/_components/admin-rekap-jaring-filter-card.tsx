@@ -70,6 +70,8 @@ function RekapFilterFormContent({
   setStartDate,
   endDate,
   setEndDate,
+  activeDays,
+  setActiveDays,
   provinceCode,
   setProvinceCode,
   regencyCode,
@@ -82,6 +84,8 @@ function RekapFilterFormContent({
   setStartDate: (val: string) => void;
   endDate: string;
   setEndDate: (val: string) => void;
+  activeDays: string;
+  setActiveDays: (val: string) => void;
   provinceCode: string;
   setProvinceCode: (val: string) => void;
   regencyCode: string;
@@ -114,7 +118,7 @@ function RekapFilterFormContent({
   return (
     <div className="space-y-4">
       {/* Grid Filter Kontrol */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         {/* Kontrol 1: Preset Periode */}
         <div className="grid gap-1.5 text-xs text-muted-foreground">
           <Label
@@ -188,6 +192,27 @@ function RekapFilterFormContent({
             ))}
           </NativeSelect>
         </div>
+
+        {/* Kontrol 5: Basis Keaktifan */}
+        <div className="grid gap-1.5 text-xs text-muted-foreground">
+          <Label
+            htmlFor="admin-filter-activedays"
+            className="flex items-center gap-1.5 font-medium text-foreground text-xs"
+          >
+            <ShieldCheck className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+            <span>Basis Keaktifan</span>
+          </Label>
+          <NativeSelect
+            id="admin-filter-activedays"
+            value={activeDays}
+            onChange={(e) => setActiveDays(e.target.value)}
+            className="h-9 w-full rounded-md border-border bg-background text-xs font-medium"
+          >
+            <NativeSelectOption value="30">30 Hari</NativeSelectOption>
+            <NativeSelectOption value="60">60 Hari</NativeSelectOption>
+            <NativeSelectOption value="90">90 Hari (Standar)</NativeSelectOption>
+          </NativeSelect>
+        </div>
       </div>
 
       {/* Ringkasan Filter & Informasi Dokumen */}
@@ -235,6 +260,7 @@ export function AdminRekapJaringFilterCard() {
   const [preset, setPreset] = useState("CURRENT_MONTH");
   const [startDate, setStartDate] = useState(defaultDates.start);
   const [endDate, setEndDate] = useState(defaultDates.end);
+  const [activeDays, setActiveDays] = useState("90");
   const [provinceCode, setProvinceCode] = useState("31");
   const [regencyCode, setRegencyCode] = useState("ALL");
   const [isDownloading, setIsDownloading] = useState(false);
@@ -244,12 +270,13 @@ export function AdminRekapJaringFilterCard() {
     setPreset("CURRENT_MONTH");
     setStartDate(dates.start);
     setEndDate(dates.end);
+    setActiveDays("90");
     setProvinceCode("31");
     setRegencyCode("ALL");
     toast.info("Filter rekap Jaring dikembalikan ke default Bulan Berjalan.");
   };
 
-  const reportUrl = `/reports/jaring/print?start=${encodeURIComponent(startDate)}&end=${encodeURIComponent(endDate)}&period=${encodeURIComponent(preset)}&provinceCode=${encodeURIComponent(provinceCode)}`;
+  const reportUrl = `/reports/jaring/print?start=${encodeURIComponent(startDate)}&end=${encodeURIComponent(endDate)}&period=${encodeURIComponent(preset)}&provinceCode=${encodeURIComponent(provinceCode)}&activeDays=${encodeURIComponent(activeDays)}`;
 
   const handleOpenReport = () => {
     window.open(reportUrl, "_blank", "noopener,noreferrer");
@@ -258,7 +285,7 @@ export function AdminRekapJaringFilterCard() {
   const handleDownloadPdf = async () => {
     setIsDownloading(true);
     try {
-      const pdfUrl = `/api/reports/jaring/pdf?start=${encodeURIComponent(startDate)}&end=${encodeURIComponent(endDate)}&period=${encodeURIComponent(preset)}&_t=${Date.now()}`;
+      const pdfUrl = `/api/reports/jaring/pdf?start=${encodeURIComponent(startDate)}&end=${encodeURIComponent(endDate)}&period=${encodeURIComponent(preset)}&activeDays=${encodeURIComponent(activeDays)}&_t=${Date.now()}`;
       const response = await fetch(pdfUrl);
 
       if (response.ok) {
@@ -348,6 +375,8 @@ export function AdminRekapJaringFilterCard() {
           setStartDate={setStartDate}
           endDate={endDate}
           setEndDate={setEndDate}
+          activeDays={activeDays}
+          setActiveDays={setActiveDays}
           provinceCode={provinceCode}
           setProvinceCode={setProvinceCode}
           regencyCode={regencyCode}
@@ -368,6 +397,7 @@ export function AdminRekapJaringModalTrigger() {
   const [preset, setPreset] = useState("CURRENT_MONTH");
   const [startDate, setStartDate] = useState(defaultDates.start);
   const [endDate, setEndDate] = useState(defaultDates.end);
+  const [activeDays, setActiveDays] = useState("90");
   const [provinceCode, setProvinceCode] = useState("31");
   const [regencyCode, setRegencyCode] = useState("ALL");
   const [isDownloading, setIsDownloading] = useState(false);
@@ -377,11 +407,12 @@ export function AdminRekapJaringModalTrigger() {
     setPreset("CURRENT_MONTH");
     setStartDate(dates.start);
     setEndDate(dates.end);
+    setActiveDays("90");
     setProvinceCode("31");
     setRegencyCode("ALL");
   };
 
-  const reportUrl = `/reports/jaring/print?start=${encodeURIComponent(startDate)}&end=${encodeURIComponent(endDate)}&period=${encodeURIComponent(preset)}&provinceCode=${encodeURIComponent(provinceCode)}`;
+  const reportUrl = `/reports/jaring/print?start=${encodeURIComponent(startDate)}&end=${encodeURIComponent(endDate)}&period=${encodeURIComponent(preset)}&provinceCode=${encodeURIComponent(provinceCode)}&activeDays=${encodeURIComponent(activeDays)}`;
 
   const handleOpenReport = () => {
     window.open(reportUrl, "_blank", "noopener,noreferrer");
@@ -391,7 +422,7 @@ export function AdminRekapJaringModalTrigger() {
   const handleDownloadPdf = async () => {
     setIsDownloading(true);
     try {
-      const pdfUrl = `/api/reports/jaring/pdf?start=${encodeURIComponent(startDate)}&end=${encodeURIComponent(endDate)}&period=${encodeURIComponent(preset)}&_t=${Date.now()}`;
+      const pdfUrl = `/api/reports/jaring/pdf?start=${encodeURIComponent(startDate)}&end=${encodeURIComponent(endDate)}&period=${encodeURIComponent(preset)}&activeDays=${encodeURIComponent(activeDays)}&_t=${Date.now()}`;
       const response = await fetch(pdfUrl);
 
       if (response.ok) {
@@ -467,6 +498,8 @@ export function AdminRekapJaringModalTrigger() {
             setStartDate={setStartDate}
             endDate={endDate}
             setEndDate={setEndDate}
+            activeDays={activeDays}
+            setActiveDays={setActiveDays}
             provinceCode={provinceCode}
             setProvinceCode={setProvinceCode}
             regencyCode={regencyCode}

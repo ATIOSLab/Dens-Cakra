@@ -94,7 +94,7 @@ function PdfCoverPage({ data }: { data: ReportPayload }) {
             <View style={{ flexDirection: "row" }}>
               <Text style={{ width: 120, fontSize: 8, color: PDF_COLORS.textMuted }}>Basis Pengukuran</Text>
               <Text style={{ flex: 1, fontSize: 8, color: PDF_COLORS.textPrimary }}>
-                Jaring Terverifikasi, Aktivitas 90 Hari, dan Pembinaan
+                Jaring Terverifikasi, Aktivitas {data.metadata.activeDays ?? 90} Hari, dan Pembinaan
               </Text>
             </View>
             <View style={{ flexDirection: "row" }}>
@@ -102,7 +102,9 @@ function PdfCoverPage({ data }: { data: ReportPayload }) {
               <Text style={{ flex: 1, fontSize: 8, color: PDF_COLORS.textPrimary }}>{data.metadata.pullAt}</Text>
             </View>
             <View style={{ flexDirection: "row" }}>
-              <Text style={{ width: 120, fontSize: 8, color: PDF_COLORS.textMuted }}>Batas Aktivitas 90 Hari</Text>
+              <Text style={{ width: 120, fontSize: 8, color: PDF_COLORS.textMuted }}>
+                Batas Aktivitas {data.metadata.activeDays ?? 90} Hari
+              </Text>
               <Text style={{ flex: 1, fontSize: 8, color: PDF_COLORS.textMuted }}>
                 Sejak {data.metadata.activityWindowStart}
               </Text>
@@ -148,7 +150,7 @@ function PdfExecutiveSummaryPage({ data }: { data: ReportPayload }) {
       <View style={styles.kpiRow}>
         <PdfKpiCard title="Total Jaring" value={data.summary.total} subtitle="Jaring Terverifikasi" accent="dark" />
         <PdfKpiCard
-          title="Aktif 90 Hari"
+          title={`Aktif ${data.metadata.activeDays ?? 90} Hari`}
           value={data.summary.active}
           subtitle={`${formatPercent(activeRate)} dari total`}
           accent="green"
@@ -171,7 +173,7 @@ function PdfExecutiveSummaryPage({ data }: { data: ReportPayload }) {
       <View style={{ flexDirection: "row", gap: 10, marginBottom: 8 }}>
         {/* Composition Box */}
         <View style={[styles.panel, { flex: 1, marginBottom: 0 }]}>
-          <Text style={styles.panelHeader}>Komposisi Keaktifan (90 Hari)</Text>
+          <Text style={styles.panelHeader}>Komposisi Keaktifan ({data.metadata.activeDays ?? 90} Hari)</Text>
           <View style={{ marginTop: 4, gap: 6 }}>
             <View>
               <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
@@ -197,8 +199,34 @@ function PdfExecutiveSummaryPage({ data }: { data: ReportPayload }) {
               <PdfProgressBar percent={inactiveRate} color={PDF_COLORS.danger} />
             </View>
 
+            {data.summary.active30 !== undefined && (
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  borderTopWidth: 1,
+                  borderTopColor: PDF_COLORS.border,
+                  paddingTop: 4,
+                  marginTop: 2,
+                }}
+              >
+                <Text style={{ fontSize: 7, color: PDF_COLORS.textPrimary }}>
+                  30 Hari: <Text style={{ fontWeight: "bold" }}>{formatNumber(data.summary.active30)}</Text>
+                </Text>
+                <Text style={{ fontSize: 7, color: PDF_COLORS.textPrimary }}>
+                  60 Hari: <Text style={{ fontWeight: "bold" }}>{formatNumber(data.summary.active60 ?? 0)}</Text>
+                </Text>
+                <Text style={{ fontSize: 7, color: PDF_COLORS.textPrimary }}>
+                  90 Hari:{" "}
+                  <Text style={{ fontWeight: "bold" }}>
+                    {formatNumber(data.summary.active90 ?? data.summary.active)}
+                  </Text>
+                </Text>
+              </View>
+            )}
+
             <Text style={{ fontSize: 7, color: PDF_COLORS.textMuted, marginTop: 2 }}>
-              Jaring aktif: minimal 1 laporan atau pesan WhatsApp dalam 90 hari terakhir.
+              Jaring aktif: minimal 1 laporan atau pesan WhatsApp dalam {data.metadata.activeDays ?? 90} hari terakhir.
             </Text>
           </View>
         </View>
@@ -268,7 +296,7 @@ function PdfExecutiveSummaryPage({ data }: { data: ReportPayload }) {
             <Text style={{ fontWeight: "bold" }}>
               {formatNumber(data.summary.inactive)} Jaring ({formatPercent(inactiveRate)})
             </Text>{" "}
-            belum aktif dalam 90 hari terakhir dan menjadi prioritas pembinaan.
+            belum aktif dalam {data.metadata.activeDays ?? 90} hari terakhir dan menjadi prioritas pembinaan.
           </Text>
         </View>
       </View>
@@ -398,13 +426,13 @@ function PdfMethodologyPage({ data }: { data: ReportPayload }) {
       no: "2",
       title: "Jaring Aktif",
       color: PDF_COLORS.green,
-      desc: `Jaring terverifikasi yang memiliki minimal 1 catatan aktivitas (laporan atau WhatsApp) dalam 90 hari terakhir (sejak ${data.metadata.activityWindowStart}).`,
+      desc: `Jaring terverifikasi yang memiliki minimal 1 catatan aktivitas (laporan atau WhatsApp) dalam ${data.metadata.activeDays ?? 90} hari terakhir (sejak ${data.metadata.activityWindowStart}).`,
     },
     {
       no: "3",
       title: "Jaring Tidak Aktif",
       color: PDF_COLORS.danger,
-      desc: "Jaring terverifikasi tanpa aktivitas pelaporan atau interaksi sama sekali dalam rentang 90 hari terakhir.",
+      desc: `Jaring terverifikasi tanpa aktivitas pelaporan atau interaksi sama sekali dalam rentang ${data.metadata.activeDays ?? 90} hari terakhir.`,
     },
     {
       no: "4",
@@ -495,7 +523,7 @@ function PdfMethodologyPage({ data }: { data: ReportPayload }) {
                 paddingBottom: 2,
               }}
             >
-              <Text style={{ color: PDF_COLORS.textMuted }}>Jendela 90 Hari:</Text>
+              <Text style={{ color: PDF_COLORS.textMuted }}>Jendela {data.metadata.activeDays ?? 90} Hari:</Text>
               <Text style={{ color: PDF_COLORS.textPrimary }}>Sejak {data.metadata.activityWindowStart}</Text>
             </View>
             <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
@@ -511,8 +539,8 @@ function PdfMethodologyPage({ data }: { data: ReportPayload }) {
           <Text style={styles.panelHeader}>Batas Interpretasi Data</Text>
           <View style={{ gap: 3 }}>
             <Text style={{ fontSize: 7, color: PDF_COLORS.textPrimary, lineHeight: 1.3 }}>
-              • Keaktifan 90 hari mencerminkan kesiapan operasional jangka menengah jaring, sedangkan pelapor periode
-              merefleksikan kontribusi langsung pada tanggal berjalan.
+              • Keaktifan {data.metadata.activeDays ?? 90} hari mencerminkan kesiapan operasional jangka menengah
+              jaring, sedangkan pelapor periode merefleksikan kontribusi langsung pada tanggal berjalan.
             </Text>
             <Text style={{ fontSize: 7, color: PDF_COLORS.textPrimary, lineHeight: 1.3 }}>
               • Angka kegiatan pembinaan memprioritaskan kegiatan berstatus terverifikasi/disetujui. Data pembinaan
@@ -677,7 +705,7 @@ function PdfRegionDetailPage({
       <View style={styles.kpiRow}>
         <PdfKpiCard title="Total Jaring" value={region.total} subtitle="Jaring Terverifikasi" accent="dark" />
         <PdfKpiCard
-          title="Aktif 90 Hari"
+          title={`Aktif ${data.metadata.activeDays ?? 90} Hari`}
           value={region.active}
           subtitle={`${formatPercent(region.activeRate)} tingkat aktif`}
           accent="green"
@@ -904,7 +932,7 @@ function PdfFinalSummaryPage({ data }: { data: ReportPayload }) {
           <Text style={{ fontWeight: "bold" }}>
             {formatNumber(data.summary.active)} Jaring aktif ({formatPercent(activeRate)})
           </Text>{" "}
-          dalam 90 hari terakhir. Sebanyak{" "}
+          dalam {data.metadata.activeDays ?? 90} hari terakhir. Sebanyak{" "}
           <Text style={{ fontWeight: "bold" }}>{formatNumber(data.summary.reporters)} Jaring</Text> berkontribusi aktif
           menyerahkan <Text style={{ fontWeight: "bold" }}>{formatNumber(data.summary.reports)} laporan intelijen</Text>
           . Wilayah <Text style={{ fontWeight: "bold" }}>{data.highlights.highestReportRegion}</Text> mencatatkan volume

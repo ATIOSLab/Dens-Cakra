@@ -840,6 +840,7 @@ export class JaringService {
       reportSessions?: Array<{ submittedAt: Date | null }>;
     },
     cutOffDate?: Date,
+    activeDays = 90,
   ) {
     const latestMessageDate = item.messages?.[0]?.receivedAt
       ? new Date(item.messages[0].receivedAt).getTime()
@@ -858,22 +859,42 @@ export class JaringService {
     }
 
     const refDate = cutOffDate ?? new Date();
-    const threeMonthsAgo = new Date(
-      refDate.getTime() - 90 * 24 * 60 * 60 * 1000,
-    );
+    const windowMs = (activeDays || 90) * 24 * 60 * 60 * 1000;
+    const windowAgo = new Date(refDate.getTime() - windowMs);
 
-    const hasReportInLast3Months =
+    const hasReportInWindow =
       lastReportAt !== null &&
-      lastReportAt.getTime() >= threeMonthsAgo.getTime() &&
+      lastReportAt.getTime() >= windowAgo.getTime() &&
       lastReportAt.getTime() <= refDate.getTime();
 
-    const computedStatus = hasReportInLast3Months
+    const computedStatus = hasReportInWindow
       ? JaringStatus.ACTIVE
       : JaringStatus.INACTIVE;
+
+    const ago30 = new Date(refDate.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const ago60 = new Date(refDate.getTime() - 60 * 24 * 60 * 60 * 1000);
+    const ago90 = new Date(refDate.getTime() - 90 * 24 * 60 * 60 * 1000);
+
+    const isActive30Days =
+      lastReportAt !== null &&
+      lastReportAt.getTime() >= ago30.getTime() &&
+      lastReportAt.getTime() <= refDate.getTime();
+    const isActive60Days =
+      lastReportAt !== null &&
+      lastReportAt.getTime() >= ago60.getTime() &&
+      lastReportAt.getTime() <= refDate.getTime();
+    const isActive90Days =
+      lastReportAt !== null &&
+      lastReportAt.getTime() >= ago90.getTime() &&
+      lastReportAt.getTime() <= refDate.getTime();
 
     return {
       lastReportAt: lastReportAt ? lastReportAt.toISOString() : null,
       computedStatus,
+      activeDays: activeDays || 90,
+      isActive30Days,
+      isActive60Days,
+      isActive90Days,
     };
   }
 
@@ -923,13 +944,21 @@ export class JaringService {
       },
     });
 
-    const { lastReportAt, computedStatus } =
-      this.calculateJaringReportActivity(item);
+    const {
+      lastReportAt,
+      computedStatus,
+      isActive30Days,
+      isActive60Days,
+      isActive90Days,
+    } = this.calculateJaringReportActivity(item);
 
     return {
       ...item,
       lastReportAt,
       status: computedStatus,
+      isActive30Days,
+      isActive60Days,
+      isActive90Days,
     };
   }
 
@@ -1517,8 +1546,9 @@ export class JaringService {
     }
 
     const refDate = cutOffDate ?? now;
-    const threeMonthsAgo = new Date(
-      refDate.getTime() - 90 * 24 * 60 * 60 * 1000,
+    const activeDays = query.activeDays ? Number(query.activeDays) : 90;
+    const activeWindowAgo = new Date(
+      refDate.getTime() - activeDays * 24 * 60 * 60 * 1000,
     );
 
     const baseWhere: Prisma.JaringWhereInput = {
@@ -1633,7 +1663,7 @@ export class JaringService {
                 reportSessions: {
                   some: {
                     submittedAt: {
-                      gte: threeMonthsAgo,
+                      gte: activeWindowAgo,
                       ...(cutOffDate ? { lte: cutOffDate } : {}),
                     },
                   },
@@ -1643,7 +1673,7 @@ export class JaringService {
                 messages: {
                   some: {
                     receivedAt: {
-                      gte: threeMonthsAgo,
+                      gte: activeWindowAgo,
                       ...(cutOffDate ? { lte: cutOffDate } : {}),
                     },
                   },
@@ -1665,7 +1695,7 @@ export class JaringService {
                       reportSessions: {
                         none: {
                           submittedAt: {
-                            gte: threeMonthsAgo,
+                            gte: activeWindowAgo,
                             ...(cutOffDate ? { lte: cutOffDate } : {}),
                           },
                         },
@@ -1675,7 +1705,7 @@ export class JaringService {
                       messages: {
                         none: {
                           receivedAt: {
-                            gte: threeMonthsAgo,
+                            gte: activeWindowAgo,
                             ...(cutOffDate ? { lte: cutOffDate } : {}),
                           },
                         },
@@ -1845,12 +1875,20 @@ export class JaringService {
     });
 
     const mappedItems = items.map((item: (typeof items)[number]) => {
-      const { lastReportAt, computedStatus } =
-        this.calculateJaringReportActivity(item, cutOffDate);
+      const {
+        lastReportAt,
+        computedStatus,
+        isActive30Days,
+        isActive60Days,
+        isActive90Days,
+      } = this.calculateJaringReportActivity(item, cutOffDate, activeDays);
       return {
         ...item,
         lastReportAt,
         status: computedStatus,
+        isActive30Days,
+        isActive60Days,
+        isActive90Days,
       };
     });
     if (!query.paginated) return mappedItems;
@@ -4096,10 +4134,24 @@ export class JaringService {
       }
     }
 
+    const activeDays = query.activeDays ? Number(query.activeDays) : 90;
+    const windowAgo = new Date(
+      pullDate.getTime() - activeDays * 24 * 60 * 60 * 1000,
+    );
+    const pullTimeStr = pullDate.toISOString();
+    const windowAgoStr = windowAgo.toISOString();
+
+    const thirtyDaysAgo = new Date(
+      pullDate.getTime() - 30 * 24 * 60 * 60 * 1000,
+    );
+    const sixtyDaysAgo = new Date(
+      pullDate.getTime() - 60 * 24 * 60 * 60 * 1000,
+    );
     const ninetyDaysAgo = new Date(
       pullDate.getTime() - 90 * 24 * 60 * 60 * 1000,
     );
-    const pullTimeStr = pullDate.toISOString();
+    const thirtyDaysStr = thirtyDaysAgo.toISOString();
+    const sixtyDaysStr = sixtyDaysAgo.toISOString();
     const ninetyDaysStr = ninetyDaysAgo.toISOString();
 
     const [
@@ -4114,20 +4166,38 @@ export class JaringService {
         FROM "Jaring" 
         WHERE "registrationStatus" = 'APPROVED' AND "deletedAt" IS NULL
       `),
-      this.prisma.$queryRaw<Array<{ count: number }>>(Prisma.sql`
+      this.prisma.$queryRaw<
+        Array<{
+          count: number;
+          active_30: number;
+          active_60: number;
+          active_90: number;
+        }>
+      >(Prisma.sql`
         WITH approved_jaring AS (
           SELECT id FROM "Jaring" WHERE "registrationStatus" = 'APPROVED' AND "deletedAt" IS NULL
         ),
-        active_reporters AS (
-          SELECT DISTINCT "jaringId" FROM "WhatsAppReportSession"
+        active_reporters_all AS (
+          SELECT "jaringId", MAX("submittedAt") as last_date FROM "WhatsAppReportSession"
           WHERE "submittedAt" >= ${ninetyDaysStr}::timestamptz AND "submittedAt" <= ${pullTimeStr}::timestamptz
-          UNION
-          SELECT DISTINCT "jaringId" FROM "WhatsAppMessage"
+          GROUP BY "jaringId"
+          UNION ALL
+          SELECT "jaringId", MAX("receivedAt") as last_date FROM "WhatsAppMessage"
           WHERE "receivedAt" >= ${ninetyDaysStr}::timestamptz AND "receivedAt" <= ${pullTimeStr}::timestamptz
+          GROUP BY "jaringId"
+        ),
+        jaring_latest AS (
+          SELECT "jaringId", MAX(last_date) as max_date
+          FROM active_reporters_all
+          GROUP BY "jaringId"
         )
-        SELECT count(*)::int as count
+        SELECT 
+          count(DISTINCT CASE WHEN jl.max_date >= ${windowAgoStr}::timestamptz THEN j.id END)::int as count,
+          count(DISTINCT CASE WHEN jl.max_date >= ${thirtyDaysStr}::timestamptz THEN j.id END)::int as active_30,
+          count(DISTINCT CASE WHEN jl.max_date >= ${sixtyDaysStr}::timestamptz THEN j.id END)::int as active_60,
+          count(DISTINCT CASE WHEN jl.max_date >= ${ninetyDaysStr}::timestamptz THEN j.id END)::int as active_90
         FROM approved_jaring j
-        JOIN active_reporters a ON j.id = a."jaringId"
+        JOIN jaring_latest jl ON j.id = jl."jaringId"
       `),
       this.prisma.$queryRaw<
         Array<{ total_reports: number; reporting_jaring: number }>
@@ -4206,10 +4276,10 @@ export class JaringService {
         ),
         active_reporters AS (
           SELECT DISTINCT "jaringId" FROM "WhatsAppReportSession"
-          WHERE "submittedAt" >= ${ninetyDaysStr}::timestamptz AND "submittedAt" <= ${pullTimeStr}::timestamptz
+          WHERE "submittedAt" >= ${windowAgoStr}::timestamptz AND "submittedAt" <= ${pullTimeStr}::timestamptz
           UNION
           SELECT DISTINCT "jaringId" FROM "WhatsAppMessage"
-          WHERE "receivedAt" >= ${ninetyDaysStr}::timestamptz AND "receivedAt" <= ${pullTimeStr}::timestamptz
+          WHERE "receivedAt" >= ${windowAgoStr}::timestamptz AND "receivedAt" <= ${pullTimeStr}::timestamptz
         ),
         period_reports AS (
           SELECT "jaringId", count(*)::int as rep_count
@@ -4243,6 +4313,9 @@ export class JaringService {
 
     const total = Number(totalApprovedRows[0]?.count ?? 0);
     const active = Number(activeRows[0]?.count ?? 0);
+    const active30 = Number(activeRows[0]?.active_30 ?? 0);
+    const active60 = Number(activeRows[0]?.active_60 ?? 0);
+    const active90 = Number(activeRows[0]?.active_90 ?? 0);
     const inactive = total - active;
     const reports = Number(periodReportsRows[0]?.total_reports ?? 0);
     const reporters = Number(periodReportsRows[0]?.reporting_jaring ?? 0);
@@ -4455,13 +4528,17 @@ export class JaringService {
         periodEnd: endDateStr,
         periodLabel: formatPeriodLabel(startDateStr, endDateStr),
         pullAt: formatWibDate(pullDate),
-        activityWindowStart: formatWibDate(ninetyDaysAgo),
+        activityWindowStart: formatWibDate(windowAgo),
+        activeDays,
         periodDays,
       },
       summary: {
         total,
         active,
         inactive,
+        active30,
+        active60,
+        active90,
         reporters,
         reports,
       },
