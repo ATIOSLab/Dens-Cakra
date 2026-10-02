@@ -585,9 +585,19 @@ export function JaringVerificationListClient() {
     void loadItems();
   }, [loadItems, isReadyToLoad]);
 
-  // Non-status filters (area, search, officer) are applied server-side, so the
-  // fetched list is already narrowed; status filtering remains client-side.
-  const baseFilteredItems = items;
+  // Non-status filters (officer and period) are applied to establish the baseline
+  // filtered dataset, so that summary metrics (cards) accurately reflect the active period/officer.
+  const baseFilteredItems = useMemo(() => {
+    return items.filter((item) => {
+      if (officerFilter !== "ALL" && officerName(item) !== officerFilter) {
+        return false;
+      }
+      if (!reportActivityWithinPeriod(item, periodFilter, periodStartDate, periodEndDate)) {
+        return false;
+      }
+      return true;
+    });
+  }, [items, officerFilter, periodFilter, periodStartDate, periodEndDate]);
 
   // Dynamically calculate summary metrics from baseFilteredItems
   const summary = useMemo(() => {
@@ -632,7 +642,7 @@ export function JaringVerificationListClient() {
     villageFilter,
   ]);
 
-  // Final filtered items with status/activity/officer filters applied
+  // Final filtered items with status/activity filters applied
   const filteredItems = useMemo(() => {
     return baseFilteredItems.filter((item) => {
       if (statusFilter !== "ALL" && item.registrationStatus !== statusFilter) {
@@ -650,23 +660,9 @@ export function JaringVerificationListClient() {
       if (activeStatusFilter === "INACTIVE" && isJaringActiveInDays(item, 90)) {
         return false;
       }
-      if (officerFilter !== "ALL" && officerName(item) !== officerFilter) {
-        return false;
-      }
-      if (!reportActivityWithinPeriod(item, periodFilter, periodStartDate, periodEndDate)) {
-        return false;
-      }
       return true;
     });
-  }, [
-    baseFilteredItems,
-    statusFilter,
-    activeStatusFilter,
-    officerFilter,
-    periodFilter,
-    periodStartDate,
-    periodEndDate,
-  ]);
+  }, [baseFilteredItems, statusFilter, activeStatusFilter]);
 
   const sortedItems = useMemo(() => {
     return [...filteredItems].sort((left, right) => {
