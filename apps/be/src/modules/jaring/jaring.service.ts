@@ -3572,13 +3572,14 @@ export class JaringService {
   }
 
   async markReportAsRead(id: string, context: AuthorizationContext) {
-    const [session, korwilLookup] = await Promise.all([
+    const [initialSession, korwilLookup] = await Promise.all([
       this.prisma.whatsAppReportSession.findUnique({
         where: { id },
         select: jaringReportSessionSelect,
       }),
       this.getKorwilLookup(),
     ]);
+    let session = initialSession;
     if (!session) {
       throw new ApiException(
         'JARING_REPORT_NOT_FOUND',
