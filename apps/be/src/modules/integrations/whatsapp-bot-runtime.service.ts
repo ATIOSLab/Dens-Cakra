@@ -1255,6 +1255,25 @@ export class WhatsappBotRuntimeService
       return;
     }
 
+    // ponytail: hard-coded 24h threshold; extract to config when tuning needed
+    const STALE_EVENT_THRESHOLD_MS = 24 * 60 * 60 * 1000;
+    if (
+      existing &&
+      existing.receivedAt &&
+      Date.now() - new Date(existing.receivedAt).getTime() >
+        STALE_EVENT_THRESHOLD_MS
+    ) {
+      await this.prisma.integrationWebhookEvent.update({
+        where: { id: existing.id },
+        data: {
+          processedAt: new Date(),
+          success: true,
+          errorMessage: 'Skipped: stale event older than 24h',
+        },
+      });
+      return;
+    }
+
     const payload = this.toInboundPayload(message, sender, externalMessageId);
     const event =
       existing ??
@@ -2622,7 +2641,7 @@ export class WhatsappBotRuntimeService
     messageKeys: WAMessage['key'][],
     replies: WhatsAppReportReply[],
   ) {
-    await sleep(1200 + Math.floor(Math.random() * 700));
+    await sleep(400 + Math.floor(Math.random() * 300));
 
     if (messageKeys.length > 0) {
       try {
@@ -2639,11 +2658,11 @@ export class WhatsappBotRuntimeService
         typeof reply === 'string' ? reply : reply.body,
       );
       const typingMs = Math.min(
-        3000,
-        Math.max(1000, text.length * 30 + Math.floor(Math.random() * 400)),
+        1500,
+        Math.max(400, text.length * 15 + Math.floor(Math.random() * 200)),
       );
       const betweenMessageDelayMs =
-        (index === 0 ? 500 : 1000) + Math.floor(Math.random() * 500);
+        (index === 0 ? 200 : 400) + Math.floor(Math.random() * 200);
 
       await sleep(betweenMessageDelayMs);
 
