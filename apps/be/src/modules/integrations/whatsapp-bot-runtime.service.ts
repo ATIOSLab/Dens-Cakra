@@ -1249,7 +1249,9 @@ export class WhatsappBotRuntimeService
       },
     });
 
-    if (existing && existing.success !== false) {
+    // When success is NULL the event was recorded but processing crashed before
+    // completion, so it must be retried.
+    if (existing && existing.success === true) {
       return;
     }
 
