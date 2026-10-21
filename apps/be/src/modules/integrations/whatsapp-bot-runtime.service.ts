@@ -1249,7 +1249,28 @@ export class WhatsappBotRuntimeService
       },
     });
 
-    if (existing && existing.success !== false) {
+    // When success is NULL the event was recorded but processing crashed before
+    // completion, so it must be retried.
+    if (existing && existing.success === true) {
+      return;
+    }
+
+    // ponytail: hard-coded 24h threshold; extract to config when tuning needed
+    const STALE_EVENT_THRESHOLD_MS = 24 * 60 * 60 * 1000;
+    if (
+      existing &&
+      existing.receivedAt &&
+      Date.now() - new Date(existing.receivedAt).getTime() >
+        STALE_EVENT_THRESHOLD_MS
+    ) {
+      await this.prisma.integrationWebhookEvent.update({
+        where: { id: existing.id },
+        data: {
+          processedAt: new Date(),
+          success: true,
+          errorMessage: 'Skipped: stale event older than 24h',
+        },
+      });
       return;
     }
 
@@ -1345,8 +1366,9 @@ export class WhatsappBotRuntimeService
       }
     }
 
-    const handled = await this.reportFlow
-      .handle({
+    let handled = false;
+    try {
+      handled = await this.reportFlow.handle({
         channel,
         socket,
         message,
@@ -1358,21 +1380,30 @@ export class WhatsappBotRuntimeService
             [message.key],
             responses,
           ),
-      })
-      .catch(async (error: unknown) => {
-        this.logger.error(
-          `Failed to send WhatsApp bot command response for ${remoteJid}: ${this.messageOf(error)}`,
-        );
-        await this.prisma.integrationWebhookEvent.update({
+      });
+    } catch (error: unknown) {
+      this.logger.error(
+        'Failed to process WhatsApp report flow for ' +
+          remoteJid +
+          ': ' +
+          this.messageOf(error),
+      );
+      await this.prisma.integrationWebhookEvent
+        .update({
           where: { id: event.id },
           data: {
             processedAt: new Date(),
             success: false,
             errorMessage: this.messageOf(error),
           },
+        })
+        .catch((dbError: unknown) => {
+          this.logger.error(
+            'Failed to update webhook event: ' + this.messageOf(dbError),
+          );
         });
-        throw error;
-      });
+      return;
+    }
 
     if (handled) {
       await this.prisma.$transaction([
@@ -2620,7 +2651,7 @@ export class WhatsappBotRuntimeService
     messageKeys: WAMessage['key'][],
     replies: WhatsAppReportReply[],
   ) {
-    await sleep(1200 + Math.floor(Math.random() * 700));
+    await sleep(400 + Math.floor(Math.random() * 300));
 
     if (messageKeys.length > 0) {
       try {
@@ -2637,11 +2668,11 @@ export class WhatsappBotRuntimeService
         typeof reply === 'string' ? reply : reply.body,
       );
       const typingMs = Math.min(
-        3000,
-        Math.max(1000, text.length * 30 + Math.floor(Math.random() * 400)),
+        1500,
+        Math.max(400, text.length * 15 + Math.floor(Math.random() * 200)),
       );
       const betweenMessageDelayMs =
-        (index === 0 ? 500 : 1000) + Math.floor(Math.random() * 500);
+        (index === 0 ? 200 : 400) + Math.floor(Math.random() * 200);
 
       await sleep(betweenMessageDelayMs);
 
