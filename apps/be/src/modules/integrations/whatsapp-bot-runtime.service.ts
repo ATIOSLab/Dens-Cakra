@@ -1366,8 +1366,9 @@ export class WhatsappBotRuntimeService
       }
     }
 
-    const handled = await this.reportFlow
-      .handle({
+    let handled = false;
+    try {
+      handled = await this.reportFlow.handle({
         channel,
         socket,
         message,
@@ -1379,21 +1380,30 @@ export class WhatsappBotRuntimeService
             [message.key],
             responses,
           ),
-      })
-      .catch(async (error: unknown) => {
-        this.logger.error(
-          `Failed to send WhatsApp bot command response for ${remoteJid}: ${this.messageOf(error)}`,
-        );
-        await this.prisma.integrationWebhookEvent.update({
+      });
+    } catch (error: unknown) {
+      this.logger.error(
+        'Failed to process WhatsApp report flow for ' +
+          remoteJid +
+          ': ' +
+          this.messageOf(error),
+      );
+      await this.prisma.integrationWebhookEvent
+        .update({
           where: { id: event.id },
           data: {
             processedAt: new Date(),
             success: false,
             errorMessage: this.messageOf(error),
           },
+        })
+        .catch((dbError: unknown) => {
+          this.logger.error(
+            'Failed to update webhook event: ' + this.messageOf(dbError),
+          );
         });
-        throw error;
-      });
+      return;
+    }
 
     if (handled) {
       await this.prisma.$transaction([
