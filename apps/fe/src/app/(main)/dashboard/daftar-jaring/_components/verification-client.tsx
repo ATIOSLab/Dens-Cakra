@@ -607,12 +607,27 @@ export function JaringVerificationListClient() {
     const rejected = baseFilteredItems.filter((i) => i.registrationStatus === "REJECTED").length;
     const suspended = baseFilteredItems.filter((i) => i.registrationStatus === "SUSPENDED").length;
     const verifiedItems = baseFilteredItems.filter((i) => i.registrationStatus === "APPROVED");
+    const activeToday = verifiedItems.filter((i) => isJaringActiveToday(i)).length;
+    const active7 = verifiedItems.filter((i) => isJaringActiveInDays(i, 7)).length;
     const active30 = verifiedItems.filter((i) => isJaringActiveInDays(i, 30)).length;
     const active60 = verifiedItems.filter((i) => isJaringActiveInDays(i, 60)).length;
     const active90 = verifiedItems.filter((i) => isJaringActiveInDays(i, 90)).length;
     const active = active90;
     const inactive = verifiedItems.length - active90;
-    return { total, pending, approved, rejected, suspended, active, active30, active60, active90, inactive };
+    return {
+      total,
+      pending,
+      approved,
+      rejected,
+      suspended,
+      activeToday,
+      active7,
+      active30,
+      active60,
+      active90,
+      active,
+      inactive,
+    };
   }, [baseFilteredItems]);
 
   const areaSubtitle = useMemo(() => {
@@ -646,6 +661,12 @@ export function JaringVerificationListClient() {
   const filteredItems = useMemo(() => {
     return baseFilteredItems.filter((item) => {
       if (statusFilter !== "ALL" && item.registrationStatus !== statusFilter) {
+        return false;
+      }
+      if (activeStatusFilter === "ACTIVE_TODAY" && !isJaringActiveToday(item)) {
+        return false;
+      }
+      if (activeStatusFilter === "ACTIVE_7" && !isJaringActiveInDays(item, 7)) {
         return false;
       }
       if (activeStatusFilter === "ACTIVE_30" && !isJaringActiveInDays(item, 30)) {
@@ -786,11 +807,13 @@ export function JaringVerificationListClient() {
 
     if (activeStatusFilter !== "ALL") {
       let activityLabel: string = DOMAIN_TERMS.jaringActive90Days;
-      if (activeStatusFilter === "ACTIVE_30") activityLabel = DOMAIN_TERMS.jaringActive30Days;
+      if (activeStatusFilter === "ACTIVE_TODAY") activityLabel = DOMAIN_TERMS.jaringActiveToday;
+      else if (activeStatusFilter === "ACTIVE_7") activityLabel = DOMAIN_TERMS.jaringActive7Days;
+      else if (activeStatusFilter === "ACTIVE_30") activityLabel = DOMAIN_TERMS.jaringActive30Days;
       else if (activeStatusFilter === "ACTIVE_60") activityLabel = DOMAIN_TERMS.jaringActive60Days;
       else if (activeStatusFilter === "ACTIVE_90" || activeStatusFilter === "ACTIVE")
         activityLabel = DOMAIN_TERMS.jaringActive90Days;
-      else if (activeStatusFilter === "INACTIVE") activityLabel = DOMAIN_TERMS.jaringInactive90Days;
+      else if (activeStatusFilter === "INACTIVE") activityLabel = DOMAIN_TERMS.jaringInactive;
 
       chips.push({
         id: "activity",
@@ -977,135 +1000,169 @@ export function JaringVerificationListClient() {
         </div>
 
         {/* SUMMARY CARDS */}
-        <div className="grid w-full grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 min-[1400px]:grid-cols-9">
-          <SummaryCard
-            label="Total Jaring Terverifikasi"
-            value={summary.approved}
-            icon={CheckCircle2}
-            iconClass="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-            valueClass="text-emerald-600 dark:text-emerald-400"
-            selected={statusFilter === "APPROVED" && activeStatusFilter === "ALL"}
-            selectedClass="border-emerald-500 ring-2 ring-emerald-500/30 bg-emerald-500/5 dark:bg-emerald-500/10"
-            onClick={() => {
-              setStatusFilter("APPROVED");
-              setActiveStatusFilter("ALL");
-              setPage(1);
-            }}
-          />
-          <SummaryCard
-            label="Total Jaring Ditolak"
-            value={summary.rejected}
-            icon={XCircle}
-            iconClass="bg-rose-500/10 text-rose-600 dark:text-rose-400"
-            valueClass="text-rose-600 dark:text-rose-400"
-            selected={statusFilter === "REJECTED" && activeStatusFilter === "ALL"}
-            selectedClass="border-rose-500 ring-2 ring-rose-500/30 bg-rose-500/5 dark:bg-rose-500/10"
-            onClick={() => {
-              setStatusFilter("REJECTED");
-              setActiveStatusFilter("ALL");
-              setPage(1);
-            }}
-          />
-          <SummaryCard
-            label="Total Jaring Menunggu Verifikasi"
-            value={summary.pending}
-            icon={Clock}
-            iconClass="bg-amber-500/10 text-amber-600 dark:text-amber-400"
-            valueClass="text-amber-600 dark:text-amber-400"
-            selected={statusFilter === "PENDING" && activeStatusFilter === "ALL"}
-            selectedClass="border-amber-500 ring-2 ring-amber-500/30 bg-amber-500/5 dark:bg-amber-500/10"
-            onClick={() => {
-              setStatusFilter("PENDING");
-              setActiveStatusFilter("ALL");
-              setPage(1);
-            }}
-          />
-          <SummaryCard
-            label="Total Jaring Ditangguhkan"
-            value={summary.suspended}
-            icon={Ban}
-            iconClass="bg-rose-500/10 text-rose-700 dark:text-rose-400"
-            valueClass="text-rose-700 dark:text-rose-400"
-            selected={statusFilter === "SUSPENDED" && activeStatusFilter === "ALL"}
-            selectedClass="border-rose-700 ring-2 ring-rose-700/30 bg-rose-500/5 dark:bg-rose-500/10"
-            onClick={() => {
-              setStatusFilter("SUSPENDED");
-              setActiveStatusFilter("ALL");
-              setPage(1);
-            }}
-          />
-          <SummaryCard
-            label="Total Jaring Aktif 90 Hari"
-            value={summary.active90}
-            icon={DOMAIN_VISUALS.jaring.Icon}
-            iconClass="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-            valueClass="text-emerald-600 dark:text-emerald-400"
-            selected={
-              statusFilter === "APPROVED" && (activeStatusFilter === "ACTIVE_90" || activeStatusFilter === "ACTIVE")
-            }
-            selectedClass="border-emerald-500 ring-2 ring-emerald-500/30 bg-emerald-500/5 dark:bg-emerald-500/10"
-            onClick={() => {
-              setStatusFilter("APPROVED");
-              setActiveStatusFilter("ACTIVE_90");
-              setPage(1);
-            }}
-          />
-          <SummaryCard
-            label="Total Jaring Aktif 60 Hari"
-            value={summary.active60}
-            icon={DOMAIN_VISUALS.jaring.Icon}
-            iconClass="bg-teal-500/10 text-teal-600 dark:text-teal-400"
-            valueClass="text-teal-600 dark:text-teal-400"
-            selected={statusFilter === "APPROVED" && activeStatusFilter === "ACTIVE_60"}
-            selectedClass="border-teal-500 ring-2 ring-teal-500/30 bg-teal-500/5 dark:bg-teal-500/10"
-            onClick={() => {
-              setStatusFilter("APPROVED");
-              setActiveStatusFilter("ACTIVE_60");
-              setPage(1);
-            }}
-          />
-          <SummaryCard
-            label="Total Jaring Aktif 30 Hari"
-            value={summary.active30}
-            icon={DOMAIN_VISUALS.jaring.Icon}
-            iconClass="bg-cyan-500/10 text-cyan-600 dark:text-cyan-400"
-            valueClass="text-cyan-600 dark:text-cyan-400"
-            selected={statusFilter === "APPROVED" && activeStatusFilter === "ACTIVE_30"}
-            selectedClass="border-cyan-500 ring-2 ring-cyan-500/30 bg-cyan-500/5 dark:bg-cyan-500/10"
-            onClick={() => {
-              setStatusFilter("APPROVED");
-              setActiveStatusFilter("ACTIVE_30");
-              setPage(1);
-            }}
-          />
-          <SummaryCard
-            label="Total Jaring Tidak Aktif"
-            value={summary.inactive}
-            icon={DOMAIN_VISUALS.jaring.Icon}
-            iconClass="bg-slate-500/10 text-slate-600 dark:text-slate-400"
-            valueClass="text-slate-600 dark:text-slate-300"
-            selected={statusFilter === "APPROVED" && activeStatusFilter === "INACTIVE"}
-            selectedClass="border-slate-500 ring-2 ring-slate-500/25 bg-slate-500/5 dark:bg-slate-500/10"
-            onClick={() => {
-              setStatusFilter("APPROVED");
-              setActiveStatusFilter("INACTIVE");
-              setPage(1);
-            }}
-          />
-          <SummaryCard
-            label="Total Jaring yang Diajukan"
-            value={summary.total}
-            icon={DOMAIN_VISUALS.jaring.Icon}
-            iconClass="bg-sky-500/10 text-sky-600 dark:text-sky-400"
-            valueClass="text-foreground"
-            selected={statusFilter === "ALL" && activeStatusFilter === "ALL"}
-            selectedClass="border-sky-500 ring-2 ring-sky-500/30 bg-sky-500/5 dark:bg-sky-500/10"
-            onClick={() => {
-              setStatusFilter("ALL");
-              setActiveStatusFilter("ALL");
-              setPage(1);
-            }}
-          />
+        <div className="grid w-full grid-cols-1 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1.5fr)] gap-3 items-stretch">
+          {/* BLOK KIRI: STATUS REGISTRASI / VERIFIKASI (2x2 GRID) */}
+          <div className="grid grid-cols-2 lg:grid-rows-2 gap-2.5 content-stretch">
+            {/* Kiri Atas: Total Jaring Terverifikasi */}
+            <SummaryCard
+              label="Total Jaring Terverifikasi"
+              value={summary.approved}
+              icon={CheckCircle2}
+              iconClass="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+              valueClass="text-emerald-600 dark:text-emerald-400"
+              selected={statusFilter === "APPROVED" && activeStatusFilter === "ALL"}
+              selectedClass="border-emerald-500 ring-2 ring-emerald-500/30 bg-emerald-500/5 dark:bg-emerald-500/10"
+              onClick={() => {
+                setStatusFilter("APPROVED");
+                setActiveStatusFilter("ALL");
+                setPage(1);
+              }}
+            />
+
+            {/* Kanan Atas: Total Jaring yang Diajukan */}
+            <SummaryCard
+              label="Total Jaring yang Diajukan"
+              value={summary.total}
+              icon={DOMAIN_VISUALS.jaring.Icon}
+              iconClass="bg-sky-500/10 text-sky-600 dark:text-sky-400"
+              valueClass="text-foreground"
+              selected={statusFilter === "ALL" && activeStatusFilter === "ALL"}
+              selectedClass="border-sky-500 ring-2 ring-sky-500/30 bg-sky-500/5 dark:bg-sky-500/10"
+              onClick={() => {
+                setStatusFilter("ALL");
+                setActiveStatusFilter("ALL");
+                setPage(1);
+              }}
+            />
+
+            {/* Kiri Bawah: Total Jaring Ditolak */}
+            <SummaryCard
+              label="Total Jaring Ditolak"
+              value={summary.rejected}
+              icon={XCircle}
+              iconClass="bg-rose-500/10 text-rose-600 dark:text-rose-400"
+              valueClass="text-rose-600 dark:text-rose-400"
+              selected={statusFilter === "REJECTED" && activeStatusFilter === "ALL"}
+              selectedClass="border-rose-500 ring-2 ring-rose-500/30 bg-rose-500/5 dark:bg-rose-500/10"
+              onClick={() => {
+                setStatusFilter("REJECTED");
+                setActiveStatusFilter("ALL");
+                setPage(1);
+              }}
+            />
+
+            {/* Kanan Bawah: Total Jaring Ditangguhkan */}
+            <SummaryCard
+              label="Total Jaring Ditangguhkan"
+              value={summary.suspended}
+              icon={Ban}
+              iconClass="bg-rose-500/10 text-rose-700 dark:text-rose-400"
+              valueClass="text-rose-700 dark:text-rose-400"
+              selected={statusFilter === "SUSPENDED" && activeStatusFilter === "ALL"}
+              selectedClass="border-rose-700 ring-2 ring-rose-700/30 bg-rose-500/5 dark:bg-rose-500/10"
+              onClick={() => {
+                setStatusFilter("SUSPENDED");
+                setActiveStatusFilter("ALL");
+                setPage(1);
+              }}
+            />
+          </div>
+
+          {/* PEMBATAS GARIS (DIVIDER) */}
+          <div className="hidden lg:flex items-center justify-center px-0.5">
+            <div className="w-[1.5px] h-full bg-slate-200/90 dark:bg-white/15 rounded-full" />
+          </div>
+          <div className="lg:hidden h-[1.5px] w-full bg-slate-200/90 dark:bg-white/15 my-0.5 rounded-full" />
+
+          {/* BLOK KANAN: KEAKTIFAN PELAPORAN (2x2 GRID + TALL CARD DI KANAN) */}
+          <div className="grid grid-cols-2 lg:grid-cols-[1fr_1fr_minmax(180px,1.2fr)] lg:grid-rows-2 gap-2.5 content-stretch">
+            {/* Kiri Atas: Total Jaring Aktif 60 Hari */}
+            <SummaryCard
+              className="order-1 lg:order-none lg:col-start-1 lg:row-start-1"
+              label="Total Jaring Aktif 60 Hari"
+              value={summary.active60}
+              icon={DOMAIN_VISUALS.jaring.Icon}
+              iconClass="bg-teal-500/10 text-teal-600 dark:text-teal-400"
+              valueClass="text-teal-600 dark:text-teal-400"
+              selected={statusFilter === "APPROVED" && activeStatusFilter === "ACTIVE_60"}
+              selectedClass="border-teal-500 ring-2 ring-teal-500/30 bg-teal-500/5 dark:bg-teal-500/10"
+              onClick={() => {
+                setStatusFilter("APPROVED");
+                setActiveStatusFilter("ACTIVE_60");
+                setPage(1);
+              }}
+            />
+
+            {/* Kanan Atas: Total Jaring Aktif 30 Hari */}
+            <SummaryCard
+              className="order-2 lg:order-none lg:col-start-2 lg:row-start-1"
+              label="Total Jaring Aktif 30 Hari"
+              value={summary.active30}
+              icon={DOMAIN_VISUALS.jaring.Icon}
+              iconClass="bg-cyan-500/10 text-cyan-600 dark:text-cyan-400"
+              valueClass="text-cyan-600 dark:text-cyan-400"
+              selected={statusFilter === "APPROVED" && activeStatusFilter === "ACTIVE_30"}
+              selectedClass="border-cyan-500 ring-2 ring-cyan-500/30 bg-cyan-500/5 dark:bg-cyan-500/10"
+              onClick={() => {
+                setStatusFilter("APPROVED");
+                setActiveStatusFilter("ACTIVE_30");
+                setPage(1);
+              }}
+            />
+
+            {/* Kanan Besar: Total Jaring Aktif Hari Ini (Spanning 2 rows) */}
+            <SummaryCard
+              isTall
+              className="order-5 col-span-2 lg:order-none lg:col-span-1 lg:col-start-3 lg:row-start-1 lg:row-span-2"
+              label="Total Jaring Aktif Hari Ini"
+              value={summary.activeToday}
+              description="Melakukan pelaporan hari ini"
+              icon={DOMAIN_VISUALS.jaringReport.Icon}
+              iconClass="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+              valueClass="text-emerald-600 dark:text-emerald-400"
+              selected={statusFilter === "APPROVED" && activeStatusFilter === "ACTIVE_TODAY"}
+              selectedClass="border-emerald-500 ring-2 ring-emerald-500/30 bg-emerald-500/5 dark:bg-emerald-500/10"
+              onClick={() => {
+                setStatusFilter("APPROVED");
+                setActiveStatusFilter("ACTIVE_TODAY");
+                setPage(1);
+              }}
+            />
+
+            {/* Kiri Bawah: Total Jaring Tidak Aktif */}
+            <SummaryCard
+              className="order-3 lg:order-none lg:col-start-1 lg:row-start-2"
+              label="Total Jaring Tidak Aktif"
+              value={summary.inactive}
+              icon={DOMAIN_VISUALS.jaring.Icon}
+              iconClass="bg-slate-500/10 text-slate-600 dark:text-slate-400"
+              valueClass="text-slate-600 dark:text-slate-300"
+              selected={statusFilter === "APPROVED" && activeStatusFilter === "INACTIVE"}
+              selectedClass="border-slate-500 ring-2 ring-slate-500/25 bg-slate-500/5 dark:bg-slate-500/10"
+              onClick={() => {
+                setStatusFilter("APPROVED");
+                setActiveStatusFilter("INACTIVE");
+                setPage(1);
+              }}
+            />
+
+            {/* Kanan Bawah: Total Jaring Aktif 7 Hari */}
+            <SummaryCard
+              className="order-4 lg:order-none lg:col-start-2 lg:row-start-2"
+              label="Total Jaring Aktif 7 Hari"
+              value={summary.active7}
+              icon={DOMAIN_VISUALS.jaring.Icon}
+              iconClass="bg-blue-500/10 text-blue-600 dark:text-blue-400"
+              valueClass="text-blue-600 dark:text-blue-400"
+              selected={statusFilter === "APPROVED" && activeStatusFilter === "ACTIVE_7"}
+              selectedClass="border-blue-500 ring-2 ring-blue-500/30 bg-blue-500/5 dark:bg-blue-500/10"
+              onClick={() => {
+                setStatusFilter("APPROVED");
+                setActiveStatusFilter("ACTIVE_7");
+                setPage(1);
+              }}
+            />
+          </div>
         </div>
       </div>
 
@@ -1241,10 +1298,12 @@ export function JaringVerificationListClient() {
                 className="h-9 w-full text-xs"
               >
                 <option value="ALL">Semua Aktivitas</option>
+                <option value="ACTIVE_TODAY">{DOMAIN_TERMS.jaringActiveToday}</option>
+                <option value="ACTIVE_7">{DOMAIN_TERMS.jaringActive7Days}</option>
                 <option value="ACTIVE_30">{DOMAIN_TERMS.jaringActive30Days}</option>
                 <option value="ACTIVE_60">{DOMAIN_TERMS.jaringActive60Days}</option>
                 <option value="ACTIVE_90">{DOMAIN_TERMS.jaringActive90Days}</option>
-                <option value="INACTIVE">{DOMAIN_TERMS.jaringInactive90Days}</option>
+                <option value="INACTIVE">{DOMAIN_TERMS.jaringInactive}</option>
               </NativeSelect>
             </FilterField>
 
@@ -3540,7 +3599,7 @@ function detailRegistrationStatusLabel(status: RegistrationJaring["registrationS
   return "DISETUJUI";
 }
 
-function isJaringActiveInDays(item: RegistrationJaring, days: 30 | 60 | 90): boolean {
+function isJaringActiveInDays(item: RegistrationJaring, days: number): boolean {
   if (days === 30 && typeof item.isActive30Days === "boolean") return item.isActive30Days;
   if (days === 60 && typeof item.isActive60Days === "boolean") return item.isActive60Days;
   if (days === 90 && typeof item.isActive90Days === "boolean") return item.isActive90Days;
@@ -3550,11 +3609,45 @@ function isJaringActiveInDays(item: RegistrationJaring, days: 30 | 60 | 90): boo
   return time >= Date.now() - days * 24 * 60 * 60 * 1000;
 }
 
+function isJaringActiveToday(item: RegistrationJaring): boolean {
+  if (!item.lastReportAt) return false;
+  const time = new Date(item.lastReportAt).getTime();
+  if (Number.isNaN(time)) return false;
+  try {
+    const dFmt = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" });
+    return dFmt.format(new Date(item.lastReportAt)) === dFmt.format(new Date());
+  } catch {
+    const reportDate = new Date(item.lastReportAt);
+    const now = new Date();
+    return (
+      reportDate.getFullYear() === now.getFullYear() &&
+      reportDate.getMonth() === now.getMonth() &&
+      reportDate.getDate() === now.getDate()
+    );
+  }
+}
+
 function isJaringActive(item: RegistrationJaring): boolean {
   return isJaringActiveInDays(item, 90);
 }
 
 function getJaringActivityTier(item: RegistrationJaring) {
+  if (isJaringActiveToday(item)) {
+    return {
+      tier: 1,
+      label: DOMAIN_TERMS.jaringActiveToday,
+      badgeText: "Aktif Hari Ini",
+      tone: "border-emerald-300 bg-emerald-100/70 text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-950/60 dark:text-emerald-300",
+    };
+  }
+  if (isJaringActiveInDays(item, 7)) {
+    return {
+      tier: 7,
+      label: DOMAIN_TERMS.jaringActive7Days,
+      badgeText: "Aktif 7 Hari",
+      tone: "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/20 dark:bg-blue-950/40 dark:text-blue-400",
+    };
+  }
   if (isJaringActiveInDays(item, 30)) {
     return {
       tier: 30,
@@ -3581,8 +3674,8 @@ function getJaringActivityTier(item: RegistrationJaring) {
   }
   return {
     tier: 0,
-    label: DOMAIN_TERMS.jaringInactive90Days,
-    badgeText: "Tidak Aktif (>90H)",
+    label: DOMAIN_TERMS.jaringInactive,
+    badgeText: "Tidak Aktif",
     tone: "border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300",
   };
 }
@@ -3662,6 +3755,7 @@ function StatusPill({ children, tone }: { children: ReactNode; tone: string }) {
 function SummaryCard({
   label,
   value,
+  description,
   extra,
   icon: Icon,
   iconClass,
@@ -3669,9 +3763,12 @@ function SummaryCard({
   selected,
   selectedClass,
   onClick,
+  className,
+  isTall = false,
 }: {
   label: string;
   value: number;
+  description?: string;
   extra?: ReactNode;
   icon: ComponentType<{ className?: string }>;
   iconClass: string;
@@ -3679,16 +3776,53 @@ function SummaryCard({
   selected: boolean;
   selectedClass: string;
   onClick: () => void;
+  className?: string;
+  isTall?: boolean;
 }) {
+  if (isTall) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className={cn(
+          "group flex min-w-0 h-full cursor-pointer flex-col justify-between rounded-md border bg-card p-3.5 text-left shadow-xs transition-all duration-150 active:scale-[0.98]",
+          selected
+            ? selectedClass
+            : "border-slate-200/80 hover:border-slate-300/60 hover:bg-slate-50/50 dark:border-white/10 dark:hover:bg-slate-900/50",
+          className,
+        )}
+      >
+        <div className="flex items-center justify-between w-full gap-2">
+          <div className={cn("flex size-9 shrink-0 items-center justify-center rounded-md", iconClass)}>
+            <Icon className="size-4.5" />
+          </div>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2 py-0.5 font-medium text-[10px] text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400">
+            <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            Hari Ini
+          </span>
+        </div>
+        <div className="min-w-0 mt-3 sm:mt-2">
+          <p className="font-medium text-[10.5px] text-muted-foreground uppercase tracking-wider leading-tight">
+            {label}
+          </p>
+          <p className={cn("font-bold text-2xl sm:text-3xl tracking-tight mt-1", valueClass)}>{value}</p>
+          {description && <p className="mt-1 text-[11px] text-muted-foreground leading-snug">{description}</p>}
+          {extra}
+        </div>
+      </button>
+    );
+  }
+
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(
-        "flex min-w-0 cursor-pointer items-center gap-2.5 rounded-md border bg-card p-3 text-left shadow-xs transition-all duration-150 active:scale-[0.98]",
+        "flex min-w-0 h-full cursor-pointer items-center gap-2.5 rounded-md border bg-card p-3 text-left shadow-xs transition-all duration-150 active:scale-[0.98]",
         selected
           ? selectedClass
           : "border-slate-200/80 hover:border-slate-300/60 hover:bg-slate-50/50 dark:border-white/10 dark:hover:bg-slate-900/50",
+        className,
       )}
     >
       <div className={cn("flex size-9 shrink-0 items-center justify-center rounded-md", iconClass)}>
@@ -3699,6 +3833,7 @@ function SummaryCard({
           {label}
         </p>
         <p className={cn("font-bold text-lg sm:text-xl tracking-normal mt-0.5", valueClass)}>{value}</p>
+        {description && <p className="text-[10px] text-muted-foreground truncate">{description}</p>}
         {extra}
       </div>
     </button>
