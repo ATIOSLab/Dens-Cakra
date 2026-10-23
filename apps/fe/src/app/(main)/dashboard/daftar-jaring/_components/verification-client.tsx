@@ -3822,11 +3822,11 @@ function SummaryCard({
             Hari Ini
           </span>
         </div>
-        <div className="min-w-0 mt-3 sm:mt-2">
-          <p className="font-medium text-[10.5px] text-muted-foreground uppercase tracking-wider leading-tight">
+        <div className="min-w-0 mt-3 sm:mt-2 text-center">
+          <p className="font-medium text-[10.5px] text-muted-foreground uppercase tracking-wide leading-tight">
             {label}
           </p>
-          <p className={cn("font-bold text-2xl sm:text-3xl tracking-tight mt-1", valueClass)}>{value}</p>
+          <p className={cn("font-bold text-2xl sm:text-3xl tracking-tight mt-1 text-center", valueClass)}>{value}</p>
           {description && <p className="mt-1 text-[11px] text-muted-foreground leading-snug">{description}</p>}
           {extra}
         </div>
@@ -3839,7 +3839,7 @@ function SummaryCard({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex min-w-0 h-full cursor-pointer items-center gap-2.5 rounded-md border bg-card p-3 text-left shadow-xs transition-all duration-150 active:scale-[0.98]",
+        "flex min-w-0 h-full cursor-pointer items-center gap-2.5 rounded-md border bg-card p-3 shadow-xs transition-all duration-150 active:scale-[0.98]",
         selected
           ? selectedClass
           : "border-slate-200/80 hover:border-slate-300/60 hover:bg-slate-50/50 dark:border-white/10 dark:hover:bg-slate-900/50",
@@ -3849,11 +3849,11 @@ function SummaryCard({
       <div className={cn("flex size-9 shrink-0 items-center justify-center rounded-md", iconClass)}>
         <Icon className="size-4.5" />
       </div>
-      <div className="min-w-0 flex-1">
-        <p className="font-medium text-[10.5px] text-muted-foreground uppercase tracking-wider leading-tight line-clamp-2">
+      <div className="min-w-0 flex-1 text-center">
+        <p className="font-medium text-[10px] sm:text-[10.5px] text-muted-foreground uppercase tracking-wide leading-tight line-clamp-2">
           {label}
         </p>
-        <p className={cn("font-bold text-lg sm:text-xl tracking-normal mt-0.5", valueClass)}>{value}</p>
+        <p className={cn("font-bold text-lg sm:text-xl tracking-normal mt-0.5 text-center", valueClass)}>{value}</p>
         {description && <p className="text-[10px] text-muted-foreground truncate">{description}</p>}
         {extra}
       </div>
