@@ -1000,11 +1000,12 @@ export function JaringVerificationListClient() {
         </div>
 
         {/* SUMMARY CARDS */}
-        <div className="grid w-full grid-cols-1 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1.5fr)] gap-3 items-stretch">
-          {/* BLOK KIRI: STATUS REGISTRASI / VERIFIKASI (2x2 GRID) */}
-          <div className="grid grid-cols-2 lg:grid-rows-2 gap-2.5 content-stretch">
-            {/* Kiri Atas: Total Jaring Terverifikasi */}
+        <div className="grid w-full grid-cols-1 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-3 items-stretch">
+          {/* BLOK KIRI: STATUS REGISTRASI / VERIFIKASI (Baris Atas 2 Kartu, Baris Bawah 3 Kartu) */}
+          <div className="grid grid-cols-2 sm:grid-cols-6 lg:grid-rows-2 gap-2.5 content-stretch">
+            {/* Baris Atas Kiri: Total Jaring Terverifikasi */}
             <SummaryCard
+              className="sm:col-span-3 lg:row-start-1"
               label="Total Jaring Terverifikasi"
               value={summary.approved}
               icon={CheckCircle2}
@@ -1019,8 +1020,9 @@ export function JaringVerificationListClient() {
               }}
             />
 
-            {/* Kanan Atas: Total Jaring yang Diajukan */}
+            {/* Baris Atas Kanan: Total Jaring yang Diajukan */}
             <SummaryCard
+              className="sm:col-span-3 lg:row-start-1"
               label="Total Jaring yang Diajukan"
               value={summary.total}
               icon={DOMAIN_VISUALS.jaring.Icon}
@@ -1035,8 +1037,26 @@ export function JaringVerificationListClient() {
               }}
             />
 
-            {/* Kiri Bawah: Total Jaring Ditolak */}
+            {/* Baris Bawah Kiri: Total Jaring Menunggu Verifikasi */}
             <SummaryCard
+              className="sm:col-span-2 lg:row-start-2"
+              label="Total Jaring Menunggu Verifikasi"
+              value={summary.pending}
+              icon={Clock}
+              iconClass="bg-amber-500/10 text-amber-600 dark:text-amber-400"
+              valueClass="text-amber-600 dark:text-amber-400"
+              selected={statusFilter === "PENDING" && activeStatusFilter === "ALL"}
+              selectedClass="border-amber-500 ring-2 ring-amber-500/30 bg-amber-500/5 dark:bg-amber-500/10"
+              onClick={() => {
+                setStatusFilter("PENDING");
+                setActiveStatusFilter("ALL");
+                setPage(1);
+              }}
+            />
+
+            {/* Baris Bawah Tengah: Total Jaring Ditolak */}
+            <SummaryCard
+              className="sm:col-span-2 lg:row-start-2"
               label="Total Jaring Ditolak"
               value={summary.rejected}
               icon={XCircle}
@@ -1051,8 +1071,9 @@ export function JaringVerificationListClient() {
               }}
             />
 
-            {/* Kanan Bawah: Total Jaring Ditangguhkan */}
+            {/* Baris Bawah Kanan: Total Jaring Ditangguhkan */}
             <SummaryCard
+              className="col-span-2 sm:col-span-2 lg:row-start-2"
               label="Total Jaring Ditangguhkan"
               value={summary.suspended}
               icon={Ban}
