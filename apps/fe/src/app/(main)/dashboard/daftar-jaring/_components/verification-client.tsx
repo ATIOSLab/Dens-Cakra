@@ -1056,14 +1056,10 @@ export function JaringVerificationListClient() {
   });
   const [activeStatusFilter, setActiveStatusFilter] = useState<string>(() => {
     const value = searchParams.get("activityStatus");
-    if (value === "ACTIVE_30") return "ACTIVE_SINGLE_MONTH";
-    if (value === "ACTIVE_60") return "ACTIVE_MULTI_MONTH";
-    return value === "ACTIVE" ||
-      value === "ACTIVE_TODAY" ||
+    return value === "ACTIVE_TODAY" ||
       value === "ACTIVE_7" ||
       value === "ACTIVE_SINGLE_MONTH" ||
       value === "ACTIVE_MULTI_MONTH" ||
-      value === "ACTIVE_90" ||
       value === "INACTIVE"
       ? value
       : "ALL";
@@ -1397,8 +1393,6 @@ export function JaringVerificationListClient() {
       multiMonthFilter.length > 0
         ? verifiedItems.filter((i) => isJaringActiveInMultiMonths(i, multiMonthFilter)).length
         : null;
-    const active90 = verifiedItems.filter((i) => isJaringActiveInDays(i, 90)).length;
-    const active = active90;
     const hasInactiveFilter = Boolean(inactiveCustomStartDate || inactiveCustomEndDate);
     const inactive = hasInactiveFilter
       ? verifiedItems.filter((i) =>
@@ -1415,10 +1409,6 @@ export function JaringVerificationListClient() {
       active7,
       activeSingleMonth,
       activeMultiMonth,
-      active30: activeSingleMonth ?? 0,
-      active60: activeMultiMonth ?? 0,
-      active90,
-      active,
       inactive,
     };
   }, [
@@ -1473,16 +1463,13 @@ export function JaringVerificationListClient() {
       ) {
         return false;
       }
-      if (activeStatusFilter === "ACTIVE_SINGLE_MONTH" || activeStatusFilter === "ACTIVE_30") {
+      if (activeStatusFilter === "ACTIVE_SINGLE_MONTH") {
         if (!singleMonthFilter) return false;
         if (!isJaringActiveInMonth(item, singleMonthFilter)) return false;
       }
-      if (activeStatusFilter === "ACTIVE_MULTI_MONTH" || activeStatusFilter === "ACTIVE_60") {
+      if (activeStatusFilter === "ACTIVE_MULTI_MONTH") {
         if (multiMonthFilter.length === 0) return false;
         if (!isJaringActiveInMultiMonths(item, multiMonthFilter)) return false;
-      }
-      if ((activeStatusFilter === "ACTIVE_90" || activeStatusFilter === "ACTIVE") && !isJaringActiveInDays(item, 90)) {
-        return false;
       }
       if (activeStatusFilter === "INACTIVE") {
         if (!inactiveCustomStartDate && !inactiveCustomEndDate) return false;
@@ -1633,24 +1620,22 @@ export function JaringVerificationListClient() {
     }
 
     if (activeStatusFilter !== "ALL") {
-      let activityLabel: string = DOMAIN_TERMS.jaringActive90Days;
+      let activityLabel = "";
       if (activeStatusFilter === "ACTIVE_TODAY") activityLabel = DOMAIN_TERMS.jaringActiveToday;
       else if (activeStatusFilter === "ACTIVE_7") {
         activityLabel =
           active7StartDate && active7EndDate
             ? `Aktif 7 Hari (${formatDateShortId(active7StartDate)} - ${formatDateShortId(active7EndDate)})`
             : DOMAIN_TERMS.jaringActive7Days;
-      } else if (activeStatusFilter === "ACTIVE_SINGLE_MONTH" || activeStatusFilter === "ACTIVE_30") {
+      } else if (activeStatusFilter === "ACTIVE_SINGLE_MONTH") {
         activityLabel = singleMonthFilter
           ? `Aktif 1 Bulan (${formatYearMonth(singleMonthFilter)})`
           : "Jaring Aktif (1 Bulan)";
-      } else if (activeStatusFilter === "ACTIVE_MULTI_MONTH" || activeStatusFilter === "ACTIVE_60") {
+      } else if (activeStatusFilter === "ACTIVE_MULTI_MONTH") {
         activityLabel =
           multiMonthFilter.length > 0
             ? `Aktif Kombinasi (${multiMonthFilter.map(formatYearMonthShort).join(", ")})`
             : "Jaring Aktif (Kombinasi Bulan)";
-      } else if (activeStatusFilter === "ACTIVE_90" || activeStatusFilter === "ACTIVE") {
-        activityLabel = DOMAIN_TERMS.jaringActive90Days;
       } else if (activeStatusFilter === "INACTIVE") {
         activityLabel =
           inactiveCustomStartDate || inactiveCustomEndDate
@@ -1658,18 +1643,20 @@ export function JaringVerificationListClient() {
             : `${DOMAIN_TERMS.jaringInactive} (Pilih Periode)`;
       }
 
-      chips.push({
-        id: "activity",
-        label: "Aktivitas",
-        value: activityLabel,
-        onRemove: () => {
-          setActiveStatusFilter("ALL");
-          setPage(1);
-        },
-      });
+      if (activityLabel) {
+        chips.push({
+          id: "activity",
+          label: "Aktivitas",
+          value: activityLabel,
+          onRemove: () => {
+            setActiveStatusFilter("ALL");
+            setPage(1);
+          },
+        });
+      }
     }
 
-    if (singleMonthFilter && activeStatusFilter !== "ACTIVE_SINGLE_MONTH" && activeStatusFilter !== "ACTIVE_30") {
+    if (singleMonthFilter && activeStatusFilter !== "ACTIVE_SINGLE_MONTH") {
       chips.push({
         id: "singleMonth",
         label: "Bulan Terpilih",
@@ -1681,7 +1668,7 @@ export function JaringVerificationListClient() {
       });
     }
 
-    if (multiMonthFilter.length > 0 && activeStatusFilter !== "ACTIVE_MULTI_MONTH" && activeStatusFilter !== "ACTIVE_60") {
+    if (multiMonthFilter.length > 0 && activeStatusFilter !== "ACTIVE_MULTI_MONTH") {
       chips.push({
         id: "multiMonth",
         label: "Kombinasi Bulan",
@@ -1895,7 +1882,7 @@ export function JaringVerificationListClient() {
             <h1 className={DC_TYPOGRAPHY.pageTitle}>Daftar Jaring</h1>
             <p className="mt-1.5 max-w-2xl text-muted-foreground text-sm">
               Kelola data Jaring, wilayah penempatan, Petugas Wilayah (Gaswil), status registrasi, dan keaktifan
-              pelaporan (30, 60, dan 90 hari).
+              pelaporan.
             </p>
             <p className="mt-2 font-medium text-foreground text-sm">{areaSubtitle}</p>
           </div>
@@ -2037,7 +2024,7 @@ export function JaringVerificationListClient() {
               valueClass={summary.activeMultiMonth !== null ? "text-teal-600 dark:text-teal-400" : "text-muted-foreground"}
               selected={
                 statusFilter === "APPROVED" &&
-                (activeStatusFilter === "ACTIVE_MULTI_MONTH" || activeStatusFilter === "ACTIVE_60")
+                activeStatusFilter === "ACTIVE_MULTI_MONTH"
               }
               selectedClass="border-teal-500 ring-2 ring-teal-500/30 bg-teal-500/5 dark:bg-teal-500/10"
               onClick={() => {
@@ -2076,7 +2063,7 @@ export function JaringVerificationListClient() {
               valueClass={summary.activeSingleMonth !== null ? "text-cyan-600 dark:text-cyan-400" : "text-muted-foreground"}
               selected={
                 statusFilter === "APPROVED" &&
-                (activeStatusFilter === "ACTIVE_SINGLE_MONTH" || activeStatusFilter === "ACTIVE_30")
+                activeStatusFilter === "ACTIVE_SINGLE_MONTH"
               }
               selectedClass="border-cyan-500 ring-2 ring-cyan-500/30 bg-cyan-500/5 dark:bg-cyan-500/10"
               onClick={() => {
@@ -2347,9 +2334,6 @@ export function JaringVerificationListClient() {
                     ? `${DOMAIN_TERMS.jaringInactive} (Periode Kustom)`
                     : DOMAIN_TERMS.jaringInactive}
                 </option>
-                <option value="ACTIVE_30" className="hidden">{DOMAIN_TERMS.jaringActive30Days}</option>
-                <option value="ACTIVE_60" className="hidden">{DOMAIN_TERMS.jaringActive60Days}</option>
-                <option value="ACTIVE_90">{DOMAIN_TERMS.jaringActive90Days}</option>
               </NativeSelect>
             </FilterField>
 
@@ -3187,6 +3171,8 @@ export function JaringVerificationListClient() {
           search,
           statusFilter,
           activeStatusFilter,
+          singleMonthFilter,
+          multiMonthFilter,
           serverAreaId,
           officerFilter,
           areaSubtitle,
@@ -4016,38 +4002,6 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
               <DetailRow label="Status Aktivitas">
                 <div className="flex flex-col gap-2">
                   <StatusPill tone={operationalStatusTone(item)}>{operationalStatusLabel(item)}</StatusPill>
-                  <div className="flex flex-wrap gap-1.5 text-[11px]">
-                    <span
-                      className={cn(
-                        "rounded border px-2 py-0.5 font-medium",
-                        isJaringActiveInDays(item, 30)
-                          ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                          : "border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-800 dark:bg-slate-900/50",
-                      )}
-                    >
-                      30 Hari: {isJaringActiveInDays(item, 30) ? "Aktif" : "Tidak Aktif"}
-                    </span>
-                    <span
-                      className={cn(
-                        "rounded border px-2 py-0.5 font-medium",
-                        isJaringActiveInDays(item, 60)
-                          ? "border-teal-500/30 bg-teal-500/10 text-teal-700 dark:text-teal-300"
-                          : "border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-800 dark:bg-slate-900/50",
-                      )}
-                    >
-                      60 Hari: {isJaringActiveInDays(item, 60) ? "Aktif" : "Tidak Aktif"}
-                    </span>
-                    <span
-                      className={cn(
-                        "rounded border px-2 py-0.5 font-medium",
-                        isJaringActiveInDays(item, 90)
-                          ? "border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300"
-                          : "border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-800 dark:bg-slate-900/50",
-                      )}
-                    >
-                      90 Hari: {isJaringActiveInDays(item, 90) ? "Aktif" : "Tidak Aktif"}
-                    </span>
-                  </div>
                 </div>
               </DetailRow>
               <DetailRow label="Terakhir Melapor">
@@ -4679,7 +4633,7 @@ function isJaringActiveToday(item: RegistrationJaring): boolean {
 }
 
 function isJaringActive(item: RegistrationJaring): boolean {
-  return isJaringActiveInDays(item, 90);
+  return isJaringActiveToday(item) || isJaringActiveInDays(item, 7);
 }
 
 function getJaringActivityTier(item: RegistrationJaring) {
@@ -4697,30 +4651,6 @@ function getJaringActivityTier(item: RegistrationJaring) {
       label: DOMAIN_TERMS.jaringActive7Days,
       badgeText: "Aktif 7 Hari",
       tone: "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/20 dark:bg-blue-950/40 dark:text-blue-400",
-    };
-  }
-  if (isJaringActiveInDays(item, 30)) {
-    return {
-      tier: 30,
-      label: DOMAIN_TERMS.jaringActive30Days,
-      badgeText: "Aktif 30 Hari",
-      tone: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-950/40 dark:text-[#22C55E]",
-    };
-  }
-  if (isJaringActiveInDays(item, 60)) {
-    return {
-      tier: 60,
-      label: DOMAIN_TERMS.jaringActive60Days,
-      badgeText: "Aktif 60 Hari",
-      tone: "border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-500/20 dark:bg-teal-950/40 dark:text-teal-400",
-    };
-  }
-  if (isJaringActiveInDays(item, 90)) {
-    return {
-      tier: 90,
-      label: DOMAIN_TERMS.jaringActive90Days,
-      badgeText: "Aktif 90 Hari",
-      tone: "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-500/20 dark:bg-sky-950/40 dark:text-sky-400",
     };
   }
   return {

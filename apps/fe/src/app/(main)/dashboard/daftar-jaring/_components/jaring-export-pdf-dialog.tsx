@@ -23,6 +23,8 @@ export type JaringExportPdfDialogProps = {
     search?: string;
     statusFilter?: string;
     activeStatusFilter?: string;
+    singleMonthFilter?: string | null;
+    multiMonthFilter?: string[];
     serverAreaId?: string;
     officerFilter?: string;
     areaSubtitle?: string;
@@ -40,15 +42,10 @@ function formatActiveStatusLabel(status: string): string {
       return "Aktif Hari Ini";
     case "ACTIVE_7":
       return "Aktif 7 Hari";
-    case "ACTIVE_30":
     case "ACTIVE_SINGLE_MONTH":
-      return "Aktif 30 Hari";
-    case "ACTIVE_60":
+      return "Aktif (1 Bulan)";
     case "ACTIVE_MULTI_MONTH":
-      return "Aktif 60 Hari";
-    case "ACTIVE_90":
-    case "ACTIVE":
-      return "Aktif 90 Hari";
+      return "Aktif (Kombinasi Bulan)";
     case "INACTIVE":
       return "Tidak Aktif";
     default:
@@ -105,24 +102,16 @@ export function JaringExportPdfDialog({
           } else if (currentFilters.activeStatusFilter === "ACTIVE_7") {
             params.set("status", "ACTIVE");
             params.set("activeDays", "7");
-          } else if (
-            currentFilters.activeStatusFilter === "ACTIVE_30" ||
-            currentFilters.activeStatusFilter === "ACTIVE_SINGLE_MONTH"
-          ) {
+          } else if (currentFilters.activeStatusFilter === "ACTIVE_SINGLE_MONTH") {
             params.set("status", "ACTIVE");
-            params.set("activeDays", "30");
-          } else if (
-            currentFilters.activeStatusFilter === "ACTIVE_60" ||
-            currentFilters.activeStatusFilter === "ACTIVE_MULTI_MONTH"
-          ) {
+            if (currentFilters.singleMonthFilter) {
+              params.set("singleMonth", currentFilters.singleMonthFilter);
+            }
+          } else if (currentFilters.activeStatusFilter === "ACTIVE_MULTI_MONTH") {
             params.set("status", "ACTIVE");
-            params.set("activeDays", "60");
-          } else if (
-            currentFilters.activeStatusFilter === "ACTIVE_90" ||
-            currentFilters.activeStatusFilter === "ACTIVE"
-          ) {
-            params.set("status", "ACTIVE");
-            params.set("activeDays", "90");
+            if (currentFilters.multiMonthFilter && currentFilters.multiMonthFilter.length > 0) {
+              params.set("multiMonths", currentFilters.multiMonthFilter.join(","));
+            }
           } else if (currentFilters.activeStatusFilter === "INACTIVE") {
             params.set("status", "INACTIVE");
           }
