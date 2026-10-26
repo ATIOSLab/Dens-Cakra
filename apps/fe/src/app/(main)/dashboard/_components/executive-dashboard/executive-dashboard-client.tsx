@@ -9,6 +9,8 @@ import { AlertCircle, LoaderCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { ApiEnvelope } from "@/lib/api/types";
 import { findDkiJakartaProvinceFilterId } from "@/lib/domain/area-filter";
 import type { SystemRole } from "@/navigation/sidebar/system-roles";
@@ -140,6 +142,119 @@ function fieldOfficerDetailRoute(role: SystemRole, assignmentId: string | undefi
   return assignmentId ? `/dashboard/daftar-petugas-wilayah/${assignmentId}` : "/dashboard/daftar-petugas-wilayah";
 }
 
+function ExecutiveDashboardSkeleton({ role }: { role: SystemRole }) {
+  return (
+    <main className="space-y-6 pb-8" aria-busy="true" aria-live="polite">
+      {/* Header Filter Skeleton */}
+      <Card className="p-4 sm:p-5 space-y-4 border-border/60 bg-card/60 backdrop-blur-sm">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-6 w-48 rounded-md" />
+              <Skeleton className="h-5 w-24 rounded-full" />
+            </div>
+            <Skeleton className="h-4 w-72" />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Skeleton className="h-9 w-36 rounded-md" />
+            <Skeleton className="h-9 w-28 rounded-md" />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-6 pt-2 border-t border-border/40">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={`filter-skeleton-${i}`} className="h-8 w-full rounded-md" />
+          ))}
+        </div>
+      </Card>
+
+      {/* Summary KPI Cards Skeleton */}
+      <div className="space-y-2">
+        <div className="space-y-1">
+          <Skeleton className="h-3 w-28" />
+          <Skeleton className="h-6 w-44" />
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Card key={`kpi-card-${i}`} className="p-4 space-y-2 border-border/60">
+              <Skeleton className="h-3.5 w-24" />
+              <Skeleton className="h-7 w-16" />
+              <div className="flex items-center gap-1.5 pt-1">
+                <Skeleton className="h-3 w-12" />
+                <Skeleton className="h-3 w-16" />
+              </div>
+            </Card>
+          ))}
+        </div>
+      </div>
+
+      {/* Analytics Charts Skeleton */}
+      <div className="space-y-3">
+        <div className="space-y-1">
+          <Skeleton className="h-3 w-24" />
+          <Skeleton className="h-6 w-56" />
+        </div>
+        <div className="grid gap-4 xl:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Card key={`chart-skeleton-${i}`} className="p-5 space-y-4 border-border/60">
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-5 w-32" />
+                <Skeleton className="h-4 w-12" />
+              </div>
+              <Skeleton className="h-44 w-full rounded-lg" />
+              <div className="space-y-2">
+                <Skeleton className="h-3 w-full" />
+                <Skeleton className="h-3 w-4/5" />
+              </div>
+            </Card>
+          ))}
+        </div>
+      </div>
+
+      {/* Operations Skeleton */}
+      <div className="space-y-3">
+        <div className="space-y-1">
+          <Skeleton className="h-3 w-28" />
+          <Skeleton className="h-6 w-64" />
+        </div>
+        <div className="grid gap-4 xl:grid-cols-2">
+          <Card className="p-5 space-y-3 border-border/60">
+            <Skeleton className="h-5 w-40" />
+            <div className="space-y-2.5">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={`priority-row-${i}`} className="flex items-center justify-between p-2.5 rounded-md bg-muted/40">
+                  <div className="space-y-1.5">
+                    <Skeleton className="h-4 w-48" />
+                    <Skeleton className="h-3 w-32" />
+                  </div>
+                  <Skeleton className="h-6 w-16 rounded-full" />
+                </div>
+              ))}
+            </div>
+          </Card>
+          <Card className="p-5 space-y-3 border-border/60">
+            <Skeleton className="h-5 w-40" />
+            <div className="space-y-2.5">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={`rank-row-${i}`} className="flex items-center justify-between p-2.5 rounded-md bg-muted/40">
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="size-6 rounded-full" />
+                    <Skeleton className="h-4 w-36" />
+                  </div>
+                  <Skeleton className="h-4 w-16" />
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+      </div>
+
+      <p className="text-center text-xs text-muted-foreground animate-pulse">
+        Menyiapkan data ringkasan {getSystemRoleLabel(role)}...
+      </p>
+    </main>
+  );
+}
+
 export function ExecutiveDashboardClient({
   initialData,
   initialError,
@@ -171,9 +286,10 @@ export function ExecutiveDashboardClient({
   const [error, setError] = useState(initialError);
   const [filters, setFilters] = useState<ExecutiveDashboardFilters | null>(null);
   const [filtersLoading, setFiltersLoading] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(!initialData);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const initialRequest = useRef(true);
+  const activeRequestId = useRef(0);
   const didApplyDefaultAreaFilter = useRef(false);
   const isLeadershipRole = role === "executive" || role === "regional_commander";
 
@@ -185,6 +301,7 @@ export function ExecutiveDashboardClient({
   const loadData = useCallback(
     async (signal?: AbortSignal) => {
       if (query.period === "CUSTOM" && (!query.from || !query.to)) return;
+      const requestId = ++activeRequestId.current;
       setLoading(true);
       setError(null);
       try {
@@ -194,12 +311,23 @@ export function ExecutiveDashboardClient({
           credentials: "include",
           signal,
         }).then(readApi<ExecutiveDashboardData>);
-        setData(nextData);
+        if (requestId === activeRequestId.current) {
+          setData(nextData);
+          setError(null);
+        }
       } catch (cause) {
         if (cause instanceof DOMException && cause.name === "AbortError") return;
-        setError(cause instanceof Error ? cause.message : "Gagal memuat dashboard.");
+        if (requestId === activeRequestId.current) {
+          const message =
+            cause instanceof Error && cause.message && cause.message !== "Permintaan gagal."
+              ? cause.message
+              : "Layanan backend sedang menyiapkan data atau membutuhkan waktu lebih lama. Silakan coba lagi.";
+          setError(message);
+        }
       } finally {
-        setLoading(false);
+        if (requestId === activeRequestId.current) {
+          setLoading(false);
+        }
       }
     },
     [query],
@@ -228,7 +356,14 @@ export function ExecutiveDashboardClient({
 
   useEffect(() => {
     const params = queryParams(query);
-    router.replace(params.size ? `${pathname}?${params}` : pathname, { scroll: false });
+    const queryString = params.toString();
+    const targetUrl = queryString ? `${pathname}?${queryString}` : pathname;
+    if (typeof window !== "undefined") {
+      const currentUrl = `${window.location.pathname}${window.location.search}`;
+      if (currentUrl !== targetUrl) {
+        router.replace(targetUrl, { scroll: false });
+      }
+    }
 
     // Lewati request awal jika initialData sudah disediakan oleh server-side rendering (mencegah double-fetch)
     if (initialRequest.current && initialData) {
@@ -237,7 +372,10 @@ export function ExecutiveDashboardClient({
     }
 
     const controller = new AbortController();
-    const timeout = window.setTimeout(() => void loadData(controller.signal), initialRequest.current ? 0 : 250);
+    const timeout = window.setTimeout(
+      () => void loadData(controller.signal),
+      initialRequest.current ? 0 : 250,
+    );
     initialRequest.current = false;
     return () => {
       window.clearTimeout(timeout);
@@ -321,14 +459,24 @@ export function ExecutiveDashboardClient({
   );
 
   if (!data) {
+    if (loading) {
+      return <ExecutiveDashboardSkeleton role={role} />;
+    }
+
     return (
       <div className="grid min-h-[60dvh] place-items-center">
         <Alert variant="destructive" className="max-w-xl">
           <AlertCircle />
           <AlertTitle>Dashboard tidak tersedia</AlertTitle>
           <AlertDescription className="space-y-3">
-            <p>{error ?? "Layanan belum mengembalikan data."}</p>
-            <Button variant="outline" onClick={() => void loadData()} disabled={loading}>
+            <p>{error ?? "Layanan backend sedang menyiapkan data atau belum merespons."}</p>
+            <Button
+              variant="outline"
+              onClick={() => void loadData()}
+              disabled={loading}
+              className="gap-2"
+            >
+              {loading ? <LoaderCircle className="size-4 animate-spin" /> : null}
               Coba Lagi
             </Button>
           </AlertDescription>

@@ -52,7 +52,10 @@ export async function ExecutiveDashboardPage({ role, searchParams }: ExecutiveDa
 
   const dashboard = await apiServerGet<ExecutiveDashboardData>(`/dashboard/executive?${query}`).then(
     (value) => ({ status: "fulfilled" as const, value }),
-    () => ({ status: "rejected" as const }),
+    (err) => {
+      console.warn("[ExecutiveDashboardPage] SSR apiServerGet failed, client will fetch:", err?.message || err);
+      return { status: "rejected" as const };
+    },
   );
 
   return (

@@ -190,6 +190,32 @@ type DashboardReport = Prisma.WhatsAppReportSessionGetPayload<{
   select: typeof dashboardReportSelect;
 }>;
 
+const previousDashboardReportSelect = {
+  id: true,
+  status: true,
+  submittedMessage: {
+    select: {
+      convertedBaket: {
+        select: {
+          id: true,
+          status: true,
+          versions: {
+            orderBy: { versionNumber: 'desc' as const },
+            take: 1,
+            select: {
+              urgency: true,
+            },
+          },
+        },
+      },
+    },
+  },
+} satisfies Prisma.WhatsAppReportSessionSelect;
+
+type PreviousDashboardReport = Prisma.WhatsAppReportSessionGetPayload<{
+  select: typeof previousDashboardReportSelect;
+}>;
+
 const dashboardJaringSelect = {
   id: true,
   aliasName: true,
@@ -379,7 +405,7 @@ export class ExecutiveDashboardService {
           from: range.from.toISOString(),
           to: range.to.toISOString(),
         },
-        ttlMs: 60_000,
+        ttlMs: 300_000,
       },
       () => this.loadDashboard(query, context, range),
     );
@@ -655,7 +681,7 @@ export class ExecutiveDashboardService {
       }),
       this.prisma.whatsAppReportSession.findMany({
         where: previousWhere,
-        select: dashboardReportSelect,
+        select: previousDashboardReportSelect,
       }),
       this.prisma.intelligenceProduct.findMany({
         where: productCurrentWhere,
@@ -687,7 +713,7 @@ export class ExecutiveDashboardService {
     ]);
 
     const currentReports = reports as DashboardReport[];
-    const comparisonReports = previousReports as DashboardReport[];
+    const comparisonReports = previousReports as PreviousDashboardReport[];
     const scopedProducts = products as DashboardProduct[];
     const scopedJaring = networkJaring as DashboardJaring[];
     const scopedTasks = tasks as DashboardTask[];
@@ -1085,7 +1111,9 @@ export class ExecutiveDashboardService {
     return status;
   }
 
-  private countReports(reports: DashboardReport[]) {
+  private countReports(
+    reports: Array<DashboardReport | PreviousDashboardReport>,
+  ) {
     const counts = {
       totalReports: reports.length,
       baketCreatedReports: 0,
@@ -1101,7 +1129,7 @@ export class ExecutiveDashboardService {
       else counts.readyForBaket += 1;
       if (baket?.status === BaketStatus.VERIFIED) counts.validatedBakets += 1;
       else if (baket) counts.draftBakets += 1;
-      if (this.latestVersion(report)?.urgency === 'URGENT') {
+      if (baket?.versions[0]?.urgency === 'URGENT') {
         counts.urgentReports += 1;
       }
     }
@@ -1761,11 +1789,15 @@ export class ExecutiveDashboardService {
     from: Date;
     to: Date;
   }) {
-    const reportIds = input.reports.map((item) => item.id);
+    const reportIds = input.reports.slice(0, 50).map((item) => item.id);
     const baketIds = input.reports
       .map((item) => item.submittedMessage?.convertedBaket?.id)
-      .filter((id): id is string => Boolean(id));
-    const jaringIds = [...new Set(input.reports.map((item) => item.jaring.id))];
+      .filter((id): id is string => Boolean(id))
+      .slice(0, 50);
+    const jaringIds = [...new Set(input.reports.map((item) => item.jaring.id))].slice(0, 50);
+    const productIds = input.products.slice(0, 30).map((item) => item.id);
+    const taskIds = input.tasks.slice(0, 30).map((item) => item.id);
+    const directiveIds = input.directives.slice(0, 30).map((item) => item.id);
     const entityFilters: Prisma.AuditLogWhereInput[] = [
       ...(reportIds.length
         ? [{ entityType: 'WhatsAppReportSession', entityId: { in: reportIds } }]
@@ -1776,27 +1808,27 @@ export class ExecutiveDashboardService {
       ...(jaringIds.length
         ? [{ entityType: 'Jaring', entityId: { in: jaringIds } }]
         : []),
-      ...(input.products.length
+      ...(productIds.length
         ? [
             {
               entityType: 'IntelligenceProduct',
-              entityId: { in: input.products.map((item) => item.id) },
+              entityId: { in: productIds },
             },
           ]
         : []),
-      ...(input.tasks.length
+      ...(taskIds.length
         ? [
             {
               entityType: 'Task',
-              entityId: { in: input.tasks.map((item) => item.id) },
+              entityId: { in: taskIds },
             },
           ]
         : []),
-      ...(input.directives.length
+      ...(directiveIds.length
         ? [
             {
               entityType: 'Directive',
-              entityId: { in: input.directives.map((item) => item.id) },
+              entityId: { in: directiveIds },
             },
           ]
         : []),

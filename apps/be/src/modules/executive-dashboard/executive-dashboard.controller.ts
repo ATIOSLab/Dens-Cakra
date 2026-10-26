@@ -14,10 +14,10 @@ import { ExecutiveDashboardService } from './executive-dashboard.service.js';
 
 const DASHBOARD_ROLES = [
   'executive',
-  'regional_commander',
-  'executive',
+  'national_leader',
   'regional_commander',
   'field_coordinator',
+  'admin_system',
 ] as const;
 
 @ApiTags('Dashboard Deputi II')
