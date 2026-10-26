@@ -168,6 +168,8 @@ export type JaringReportQuery = {
   areaId?: string;
   jaringIds?: string;
   status?: string;
+  activeDays?: number;
+  activityStatus?: string;
   search?: string;
   fieldOfficerAssignmentId?: string;
   registrationStatus?: string;

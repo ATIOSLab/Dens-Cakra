@@ -29,6 +29,7 @@ import {
   JaringExportPdfQueryDto,
   JaringQuery,
   JaringRekapJangkauanQueryDto,
+  JaringRegionalBreakdownQueryDto,
   JaringReportQuery,
   ReportCategoryQuery,
   ReasonDto,
@@ -253,6 +254,30 @@ export class JaringController {
     @CurrentAccessContext() context: AuthorizationContext,
   ) {
     return apiResult(await this.jaringService.allReports(query, context));
+  }
+
+  @Get('reports/regional-breakdown')
+  @ApiContract({
+    operationId: 'apiJarReportRegionalBreakdown',
+    contractId: 'API-JAR-REPORT-REGIONAL-BREAKDOWN',
+    summary:
+      'Statistik sebaran dan keaktifan jaring serta keterbacaan laporan per wilayah',
+    roles: [
+      'admin_system',
+      'national_leader',
+      'executive',
+      'regional_commander',
+      'field_coordinator',
+      'field_officer',
+    ],
+  })
+  async getRegionalBreakdown(
+    @Query() query: JaringRegionalBreakdownQueryDto,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(
+      await this.jaringService.getRegionalBreakdown(query, context),
+    );
   }
 
   @Get('coaching-reports/config')

@@ -23,7 +23,10 @@ import {
 } from '../../common/utils/phone-normalizer.js';
 import { resolveDescendantAreaIds } from '../../common/utils/area-closure.js';
 import { DomainScopeService } from '../access/domain-scope.service.js';
-import { ApplicationCacheService } from '../cache/application-cache.service.js';
+import {
+  ApplicationCacheService,
+  authorizationScopeIdentity,
+} from '../cache/application-cache.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type {
   CreateJaringCoachingReportDto,
@@ -34,6 +37,7 @@ import type {
   JaringOccupationQuery,
   JaringQuery,
   JaringRekapJangkauanQueryDto,
+  JaringRegionalBreakdownQueryDto,
   JaringReportQuery,
   ReportCategoryQuery,
   ReasonDto,
@@ -932,12 +936,12 @@ export class JaringService {
           select: { messages: true, primaryBakets: true, reportSessions: true },
         },
         messages: {
-          take: 1,
+          take: 100,
           orderBy: { receivedAt: 'desc' },
           select: { receivedAt: true },
         },
         reportSessions: {
-          take: 1,
+          take: 100,
           orderBy: { submittedAt: 'desc' },
           select: { submittedAt: true },
         },
@@ -952,9 +956,18 @@ export class JaringService {
       isActive90Days,
     } = this.calculateJaringReportActivity(item);
 
+    const reportDates = Array.from(
+      new Set([
+        ...(item.reportSessions?.map((s) => s.submittedAt?.toISOString()).filter((d): d is string => Boolean(d)) ?? []),
+        ...(item.messages?.map((m) => m.receivedAt?.toISOString()).filter((d): d is string => Boolean(d)) ?? []),
+        ...(lastReportAt ? [lastReportAt] : []),
+      ]),
+    );
+
     return {
       ...item,
       lastReportAt,
+      reportDates,
       status: computedStatus,
       isActive30Days,
       isActive60Days,
@@ -1464,6 +1477,20 @@ export class JaringService {
   }
 
   async list(query: JaringQuery, context: AuthorizationContext) {
+    return this.cache.getOrSet(
+      {
+        namespace: 'jaring-list',
+        identity: {
+          query,
+          scope: authorizationScopeIdentity(context),
+        },
+        ttlMs: 30_000,
+      },
+      () => this.loadList(query, context),
+    );
+  }
+
+  private async loadList(query: JaringQuery, context: AuthorizationContext) {
     const scope = await this.domainScope.resolve(context);
     const isFieldOfficer = context.authRole === 'field_officer';
     const isFieldCoordinator = context.authRole === 'field_coordinator';
@@ -1842,7 +1869,7 @@ export class JaringService {
           },
         },
         messages: {
-          take: 1,
+          take: 30,
           where: cutOffDate ? { receivedAt: { lte: cutOffDate } } : undefined,
           orderBy: { receivedAt: 'desc' },
           select: {
@@ -1851,7 +1878,7 @@ export class JaringService {
           },
         },
         reportSessions: {
-          take: 1,
+          take: 30,
           where: cutOffDate
             ? { submittedAt: { not: null, lte: cutOffDate } }
             : { submittedAt: { not: null } },
@@ -1882,9 +1909,17 @@ export class JaringService {
         isActive60Days,
         isActive90Days,
       } = this.calculateJaringReportActivity(item, cutOffDate, activeDays);
+      const reportDates = Array.from(
+        new Set([
+          ...(item.reportSessions?.map((s) => s.submittedAt?.toISOString()).filter((d): d is string => Boolean(d)) ?? []),
+          ...(item.messages?.map((m) => m.receivedAt?.toISOString()).filter((d): d is string => Boolean(d)) ?? []),
+          ...(lastReportAt ? [lastReportAt] : []),
+        ]),
+      );
       return {
         ...item,
         lastReportAt,
+        reportDates,
         status: computedStatus,
         isActive30Days,
         isActive60Days,
@@ -4552,6 +4587,380 @@ export class JaringService {
         districtsWithoutReports,
         topDistricts,
       },
+    };
+  }
+
+  async getRegionalBreakdown(
+    query: JaringRegionalBreakdownQueryDto,
+    context: AuthorizationContext,
+  ) {
+    const fromDate = query.from ? new Date(query.from) : null;
+    const toDate = query.to ? new Date(query.to) : null;
+    const activeDays = query.activeDays ?? 90;
+    const activeSince = new Date(Date.now() - activeDays * 24 * 60 * 60 * 1000);
+    const activeSinceIso = activeSince.toISOString();
+
+    let targetProvinceId = query.provinceId;
+    if (!targetProvinceId && !query.regencyId) {
+      const dkiProvince = await this.prisma.administrativeArea.findFirst({
+        where: {
+          level: 'PROVINCE',
+          isActive: true,
+          deletedAt: null,
+          OR: [
+            { code: '31' },
+            { officialCode: '31' },
+            { name: { contains: 'Jakarta', mode: 'insensitive' } },
+          ],
+        },
+        select: { id: true },
+      });
+      if (dkiProvince) {
+        targetProvinceId = dkiProvince.id;
+      }
+    }
+
+    const dkiKeywords = [
+      'Jakarta Selatan',
+      'Jakarta Timur',
+      'Jakarta Pusat',
+      'Jakarta Barat',
+      'Jakarta Utara',
+      'Kepulauan Seribu',
+    ];
+
+    const rawRegencies = await this.prisma.administrativeArea.findMany({
+      where: {
+        level: { in: ['REGENCY', 'CITY'] },
+        isActive: true,
+        deletedAt: null,
+        ...(query.regencyId
+          ? { id: query.regencyId }
+          : query.provinceId
+            ? { parentId: query.provinceId }
+            : {
+                OR: [
+                  ...(targetProvinceId ? [{ parentId: targetProvinceId }] : []),
+                  ...dkiKeywords.map((k) => ({ name: { contains: k, mode: 'insensitive' as const } })),
+                ],
+              }),
+      },
+      select: {
+        id: true,
+        name: true,
+        code: true,
+        level: true,
+        parentId: true,
+      },
+      orderBy: { name: 'asc' },
+    });
+
+    const isRestrictedToDki = !query.provinceId && !query.regencyId;
+    const regencies = isRestrictedToDki
+      ? Array.from(
+          new Map(
+            rawRegencies
+              .filter((r) =>
+                dkiKeywords.some((k) => r.name.toLowerCase().includes(k.toLowerCase())),
+              )
+              .map((r) => [r.id, r]),
+          ).values(),
+        )
+      : rawRegencies;
+
+    const regencyIds = regencies.map((r) => r.id);
+    const districts = await this.prisma.administrativeArea.findMany({
+      where: {
+        level: 'DISTRICT',
+        parentId: { in: regencyIds },
+        isActive: true,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        name: true,
+        code: true,
+        level: true,
+        parentId: true,
+      },
+      orderBy: { name: 'asc' },
+    });
+
+    const jaringRows = await this.prisma.$queryRaw<
+      Array<{
+        regency_id: string;
+        district_id: string | null;
+        total_jaring: number;
+        active_jaring: number;
+      }>
+    >(Prisma.sql`
+      WITH ranked_coverage AS (
+        SELECT "jaringId", "areaId", ROW_NUMBER() OVER(PARTITION BY "jaringId" ORDER BY "isPrimary" DESC, "validFrom" DESC) as rn
+        FROM "JaringAreaCoverage"
+        WHERE "validUntil" IS NULL
+      ),
+      jaring_base AS (
+        SELECT j.id as "jaringId", rc."areaId"
+        FROM "Jaring" j
+        JOIN ranked_coverage rc ON j.id = rc."jaringId" AND rc.rn = 1
+        WHERE j."registrationStatus" = 'APPROVED' AND j."deletedAt" IS NULL
+      ),
+      jaring_mapped AS (
+        SELECT 
+          jb."jaringId",
+          (
+            SELECT aac."ancestorId"
+            FROM "AdministrativeAreaClosure" aac
+            JOIN "AdministrativeArea" reg ON aac."ancestorId" = reg.id AND reg.level IN ('REGENCY', 'CITY')
+            WHERE aac."descendantId" = jb."areaId"
+            LIMIT 1
+          ) as regency_id,
+          (
+            SELECT aac."ancestorId"
+            FROM "AdministrativeAreaClosure" aac
+            JOIN "AdministrativeArea" dist ON aac."ancestorId" = dist.id AND dist.level = 'DISTRICT'
+            WHERE aac."descendantId" = jb."areaId"
+            LIMIT 1
+          ) as district_id
+        FROM jaring_base jb
+      ),
+      active_reporters AS (
+        SELECT DISTINCT "jaringId"
+        FROM "WhatsAppReportSession"
+        WHERE "submittedAt" >= ${activeSinceIso}::timestamptz
+        UNION
+        SELECT DISTINCT "jaringId"
+        FROM "WhatsAppMessage"
+        WHERE "receivedAt" >= ${activeSinceIso}::timestamptz
+      )
+      SELECT 
+        jm.regency_id,
+        jm.district_id,
+        count(DISTINCT jm."jaringId")::int as total_jaring,
+        count(DISTINCT CASE WHEN ar."jaringId" IS NOT NULL THEN jm."jaringId" END)::int as active_jaring
+      FROM jaring_mapped jm
+      LEFT JOIN active_reporters ar ON jm."jaringId" = ar."jaringId"
+      WHERE jm.regency_id IS NOT NULL
+      GROUP BY jm.regency_id, jm.district_id
+    `);
+
+    const fromCondition = fromDate
+      ? Prisma.sql`AND s."submittedAt" >= ${fromDate.toISOString()}::timestamptz`
+      : Prisma.empty;
+    const toCondition = toDate
+      ? Prisma.sql`AND s."submittedAt" <= ${toDate.toISOString()}::timestamptz`
+      : Prisma.empty;
+
+    const reportRows = await this.prisma.$queryRaw<
+      Array<{
+        regency_id: string;
+        district_id: string | null;
+        total_reports: number;
+        read_reports: number;
+        unread_reports: number;
+      }>
+    >(Prisma.sql`
+      WITH ranked_coverage AS (
+        SELECT "jaringId", "areaId", ROW_NUMBER() OVER(PARTITION BY "jaringId" ORDER BY "isPrimary" DESC, "validFrom" DESC) as rn
+        FROM "JaringAreaCoverage"
+        WHERE "validUntil" IS NULL
+      ),
+      report_base AS (
+        SELECT 
+          s.id as "sessionId",
+          s."jaringId",
+          s."submittedAt",
+          (s."gaswilReadAt" IS NOT NULL OR s."readAt" IS NOT NULL OR s."korwilReadAt" IS NOT NULL) as is_read,
+          COALESCE(wm."resolvedAreaId", rc."areaId") as effective_area_id
+        FROM "WhatsAppReportSession" s
+        LEFT JOIN "WhatsAppMessage" wm ON s."submittedMessageId" = wm.id
+        LEFT JOIN ranked_coverage rc ON s."jaringId" = rc."jaringId" AND rc.rn = 1
+        WHERE (s."submittedAt" IS NOT NULL OR s.status = 'ACTIVE')
+        ${fromCondition}
+        ${toCondition}
+      ),
+      report_mapped AS (
+        SELECT 
+          rb."sessionId",
+          rb.is_read,
+          (
+            SELECT aac."ancestorId"
+            FROM "AdministrativeAreaClosure" aac
+            JOIN "AdministrativeArea" reg ON aac."ancestorId" = reg.id AND reg.level IN ('REGENCY', 'CITY')
+            WHERE aac."descendantId" = rb.effective_area_id
+            LIMIT 1
+          ) as regency_id,
+          (
+            SELECT aac."ancestorId"
+            FROM "AdministrativeAreaClosure" aac
+            JOIN "AdministrativeArea" dist ON aac."ancestorId" = dist.id AND dist.level = 'DISTRICT'
+            WHERE aac."descendantId" = rb.effective_area_id
+            LIMIT 1
+          ) as district_id
+        FROM report_base rb
+        WHERE rb.effective_area_id IS NOT NULL
+      )
+      SELECT 
+        rm.regency_id,
+        rm.district_id,
+        count(*)::int as total_reports,
+        count(CASE WHEN rm.is_read = true THEN 1 END)::int as read_reports,
+        count(CASE WHEN rm.is_read = false THEN 1 END)::int as unread_reports
+      FROM report_mapped rm
+      WHERE rm.regency_id IS NOT NULL
+      GROUP BY rm.regency_id, rm.district_id
+    `);
+
+    const jaringByArea = new Map<string, { total: number; active: number }>();
+    for (const row of jaringRows) {
+      const key = `${row.regency_id}:${row.district_id ?? 'all'}`;
+      jaringByArea.set(key, {
+        total: Number(row.total_jaring ?? 0),
+        active: Number(row.active_jaring ?? 0),
+      });
+    }
+
+    const reportsByArea = new Map<
+      string,
+      { total: number; read: number; unread: number }
+    >();
+    for (const row of reportRows) {
+      const key = `${row.regency_id}:${row.district_id ?? 'all'}`;
+      reportsByArea.set(key, {
+        total: Number(row.total_reports ?? 0),
+        read: Number(row.read_reports ?? 0),
+        unread: Number(row.unread_reports ?? 0),
+      });
+    }
+
+    const districtsByRegencyId = new Map<string, typeof districts>();
+    for (const district of districts) {
+      if (!district.parentId) continue;
+      const list = districtsByRegencyId.get(district.parentId) ?? [];
+      list.push(district);
+      districtsByRegencyId.set(district.parentId, list);
+    }
+
+    let grandTotalJaring = 0;
+    let grandActiveJaring = 0;
+    let grandTotalReports = 0;
+    let grandReadReports = 0;
+    let grandUnreadReports = 0;
+
+    const regencyResults = regencies.map((regency) => {
+      const regencyDistricts = districtsByRegencyId.get(regency.id) ?? [];
+
+      let regencyTotalJaring = 0;
+      let regencyActiveJaring = 0;
+      let regencyTotalReports = 0;
+      let regencyReadReports = 0;
+      let regencyUnreadReports = 0;
+
+      const districtItems = regencyDistricts.map((district) => {
+        const jKey = `${regency.id}:${district.id}`;
+        const jStats = jaringByArea.get(jKey) ?? { total: 0, active: 0 };
+        const rStats = reportsByArea.get(jKey) ?? { total: 0, read: 0, unread: 0 };
+
+        regencyTotalJaring += jStats.total;
+        regencyActiveJaring += jStats.active;
+        regencyTotalReports += rStats.total;
+        regencyReadReports += rStats.read;
+        regencyUnreadReports += rStats.unread;
+
+        const activePercent =
+          jStats.total > 0
+            ? Math.round((jStats.active / jStats.total) * 1000) / 10
+            : 0;
+
+        return {
+          id: district.id,
+          name: district.name,
+          level: 'DISTRICT' as const,
+          parentId: regency.id,
+          parentName: regency.name,
+          totalJaring: jStats.total,
+          activeJaring: jStats.active,
+          activePercent,
+          totalReports: rStats.total,
+          readReports: rStats.read,
+          unreadReports: rStats.unread,
+        };
+      });
+
+      const directJKey = `${regency.id}:all`;
+      const directJStats = jaringByArea.get(directJKey);
+      if (directJStats) {
+        regencyTotalJaring += directJStats.total;
+        regencyActiveJaring += directJStats.active;
+      }
+      const directRStats = reportsByArea.get(directJKey);
+      if (directRStats) {
+        regencyTotalReports += directRStats.total;
+        regencyReadReports += directRStats.read;
+        regencyUnreadReports += directRStats.unread;
+      }
+
+      const regencyActivePercent =
+        regencyTotalJaring > 0
+          ? Math.round((regencyActiveJaring / regencyTotalJaring) * 1000) / 10
+          : 0;
+
+      grandTotalJaring += regencyTotalJaring;
+      grandActiveJaring += regencyActiveJaring;
+      grandTotalReports += regencyTotalReports;
+      grandReadReports += regencyReadReports;
+      grandUnreadReports += regencyUnreadReports;
+
+      return {
+        id: regency.id,
+        name: regency.name,
+        level: regency.level as 'CITY' | 'REGENCY',
+        totalJaring: regencyTotalJaring,
+        activeJaring: regencyActiveJaring,
+        activePercent: regencyActivePercent,
+        totalReports: regencyTotalReports,
+        readReports: regencyReadReports,
+        unreadReports: regencyUnreadReports,
+        districts: districtItems,
+      };
+    });
+
+    const grandActivePercent =
+      grandTotalJaring > 0
+        ? Math.round((grandActiveJaring / grandTotalJaring) * 1000) / 10
+        : 0;
+
+    const dkiPriority = [
+      'Jakarta Selatan',
+      'Jakarta Timur',
+      'Jakarta Pusat',
+      'Jakarta Barat',
+      'Jakarta Utara',
+      'Kepulauan Seribu',
+    ];
+
+    regencyResults.sort((a, b) => {
+      const idxA = dkiPriority.findIndex((k) => a.name.includes(k));
+      const idxB = dkiPriority.findIndex((k) => b.name.includes(k));
+      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+      if (idxA !== -1) return -1;
+      if (idxB !== -1) return 1;
+
+      if (b.totalReports !== a.totalReports) return b.totalReports - a.totalReports;
+      if (b.totalJaring !== a.totalJaring) return b.totalJaring - a.totalJaring;
+      return a.name.localeCompare(b.name, 'id');
+    });
+
+    return {
+      summary: {
+        totalJaring: grandTotalJaring,
+        activeJaring: grandActiveJaring,
+        activePercent: grandActivePercent,
+        totalReports: grandTotalReports,
+        readReports: grandReadReports,
+        unreadReports: grandUnreadReports,
+      },
+      regencies: regencyResults,
     };
   }
 }

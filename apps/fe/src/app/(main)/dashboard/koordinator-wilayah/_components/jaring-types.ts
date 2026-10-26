@@ -40,6 +40,7 @@ export type RegistrationJaring = {
   notes: string | null;
   status?: "ACTIVE" | "INACTIVE";
   lastReportAt?: string | null;
+  reportDates?: string[];
   isActive30Days?: boolean;
   isActive60Days?: boolean;
   isActive90Days?: boolean;

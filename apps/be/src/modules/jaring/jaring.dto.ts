@@ -340,9 +340,14 @@ export class JaringExportPdfQueryDto {
   jaringIds?: string;
 
   @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  activityStatus?: string;
+
+  @IsOptional()
   @Type(() => Number)
   @IsInt()
-  @IsIn([30, 60, 90])
+  @IsIn([1, 7, 14, 30, 60, 90])
   activeDays?: number = 90;
 }
 
@@ -393,3 +398,36 @@ export class JaringRekapJangkauanQueryDto {
   @IsIn([30, 60, 90])
   activeDays?: number = 90;
 }
+
+export class JaringRegionalBreakdownQueryDto {
+  @IsOptional()
+  @IsString({
+    message: 'Format tanggal awal (from) harus berupa teks tanggal.',
+  })
+  from?: string;
+
+  @IsOptional()
+  @IsString({
+    message: 'Format tanggal akhir (to) harus berupa teks tanggal.',
+  })
+  to?: string;
+
+  @IsOptional()
+  @IsUUID('4', {
+    message: 'ID provinsi harus berupa UUID valid.',
+  })
+  provinceId?: string;
+
+  @IsOptional()
+  @IsUUID('4', {
+    message: 'ID kota/kabupaten harus berupa UUID valid.',
+  })
+  regencyId?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @IsIn([7, 14, 30, 60, 90])
+  activeDays?: number = 90;
+}
+

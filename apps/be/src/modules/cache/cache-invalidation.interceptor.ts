@@ -30,6 +30,7 @@ export class CacheInvalidationInterceptor implements NestInterceptor {
           'map-markers',
           'kpi-v1',
           'executive-dashboard-v1',
+          'jaring-list',
         );
         return value;
       }),

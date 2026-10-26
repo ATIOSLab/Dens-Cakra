@@ -15,6 +15,8 @@ export async function getJaringReportData(query: JaringReportQuery): Promise<Jar
   if (query.areaId) queryParams.areaId = query.areaId;
   if (query.jaringIds) queryParams.jaringIds = query.jaringIds;
   if (query.status) queryParams.status = query.status;
+  if (query.activeDays) queryParams.activeDays = String(query.activeDays);
+  if (query.activityStatus) queryParams.activityStatus = query.activityStatus;
   if (query.search) queryParams.search = query.search;
   if (query.fieldOfficerAssignmentId) queryParams.fieldOfficerAssignmentId = query.fieldOfficerAssignmentId;
   if (query.registrationStatus) queryParams.registrationStatus = query.registrationStatus;

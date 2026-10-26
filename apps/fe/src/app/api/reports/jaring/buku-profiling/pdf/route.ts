@@ -90,6 +90,8 @@ export async function GET(request: NextRequest) {
     areaId: searchParams.get("areaId") || undefined,
     jaringIds: searchParams.get("jaringIds") || undefined,
     status: (searchParams.get("status") as "ACTIVE" | "INACTIVE") || undefined,
+    activeDays: searchParams.get("activeDays") ? Number(searchParams.get("activeDays")) : undefined,
+    activityStatus: searchParams.get("activityStatus") || undefined,
     search: searchParams.get("search") || undefined,
     fieldOfficerAssignmentId: searchParams.get("fieldOfficerAssignmentId") || undefined,
     registrationStatus: searchParams.get("registrationStatus") || "APPROVED",

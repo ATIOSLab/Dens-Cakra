@@ -13,6 +13,7 @@ export type CacheNamespace =
   | 'dashboard-briefing'
   | 'executive-dashboard-v1'
   | 'field-officer-summary'
+  | 'jaring-list'
   | 'jaring-occupations'
   | 'kpi-v1'
   | 'map-markers'
@@ -200,7 +201,7 @@ export function authorizationScopeIdentity(context: AuthorizationContext) {
     roleCode: context.roleCode,
     primaryAssignmentId: context.primaryAssignmentId,
     organizationUnitId: context.organizationUnitId,
-    areaIds: context.areaScopes.map((scope) => scope.areaId).sort(),
+    areaIds: (context.areaScopes ?? []).map((scope) => scope.areaId).sort(),
   };
 }
 

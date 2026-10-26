@@ -37,6 +37,8 @@ export const DOMAIN_TERMS = {
   jaringCaretaker: "Petugas Wilayah (Gaswil)",
   jaringActiveToday: "Jaring Aktif Hari Ini",
   jaringActive7Days: "Jaring Aktif 7 Hari",
+  jaringActiveSingleMonth: "Jaring Aktif (1 Bulan)",
+  jaringActiveMultiMonth: "Jaring Aktif (Kombinasi Bulan)",
   jaringActive30Days: "Jaring Aktif 30 Hari",
   jaringActive60Days: "Jaring Aktif 60 Hari",
   jaringActive90Days: "Jaring Aktif 90 Hari",

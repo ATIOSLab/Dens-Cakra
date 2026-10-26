@@ -239,12 +239,45 @@ export class JaringReportDataService {
         }
       : {};
 
-    const activeDays = query.activeDays ? Number(query.activeDays) : 90;
+    let effectiveStatus = query.status;
+    let effectiveActiveDays = query.activeDays ? Number(query.activeDays) : 90;
+
+    if (query.activityStatus) {
+      if (query.activityStatus === 'ACTIVE_TODAY') {
+        effectiveStatus = JaringStatus.ACTIVE;
+        effectiveActiveDays = 1;
+      } else if (query.activityStatus === 'ACTIVE_7') {
+        effectiveStatus = JaringStatus.ACTIVE;
+        effectiveActiveDays = 7;
+      } else if (
+        query.activityStatus === 'ACTIVE_30' ||
+        query.activityStatus === 'ACTIVE_SINGLE_MONTH'
+      ) {
+        effectiveStatus = JaringStatus.ACTIVE;
+        effectiveActiveDays = 30;
+      } else if (
+        query.activityStatus === 'ACTIVE_60' ||
+        query.activityStatus === 'ACTIVE_MULTI_MONTH'
+      ) {
+        effectiveStatus = JaringStatus.ACTIVE;
+        effectiveActiveDays = 60;
+      } else if (
+        query.activityStatus === 'ACTIVE_90' ||
+        query.activityStatus === 'ACTIVE'
+      ) {
+        effectiveStatus = JaringStatus.ACTIVE;
+        effectiveActiveDays = 90;
+      } else if (query.activityStatus === 'INACTIVE') {
+        effectiveStatus = JaringStatus.INACTIVE;
+        effectiveActiveDays = 90;
+      }
+    }
+
     const windowAgo = new Date();
-    windowAgo.setDate(windowAgo.getDate() - activeDays);
+    windowAgo.setDate(windowAgo.getDate() - effectiveActiveDays);
 
     const activityWhere: Prisma.JaringWhereInput =
-      query.status === JaringStatus.ACTIVE
+      effectiveStatus === JaringStatus.ACTIVE
         ? {
             OR: [
               {
@@ -259,7 +292,7 @@ export class JaringReportDataService {
               },
             ],
           }
-        : query.status === JaringStatus.INACTIVE
+        : effectiveStatus === JaringStatus.INACTIVE
           ? {
               AND: [
                 {
@@ -336,8 +369,9 @@ export class JaringReportDataService {
           },
         },
         reportSessions: {
+          where: { submittedAt: { not: null } },
           take: 1,
-          orderBy: { lastActivityAt: 'desc' },
+          orderBy: { submittedAt: 'desc' },
           select: {
             id: true,
             latitude: true,
@@ -389,7 +423,7 @@ export class JaringReportDataService {
         isActive30Days,
         isActive60Days,
         isActive90Days,
-      } = this.calculateJaringActivity(item, activeDays);
+      } = this.calculateJaringActivity(item, effectiveActiveDays);
 
       const formatted: FormattedJaring = {
         id: item.id,
@@ -1085,6 +1119,26 @@ export class JaringReportDataService {
         val: item.gaswilName,
       });
     }
+
+    const lastReportFormatted = item.lastReportAt
+      ? new Intl.DateTimeFormat('id-ID', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+        }).format(new Date(item.lastReportAt))
+      : null;
+
+    const activityStatusLabel =
+      item.status === 'ACTIVE'
+        ? lastReportFormatted
+          ? `Aktif (Laporan: ${lastReportFormatted})`
+          : 'Aktif'
+        : 'Tidak Aktif (Nihil Laporan)';
+
+    profilingRows.push({
+      label: 'Keaktifan',
+      val: activityStatusLabel,
+    });
 
     return profilingRows;
   }

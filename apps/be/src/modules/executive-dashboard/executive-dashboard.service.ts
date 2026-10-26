@@ -379,7 +379,7 @@ export class ExecutiveDashboardService {
           from: range.from.toISOString(),
           to: range.to.toISOString(),
         },
-        ttlMs: 15_000,
+        ttlMs: 60_000,
       },
       () => this.loadDashboard(query, context, range),
     );

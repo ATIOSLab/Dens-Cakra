@@ -34,6 +34,28 @@ function getBrowserBackendUrl() {
   return (process.env.NEXT_PUBLIC_BROWSER_API_BASE_URL ?? "").replace(/\/$/, "");
 }
 
+function formatActiveStatusLabel(status: string): string {
+  switch (status) {
+    case "ACTIVE_TODAY":
+      return "Aktif Hari Ini";
+    case "ACTIVE_7":
+      return "Aktif 7 Hari";
+    case "ACTIVE_30":
+    case "ACTIVE_SINGLE_MONTH":
+      return "Aktif 30 Hari";
+    case "ACTIVE_60":
+    case "ACTIVE_MULTI_MONTH":
+      return "Aktif 60 Hari";
+    case "ACTIVE_90":
+    case "ACTIVE":
+      return "Aktif 90 Hari";
+    case "INACTIVE":
+      return "Tidak Aktif";
+    default:
+      return status;
+  }
+}
+
 export function JaringExportPdfDialog({
   open,
   onOpenChange,
@@ -76,23 +98,39 @@ export function JaringExportPdfDialog({
           params.set("search", currentFilters.search.trim());
         }
         if (currentFilters.activeStatusFilter && currentFilters.activeStatusFilter !== "ALL") {
-          if (currentFilters.activeStatusFilter === "ACTIVE_30") {
+          params.set("activityStatus", currentFilters.activeStatusFilter);
+          if (currentFilters.activeStatusFilter === "ACTIVE_TODAY") {
+            params.set("status", "ACTIVE");
+            params.set("activeDays", "1");
+          } else if (currentFilters.activeStatusFilter === "ACTIVE_7") {
+            params.set("status", "ACTIVE");
+            params.set("activeDays", "7");
+          } else if (
+            currentFilters.activeStatusFilter === "ACTIVE_30" ||
+            currentFilters.activeStatusFilter === "ACTIVE_SINGLE_MONTH"
+          ) {
             params.set("status", "ACTIVE");
             params.set("activeDays", "30");
-          } else if (currentFilters.activeStatusFilter === "ACTIVE_60") {
+          } else if (
+            currentFilters.activeStatusFilter === "ACTIVE_60" ||
+            currentFilters.activeStatusFilter === "ACTIVE_MULTI_MONTH"
+          ) {
             params.set("status", "ACTIVE");
             params.set("activeDays", "60");
-          } else if (currentFilters.activeStatusFilter === "ACTIVE_90") {
+          } else if (
+            currentFilters.activeStatusFilter === "ACTIVE_90" ||
+            currentFilters.activeStatusFilter === "ACTIVE"
+          ) {
             params.set("status", "ACTIVE");
             params.set("activeDays", "90");
-          } else {
-            params.set("status", currentFilters.activeStatusFilter);
+          } else if (currentFilters.activeStatusFilter === "INACTIVE") {
+            params.set("status", "INACTIVE");
           }
         }
         if (currentFilters.serverAreaId) {
           params.set("areaId", currentFilters.serverAreaId);
         }
-        if (filteredItemIds && filteredItemIds.length > 0 && filteredItemIds.length <= 500) {
+        if (filteredItemIds && filteredItemIds.length > 0) {
           params.set("jaringIds", filteredItemIds.join(","));
         }
       }
@@ -212,9 +250,16 @@ export function JaringExportPdfDialog({
                 <div className="mt-0.5 font-bold text-base text-sky-600 dark:text-sky-400">
                   {filteredCount} <span className="font-normal text-muted-foreground text-xs">Jaring</span>
                 </div>
-                <span className="line-clamp-1 text-[11px] text-muted-foreground">
-                  {currentFilters.areaSubtitle ?? "Sesuai filter pencarian & wilayah"}
-                </span>
+                <div className="flex flex-wrap items-center gap-1 mt-1">
+                  {currentFilters.activeStatusFilter && currentFilters.activeStatusFilter !== "ALL" && (
+                    <Badge variant="outline" className="h-4 px-1 text-[9px] font-mono border-primary/30 text-primary">
+                      {formatActiveStatusLabel(currentFilters.activeStatusFilter)}
+                    </Badge>
+                  )}
+                  <span className="line-clamp-1 text-[11px] text-muted-foreground">
+                    {currentFilters.areaSubtitle ?? "Sesuai filter pencarian & wilayah"}
+                  </span>
+                </div>
               </button>
 
               {/* Option 2: Seluruh Data Terverifikasi */}

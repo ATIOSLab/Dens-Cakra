@@ -230,6 +230,12 @@ export function ExecutiveDashboardClient({
     const params = queryParams(query);
     router.replace(params.size ? `${pathname}?${params}` : pathname, { scroll: false });
 
+    // Lewati request awal jika initialData sudah disediakan oleh server-side rendering (mencegah double-fetch)
+    if (initialRequest.current && initialData) {
+      initialRequest.current = false;
+      return;
+    }
+
     const controller = new AbortController();
     const timeout = window.setTimeout(() => void loadData(controller.signal), initialRequest.current ? 0 : 250);
     initialRequest.current = false;
@@ -237,7 +243,7 @@ export function ExecutiveDashboardClient({
       window.clearTimeout(timeout);
       controller.abort();
     };
-  }, [loadData, pathname, query, router]);
+  }, [initialData, loadData, pathname, query, router]);
 
   useEffect(() => {
     const controller = new AbortController();

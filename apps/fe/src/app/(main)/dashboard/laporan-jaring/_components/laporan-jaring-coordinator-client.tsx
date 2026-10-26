@@ -8,6 +8,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowDown,
   ArrowUp,
+  BarChart3,
   Calendar,
   Clock,
   ExternalLink,
@@ -84,6 +85,7 @@ import {
   verificationStatusLabel,
 } from "./laporan-jaring-presentation";
 import { LaporanJaringPreviewModal } from "./laporan-jaring-preview-modal";
+import { JaringRegionalBreakdownModal } from "./jaring-regional-breakdown-modal";
 import {
   formatFullAreaName,
   type JaringReportSessionDetail,
@@ -315,6 +317,7 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
   const [loadingList, setLoadingList] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [isRegionalModalOpen, setIsRegionalModalOpen] = useState(false);
 
   // Column visibility state
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({});
@@ -1116,6 +1119,17 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
           <Button
             variant="outline"
             size="sm"
+            onClick={() => setIsRegionalModalOpen(true)}
+            className="h-9 gap-2 border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 hover:text-primary shadow-xs"
+            title="Buka rincian sebaran dan keaktifan wilayah"
+          >
+            <BarChart3 className="size-4" />
+            Statistik Wilayah
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => void fetchReports()}
             disabled={loadingList}
             className="h-9 gap-2"
@@ -1145,16 +1159,21 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
           return (
             <div
               key={item.key}
+              onClick={() => setIsRegionalModalOpen(true)}
               className={cn(
-                "flex min-h-[112px] items-center gap-3 rounded-md border bg-card p-3.5 text-left shadow-xs",
+                "group flex min-h-[112px] cursor-pointer items-center gap-3 rounded-md border bg-card p-3.5 text-left shadow-xs transition-all hover:border-primary/50 hover:shadow-sm",
                 item.styles.card,
               )}
+              title="Klik untuk melihat rincian statistik wilayah"
             >
-              <div className={cn("flex size-10 shrink-0 items-center justify-center rounded-md", item.styles.icon)}>
+              <div className={cn("flex size-10 shrink-0 items-center justify-center rounded-md transition-transform group-hover:scale-105", item.styles.icon)}>
                 <Icon className="size-5" />
               </div>
-              <div className="min-w-0">
-                <p className="font-semibold text-[11px] text-muted-foreground leading-snug">{item.label}</p>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-1">
+                  <p className="font-semibold text-[11px] text-muted-foreground leading-snug">{item.label}</p>
+                  <BarChart3 className="size-3 text-muted-foreground/40 transition-colors group-hover:text-primary" />
+                </div>
                 <p className={cn("font-bold text-xl tracking-normal", item.styles.countText)}>
                   {formatReportNumber(item.count)}
                 </p>
@@ -2144,6 +2163,45 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
         open={Boolean(previewReport)}
         onOpenChange={(open) => {
           if (!open) setPreviewReport(null);
+        }}
+      />
+
+      {/* Pop-up Rincian Sebaran Wilayah */}
+      <JaringRegionalBreakdownModal
+        open={isRegionalModalOpen}
+        onOpenChange={setIsRegionalModalOpen}
+        periodFilter={{
+          preset: periodPreset,
+          from: startDate ? jakartaBoundaryIso(startDate) : undefined,
+          to: endDate ? jakartaBoundaryIso(endDate, true) : undefined,
+          label:
+            periodPreset === "CUSTOM" && startDate && endDate
+              ? `${startDate} s.d. ${endDate}`
+              : periodPreset === "TODAY"
+              ? "Hari Ini"
+              : periodPreset === "LAST_7_DAYS"
+              ? "7 Hari Terakhir"
+              : periodPreset === "LAST_30_DAYS"
+              ? "30 Hari Terakhir"
+              : undefined,
+        }}
+        onApplyAreaFilter={(areaId, level, areaName) => {
+          if (level === "CITY" || level === "REGENCY") {
+            setProvinceFilter("ALL");
+            setRegencyFilter(areaId);
+            setDistrictFilter("ALL");
+            setVillageFilter("ALL");
+            toast.success(`Filter wilayah diterapkan: ${areaName}`);
+          } else if (level === "DISTRICT") {
+            const districtOpt = districtOptions.find((d) => d.id === areaId);
+            if (districtOpt?.regencyId) {
+              setRegencyFilter(districtOpt.regencyId);
+            }
+            setDistrictFilter(areaId);
+            setVillageFilter("ALL");
+            toast.success(`Filter wilayah diterapkan: Kecamatan ${areaName}`);
+          }
+          setPage(1);
         }}
       />
     </main>

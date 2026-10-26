@@ -1,6 +1,6 @@
 "use client";
 
-import { type ComponentType, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type ComponentType, type MouseEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -9,6 +9,9 @@ import {
   ArrowLeft,
   Ban,
   BriefcaseBusiness,
+  Calendar,
+  CalendarRange,
+  Check,
   CheckCircle2,
   ChevronDown,
   ChevronRight,
@@ -72,6 +75,7 @@ import {
 import { FilterField } from "@/components/ui/filter-field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/table-pagination";
@@ -182,6 +186,743 @@ const REPORT_PERIOD_OPTIONS: Array<{ value: ReportPeriodFilter; label: string }>
   { value: "CUSTOM", label: "Kustom" },
 ];
 
+const INDONESIAN_MONTH_NAMES = [
+  "Januari",
+  "Februari",
+  "Maret",
+  "April",
+  "Mei",
+  "Juni",
+  "Juli",
+  "Agustus",
+  "September",
+  "Oktober",
+  "November",
+  "Desember",
+];
+
+const INDONESIAN_SHORT_MONTH_NAMES = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "Mei",
+  "Jun",
+  "Jul",
+  "Agu",
+  "Sep",
+  "Okt",
+  "Nov",
+  "Des",
+];
+
+function formatYearMonth(ym: string): string {
+  const [yearStr, monthStr] = ym.split("-");
+  const year = Number(yearStr);
+  const month = Number(monthStr);
+  if (!year || !month || month < 1 || month > 12) return ym;
+  return `${INDONESIAN_MONTH_NAMES[month - 1]} ${year}`;
+}
+
+function formatYearMonthShort(ym: string): string {
+  const [yearStr, monthStr] = ym.split("-");
+  const year = Number(yearStr);
+  const month = Number(monthStr);
+  if (!year || !month || month < 1 || month > 12) return ym;
+  return `${INDONESIAN_SHORT_MONTH_NAMES[month - 1]} ${year}`;
+}
+
+function generateMonthOptions(count = 18): Array<{ value: string; label: string; shortLabel: string }> {
+  const options: Array<{ value: string; label: string; shortLabel: string }> = [];
+  const now = new Date();
+  let year = now.getFullYear();
+  let month = now.getMonth() + 1; // 1-12
+
+  for (let i = 0; i < count; i++) {
+    const value = `${year}-${String(month).padStart(2, "0")}`;
+    options.push({
+      value,
+      label: `${INDONESIAN_MONTH_NAMES[month - 1]} ${year}`,
+      shortLabel: `${INDONESIAN_SHORT_MONTH_NAMES[month - 1]} ${year}`,
+    });
+    month -= 1;
+    if (month < 1) {
+      month = 12;
+      year -= 1;
+    }
+  }
+  return options;
+}
+
+function getYearMonthDateRange(ym: string): { startDate: string; endDate: string } {
+  const [yearStr, monthStr] = ym.split("-");
+  const year = Number(yearStr);
+  const month = Number(monthStr);
+  if (!year || !month) return { startDate: "", endDate: "" };
+  const lastDay = new Date(year, month, 0).getDate();
+  const start = `${year}-${String(month).padStart(2, "0")}-01`;
+  const end = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+  return { startDate: start, endDate: end };
+}
+
+function getMatchingYearMonth(startDate?: string, endDate?: string): string | null {
+  if (!startDate || !endDate) return null;
+  const startYm = startDate.slice(0, 7);
+  const endYm = endDate.slice(0, 7);
+  if (startYm !== endYm) return null;
+  const range = getYearMonthDateRange(startYm);
+  if (startDate === range.startDate && endDate === range.endDate) {
+    return startYm;
+  }
+  return null;
+}
+
+function getJaringReportTimestamps(item: RegistrationJaring): number[] {
+  const timestamps: number[] = [];
+  if (Array.isArray(item.reportDates) && item.reportDates.length > 0) {
+    for (const d of item.reportDates) {
+      const t = new Date(d).getTime();
+      if (!Number.isNaN(t)) timestamps.push(t);
+    }
+  } else if (item.lastReportAt) {
+    const t = new Date(item.lastReportAt).getTime();
+    if (!Number.isNaN(t)) timestamps.push(t);
+  }
+  return timestamps;
+}
+
+function getTimestampJakartaYearMonth(ts: number): string {
+  try {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Jakarta",
+      year: "numeric",
+      month: "2-digit",
+    }).formatToParts(new Date(ts));
+    const year = parts.find((p) => p.type === "year")?.value;
+    const month = parts.find((p) => p.type === "month")?.value;
+    return `${year}-${month}`;
+  } catch {
+    const d = new Date(ts);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  }
+}
+
+function isJaringActiveInMonth(item: RegistrationJaring, ym: string | null): boolean {
+  if (!ym) return false;
+  const timestamps = getJaringReportTimestamps(item);
+  return timestamps.some((ts) => getTimestampJakartaYearMonth(ts) === ym);
+}
+
+function isJaringActiveInMultiMonths(item: RegistrationJaring, months: string[]): boolean {
+  if (!months || months.length === 0) return false;
+  const set = new Set(months);
+  const timestamps = getJaringReportTimestamps(item);
+  return timestamps.some((ts) => set.has(getTimestampJakartaYearMonth(ts)));
+}
+
+function isJaringInactiveInCustomRange(
+  item: RegistrationJaring,
+  startDate?: string,
+  endDate?: string,
+): boolean {
+  if (!startDate && !endDate) return false;
+
+  const timestamps = getJaringReportTimestamps(item);
+  if (timestamps.length === 0) return true;
+
+  const fromTime = startDate ? new Date(`${startDate}T00:00:00+07:00`).getTime() : null;
+  const toTime = endDate ? new Date(`${endDate}T23:59:59.999+07:00`).getTime() : null;
+  const validFrom = fromTime && !Number.isNaN(fromTime) ? fromTime : null;
+  const validTo = toTime && !Number.isNaN(toTime) ? toTime : null;
+
+  const hasReportInRange = timestamps.some((ts) => {
+    if (validFrom && ts < validFrom) return false;
+    if (validTo && ts > validTo) return false;
+    return true;
+  });
+
+  return !hasReportInRange;
+}
+
+function addDays(dateStr: string, days: number): string {
+  if (!dateStr) return "";
+  const [yearStr, monthStr, dayStr] = dateStr.split("-");
+  const year = Number(yearStr);
+  const month = Number(monthStr);
+  const day = Number(dayStr);
+  if (!year || !month || !day) return dateStr;
+  const d = new Date(year, month - 1, day);
+  d.setDate(d.getDate() + days);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${dd}`;
+}
+
+function formatDateShortId(dateStr: string): string {
+  if (!dateStr) return "";
+  const [yearStr, monthStr, dayStr] = dateStr.split("-");
+  const month = Number(monthStr);
+  const day = Number(dayStr);
+  if (!month || !day) return dateStr;
+  return `${day} ${INDONESIAN_SHORT_MONTH_NAMES[month - 1]}`;
+}
+
+function getDayDifferenceInclusive(startStr: string, endStr: string): number {
+  if (!startStr || !endStr) return 0;
+  const [y1, m1, d1] = startStr.split("-").map(Number);
+  const [y2, m2, d2] = endStr.split("-").map(Number);
+  if (!y1 || !m1 || !d1 || !y2 || !m2 || !d2) return 0;
+  const dStart = new Date(y1, m1 - 1, d1);
+  const dEnd = new Date(y2, m2 - 1, d2);
+  const diffTime = dEnd.getTime() - dStart.getTime();
+  return Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1;
+}
+
+function getTodayJakartaStr(): string {
+  try {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Jakarta",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(new Date());
+    const year = parts.find((p) => p.type === "year")?.value;
+    const month = parts.find((p) => p.type === "month")?.value;
+    const day = parts.find((p) => p.type === "day")?.value;
+    return `${year}-${month}-${day}`;
+  } catch {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+}
+
+function isJaringActiveInDateRange(
+  item: RegistrationJaring,
+  startDate?: string,
+  endDate?: string,
+): boolean {
+  const timestamps = getJaringReportTimestamps(item);
+  if (timestamps.length === 0) return false;
+
+  if (!startDate && !endDate) {
+    const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    return timestamps.some((ts) => ts >= cutoff);
+  }
+
+  const fromTime = startDate ? new Date(`${startDate}T00:00:00+07:00`).getTime() : null;
+  const toTime = endDate ? new Date(`${endDate}T23:59:59.999+07:00`).getTime() : null;
+  const validFrom = fromTime && !Number.isNaN(fromTime) ? fromTime : null;
+  const validTo = toTime && !Number.isNaN(toTime) ? toTime : null;
+
+  return timestamps.some((ts) => {
+    if (validFrom && ts < validFrom) return false;
+    if (validTo && ts > validTo) return false;
+    return true;
+  });
+}
+
+function SingleMonthPickerPopover({
+  value,
+  onChange,
+  monthOptions,
+}: {
+  value: string | null;
+  onChange: (val: string | null) => void;
+  monthOptions: Array<{ value: string; label: string; shortLabel: string }>;
+}) {
+  const [open, setOpen] = useState(false);
+  const selectedOption = monthOptions.find((m) => m.value === value);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          onClick={(e: MouseEvent<HTMLButtonElement>) => {
+            e.stopPropagation();
+            setOpen(true);
+          }}
+          className={cn(
+            "inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium text-[10px] transition-colors cursor-pointer",
+            value
+              ? "bg-cyan-500/15 text-cyan-700 dark:bg-cyan-500/20 dark:text-cyan-300 border border-cyan-500/30 font-semibold"
+              : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-white/10",
+          )}
+        >
+          <Calendar className="size-3 shrink-0" />
+          <span className="truncate max-w-[90px]">{value ? selectedOption?.shortLabel || value : "Pilih Bulan"}</span>
+          <ChevronDown className="size-2.5 opacity-60" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="end"
+        className="w-[230px] p-2 rounded-md shadow-lg border border-slate-200 dark:border-white/10 z-50 bg-popover"
+        onClick={(e: MouseEvent<HTMLDivElement>) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between pb-1.5 border-b border-border/70 mb-1.5">
+          <span className="font-semibold text-xs text-foreground">Pilih 1 Bulan</span>
+          {value && (
+            <button
+              type="button"
+              onClick={() => {
+                onChange(null);
+                setOpen(false);
+              }}
+              className="text-[10px] text-rose-500 hover:underline cursor-pointer"
+            >
+              Kosongkan
+            </button>
+          )}
+        </div>
+        <div className="max-h-[220px] overflow-y-auto space-y-0.5 pr-1">
+          {monthOptions.map((opt) => {
+            const isSelected = opt.value === value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => {
+                  onChange(isSelected ? null : opt.value);
+                  setOpen(false);
+                }}
+                className={cn(
+                  "flex items-center justify-between w-full px-2.5 py-1.5 text-xs rounded transition-colors text-left cursor-pointer",
+                  isSelected
+                    ? "bg-cyan-500/15 text-cyan-800 dark:text-cyan-300 font-semibold"
+                    : "hover:bg-slate-100 dark:hover:bg-slate-800 text-foreground",
+                )}
+              >
+                <span>{opt.label}</span>
+                {isSelected && <Check className="size-3.5 text-cyan-600 dark:text-cyan-400" />}
+              </button>
+            );
+          })}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function MultiMonthPickerPopover({
+  values,
+  onChange,
+  monthOptions,
+}: {
+  values: string[];
+  onChange: (vals: string[]) => void;
+  monthOptions: Array<{ value: string; label: string; shortLabel: string }>;
+}) {
+  const [open, setOpen] = useState(false);
+
+  const toggleMonth = (val: string) => {
+    if (values.includes(val)) {
+      onChange(values.filter((v) => v !== val));
+    } else {
+      onChange([...values, val]);
+    }
+  };
+
+  const selectLastNMonths = (n: number) => {
+    const selected = monthOptions.slice(0, n).map((m) => m.value);
+    onChange(selected);
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          onClick={(e: MouseEvent<HTMLButtonElement>) => {
+            e.stopPropagation();
+            setOpen(true);
+          }}
+          className={cn(
+            "inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium text-[10px] transition-colors cursor-pointer",
+            values.length > 0
+              ? "bg-teal-500/15 text-teal-700 dark:bg-teal-500/20 dark:text-teal-300 border border-teal-500/30 font-semibold"
+              : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-white/10",
+          )}
+        >
+          <Calendar className="size-3 shrink-0" />
+          <span>{values.length > 0 ? `${values.length} Bulan` : "Pilih Bulan"}</span>
+          <ChevronDown className="size-2.5 opacity-60" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="end"
+        className="w-[260px] p-2.5 rounded-md shadow-lg border border-slate-200 dark:border-white/10 z-50 bg-popover"
+        onClick={(e: MouseEvent<HTMLDivElement>) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between pb-1.5 border-b border-border/70 mb-2">
+          <span className="font-semibold text-xs text-foreground">Kombinasi Bulan</span>
+          {values.length > 0 && (
+            <button
+              type="button"
+              onClick={() => onChange([])}
+              className="text-[10px] text-rose-500 hover:underline cursor-pointer"
+            >
+              Reset ({values.length})
+            </button>
+          )}
+        </div>
+
+        <div className="flex gap-1.5 mb-2 pb-2 border-b border-border/50">
+          <button
+            type="button"
+            onClick={() => selectLastNMonths(2)}
+            className="flex-1 py-1 px-1.5 text-[10px] rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-foreground transition-colors text-center font-medium cursor-pointer"
+          >
+            2 Bulan Terakhir
+          </button>
+          <button
+            type="button"
+            onClick={() => selectLastNMonths(3)}
+            className="flex-1 py-1 px-1.5 text-[10px] rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-foreground transition-colors text-center font-medium cursor-pointer"
+          >
+            3 Bulan Terakhir
+          </button>
+        </div>
+
+        <div className="max-h-[190px] overflow-y-auto space-y-1 pr-1">
+          {monthOptions.map((opt) => {
+            const isChecked = values.includes(opt.value);
+            return (
+              <label
+                key={opt.value}
+                className={cn(
+                  "flex items-center justify-between w-full px-2 py-1.5 text-xs rounded transition-colors cursor-pointer select-none",
+                  isChecked
+                    ? "bg-teal-500/10 text-teal-800 dark:text-teal-300 font-semibold"
+                    : "hover:bg-slate-100 dark:hover:bg-slate-800 text-foreground",
+                )}
+              >
+                <span className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    onChange={() => toggleMonth(opt.value)}
+                    className="rounded border-slate-300 text-teal-600 focus:ring-teal-500 size-3.5"
+                  />
+                  <span>{opt.label}</span>
+                </span>
+                {isChecked && <span className="text-[10px] text-teal-600 dark:text-teal-400 font-mono">Aktif</span>}
+              </label>
+            );
+          })}
+        </div>
+
+        {values.length > 0 && (
+          <div className="mt-2 pt-2 border-t border-border/70 text-[10.5px] text-muted-foreground">
+            <span className="font-semibold text-foreground">Terpilih: </span>
+            {values
+              .slice()
+              .sort()
+              .map((v) => formatYearMonthShort(v))
+              .join(", ")}
+          </div>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function InactiveCustomRangePopover({
+  startDate,
+  endDate,
+  onApply,
+  onReset,
+}: {
+  startDate: string;
+  endDate: string;
+  onApply: (start: string, end: string) => void;
+  onReset: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [tempStart, setTempStart] = useState(startDate);
+  const [tempEnd, setTempEnd] = useState(endDate);
+
+  const hasCustom = Boolean(startDate || endDate);
+
+  return (
+    <Popover
+      open={open}
+      onOpenChange={(next: boolean) => {
+        setOpen(next);
+        if (next) {
+          setTempStart(startDate);
+          setTempEnd(endDate);
+        }
+      }}
+    >
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          onClick={(e: MouseEvent<HTMLButtonElement>) => {
+            e.stopPropagation();
+            setOpen(true);
+          }}
+          className={cn(
+            "inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium text-[10px] transition-colors cursor-pointer",
+            hasCustom
+              ? "bg-slate-700/15 text-slate-800 dark:bg-slate-700/30 dark:text-slate-200 border border-slate-400/40 font-semibold"
+              : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-white/10",
+          )}
+        >
+          {hasCustom ? (
+            <Calendar className="size-3 shrink-0" />
+          ) : (
+            <SlidersHorizontal className="size-3 shrink-0" />
+          )}
+          <span>
+            {hasCustom
+              ? startDate && endDate
+                ? `${formatDateShortId(startDate)} - ${formatDateShortId(endDate)}`
+                : "Periode Aktif"
+              : "Periode"}
+          </span>
+          <ChevronDown className="size-2.5 opacity-60" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="end"
+        className="w-[280px] p-3 rounded-md shadow-lg border border-slate-200 dark:border-white/10 space-y-3 z-50 bg-popover"
+        onClick={(e: MouseEvent<HTMLDivElement>) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between pb-1 border-b border-border/70">
+          <span className="font-semibold text-xs text-foreground">Rentang Periode Nihil Laporan</span>
+          {hasCustom && (
+            <button
+              type="button"
+              onClick={() => {
+                onReset();
+                setOpen(false);
+              }}
+              className="text-[10px] text-rose-500 hover:underline cursor-pointer"
+            >
+              Reset
+            </button>
+          )}
+        </div>
+
+        {/* Input Rentang Tanggal Periode */}
+        <div className="grid grid-cols-2 gap-2 text-xs pt-1">
+          <div>
+            <label className="text-[10px] text-muted-foreground block mb-1">Mulai Dari:</label>
+            <Input
+              type="date"
+              value={tempStart}
+              onChange={(e) => setTempStart(e.target.value)}
+              className={cn(DC_CONTROLS.input, "h-8 text-[11px] px-1.5")}
+            />
+          </div>
+          <div>
+            <label className="text-[10px] text-muted-foreground block mb-1">Sampai Dengan:</label>
+            <Input
+              type="date"
+              value={tempEnd}
+              onChange={(e) => setTempEnd(e.target.value)}
+              className={cn(DC_CONTROLS.input, "h-8 text-[11px] px-1.5")}
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-2 pt-1 border-t border-border/50">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setOpen(false)}
+            className="h-7 text-xs px-2"
+          >
+            Batal
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => {
+              onApply(tempStart, tempEnd);
+              setOpen(false);
+            }}
+            className="h-7 text-xs px-3"
+          >
+            Terapkan
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function Active7DaysRangePopover({
+  startDate,
+  endDate,
+  onApply,
+  onReset,
+}: {
+  startDate: string;
+  endDate: string;
+  onApply: (start: string, end: string) => void;
+  onReset: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const today = getTodayJakartaStr();
+  const defaultStart = addDays(today, -6);
+  const defaultEnd = today;
+
+  const [tempStart, setTempStart] = useState(startDate || defaultStart);
+  const [tempEnd, setTempEnd] = useState(endDate || defaultEnd);
+
+  const hasCustom = Boolean(startDate || endDate);
+
+  const handleStartChange = (val: string) => {
+    setTempStart(val);
+    if (val) {
+      setTempEnd(addDays(val, 6));
+    }
+  };
+
+  const handleEndChange = (val: string) => {
+    setTempEnd(val);
+    if (val) {
+      setTempStart(addDays(val, -6));
+    }
+  };
+
+  const diffDays = tempStart && tempEnd ? getDayDifferenceInclusive(tempStart, tempEnd) : 0;
+  const isInvalid = !tempStart || !tempEnd || diffDays < 7;
+
+  return (
+    <Popover
+      open={open}
+      onOpenChange={(next: boolean) => {
+        setOpen(next);
+        if (next) {
+          setTempStart(startDate || defaultStart);
+          setTempEnd(endDate || defaultEnd);
+        }
+      }}
+    >
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          onClick={(e: MouseEvent<HTMLButtonElement>) => {
+            e.stopPropagation();
+            setOpen(true);
+          }}
+          className={cn(
+            "inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium text-[10px] transition-colors cursor-pointer",
+            hasCustom
+              ? "bg-blue-500/15 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300 border border-blue-500/30 font-semibold"
+              : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-white/10",
+          )}
+        >
+          <Calendar className="size-3 shrink-0" />
+          <span>
+            {hasCustom && startDate && endDate
+              ? `${formatDateShortId(startDate)} - ${formatDateShortId(endDate)}`
+              : "7 Hari Terakhir"}
+          </span>
+          <ChevronDown className="size-2.5 opacity-60" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="end"
+        className="w-[280px] p-3 rounded-md shadow-lg border border-slate-200 dark:border-white/10 space-y-3 z-50 bg-popover"
+        onClick={(e: MouseEvent<HTMLDivElement>) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between pb-1 border-b border-border/70">
+          <span className="font-semibold text-xs text-foreground">Rentang Periode (7 Hari)</span>
+          {hasCustom && (
+            <button
+              type="button"
+              onClick={() => {
+                onReset();
+                setOpen(false);
+              }}
+              className="text-[10px] text-rose-500 hover:underline cursor-pointer"
+            >
+              Reset Default
+            </button>
+          )}
+        </div>
+
+        {/* Input Tanggal Periode */}
+        <div className="space-y-2">
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div>
+              <label className="text-[10px] text-muted-foreground block mb-1">Mulai Dari:</label>
+              <Input
+                type="date"
+                value={tempStart}
+                onChange={(e) => handleStartChange(e.target.value)}
+                className={cn(DC_CONTROLS.input, "h-8 text-[11px] px-1.5")}
+              />
+            </div>
+            <div>
+              <label className="text-[10px] text-muted-foreground block mb-1">Sampai:</label>
+              <Input
+                type="date"
+                value={tempEnd}
+                onChange={(e) => handleEndChange(e.target.value)}
+                className={cn(DC_CONTROLS.input, "h-8 text-[11px] px-1.5")}
+              />
+            </div>
+          </div>
+
+          <p className="text-[10px] text-muted-foreground/80">
+            Mengisi salah satu tanggal otomatis menetapkan rentang 7 hari.
+          </p>
+
+          {tempStart && tempEnd && (
+            <div
+              className={cn(
+                "text-[10.5px] text-center rounded py-1 px-2 font-medium transition-colors",
+                diffDays < 7
+                  ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20"
+                  : "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20",
+              )}
+            >
+              {diffDays < 7 ? (
+                <span>Rentang minimal 7 hari (saat ini {diffDays} hari)</span>
+              ) : (
+                <span>
+                  Rentang: <strong className="font-semibold text-foreground">{formatDateShortId(tempStart)}</strong> s.d{" "}
+                  <strong className="font-semibold text-foreground">{formatDateShortId(tempEnd)}</strong> ({diffDays} Hari)
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center justify-end gap-2 pt-1 border-t border-border/50">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setOpen(false)}
+            className="h-7 text-xs px-2"
+          >
+            Batal
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            disabled={isInvalid}
+            onClick={() => {
+              onApply(tempStart, tempEnd);
+              setOpen(false);
+            }}
+            className="h-7 text-xs px-3"
+          >
+            Terapkan
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 function reportActivityWithinPeriod(
   item: RegistrationJaring,
   period: ReportPeriodFilter,
@@ -189,20 +930,22 @@ function reportActivityWithinPeriod(
   endDate: string,
 ): boolean {
   if (period === "ALL") return true;
-  const lastReport = parseTime(item.lastReportAt);
-  if (!lastReport) return false;
+  const timestamps = getJaringReportTimestamps(item);
+  if (timestamps.length === 0) return false;
   const now = Date.now();
-  if (period === "LAST_7_DAYS") return lastReport >= now - 7 * 86_400_000;
-  if (period === "LAST_14_DAYS") return lastReport >= now - 14 * 86_400_000;
-  if (period === "LAST_30_DAYS") return lastReport >= now - 30 * 86_400_000;
+  if (period === "LAST_7_DAYS") return timestamps.some((ts) => ts >= now - 7 * 86_400_000);
+  if (period === "LAST_14_DAYS") return timestamps.some((ts) => ts >= now - 14 * 86_400_000);
+  if (period === "LAST_30_DAYS") return timestamps.some((ts) => ts >= now - 30 * 86_400_000);
   if (period === "CUSTOM") {
     const fromTime = startDate ? new Date(`${startDate}T00:00:00+07:00`).getTime() : null;
     const toTime = endDate ? new Date(`${endDate}T23:59:59.999+07:00`).getTime() : null;
     const validFrom = fromTime && !Number.isNaN(fromTime) ? fromTime : null;
     const validTo = toTime && !Number.isNaN(toTime) ? toTime : null;
-    if (validFrom && lastReport < validFrom) return false;
-    if (validTo && lastReport > validTo) return false;
-    return true;
+    return timestamps.some((ts) => {
+      if (validFrom && ts < validFrom) return false;
+      if (validTo && ts > validTo) return false;
+      return true;
+    });
   }
   return true;
 }
@@ -313,14 +1056,38 @@ export function JaringVerificationListClient() {
   });
   const [activeStatusFilter, setActiveStatusFilter] = useState<string>(() => {
     const value = searchParams.get("activityStatus");
+    if (value === "ACTIVE_30") return "ACTIVE_SINGLE_MONTH";
+    if (value === "ACTIVE_60") return "ACTIVE_MULTI_MONTH";
     return value === "ACTIVE" ||
-      value === "ACTIVE_30" ||
-      value === "ACTIVE_60" ||
+      value === "ACTIVE_TODAY" ||
+      value === "ACTIVE_7" ||
+      value === "ACTIVE_SINGLE_MONTH" ||
+      value === "ACTIVE_MULTI_MONTH" ||
       value === "ACTIVE_90" ||
       value === "INACTIVE"
       ? value
       : "ALL";
   });
+  const [singleMonthFilter, setSingleMonthFilter] = useState<string | null>(
+    () => searchParams.get("singleMonth") ?? null,
+  );
+  const [multiMonthFilter, setMultiMonthFilter] = useState<string[]>(() => {
+    const raw = searchParams.get("multiMonths");
+    return raw ? raw.split(",").filter(Boolean) : [];
+  });
+  const [inactiveCustomStartDate, setInactiveCustomStartDate] = useState<string>(
+    () => searchParams.get("inactiveStart") ?? "",
+  );
+  const [inactiveCustomEndDate, setInactiveCustomEndDate] = useState<string>(
+    () => searchParams.get("inactiveEnd") ?? "",
+  );
+  const [active7StartDate, setActive7StartDate] = useState<string>(
+    () => searchParams.get("active7Start") ?? "",
+  );
+  const [active7EndDate, setActive7EndDate] = useState<string>(
+    () => searchParams.get("active7End") ?? "",
+  );
+  const monthOptions = useMemo(() => generateMonthOptions(18), []);
   const [periodFilter, setPeriodFilter] = useState<ReportPeriodFilter>(() => {
     const value = searchParams.get("period");
     return value === "LAST_7_DAYS" || value === "LAST_14_DAYS" || value === "LAST_30_DAYS" || value === "CUSTOM"
@@ -420,6 +1187,12 @@ export function JaringVerificationListClient() {
       if (search.trim()) params.set("search", search.trim());
       if (statusFilter !== "APPROVED") params.set("registrationStatus", statusFilter);
       if (activeStatusFilter !== "ALL") params.set("activityStatus", activeStatusFilter);
+      if (singleMonthFilter) params.set("singleMonth", singleMonthFilter);
+      if (multiMonthFilter.length > 0) params.set("multiMonths", multiMonthFilter.join(","));
+      if (inactiveCustomStartDate) params.set("inactiveStart", inactiveCustomStartDate);
+      if (inactiveCustomEndDate) params.set("inactiveEnd", inactiveCustomEndDate);
+      if (active7StartDate) params.set("active7Start", active7StartDate);
+      if (active7EndDate) params.set("active7End", active7EndDate);
       if (periodFilter !== "ALL") params.set("period", periodFilter);
       if (periodStartDate) params.set("periodStart", periodStartDate);
       if (periodEndDate) params.set("periodEnd", periodEndDate);
@@ -442,6 +1215,12 @@ export function JaringVerificationListClient() {
     search,
     statusFilter,
     activeStatusFilter,
+    singleMonthFilter,
+    multiMonthFilter,
+    inactiveCustomStartDate,
+    inactiveCustomEndDate,
+    active7StartDate,
+    active7EndDate,
     periodFilter,
     periodStartDate,
     periodEndDate,
@@ -608,12 +1387,24 @@ export function JaringVerificationListClient() {
     const suspended = baseFilteredItems.filter((i) => i.registrationStatus === "SUSPENDED").length;
     const verifiedItems = baseFilteredItems.filter((i) => i.registrationStatus === "APPROVED");
     const activeToday = verifiedItems.filter((i) => isJaringActiveToday(i)).length;
-    const active7 = verifiedItems.filter((i) => isJaringActiveInDays(i, 7)).length;
-    const active30 = verifiedItems.filter((i) => isJaringActiveInDays(i, 30)).length;
-    const active60 = verifiedItems.filter((i) => isJaringActiveInDays(i, 60)).length;
+    const active7 = verifiedItems.filter((i) =>
+      isJaringActiveInDateRange(i, active7StartDate, active7EndDate),
+    ).length;
+    const activeSingleMonth = singleMonthFilter
+      ? verifiedItems.filter((i) => isJaringActiveInMonth(i, singleMonthFilter)).length
+      : null;
+    const activeMultiMonth =
+      multiMonthFilter.length > 0
+        ? verifiedItems.filter((i) => isJaringActiveInMultiMonths(i, multiMonthFilter)).length
+        : null;
     const active90 = verifiedItems.filter((i) => isJaringActiveInDays(i, 90)).length;
     const active = active90;
-    const inactive = verifiedItems.length - active90;
+    const hasInactiveFilter = Boolean(inactiveCustomStartDate || inactiveCustomEndDate);
+    const inactive = hasInactiveFilter
+      ? verifiedItems.filter((i) =>
+          isJaringInactiveInCustomRange(i, inactiveCustomStartDate, inactiveCustomEndDate),
+        ).length
+      : null;
     return {
       total,
       pending,
@@ -622,13 +1413,23 @@ export function JaringVerificationListClient() {
       suspended,
       activeToday,
       active7,
-      active30,
-      active60,
+      activeSingleMonth,
+      activeMultiMonth,
+      active30: activeSingleMonth ?? 0,
+      active60: activeMultiMonth ?? 0,
       active90,
       active,
       inactive,
     };
-  }, [baseFilteredItems]);
+  }, [
+    baseFilteredItems,
+    singleMonthFilter,
+    multiMonthFilter,
+    inactiveCustomStartDate,
+    inactiveCustomEndDate,
+    active7StartDate,
+    active7EndDate,
+  ]);
 
   const areaSubtitle = useMemo(() => {
     const provinceName = uniqueProvinces.find((area) => area.id === provinceFilter)?.name;
@@ -666,24 +1467,44 @@ export function JaringVerificationListClient() {
       if (activeStatusFilter === "ACTIVE_TODAY" && !isJaringActiveToday(item)) {
         return false;
       }
-      if (activeStatusFilter === "ACTIVE_7" && !isJaringActiveInDays(item, 7)) {
+      if (
+        activeStatusFilter === "ACTIVE_7" &&
+        !isJaringActiveInDateRange(item, active7StartDate, active7EndDate)
+      ) {
         return false;
       }
-      if (activeStatusFilter === "ACTIVE_30" && !isJaringActiveInDays(item, 30)) {
-        return false;
+      if (activeStatusFilter === "ACTIVE_SINGLE_MONTH" || activeStatusFilter === "ACTIVE_30") {
+        if (!singleMonthFilter) return false;
+        if (!isJaringActiveInMonth(item, singleMonthFilter)) return false;
       }
-      if (activeStatusFilter === "ACTIVE_60" && !isJaringActiveInDays(item, 60)) {
-        return false;
+      if (activeStatusFilter === "ACTIVE_MULTI_MONTH" || activeStatusFilter === "ACTIVE_60") {
+        if (multiMonthFilter.length === 0) return false;
+        if (!isJaringActiveInMultiMonths(item, multiMonthFilter)) return false;
       }
       if ((activeStatusFilter === "ACTIVE_90" || activeStatusFilter === "ACTIVE") && !isJaringActiveInDays(item, 90)) {
         return false;
       }
-      if (activeStatusFilter === "INACTIVE" && isJaringActiveInDays(item, 90)) {
-        return false;
+      if (activeStatusFilter === "INACTIVE") {
+        if (!inactiveCustomStartDate && !inactiveCustomEndDate) return false;
+        if (
+          !isJaringInactiveInCustomRange(item, inactiveCustomStartDate, inactiveCustomEndDate)
+        ) {
+          return false;
+        }
       }
       return true;
     });
-  }, [baseFilteredItems, statusFilter, activeStatusFilter]);
+  }, [
+    baseFilteredItems,
+    statusFilter,
+    activeStatusFilter,
+    singleMonthFilter,
+    multiMonthFilter,
+    inactiveCustomStartDate,
+    inactiveCustomEndDate,
+    active7StartDate,
+    active7EndDate,
+  ]);
 
   const sortedItems = useMemo(() => {
     return [...filteredItems].sort((left, right) => {
@@ -707,6 +1528,12 @@ export function JaringVerificationListClient() {
     search.trim() !== "" ||
     statusFilter !== "APPROVED" ||
     activeStatusFilter !== "ALL" ||
+    singleMonthFilter !== null ||
+    multiMonthFilter.length > 0 ||
+    inactiveCustomStartDate !== "" ||
+    inactiveCustomEndDate !== "" ||
+    active7StartDate !== "" ||
+    active7EndDate !== "" ||
     periodFilter !== "ALL" ||
     provinceFilter !== (defaultProvinceFilter || "ALL") ||
     cityFilter !== "ALL" ||
@@ -808,12 +1635,28 @@ export function JaringVerificationListClient() {
     if (activeStatusFilter !== "ALL") {
       let activityLabel: string = DOMAIN_TERMS.jaringActive90Days;
       if (activeStatusFilter === "ACTIVE_TODAY") activityLabel = DOMAIN_TERMS.jaringActiveToday;
-      else if (activeStatusFilter === "ACTIVE_7") activityLabel = DOMAIN_TERMS.jaringActive7Days;
-      else if (activeStatusFilter === "ACTIVE_30") activityLabel = DOMAIN_TERMS.jaringActive30Days;
-      else if (activeStatusFilter === "ACTIVE_60") activityLabel = DOMAIN_TERMS.jaringActive60Days;
-      else if (activeStatusFilter === "ACTIVE_90" || activeStatusFilter === "ACTIVE")
+      else if (activeStatusFilter === "ACTIVE_7") {
+        activityLabel =
+          active7StartDate && active7EndDate
+            ? `Aktif 7 Hari (${formatDateShortId(active7StartDate)} - ${formatDateShortId(active7EndDate)})`
+            : DOMAIN_TERMS.jaringActive7Days;
+      } else if (activeStatusFilter === "ACTIVE_SINGLE_MONTH" || activeStatusFilter === "ACTIVE_30") {
+        activityLabel = singleMonthFilter
+          ? `Aktif 1 Bulan (${formatYearMonth(singleMonthFilter)})`
+          : "Jaring Aktif (1 Bulan)";
+      } else if (activeStatusFilter === "ACTIVE_MULTI_MONTH" || activeStatusFilter === "ACTIVE_60") {
+        activityLabel =
+          multiMonthFilter.length > 0
+            ? `Aktif Kombinasi (${multiMonthFilter.map(formatYearMonthShort).join(", ")})`
+            : "Jaring Aktif (Kombinasi Bulan)";
+      } else if (activeStatusFilter === "ACTIVE_90" || activeStatusFilter === "ACTIVE") {
         activityLabel = DOMAIN_TERMS.jaringActive90Days;
-      else if (activeStatusFilter === "INACTIVE") activityLabel = DOMAIN_TERMS.jaringInactive;
+      } else if (activeStatusFilter === "INACTIVE") {
+        activityLabel =
+          inactiveCustomStartDate || inactiveCustomEndDate
+            ? `${DOMAIN_TERMS.jaringInactive} (${formatDateShortId(inactiveCustomStartDate)} - ${formatDateShortId(inactiveCustomEndDate)})`
+            : `${DOMAIN_TERMS.jaringInactive} (Pilih Periode)`;
+      }
 
       chips.push({
         id: "activity",
@@ -821,6 +1664,62 @@ export function JaringVerificationListClient() {
         value: activityLabel,
         onRemove: () => {
           setActiveStatusFilter("ALL");
+          setPage(1);
+        },
+      });
+    }
+
+    if (singleMonthFilter && activeStatusFilter !== "ACTIVE_SINGLE_MONTH" && activeStatusFilter !== "ACTIVE_30") {
+      chips.push({
+        id: "singleMonth",
+        label: "Bulan Terpilih",
+        value: formatYearMonth(singleMonthFilter),
+        onRemove: () => {
+          setSingleMonthFilter(null);
+          setPage(1);
+        },
+      });
+    }
+
+    if (multiMonthFilter.length > 0 && activeStatusFilter !== "ACTIVE_MULTI_MONTH" && activeStatusFilter !== "ACTIVE_60") {
+      chips.push({
+        id: "multiMonth",
+        label: "Kombinasi Bulan",
+        value: multiMonthFilter.map(formatYearMonthShort).join(", "),
+        onRemove: () => {
+          setMultiMonthFilter([]);
+          setPage(1);
+        },
+      });
+    }
+
+    if (
+      (inactiveCustomStartDate || inactiveCustomEndDate) &&
+      activeStatusFilter !== "INACTIVE"
+    ) {
+      chips.push({
+        id: "inactiveCustom",
+        label: "Rentang Nihil",
+        value: `${formatDateShortId(inactiveCustomStartDate)} - ${formatDateShortId(inactiveCustomEndDate)}`,
+        onRemove: () => {
+          setInactiveCustomStartDate("");
+          setInactiveCustomEndDate("");
+          setPage(1);
+        },
+      });
+    }
+
+    if (
+      (active7StartDate || active7EndDate) &&
+      activeStatusFilter !== "ACTIVE_7"
+    ) {
+      chips.push({
+        id: "active7Range",
+        label: "Rentang 7 Hari",
+        value: `${formatDateShortId(active7StartDate)} - ${formatDateShortId(active7EndDate)}`,
+        onRemove: () => {
+          setActive7StartDate("");
+          setActive7EndDate("");
           setPage(1);
         },
       });
@@ -870,6 +1769,12 @@ export function JaringVerificationListClient() {
     uniqueVillages,
     statusFilter,
     activeStatusFilter,
+    singleMonthFilter,
+    multiMonthFilter,
+    inactiveCustomStartDate,
+    inactiveCustomEndDate,
+    active7StartDate,
+    active7EndDate,
     periodFilter,
     periodStartDate,
     periodEndDate,
@@ -880,6 +1785,12 @@ export function JaringVerificationListClient() {
     setSearch("");
     setStatusFilter("APPROVED");
     setActiveStatusFilter("ALL");
+    setSingleMonthFilter(null);
+    setMultiMonthFilter([]);
+    setInactiveCustomStartDate("");
+    setInactiveCustomEndDate("");
+    setActive7StartDate("");
+    setActive7EndDate("");
     setPeriodFilter("ALL");
     setPeriodStartDate("");
     setPeriodEndDate("");
@@ -1097,36 +2008,80 @@ export function JaringVerificationListClient() {
 
           {/* BLOK KANAN: KEAKTIFAN PELAPORAN (2x2 GRID + TALL CARD DI KANAN) */}
           <div className="grid grid-cols-2 lg:grid-cols-[1fr_1fr_minmax(180px,1.2fr)] lg:grid-rows-2 gap-2.5 content-stretch">
-            {/* Kiri Atas: Total Jaring Aktif 60 Hari */}
+            {/* Kiri Atas: Jaring Aktif (Kombinasi Bulan) */}
             <SummaryCard
               className="order-1 lg:order-none lg:col-start-1 lg:row-start-1"
-              label="Total Jaring Aktif 60 Hari"
-              value={summary.active60}
+              label="Jaring Aktif (Kombinasi)"
+              value={summary.activeMultiMonth !== null ? summary.activeMultiMonth : "-"}
+              description={
+                multiMonthFilter.length > 0 ? (
+                  <span className="font-mono text-[10.5px] font-semibold text-teal-600 dark:text-teal-400 truncate block">
+                    Kombinasi: {multiMonthFilter.slice().sort().map(formatYearMonthShort).join(", ")}
+                  </span>
+                ) : (
+                  <span className="text-[10px] text-muted-foreground italic">Pilih bulan kombinasi</span>
+                )
+              }
+              headerAction={
+                <MultiMonthPickerPopover
+                  values={multiMonthFilter}
+                  onChange={(v) => {
+                    setMultiMonthFilter(v);
+                    setPage(1);
+                  }}
+                  monthOptions={monthOptions}
+                />
+              }
               icon={DOMAIN_VISUALS.jaring.Icon}
               iconClass="bg-teal-500/10 text-teal-600 dark:text-teal-400"
-              valueClass="text-teal-600 dark:text-teal-400"
-              selected={statusFilter === "APPROVED" && activeStatusFilter === "ACTIVE_60"}
+              valueClass={summary.activeMultiMonth !== null ? "text-teal-600 dark:text-teal-400" : "text-muted-foreground"}
+              selected={
+                statusFilter === "APPROVED" &&
+                (activeStatusFilter === "ACTIVE_MULTI_MONTH" || activeStatusFilter === "ACTIVE_60")
+              }
               selectedClass="border-teal-500 ring-2 ring-teal-500/30 bg-teal-500/5 dark:bg-teal-500/10"
               onClick={() => {
                 setStatusFilter("APPROVED");
-                setActiveStatusFilter("ACTIVE_60");
+                setActiveStatusFilter("ACTIVE_MULTI_MONTH");
                 setPage(1);
               }}
             />
 
-            {/* Kanan Atas: Total Jaring Aktif 30 Hari */}
+            {/* Kanan Atas: Jaring Aktif (1 Bulan) */}
             <SummaryCard
               className="order-2 lg:order-none lg:col-start-2 lg:row-start-1"
-              label="Total Jaring Aktif 30 Hari"
-              value={summary.active30}
+              label="Jaring Aktif (1 Bulan)"
+              value={summary.activeSingleMonth !== null ? summary.activeSingleMonth : "-"}
+              description={
+                singleMonthFilter ? (
+                  <span className="font-mono text-[10.5px] font-semibold text-cyan-600 dark:text-cyan-400 truncate block">
+                    Bulan: {formatYearMonth(singleMonthFilter)}
+                  </span>
+                ) : (
+                  <span className="text-[10px] text-muted-foreground italic">Pilih 1 bulan</span>
+                )
+              }
+              headerAction={
+                <SingleMonthPickerPopover
+                  value={singleMonthFilter}
+                  onChange={(v) => {
+                    setSingleMonthFilter(v);
+                    setPage(1);
+                  }}
+                  monthOptions={monthOptions}
+                />
+              }
               icon={DOMAIN_VISUALS.jaring.Icon}
               iconClass="bg-cyan-500/10 text-cyan-600 dark:text-cyan-400"
-              valueClass="text-cyan-600 dark:text-cyan-400"
-              selected={statusFilter === "APPROVED" && activeStatusFilter === "ACTIVE_30"}
+              valueClass={summary.activeSingleMonth !== null ? "text-cyan-600 dark:text-cyan-400" : "text-muted-foreground"}
+              selected={
+                statusFilter === "APPROVED" &&
+                (activeStatusFilter === "ACTIVE_SINGLE_MONTH" || activeStatusFilter === "ACTIVE_30")
+              }
               selectedClass="border-cyan-500 ring-2 ring-cyan-500/30 bg-cyan-500/5 dark:bg-cyan-500/10"
               onClick={() => {
                 setStatusFilter("APPROVED");
-                setActiveStatusFilter("ACTIVE_30");
+                setActiveStatusFilter("ACTIVE_SINGLE_MONTH");
                 setPage(1);
               }}
             />
@@ -1150,14 +2105,41 @@ export function JaringVerificationListClient() {
               }}
             />
 
-            {/* Kiri Bawah: Total Jaring Tidak Aktif */}
+            {/* Kiri Bawah: Jaring Tidak Aktif */}
             <SummaryCard
               className="order-3 lg:order-none lg:col-start-1 lg:row-start-2"
-              label="Total Jaring Tidak Aktif"
-              value={summary.inactive}
+              label="Jaring Tidak Aktif"
+              value={summary.inactive !== null ? summary.inactive : "-"}
+              description={
+                inactiveCustomStartDate || inactiveCustomEndDate ? (
+                  <span className="text-[10px] text-muted-foreground truncate block">
+                    Nihil: {inactiveCustomStartDate && inactiveCustomEndDate
+                      ? `${formatDateShortId(inactiveCustomStartDate)} - ${formatDateShortId(inactiveCustomEndDate)}`
+                      : `${inactiveCustomStartDate || "..."} s.d ${inactiveCustomEndDate || "..."}`}
+                  </span>
+                ) : (
+                  <span className="text-[10px] text-muted-foreground italic">Pilih periode</span>
+                )
+              }
+              headerAction={
+                <InactiveCustomRangePopover
+                  startDate={inactiveCustomStartDate}
+                  endDate={inactiveCustomEndDate}
+                  onApply={(start, end) => {
+                    setInactiveCustomStartDate(start);
+                    setInactiveCustomEndDate(end);
+                    setPage(1);
+                  }}
+                  onReset={() => {
+                    setInactiveCustomStartDate("");
+                    setInactiveCustomEndDate("");
+                    setPage(1);
+                  }}
+                />
+              }
               icon={DOMAIN_VISUALS.jaring.Icon}
               iconClass="bg-slate-500/10 text-slate-600 dark:text-slate-400"
-              valueClass="text-slate-600 dark:text-slate-300"
+              valueClass={summary.inactive !== null ? "text-slate-600 dark:text-slate-300" : "text-muted-foreground"}
               selected={statusFilter === "APPROVED" && activeStatusFilter === "INACTIVE"}
               selectedClass="border-slate-500 ring-2 ring-slate-500/25 bg-slate-500/5 dark:bg-slate-500/10"
               onClick={() => {
@@ -1167,11 +2149,36 @@ export function JaringVerificationListClient() {
               }}
             />
 
-            {/* Kanan Bawah: Total Jaring Aktif 7 Hari */}
+            {/* Kanan Bawah: Jaring Aktif (7 Hari) */}
             <SummaryCard
               className="order-4 lg:order-none lg:col-start-2 lg:row-start-2"
-              label="Total Jaring Aktif 7 Hari"
+              label="Jaring Aktif (7 Hari)"
               value={summary.active7}
+              description={
+                active7StartDate && active7EndDate ? (
+                  <span className="font-mono text-[10.5px] font-semibold text-blue-600 dark:text-blue-400 truncate block">
+                    Rentang: {formatDateShortId(active7StartDate)} - {formatDateShortId(active7EndDate)}
+                  </span>
+                ) : (
+                  <span className="text-[10px] text-muted-foreground">Akumulasi 7 hari terakhir</span>
+                )
+              }
+              headerAction={
+                <Active7DaysRangePopover
+                  startDate={active7StartDate}
+                  endDate={active7EndDate}
+                  onApply={(start, end) => {
+                    setActive7StartDate(start);
+                    setActive7EndDate(end);
+                    setPage(1);
+                  }}
+                  onReset={() => {
+                    setActive7StartDate("");
+                    setActive7EndDate("");
+                    setPage(1);
+                  }}
+                />
+              }
               icon={DOMAIN_VISUALS.jaring.Icon}
               iconClass="bg-blue-500/10 text-blue-600 dark:text-blue-400"
               valueClass="text-blue-600 dark:text-blue-400"
@@ -1320,11 +2327,29 @@ export function JaringVerificationListClient() {
               >
                 <option value="ALL">Semua Aktivitas</option>
                 <option value="ACTIVE_TODAY">{DOMAIN_TERMS.jaringActiveToday}</option>
-                <option value="ACTIVE_7">{DOMAIN_TERMS.jaringActive7Days}</option>
-                <option value="ACTIVE_30">{DOMAIN_TERMS.jaringActive30Days}</option>
-                <option value="ACTIVE_60">{DOMAIN_TERMS.jaringActive60Days}</option>
+                <option value="ACTIVE_7">
+                  {active7StartDate && active7EndDate
+                    ? `${DOMAIN_TERMS.jaringActive7Days} (${formatDateShortId(active7StartDate)} - ${formatDateShortId(active7EndDate)})`
+                    : DOMAIN_TERMS.jaringActive7Days}
+                </option>
+                <option value="ACTIVE_SINGLE_MONTH">
+                  {singleMonthFilter
+                    ? `${DOMAIN_TERMS.jaringActiveSingleMonth} (${formatYearMonthShort(singleMonthFilter)})`
+                    : DOMAIN_TERMS.jaringActiveSingleMonth}
+                </option>
+                <option value="ACTIVE_MULTI_MONTH">
+                  {multiMonthFilter.length > 0
+                    ? `${DOMAIN_TERMS.jaringActiveMultiMonth} (${multiMonthFilter.length} Bulan)`
+                    : DOMAIN_TERMS.jaringActiveMultiMonth}
+                </option>
+                <option value="INACTIVE">
+                  {inactiveCustomStartDate || inactiveCustomEndDate
+                    ? `${DOMAIN_TERMS.jaringInactive} (Periode Kustom)`
+                    : DOMAIN_TERMS.jaringInactive}
+                </option>
+                <option value="ACTIVE_30" className="hidden">{DOMAIN_TERMS.jaringActive30Days}</option>
+                <option value="ACTIVE_60" className="hidden">{DOMAIN_TERMS.jaringActive60Days}</option>
                 <option value="ACTIVE_90">{DOMAIN_TERMS.jaringActive90Days}</option>
-                <option value="INACTIVE">{DOMAIN_TERMS.jaringInactive}</option>
               </NativeSelect>
             </FilterField>
 
@@ -2001,11 +3026,17 @@ export function JaringVerificationListClient() {
                 <DOMAIN_VISUALS.jaring.Icon className="size-8 stroke-[1.5]" />
               </div>
               <div className="max-w-md space-y-1.5">
-                <h3 className="font-semibold text-base text-foreground">Belum ada pengajuan Jaring</h3>
+                <h3 className="font-semibold text-base text-foreground">
+                  {activeStatusFilter === "INACTIVE" && !inactiveCustomStartDate && !inactiveCustomEndDate
+                    ? "Pilih Periode / Bulan"
+                    : "Belum ada pengajuan Jaring"}
+                </h3>
                 <p className="text-muted-foreground text-xs">
-                  {hasActiveFilters
-                    ? "Tidak ada data pengajuan yang cocok dengan filter pencarian Anda."
-                    : "Pengajuan baru akan muncul setelah Petugas Wilayah (Gaswil) mengirim data."}
+                  {activeStatusFilter === "INACTIVE" && !inactiveCustomStartDate && !inactiveCustomEndDate
+                    ? "Silakan tentukan Periode / Bulan pada kartu Jaring Tidak Aktif untuk melihat jaring yang nihil laporan."
+                    : hasActiveFilters
+                      ? "Tidak ada data pengajuan yang cocok dengan filter pencarian Anda."
+                      : "Pengajuan baru akan muncul setelah Petugas Wilayah (Gaswil) mengirim data."}
                 </p>
               </div>
               {hasActiveFilters ? (
@@ -3621,30 +4652,29 @@ function detailRegistrationStatusLabel(status: RegistrationJaring["registrationS
 }
 
 function isJaringActiveInDays(item: RegistrationJaring, days: number): boolean {
-  if (days === 30 && typeof item.isActive30Days === "boolean") return item.isActive30Days;
-  if (days === 60 && typeof item.isActive60Days === "boolean") return item.isActive60Days;
-  if (days === 90 && typeof item.isActive90Days === "boolean") return item.isActive90Days;
-  if (!item.lastReportAt) return false;
-  const time = new Date(item.lastReportAt).getTime();
-  if (Number.isNaN(time)) return false;
-  return time >= Date.now() - days * 24 * 60 * 60 * 1000;
+  const timestamps = getJaringReportTimestamps(item);
+  if (timestamps.length === 0) return false;
+  const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+  return timestamps.some((ts) => ts >= cutoff);
 }
 
 function isJaringActiveToday(item: RegistrationJaring): boolean {
-  if (!item.lastReportAt) return false;
-  const time = new Date(item.lastReportAt).getTime();
-  if (Number.isNaN(time)) return false;
+  const timestamps = getJaringReportTimestamps(item);
+  if (timestamps.length === 0) return false;
   try {
     const dFmt = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" });
-    return dFmt.format(new Date(item.lastReportAt)) === dFmt.format(new Date());
+    const today = dFmt.format(new Date());
+    return timestamps.some((ts) => dFmt.format(new Date(ts)) === today);
   } catch {
-    const reportDate = new Date(item.lastReportAt);
     const now = new Date();
-    return (
-      reportDate.getFullYear() === now.getFullYear() &&
-      reportDate.getMonth() === now.getMonth() &&
-      reportDate.getDate() === now.getDate()
-    );
+    return timestamps.some((ts) => {
+      const d = new Date(ts);
+      return (
+        d.getFullYear() === now.getFullYear() &&
+        d.getMonth() === now.getMonth() &&
+        d.getDate() === now.getDate()
+      );
+    });
   }
 }
 
@@ -3778,6 +4808,7 @@ function SummaryCard({
   value,
   description,
   extra,
+  headerAction,
   icon: Icon,
   iconClass,
   valueClass,
@@ -3788,9 +4819,10 @@ function SummaryCard({
   isTall = false,
 }: {
   label: string;
-  value: number;
-  description?: string;
+  value: number | string;
+  description?: ReactNode;
   extra?: ReactNode;
+  headerAction?: ReactNode;
   icon: ComponentType<{ className?: string }>;
   iconClass: string;
   valueClass: string;
@@ -3802,11 +4834,18 @@ function SummaryCard({
 }) {
   if (isTall) {
     return (
-      <button
-        type="button"
+      <div
+        role="button"
+        tabIndex={0}
         onClick={onClick}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onClick();
+          }
+        }}
         className={cn(
-          "group flex min-w-0 h-full cursor-pointer flex-col justify-between rounded-md border bg-card p-3.5 text-left shadow-xs transition-all duration-150 active:scale-[0.98]",
+          "group flex min-w-0 h-full cursor-pointer flex-col rounded-md border bg-card p-3.5 text-left shadow-xs transition-all duration-150 active:scale-[0.98]",
           selected
             ? selectedClass
             : "border-slate-200/80 hover:border-slate-300/60 hover:bg-slate-50/50 dark:border-white/10 dark:hover:bg-slate-900/50",
@@ -3822,22 +4861,67 @@ function SummaryCard({
             Hari Ini
           </span>
         </div>
-        <div className="min-w-0 mt-3 sm:mt-2 text-center">
+        <div className="min-w-0 flex-1 flex flex-col items-center justify-center text-center py-2 -mt-2">
           <p className="font-medium text-[10.5px] text-muted-foreground uppercase tracking-wide leading-tight">
             {label}
           </p>
-          <p className={cn("font-bold text-2xl sm:text-3xl tracking-tight mt-1 text-center", valueClass)}>{value}</p>
-          {description && <p className="mt-1 text-[11px] text-muted-foreground leading-snug">{description}</p>}
+          <p className={cn("font-bold text-3xl sm:text-4xl tracking-tight mt-1.5 text-center", valueClass)}>{value}</p>
+          {description && <div className="mt-1.5 text-[11px] text-muted-foreground leading-snug">{description}</div>}
           {extra}
         </div>
-      </button>
+      </div>
+    );
+  }
+
+  if (headerAction) {
+    return (
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={onClick}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onClick();
+          }
+        }}
+        className={cn(
+          "flex min-w-0 h-full cursor-pointer flex-col justify-between rounded-md border bg-card p-3 shadow-xs transition-all duration-150 active:scale-[0.98]",
+          selected
+            ? selectedClass
+            : "border-slate-200/80 hover:border-slate-300/60 hover:bg-slate-50/50 dark:border-white/10 dark:hover:bg-slate-900/50",
+          className,
+        )}
+      >
+        <div className="flex items-center justify-between w-full gap-2">
+          <div className={cn("flex size-7 sm:size-8 shrink-0 items-center justify-center rounded-md", iconClass)}>
+            <Icon className="size-3.5 sm:size-4" />
+          </div>
+          <div onClick={(e) => e.stopPropagation()}>{headerAction}</div>
+        </div>
+        <div className="min-w-0 flex-1 text-center mt-1">
+          <p className="font-medium text-[10px] sm:text-[10.5px] text-muted-foreground uppercase tracking-wide leading-tight line-clamp-2 min-h-[24px] flex items-center justify-center">
+            {label}
+          </p>
+          <p className={cn("font-bold text-xl sm:text-2xl tracking-normal mt-0.5 text-center", valueClass)}>{value}</p>
+          {description && <div className="text-[10px] text-muted-foreground truncate mt-0.5">{description}</div>}
+          {extra}
+        </div>
+      </div>
     );
   }
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick();
+        }
+      }}
       className={cn(
         "flex min-w-0 h-full cursor-pointer items-center gap-2.5 rounded-md border bg-card p-3 shadow-xs transition-all duration-150 active:scale-[0.98]",
         selected
@@ -3854,9 +4938,9 @@ function SummaryCard({
           {label}
         </p>
         <p className={cn("font-bold text-lg sm:text-xl tracking-normal mt-0.5 text-center", valueClass)}>{value}</p>
-        {description && <p className="text-[10px] text-muted-foreground truncate">{description}</p>}
+        {description && <div className="text-[10px] text-muted-foreground truncate">{description}</div>}
         {extra}
       </div>
-    </button>
+    </div>
   );
 }
