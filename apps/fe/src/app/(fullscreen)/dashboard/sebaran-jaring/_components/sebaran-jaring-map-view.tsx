@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef } from "react";
 
 import { ChevronRight, X } from "lucide-react";
-import type { Map as MapLibreMap, PopupOptions, StyleSpecification } from "maplibre-gl";
+import type { GeoJSONSource, Map as MapLibreMap, PopupOptions, StyleSpecification } from "maplibre-gl";
 
 import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";
 import { Badge } from "@/components/ui/badge";
@@ -265,7 +265,7 @@ export function SebaranJaringMapView({
 
     try {
       if (map.getSource(sourceId)) {
-        (map.getSource(sourceId) as maplibregl.GeoJSONSource).setData(pointsGeoJSON);
+        (map.getSource(sourceId) as GeoJSONSource).setData(pointsGeoJSON);
       } else {
         map.addSource(sourceId, {
           type: "geojson",

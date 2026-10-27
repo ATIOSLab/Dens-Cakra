@@ -163,7 +163,7 @@ async function loadActiveAreas() {
     ? areas.filter(
         (area) =>
           area.parentId === dkiProvince.id &&
-          [AdministrativeLevel.REGENCY, AdministrativeLevel.CITY].includes(
+          ([AdministrativeLevel.REGENCY, AdministrativeLevel.CITY] as AdministrativeLevel[]).includes(
             area.level,
           ),
       )
@@ -181,7 +181,7 @@ async function loadActiveAreas() {
     (area) => area.level === AdministrativeLevel.PROVINCE,
   );
   const regencyCities = areas.filter((area) =>
-    [AdministrativeLevel.REGENCY, AdministrativeLevel.CITY].includes(
+    ([AdministrativeLevel.REGENCY, AdministrativeLevel.CITY] as AdministrativeLevel[]).includes(
       area.level,
     ),
   );

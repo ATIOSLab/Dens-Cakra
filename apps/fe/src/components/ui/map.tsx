@@ -12,7 +12,8 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
-import maplibregl, {
+import * as maplibregl from "maplibre-gl";
+import {
   type FillLayerSpecification,
   FullscreenControl,
   GeolocateControl,

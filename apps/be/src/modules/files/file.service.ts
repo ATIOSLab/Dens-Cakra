@@ -169,6 +169,7 @@ export class FileService implements OnModuleInit {
       file.mimeType.startsWith('image/') &&
       PREVIEWABLE_PENDING_PHOTO_STATUSES.has(file.lifecycleStatus);
     const isFalseScannerQuarantinePhoto =
+      !env.storage.scanRequired &&
       file.fileType === FileType.PHOTO &&
       file.mimeType.startsWith('image/') &&
       file.lifecycleStatus === FileLifecycleStatus.QUARANTINED &&
@@ -259,6 +260,28 @@ export class FileService implements OnModuleInit {
       const message = error instanceof Error ? error.message : String(error);
 
       if (isScannerUnavailable(error)) {
+        if (env.storage.scanRequired) {
+          await this.prisma.fileAsset.update({
+            where: { id: fileId },
+            data: {
+              lifecycleStatus: FileLifecycleStatus.QUARANTINED,
+              scannedAt: new Date(),
+              quarantineReason: 'clamscan_unavailable',
+              scanResult: {
+                scanner: 'clamav',
+                clean: false,
+                skipped: true,
+                reason: 'clamscan_unavailable',
+              },
+            },
+          });
+          return {
+            clean: false,
+            quarantined: true,
+            reason: 'clamscan_unavailable',
+          };
+        }
+
         await this.prisma.fileAsset.update({
           where: { id: fileId },
           data: {
