@@ -191,8 +191,15 @@ export class JaringReportQuery {
     'NOT_SUBMITTED',
     'READY_FOR_BAKET',
     'BAKET_CREATED',
+    'ALL',
+    'UNREAD',
+    'READ',
+    'BAKET',
   ])
   verificationStatus?: string;
+  @IsOptional()
+  @IsIn(['ALL', 'UNREAD', 'READ', 'BAKET'])
+  readStatus?: 'ALL' | 'UNREAD' | 'READ' | 'BAKET';
   @IsOptional() @IsIn(['true', 'false']) hasAttachment?: 'true' | 'false';
   @IsOptional()
   @IsIn(['WITHIN_SCOPE', 'OUTSIDE_SCOPE', 'BORDER_AMBIGUOUS', 'NOT_DETERMINED'])

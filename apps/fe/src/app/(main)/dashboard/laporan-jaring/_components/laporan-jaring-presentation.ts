@@ -6,7 +6,17 @@ import {
 } from "@/lib/domain/operational-presentation";
 import { DOMAIN_TERMS } from "@/lib/domain/terminology";
 
-import type { PriorityLevel, VerificationStatus } from "./laporan-jaring-types";
+import type { JaringReportStatusFilter, PriorityLevel, VerificationStatus } from "./laporan-jaring-types";
+
+export const JARING_REPORT_STATUS_FILTER_OPTIONS: Array<{
+  value: JaringReportStatusFilter;
+  label: string;
+}> = [
+  { value: "ALL", label: "Semua Status" },
+  { value: "UNREAD", label: "Belum Dibaca" },
+  { value: "READ", label: "Sudah Dibaca" },
+  { value: "BAKET", label: "Sudah Menjadi Baket" },
+];
 
 export type JaringReportCategorySummary = {
   totalJaringReports?: number;
@@ -127,11 +137,11 @@ export function formatHierarchyReadStatusBadge(
   const { readAt, readByName, officerName } = options;
   if (readAt) {
     const timeFormatted = formatDateTime(readAt);
-    const actorName = readByName || officerName;
+    const actorName = readByName ?? officerName;
     return actorName
       ? `${role}: Sudah Dibaca (${actorName} • ${timeFormatted})`
       : `${role}: Sudah Dibaca (${timeFormatted})`;
   }
-  const defaultOfficer = officerName || (role === "Gaswil" ? "Petugas Wilayah" : "Koordinator Wilayah");
+  const defaultOfficer = officerName ?? (role === "Gaswil" ? "Petugas Wilayah" : "Koordinator Wilayah");
   return `${role}: Belum Dibaca (${defaultOfficer})`;
 }

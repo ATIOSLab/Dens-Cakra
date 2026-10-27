@@ -3524,6 +3524,79 @@ export class JaringService {
         },
       });
     }
+
+    const effectiveReadStatus =
+      query.readStatus && query.readStatus !== 'ALL'
+        ? query.readStatus
+        : query.verificationStatus === 'UNREAD' ||
+            query.verificationStatus === 'READ' ||
+            query.verificationStatus === 'BAKET'
+          ? query.verificationStatus
+          : undefined;
+
+    if (effectiveReadStatus === 'UNREAD') {
+      const isGaswil =
+        context.roleCode === RoleCode.FIELD_OFFICER ||
+        context.authRole === 'field_officer';
+      const isKorwil =
+        context.roleCode === RoleCode.FIELD_COORDINATOR ||
+        context.authRole === 'field_coordinator';
+
+      if (isGaswil) {
+        filters.push({ gaswilReadAt: null, readAt: null });
+      } else if (isKorwil) {
+        filters.push({ korwilReadAt: null });
+      } else {
+        filters.push({
+          gaswilReadAt: null,
+          korwilReadAt: null,
+          readAt: null,
+        });
+      }
+    } else if (effectiveReadStatus === 'READ') {
+      const isGaswil =
+        context.roleCode === RoleCode.FIELD_OFFICER ||
+        context.authRole === 'field_officer';
+      const isKorwil =
+        context.roleCode === RoleCode.FIELD_COORDINATOR ||
+        context.authRole === 'field_coordinator';
+
+      if (isGaswil) {
+        filters.push({
+          OR: [{ gaswilReadAt: { not: null } }, { readAt: { not: null } }],
+        });
+      } else if (isKorwil) {
+        filters.push({ korwilReadAt: { not: null } });
+      } else {
+        filters.push({
+          OR: [
+            { gaswilReadAt: { not: null } },
+            { korwilReadAt: { not: null } },
+            { readAt: { not: null } },
+          ],
+        });
+      }
+    } else if (
+      effectiveReadStatus === 'BAKET' ||
+      query.verificationStatus === 'BAKET_CREATED'
+    ) {
+      filters.push({
+        submittedMessage: {
+          is: {
+            convertedBaketId: { not: null },
+          },
+        },
+      });
+    } else if (query.verificationStatus === 'READY_FOR_BAKET') {
+      filters.push({
+        submittedMessage: {
+          is: {
+            convertedBaketId: null,
+          },
+        },
+      });
+    }
+
     const where: Prisma.WhatsAppReportSessionWhereInput = { AND: filters };
     const summaryWhere: Prisma.WhatsAppReportSessionWhereInput = {
       AND: [...filters],
@@ -3580,9 +3653,50 @@ export class JaringService {
 
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
+
+    const isGaswil =
+      context.roleCode === RoleCode.FIELD_OFFICER ||
+      context.authRole === 'field_officer';
+    const isKorwil =
+      context.roleCode === RoleCode.FIELD_COORDINATOR ||
+      context.authRole === 'field_coordinator';
+
+    const effectiveReadStatus =
+      query.readStatus && query.readStatus !== 'ALL'
+        ? query.readStatus
+        : query.verificationStatus === 'UNREAD' ||
+            query.verificationStatus === 'READ' ||
+            query.verificationStatus === 'BAKET'
+          ? query.verificationStatus
+          : undefined;
+
     const where: Prisma.WhatsAppReportSessionWhereInput = {
       jaringId: id,
       ...(query.status ? { status: query.status } : {}),
+      ...(effectiveReadStatus === 'UNREAD'
+        ? isGaswil
+          ? { gaswilReadAt: null, readAt: null }
+          : isKorwil
+            ? { korwilReadAt: null }
+            : { gaswilReadAt: null, korwilReadAt: null, readAt: null }
+        : {}),
+      ...(effectiveReadStatus === 'READ'
+        ? isGaswil
+          ? { OR: [{ gaswilReadAt: { not: null } }, { readAt: { not: null } }] }
+          : isKorwil
+            ? { korwilReadAt: { not: null } }
+            : {
+                OR: [
+                  { gaswilReadAt: { not: null } },
+                  { korwilReadAt: { not: null } },
+                  { readAt: { not: null } },
+                ],
+              }
+        : {}),
+      ...(effectiveReadStatus === 'BAKET' ||
+      query.verificationStatus === 'BAKET_CREATED'
+        ? { submittedMessage: { is: { convertedBaketId: { not: null } } } }
+        : {}),
     };
 
     const [sessions, total, statusCounts, korwilLookup] = await Promise.all([

@@ -76,16 +76,17 @@ import {
   type SystemRole,
 } from "@/navigation/sidebar/system-roles";
 
+import { JaringRegionalBreakdownModal } from "./jaring-regional-breakdown-modal";
 import {
   alignJaringReportCategorySummary,
   formatDateTime,
   formatHierarchyReadStatusBadge,
   formatReportNumber,
+  JARING_REPORT_STATUS_FILTER_OPTIONS,
   verificationStatusBadgeVariant,
   verificationStatusLabel,
 } from "./laporan-jaring-presentation";
 import { LaporanJaringPreviewModal } from "./laporan-jaring-preview-modal";
-import { JaringRegionalBreakdownModal } from "./jaring-regional-breakdown-modal";
 import {
   formatFullAreaName,
   type JaringReportSessionDetail,
@@ -254,9 +255,12 @@ function resolveInitialReportFilters(searchParams: { get(name: string): string |
   status: string;
   stage: ReportStage;
 } {
-  const verificationStatus = searchParams.get("verificationStatus");
+  const statusParam =
+    searchParams.get("readStatus") ||
+    searchParams.get("status") ||
+    searchParams.get("verificationStatus");
   return {
-    status: verificationStatus && verificationStatus !== "ALL" ? verificationStatus : "ALL",
+    status: statusParam && statusParam !== "ALL" ? statusParam : "ALL",
     stage: "ALL",
   };
 }
@@ -457,6 +461,7 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
       sortOrder,
       search: debouncedSearch || undefined,
       urgency: urgencyFilter === "ALL" ? undefined : urgencyFilter,
+      readStatus: statusFilter === "ALL" ? undefined : statusFilter,
       jaringId: jaringFilter === "ALL" ? undefined : jaringFilter,
       fieldOfficerAssignmentId: fieldOfficerFilter || undefined,
       areaId: areaFilter || undefined,
@@ -535,7 +540,7 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
     setParam("hasAttachment", attachmentFilter);
     setParam("coordinateSource", coordinateSourceFilter);
     setParam("locationSuitability", locationFilter);
-    setParam("verificationStatus", statusFilter);
+    setParam("readStatus", statusFilter);
     if (periodPreset === "CUSTOM") {
       if (startDate) params.set("from", startDate);
       if (endDate) params.set("to", endDate);
@@ -865,14 +870,14 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
 
     if (statusFilter !== "ALL") {
       const statusLabels: Record<string, string> = {
-        UNVERIFIED: "Belum Verifikasi",
-        VALID: "Terverifikasi",
-        INVALID: "Ditolak / Invalid",
-        NEED_CLARIFICATION: "Perlu Klarifikasi",
+        UNREAD: "Belum Dibaca",
+        READ: "Sudah Dibaca",
+        BAKET: "Sudah Menjadi Baket",
+        BAKET_CREATED: "Sudah Menjadi Baket",
       };
       chips.push({
         id: "status",
-        label: "Status",
+        label: "Status Laporan",
         value: statusLabels[statusFilter] || statusFilter,
         onRemove: () => {
           setStatusFilter("ALL");
@@ -1159,12 +1164,46 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
           return (
             <div
               key={item.key}
-              onClick={() => setIsRegionalModalOpen(true)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  if (item.key === "BAKET") {
+                    setStatusFilter((prev) => (prev === "BAKET" ? "ALL" : "BAKET"));
+                    setPage(1);
+                  } else if (item.key === "TOTAL") {
+                    setStatusFilter("ALL");
+                    setPage(1);
+                  } else {
+                    setIsRegionalModalOpen(true);
+                  }
+                }
+              }}
+              onClick={() => {
+                if (item.key === "BAKET") {
+                  setStatusFilter((prev) => (prev === "BAKET" ? "ALL" : "BAKET"));
+                  setPage(1);
+                } else if (item.key === "TOTAL") {
+                  setStatusFilter("ALL");
+                  setPage(1);
+                } else {
+                  setIsRegionalModalOpen(true);
+                }
+              }}
               className={cn(
                 "group flex min-h-[112px] cursor-pointer items-center gap-3 rounded-md border bg-card p-3.5 text-left shadow-xs transition-all hover:border-primary/50 hover:shadow-sm",
                 item.styles.card,
+                item.key === "BAKET" && statusFilter === "BAKET" && "ring-2 ring-violet-500/50 bg-violet-500/[0.04]",
+                item.key === "TOTAL" && statusFilter === "ALL" && "ring-2 ring-sky-500/50 bg-sky-500/[0.04]",
               )}
-              title="Klik untuk melihat rincian statistik wilayah"
+              title={
+                item.key === "BAKET"
+                  ? "Klik untuk memfilter laporan yang sudah menjadi Baket"
+                  : item.key === "TOTAL"
+                    ? "Klik untuk menampilkan semua status laporan"
+                    : "Klik untuk melihat rincian statistik wilayah"
+              }
             >
               <div className={cn("flex size-10 shrink-0 items-center justify-center rounded-md transition-transform group-hover:scale-105", item.styles.icon)}>
                 <Icon className="size-5" />
@@ -1252,6 +1291,32 @@ export function LaporanJaringCoordinatorClient({ role }: { role?: SystemRole } =
                   <X className="size-3.5" />
                 </button>
               )}
+            </div>
+
+            {/* Filter Status Laporan (Belum Dibaca, Sudah Dibaca, Sudah Menjadi Baket) */}
+            <div className="w-full sm:w-[220px]">
+              <FilterField
+                label="Status Laporan"
+                icon={MailOpen}
+                isActive={statusFilter !== "ALL"}
+              >
+                <NativeSelect
+                  aria-label="Filter Status Laporan"
+                  value={statusFilter}
+                  onChange={(event) => {
+                    setStatusFilter(event.target.value);
+                    setPage(1);
+                  }}
+                  isActive={statusFilter !== "ALL"}
+                  className="h-9 w-full text-xs"
+                >
+                  {JARING_REPORT_STATUS_FILTER_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </NativeSelect>
+              </FilterField>
             </div>
 
             {/* Filter Periode Cepat di Toolbar Atas */}

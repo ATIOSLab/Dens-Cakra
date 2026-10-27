@@ -10,6 +10,7 @@ import {
   ChevronDown,
   Clock,
   Eye,
+  MailOpen,
   MapPin,
   RefreshCw,
   RotateCcw,
@@ -48,6 +49,7 @@ import {
   alignJaringReportCategorySummary,
   formatDateTime,
   formatReportNumber,
+  JARING_REPORT_STATUS_FILTER_OPTIONS,
   verificationStatusBadgeVariant,
   verificationStatusLabel,
 } from "./laporan-jaring-presentation";
@@ -357,6 +359,7 @@ export function LaporanJaringClient() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [jaringFilter, setJaringFilter] = useState<string>("ALL");
+  const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [periodPreset, setPeriodPreset] = useState<DashboardDetailPeriodPreset>(() => {
     const hasInitialDateRange = Boolean(initialStartDate || initialEndDate);
     if (!hasInitialDateRange && !searchParams.get("period")) return DEFAULT_REPORT_PERIOD_PRESET;
@@ -394,6 +397,7 @@ export function LaporanJaringClient() {
           sortOrder: "desc",
         });
         if (debouncedSearch) params.set("search", debouncedSearch);
+        if (statusFilter !== "ALL") params.set("readStatus", statusFilter);
         if (jaringFilter !== "ALL") params.set("jaringId", jaringFilter);
         if (periodRange.from) params.set("from", jakartaBoundaryIso(periodRange.from));
         if (periodRange.to) params.set("to", jakartaBoundaryIso(periodRange.to, true));
@@ -418,7 +422,7 @@ export function LaporanJaringClient() {
         if (requestId === requestSequence.current && !silent) setLoadingList(false);
       }
     },
-    [debouncedSearch, jaringFilter, limit, page, periodRange],
+    [debouncedSearch, jaringFilter, limit, page, periodRange, statusFilter],
   );
 
   useEffect(() => {
@@ -474,6 +478,7 @@ export function LaporanJaringClient() {
   const handleResetFilters = useCallback(() => {
     setSearch("");
     setJaringFilter("ALL");
+    setStatusFilter("ALL");
     setPeriodPreset("TODAY");
     setStartDate("");
     setEndDate("");
@@ -490,6 +495,23 @@ export function LaporanJaringClient() {
         value: search.trim(),
         onRemove: () => {
           setSearch("");
+          setPage(1);
+        },
+      });
+    }
+
+    if (statusFilter !== "ALL") {
+      const statusLabels: Record<string, string> = {
+        UNREAD: "Belum Dibaca",
+        READ: "Sudah Dibaca",
+        BAKET: "Sudah Menjadi Baket",
+      };
+      chips.push({
+        id: "status",
+        label: "Status Laporan",
+        value: statusLabels[statusFilter] || statusFilter,
+        onRemove: () => {
+          setStatusFilter("ALL");
           setPage(1);
         },
       });
@@ -543,7 +565,7 @@ export function LaporanJaringClient() {
     }
 
     return chips;
-  }, [search, jaringFilter, jaringOptions, periodPreset, startDate, endDate]);
+  }, [search, statusFilter, jaringFilter, jaringOptions, periodPreset, startDate, endDate]);
 
   const activeFilterCount = activeFilterChips.length;
 
@@ -715,8 +737,31 @@ export function LaporanJaringClient() {
               </div>
             </FilterField>
 
-            {/* Baris 2: Parameter Sumber & Waktu */}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {/* Baris 2: Parameter Sumber, Status & Waktu */}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              {/* Status Laporan Filter */}
+              <FilterField
+                label="Status Laporan"
+                icon={<MailOpen className="size-3.5" />}
+                isActive={statusFilter !== "ALL"}
+              >
+                <NativeSelect
+                  aria-label="Filter Status Laporan"
+                  value={statusFilter}
+                  onChange={(e) => {
+                    setStatusFilter(e.target.value);
+                    setPage(1);
+                  }}
+                  isActive={statusFilter !== "ALL"}
+                  className="h-9 w-full text-xs"
+                >
+                  {JARING_REPORT_STATUS_FILTER_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </NativeSelect>
+              </FilterField>
               {/* Jaring Filter */}
               <FilterField
                 label="Jaring Pelapor"

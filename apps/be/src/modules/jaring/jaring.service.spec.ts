@@ -1237,6 +1237,70 @@ describe('JaringService registration security', () => {
     );
   });
 
+  it('menerapkan filter readStatus UNREAD, READ, dan BAKET pada allReports', async () => {
+    const findMany = jest.fn(() => Promise.resolve([]));
+    const count = jest.fn(() => Promise.resolve(0));
+    const groupBy = jest.fn(() => Promise.resolve([]));
+    const jaringWhere = jest.fn(() => Promise.resolve({}));
+    const service = createService(
+      {
+        whatsAppReportSession: { findMany, count, groupBy },
+      },
+      { jaringWhere, assertArea: jest.fn(() => Promise.resolve(undefined)) },
+      {},
+    );
+
+    // 1. UNREAD untuk Gaswil
+    await service.allReports(
+      { readStatus: 'UNREAD', page: 1, limit: 20 },
+      { authRole: 'field_officer' } as never,
+    );
+    expect(findMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        where: {
+          AND: expect.arrayContaining([
+            { gaswilReadAt: null, readAt: null },
+          ]),
+        },
+      }),
+    );
+
+    // 2. READ untuk Gaswil
+    await service.allReports(
+      { readStatus: 'READ', page: 1, limit: 20 },
+      { authRole: 'field_officer' } as never,
+    );
+    expect(findMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        where: {
+          AND: expect.arrayContaining([
+            {
+              OR: [
+                { gaswilReadAt: { not: null } },
+                { readAt: { not: null } },
+              ],
+            },
+          ]),
+        },
+      }),
+    );
+
+    // 3. BAKET untuk role pengawas/koordinator
+    await service.allReports(
+      { readStatus: 'BAKET', page: 1, limit: 20 },
+      { authRole: 'field_coordinator' } as never,
+    );
+    expect(findMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        where: {
+          AND: expect.arrayContaining([
+            { submittedMessage: { is: { convertedBaketId: { not: null } } } },
+          ]),
+        },
+      }),
+    );
+  });
+
   it('memuat laporan pembinaan global dengan scope, filter, dan pagination server', async () => {
     const findMany = jest.fn(() => Promise.resolve([]));
     const count = jest.fn(() => Promise.resolve(0));

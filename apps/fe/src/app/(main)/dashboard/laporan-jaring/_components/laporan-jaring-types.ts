@@ -10,6 +10,8 @@ export type VerificationStatus =
 
 export type JaringReportProcessStatus = "IN_PROGRESS_BY_JARING" | "NOT_SUBMITTED" | "READY_FOR_BAKET" | "BAKET_CREATED";
 
+export type JaringReportStatusFilter = "ALL" | "UNREAD" | "READ" | "BAKET";
+
 export type PriorityLevel = "LOW" | "NORMAL" | "HIGH" | "URGENT";
 
 export type JaringReportLocation = {
