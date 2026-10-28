@@ -4353,9 +4353,11 @@ export class JaringService {
       >(Prisma.sql`
         SELECT 
           count(*)::int as total_reports,
-          count(DISTINCT "jaringId")::int as reporting_jaring
-        FROM "WhatsAppReportSession"
-        WHERE "submittedAt" >= ${startPeriod}::timestamptz AND "submittedAt" < ${endPeriodExclusive}::timestamptz
+          count(DISTINCT s."jaringId")::int as reporting_jaring
+        FROM "WhatsAppReportSession" s
+        JOIN "Jaring" j ON s."jaringId" = j.id
+        WHERE j."registrationStatus" = 'APPROVED' AND j."deletedAt" IS NULL
+          AND s."submittedAt" >= ${startPeriod}::timestamptz AND s."submittedAt" < ${endPeriodExclusive}::timestamptz
       `),
       this.prisma.$queryRaw<
         Array<{
@@ -4431,10 +4433,12 @@ export class JaringService {
           WHERE "receivedAt" >= ${windowAgoStr}::timestamptz AND "receivedAt" <= ${pullTimeStr}::timestamptz
         ),
         period_reports AS (
-          SELECT "jaringId", count(*)::int as rep_count
-          FROM "WhatsAppReportSession"
-          WHERE "submittedAt" >= ${startPeriod}::timestamptz AND "submittedAt" < ${endPeriodExclusive}::timestamptz
-          GROUP BY "jaringId"
+          SELECT s."jaringId", count(*)::int as rep_count
+          FROM "WhatsAppReportSession" s
+          JOIN "Jaring" j ON s."jaringId" = j.id
+          WHERE j."registrationStatus" = 'APPROVED' AND j."deletedAt" IS NULL
+            AND s."submittedAt" >= ${startPeriod}::timestamptz AND s."submittedAt" < ${endPeriodExclusive}::timestamptz
+          GROUP BY s."jaringId"
         ),
         period_coaching AS (
           SELECT "jaringId", count(*)::int as coach_count
@@ -4448,7 +4452,7 @@ export class JaringService {
           count(DISTINCT CASE WHEN jh."registrationStatus" = 'APPROVED' THEN jh."jaringId" END)::int as total_jaring,
           count(DISTINCT CASE WHEN jh."registrationStatus" = 'APPROVED' AND ar."jaringId" IS NOT NULL THEN jh."jaringId" END)::int as jaring_aktif,
           (count(DISTINCT CASE WHEN jh."registrationStatus" = 'APPROVED' THEN jh."jaringId" END) - count(DISTINCT CASE WHEN jh."registrationStatus" = 'APPROVED' AND ar."jaringId" IS NOT NULL THEN jh."jaringId" END))::int as jaring_tidak_aktif,
-          COALESCE(sum(pr.rep_count), 0)::int as laporan_masuk,
+          COALESCE(sum(CASE WHEN jh."registrationStatus" = 'APPROVED' THEN pr.rep_count ELSE 0 END), 0)::int as laporan_masuk,
           COALESCE(sum(pc.coach_count), 0)::int as pembinaan_jaring
         FROM jaring_hierarchy jh
         LEFT JOIN active_reporters ar ON jh."jaringId" = ar."jaringId"
@@ -4887,9 +4891,11 @@ export class JaringService {
           (s."gaswilReadAt" IS NOT NULL OR s."readAt" IS NOT NULL OR s."korwilReadAt" IS NOT NULL) as is_read,
           COALESCE(wm."resolvedAreaId", rc."areaId") as effective_area_id
         FROM "WhatsAppReportSession" s
+        JOIN "Jaring" j ON s."jaringId" = j.id
         LEFT JOIN "WhatsAppMessage" wm ON s."submittedMessageId" = wm.id
         LEFT JOIN ranked_coverage rc ON s."jaringId" = rc."jaringId" AND rc.rn = 1
-        WHERE (s."submittedAt" IS NOT NULL OR s.status = 'ACTIVE')
+        WHERE j."registrationStatus" = 'APPROVED' AND j."deletedAt" IS NULL
+          AND (s."submittedAt" IS NOT NULL OR s.status = 'ACTIVE')
         ${fromCondition}
         ${toCondition}
       ),
