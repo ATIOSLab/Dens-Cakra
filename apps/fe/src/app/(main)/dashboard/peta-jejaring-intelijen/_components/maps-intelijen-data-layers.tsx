@@ -2,7 +2,15 @@
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
 
-import type { GeoJSONSource, MapLayerMouseEvent, Map as MapLibreMap, MapMouseEvent } from "maplibre-gl";
+import { type GeoJSONSource, type MapLayerMouseEvent, type Map as MapLibreMap, type MapMouseEvent, setWorkerUrl } from "maplibre-gl";
+
+if (typeof window !== "undefined") {
+  try {
+    setWorkerUrl("/maplibre-gl-worker.mjs");
+  } catch {
+    // Ignore in non-browser or test environments
+  }
+}
 
 import { DATA_TYPE_PRESENTATION, getMarkerPresentation, getUrgencyPresentation } from "./maps-intelijen-presentation";
 import type { HeatmapWeight, MapNetworkFeature, MarkerColorMode, VisualizationMode } from "./maps-intelijen-types";
@@ -26,8 +34,14 @@ function hasUsableStyle(map: MapLibreMap) {
 
 function removeDataLayers(map: MapLibreMap) {
   if (!hasUsableStyle(map)) return;
+  for (const id of LAYERS) {
+    try {
+      if (map.getLayer(id)) map.removeLayer(id);
+    } catch {
+      // Ignore individual layer removal errors
+    }
+  }
   try {
-    for (const id of LAYERS) if (map.getLayer(id)) map.removeLayer(id);
     if (map.getSource(SOURCE_ID)) map.removeSource(SOURCE_ID);
   } catch {
     // The parent map can remove its style before React finishes child cleanup.
@@ -221,9 +235,13 @@ export function MapsIntelijenDataLayers({
             id: "dc-network-report-point",
             type: "circle",
             source: SOURCE_ID,
-            filter: ["all", ["!", ["has", "point_count"]], ["==", ["get", "markerType"], "report"]],
+            filter: [
+              "all",
+              ["!", ["has", "point_count"]],
+              ["any", ["==", ["get", "markerType"], "report"], ["==", ["get", "markerType"], "REPORT"]],
+            ],
             paint: {
-              "circle-color": ["get", "renderColor"],
+              "circle-color": ["coalesce", ["get", "renderColor"], "#0ea5e9"],
               "circle-radius": ["interpolate", ["linear"], ["zoom"], 5, 4, 14, 7],
               "circle-stroke-width": 1.5,
               "circle-stroke-color": "#ffffff",
@@ -238,14 +256,18 @@ export function MapsIntelijenDataLayers({
             id: "dc-network-baket-point",
             type: "symbol",
             source: SOURCE_ID,
-            filter: ["all", ["!", ["has", "point_count"]], ["==", ["get", "markerType"], "baket"]],
+            filter: [
+              "all",
+              ["!", ["has", "point_count"]],
+              ["any", ["==", ["get", "markerType"], "baket"], ["==", ["get", "markerType"], "BAKET"]],
+            ],
             layout: {
               "text-field": "◆",
               "text-size": ["interpolate", ["linear"], ["zoom"], 5, 12, 14, 18],
               "text-allow-overlap": true,
             },
             paint: {
-              "text-color": ["get", "renderColor"],
+              "text-color": ["coalesce", ["get", "renderColor"], "#f59e0b"],
               "text-halo-color": "#ffffff",
               "text-halo-width": 1.25,
             },
@@ -257,15 +279,21 @@ export function MapsIntelijenDataLayers({
       source?.setData(dataRef.current);
     };
 
+    const handleStyleLoad = () => {
+      ensureLayers();
+    };
+
     if (map.isStyleLoaded()) {
       ensureLayers();
-    } else {
-      map.once("styledata", ensureLayers);
-      map.once("load", ensureLayers);
     }
+
+    map.on("style.load", handleStyleLoad);
+    map.on("load", handleStyleLoad);
 
     return () => {
       isMounted = false;
+      map.off("style.load", handleStyleLoad);
+      map.off("load", handleStyleLoad);
       removeDataLayers(map);
     };
   }, [map, mode]);

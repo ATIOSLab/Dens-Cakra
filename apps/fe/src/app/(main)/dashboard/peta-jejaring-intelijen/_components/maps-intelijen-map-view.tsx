@@ -1,7 +1,7 @@
 "use client";
 
 import type { RefObject } from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Crosshair, LoaderCircle, Maximize2, Minimize2, RotateCcw } from "lucide-react";
 import { LngLatBounds, type Map as MapLibreMap } from "maplibre-gl";
@@ -103,6 +103,63 @@ function markerPulse(feature: MapNetworkFeature): "urgent" | "high" | "normal" |
   return "normal";
 }
 
+interface IntelijenMapMarkerItemProps {
+  feature: MapNetworkFeature;
+  isSelected: boolean;
+  colorMode: MarkerColorMode;
+  onHover: (feature: MapNetworkFeature | null) => void;
+  onClick: (feature: MapNetworkFeature) => void;
+}
+
+const IntelijenMapMarkerItem = memo(function IntelijenMapMarkerItem({
+  feature,
+  isSelected,
+  colorMode,
+  onHover,
+  onClick,
+}: IntelijenMapMarkerItemProps) {
+  const presentation = getFeatureTypePresentation(feature.properties);
+  const MarkerIcon = presentation.icon;
+
+  return (
+    <MapMarker
+      longitude={feature.geometry.coordinates[0]}
+      latitude={feature.geometry.coordinates[1]}
+      pulse={markerPulse(feature)}
+    >
+      <button
+        type="button"
+        aria-label={`${presentation.label}: ${getMapFeatureTitle(feature)}`}
+        aria-pressed={isSelected}
+        onPointerEnter={() => onHover(feature)}
+        onPointerLeave={() => onHover(null)}
+        onFocus={() => onHover(feature)}
+        onBlur={() => onHover(null)}
+        onClick={(event) => {
+          event.stopPropagation();
+          onClick(feature);
+        }}
+        className={cn(
+          "grid size-6 cursor-pointer place-items-center border border-white/90 shadow-lg transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:ring-offset-1",
+          presentation.markerClass,
+          feature.properties.markerType === "baket"
+            ? "rounded-lg"
+            : feature.properties.markerType === "agent"
+              ? "rounded-md rotate-45"
+              : "rounded-full",
+          isSelected ? "z-50 scale-[1.08]" : "hover:scale-[1.04]",
+        )}
+        style={{ backgroundColor: markerColor(feature, colorMode) }}
+      >
+        <MarkerIcon
+          className={cn("size-3", feature.properties.markerType === "agent" && "-rotate-45")}
+          aria-hidden
+        />
+      </button>
+    </MapMarker>
+  );
+});
+
 export function MapsIntelijenMapView({
   mapCardRef,
   isFullscreen,
@@ -143,8 +200,9 @@ export function MapsIntelijenMapView({
   const displayedFeatures = useMemo(
     () =>
       features.filter((feature) => {
-        if (feature.properties.markerType === "report") return layerVisibility.report;
-        if (feature.properties.markerType === "baket") return layerVisibility.baket;
+        const markerType = String(feature.properties?.markerType ?? "").toLowerCase();
+        if (markerType === "report") return layerVisibility.report;
+        if (markerType === "baket") return layerVisibility.baket;
         return false;
       }),
     [features, layerVisibility],
@@ -281,53 +339,19 @@ export function MapsIntelijenMapView({
       <div className={isFullscreen ? "h-dvh" : "h-[min(68svh,52rem)] min-h-[26rem] sm:min-h-[34rem]"}>
         <MapView center={INITIAL_CENTER} zoom={9.5} styles={mapStyles} onMapReady={setMap} className="h-full w-full">
           {!isFullscreen ? <MapControls position="bottom-left" showZoom showCompass /> : null}
-          {mode === "marker" && displayedFeatures.length <= 150
-            ? displayedFeatures.map((feature) => {
-                const presentation = getFeatureTypePresentation(feature.properties);
-                const MarkerIcon = presentation.icon;
-                const isActive = selectedPopup?.id === feature.id;
-
-                return (
-                  <MapMarker
-                    key={feature.id}
-                    longitude={feature.geometry.coordinates[0]}
-                    latitude={feature.geometry.coordinates[1]}
-                    pulse={markerPulse(feature)}
-                  >
-                    <button
-                      type="button"
-                      aria-label={`${presentation.label}: ${getMapFeatureTitle(feature)}`}
-                      aria-pressed={locked?.id === feature.id}
-                      onPointerEnter={() => handleHover(feature)}
-                      onPointerLeave={() => handleHover(null)}
-                      onFocus={() => handleHover(feature)}
-                      onBlur={() => handleHover(null)}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        handleFeatureClick(feature);
-                      }}
-                      className={cn(
-                        "grid size-6 cursor-pointer place-items-center border border-white/90 shadow-lg transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:ring-offset-1",
-                        presentation.markerClass,
-                        feature.properties.markerType === "baket"
-                          ? "rounded-lg"
-                          : feature.properties.markerType === "agent"
-                            ? "rounded-md rotate-45"
-                            : "rounded-full",
-                        isActive ? "z-50 scale-[1.08]" : "hover:scale-[1.04]",
-                      )}
-                      style={{ backgroundColor: markerColor(feature, colorMode) }}
-                    >
-                      <MarkerIcon
-                        className={cn("size-3", feature.properties.markerType === "agent" && "-rotate-45")}
-                        aria-hidden
-                      />
-                    </button>
-                  </MapMarker>
-                );
-              })
+          {mode === "marker" && displayedFeatures.length <= 2500
+            ? displayedFeatures.map((feature) => (
+                <IntelijenMapMarkerItem
+                  key={feature.id}
+                  feature={feature}
+                  isSelected={selectedPopup?.id === feature.id}
+                  colorMode={colorMode}
+                  onHover={handleHover}
+                  onClick={handleFeatureClick}
+                />
+              ))
             : null}
-          {mode !== "marker" || displayedFeatures.length > 150 ? (
+          {mode !== "marker" || (mode === "marker" && displayedFeatures.length > 2500) ? (
             <MapsIntelijenDataLayers
               map={map}
               features={displayedFeatures}

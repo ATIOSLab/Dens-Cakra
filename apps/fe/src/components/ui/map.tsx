@@ -27,8 +27,17 @@ import {
   Popup,
   type Popup as MapLibrePopup,
   type PopupOptions,
+  setWorkerUrl,
   type StyleSpecification,
 } from "maplibre-gl";
+
+if (typeof window !== "undefined") {
+  try {
+    setWorkerUrl("/maplibre-gl-worker.mjs");
+  } catch {
+    // Ignore in non-browser or test environments
+  }
+}
 
 import { MarkerContent } from "@/components/ui/marker";
 import { cn } from "@/lib/utils";
