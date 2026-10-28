@@ -88,10 +88,30 @@ export function MapsIntelijenDataLayers({
   onClick,
   onMapClick,
 }: MapsIntelijenDataLayersProps) {
+  const validFeatures = useMemo(
+    () =>
+      features.filter((f) => {
+        const coords = f?.geometry?.coordinates;
+        return (
+          Array.isArray(coords) &&
+          coords.length >= 2 &&
+          typeof coords[0] === "number" &&
+          typeof coords[1] === "number" &&
+          !Number.isNaN(coords[0]) &&
+          !Number.isNaN(coords[1]) &&
+          coords[0] >= -180 &&
+          coords[0] <= 180 &&
+          coords[1] >= -90 &&
+          coords[1] <= 90
+        );
+      }),
+    [features],
+  );
+
   const data = useMemo(
     () => ({
       type: "FeatureCollection" as const,
-      features: features.map((feature) => ({
+      features: validFeatures.map((feature) => ({
         ...feature,
         properties: {
           ...feature.properties,
@@ -100,153 +120,163 @@ export function MapsIntelijenDataLayers({
         },
       })),
     }),
-    [colorMode, features, heatmapWeight],
+    [colorMode, validFeatures, heatmapWeight],
   );
   const dataRef = useRef(data);
   dataRef.current = data;
-  const featureById = useMemo(() => new Map(features.map((feature) => [feature.id, feature])), [features]);
-
-  const install = useCallback(() => {
-    if (!map || !hasUsableStyle(map) || !map.isStyleLoaded()) return;
-    removeDataLayers(map);
-
-    try {
-      map.addSource(SOURCE_ID, {
-        type: "geojson",
-        data: dataRef.current,
-        cluster: mode === "cluster",
-        clusterMaxZoom: 14,
-        clusterRadius: 52,
-      });
-    } catch {
-      return;
-    }
-
-    if (mode === "heatmap") {
-      try {
-        map.addLayer({
-          id: "dc-network-heatmap",
-          type: "heatmap",
-          source: SOURCE_ID,
-          maxzoom: 18,
-          paint: {
-            "heatmap-weight": ["get", "heatWeight"],
-            "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 4, 0.65, 12, 1.8],
-            "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 4, 12, 12, 28, 18, 44],
-            "heatmap-opacity": ["interpolate", ["linear"], ["zoom"], 5, 0.68, 17, 0.28],
-            "heatmap-color": [
-              "interpolate",
-              ["linear"],
-              ["heatmap-density"],
-              0,
-              "rgba(14,165,233,0)",
-              0.25,
-              "#38bdf8",
-              0.5,
-              "#22c55e",
-              0.75,
-              "#facc15",
-              1,
-              "#f97316",
-            ],
-          },
-        });
-      } catch {}
-      return;
-    }
-
-    if (mode === "cluster") {
-      try {
-        map.addLayer({
-          id: "dc-network-cluster",
-          type: "circle",
-          source: SOURCE_ID,
-          filter: ["has", "point_count"],
-          paint: {
-            "circle-color": ["step", ["get", "point_count"], "#0ea5e9", 25, "#8b5cf6", 100, "#f97316"],
-            "circle-radius": ["step", ["get", "point_count"], 15, 25, 20, 100, 25],
-            "circle-stroke-width": 2,
-            "circle-stroke-color": "rgba(255,255,255,.85)",
-          },
-        });
-      } catch {}
-
-      try {
-        map.addLayer({
-          id: "dc-network-cluster-count",
-          type: "symbol",
-          source: SOURCE_ID,
-          filter: ["has", "point_count"],
-          layout: { "text-field": ["get", "point_count_abbreviated"], "text-size": 10 },
-          paint: { "text-color": "#ffffff" },
-        });
-      } catch {}
-    }
-
-    try {
-      map.addLayer({
-        id: "dc-network-report-point",
-        type: "circle",
-        source: SOURCE_ID,
-        filter: ["all", ["!", ["has", "point_count"]], ["==", ["get", "markerType"], "report"]],
-        paint: {
-          "circle-color": ["get", "renderColor"],
-          "circle-radius": ["interpolate", ["linear"], ["zoom"], 5, 4, 14, 7],
-          "circle-stroke-width": 1.5,
-          "circle-stroke-color": "#ffffff",
-        },
-      });
-    } catch {}
-
-    try {
-      map.addLayer({
-        id: "dc-network-baket-point",
-        type: "symbol",
-        source: SOURCE_ID,
-        filter: ["all", ["!", ["has", "point_count"]], ["==", ["get", "markerType"], "baket"]],
-        layout: {
-          "text-field": "◆",
-          "text-size": ["interpolate", ["linear"], ["zoom"], 5, 12, 14, 18],
-          "text-allow-overlap": true,
-        },
-        paint: {
-          "text-color": ["get", "renderColor"],
-          "text-halo-color": "#ffffff",
-          "text-halo-width": 1.25,
-        },
-      });
-    } catch {}
-  }, [map, mode]);
+  const featureById = useMemo(() => new Map(validFeatures.map((feature) => [feature.id, feature])), [validFeatures]);
 
   useEffect(() => {
     if (!map) return;
 
+    let isMounted = true;
+
+    const ensureLayers = () => {
+      if (!isMounted || !hasUsableStyle(map)) return;
+
+      if (!map.getSource(SOURCE_ID)) {
+        try {
+          map.addSource(SOURCE_ID, {
+            type: "geojson",
+            data: dataRef.current,
+            cluster: mode === "cluster",
+            clusterMaxZoom: 14,
+            clusterRadius: 52,
+          });
+        } catch {
+          return;
+        }
+      }
+
+      if (mode === "heatmap") {
+        if (!map.getLayer("dc-network-heatmap")) {
+          try {
+            map.addLayer({
+              id: "dc-network-heatmap",
+              type: "heatmap",
+              source: SOURCE_ID,
+              maxzoom: 18,
+              paint: {
+                "heatmap-weight": ["get", "heatWeight"],
+                "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 4, 0.65, 12, 1.8],
+                "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 4, 12, 12, 28, 18, 44],
+                "heatmap-opacity": ["interpolate", ["linear"], ["zoom"], 5, 0.68, 17, 0.28],
+                "heatmap-color": [
+                  "interpolate",
+                  ["linear"],
+                  ["heatmap-density"],
+                  0,
+                  "rgba(14,165,233,0)",
+                  0.25,
+                  "#38bdf8",
+                  0.5,
+                  "#22c55e",
+                  0.75,
+                  "#facc15",
+                  1,
+                  "#f97316",
+                ],
+              },
+            });
+          } catch {}
+        }
+        return;
+      }
+
+      if (mode === "cluster") {
+        if (!map.getLayer("dc-network-cluster")) {
+          try {
+            map.addLayer({
+              id: "dc-network-cluster",
+              type: "circle",
+              source: SOURCE_ID,
+              filter: ["has", "point_count"],
+              paint: {
+                "circle-color": ["step", ["get", "point_count"], "#0ea5e9", 25, "#8b5cf6", 100, "#f97316"],
+                "circle-radius": ["step", ["get", "point_count"], 15, 25, 20, 100, 25],
+                "circle-stroke-width": 2,
+                "circle-stroke-color": "rgba(255,255,255,.85)",
+              },
+            });
+          } catch {}
+        }
+
+        if (!map.getLayer("dc-network-cluster-count")) {
+          try {
+            map.addLayer({
+              id: "dc-network-cluster-count",
+              type: "symbol",
+              source: SOURCE_ID,
+              filter: ["has", "point_count"],
+              layout: { "text-field": ["get", "point_count_abbreviated"], "text-size": 10 },
+              paint: { "text-color": "#ffffff" },
+            });
+          } catch {}
+        }
+      }
+
+      if (!map.getLayer("dc-network-report-point")) {
+        try {
+          map.addLayer({
+            id: "dc-network-report-point",
+            type: "circle",
+            source: SOURCE_ID,
+            filter: ["all", ["!", ["has", "point_count"]], ["==", ["get", "markerType"], "report"]],
+            paint: {
+              "circle-color": ["get", "renderColor"],
+              "circle-radius": ["interpolate", ["linear"], ["zoom"], 5, 4, 14, 7],
+              "circle-stroke-width": 1.5,
+              "circle-stroke-color": "#ffffff",
+            },
+          });
+        } catch {}
+      }
+
+      if (!map.getLayer("dc-network-baket-point")) {
+        try {
+          map.addLayer({
+            id: "dc-network-baket-point",
+            type: "symbol",
+            source: SOURCE_ID,
+            filter: ["all", ["!", ["has", "point_count"]], ["==", ["get", "markerType"], "baket"]],
+            layout: {
+              "text-field": "◆",
+              "text-size": ["interpolate", ["linear"], ["zoom"], 5, 12, 14, 18],
+              "text-allow-overlap": true,
+            },
+            paint: {
+              "text-color": ["get", "renderColor"],
+              "text-halo-color": "#ffffff",
+              "text-halo-width": 1.25,
+            },
+          });
+        } catch {}
+      }
+
+      const source = map.getSource(SOURCE_ID) as GeoJSONSource | undefined;
+      source?.setData(dataRef.current);
+    };
+
     if (map.isStyleLoaded()) {
-      install();
+      ensureLayers();
+    } else {
+      map.once("styledata", ensureLayers);
+      map.once("load", ensureLayers);
     }
 
-    const handleStyleChange = () => {
-      install();
-    };
-
-    map.on("load", handleStyleChange);
-    map.on("styledata", handleStyleChange);
     return () => {
-      map.off("load", handleStyleChange);
-      map.off("styledata", handleStyleChange);
+      isMounted = false;
       removeDataLayers(map);
     };
-  }, [install, map]);
+  }, [map, mode]);
 
   useEffect(() => {
     if (!map) return;
     const source = getDataSource(map);
     if (source) {
       source.setData(data);
-    } else if (hasUsableStyle(map) && map.isStyleLoaded()) {
-      install();
     }
-  }, [data, install, map]);
+  }, [data, map]);
 
   useEffect(() => {
     if (!map || mode === "heatmap") return;
