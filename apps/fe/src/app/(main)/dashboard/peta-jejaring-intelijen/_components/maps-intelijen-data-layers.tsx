@@ -125,10 +125,13 @@ export function MapsIntelijenDataLayers({
   const data = useMemo(
     () => ({
       type: "FeatureCollection" as const,
-      features: validFeatures.map((feature) => ({
+      features: validFeatures.map((feature, index) => ({
         ...feature,
+        id: feature.id,
         properties: {
           ...feature.properties,
+          featureKey: feature.id,
+          featureIndex: index,
           renderColor: markerColor(feature, colorMode),
           heatWeight: heatWeight(feature, heatmapWeight),
         },
@@ -138,7 +141,63 @@ export function MapsIntelijenDataLayers({
   );
   const dataRef = useRef(data);
   dataRef.current = data;
-  const featureById = useMemo(() => new Map(validFeatures.map((feature) => [feature.id, feature])), [validFeatures]);
+
+  const featureByKey = useMemo(() => {
+    const lookup = new Map<string, MapNetworkFeature>();
+    validFeatures.forEach((feature, index) => {
+      if (feature.id) {
+        lookup.set(String(feature.id), feature);
+      }
+      lookup.set(String(index), feature);
+      lookup.set(`idx:${index}`, feature);
+      const props = feature.properties;
+      if (props?.reportId) {
+        lookup.set(String(props.reportId), feature);
+        lookup.set(`report:${props.reportId}`, feature);
+      }
+      if (props?.baketId) {
+        lookup.set(String(props.baketId), feature);
+        lookup.set(`baket:${props.baketId}`, feature);
+      }
+      if (props?.referenceNumber) {
+        lookup.set(String(props.referenceNumber), feature);
+      }
+    });
+    return lookup;
+  }, [validFeatures]);
+
+  const resolveFeature = useCallback(
+    (rendered?: { id?: string | number; properties?: Record<string, unknown> } | null): MapNetworkFeature | undefined => {
+      if (!rendered) return undefined;
+      const props = rendered.properties;
+      if (props?.featureKey && featureByKey.has(String(props.featureKey))) {
+        return featureByKey.get(String(props.featureKey));
+      }
+      if (props?.reportId && featureByKey.has(`report:${props.reportId}`)) {
+        return featureByKey.get(`report:${props.reportId}`);
+      }
+      if (props?.reportId && featureByKey.has(String(props.reportId))) {
+        return featureByKey.get(String(props.reportId));
+      }
+      if (props?.baketId && featureByKey.has(`baket:${props.baketId}`)) {
+        return featureByKey.get(`baket:${props.baketId}`);
+      }
+      if (props?.baketId && featureByKey.has(String(props.baketId))) {
+        return featureByKey.get(String(props.baketId));
+      }
+      if (rendered.id !== undefined && featureByKey.has(String(rendered.id))) {
+        return featureByKey.get(String(rendered.id));
+      }
+      if (props?.featureIndex !== undefined && featureByKey.has(`idx:${props.featureIndex}`)) {
+        return featureByKey.get(`idx:${props.featureIndex}`);
+      }
+      if (props?.referenceNumber && featureByKey.has(String(props.referenceNumber))) {
+        return featureByKey.get(String(props.referenceNumber));
+      }
+      return undefined;
+    },
+    [featureByKey],
+  );
 
   useEffect(() => {
     if (!map) return;
@@ -156,6 +215,7 @@ export function MapsIntelijenDataLayers({
             cluster: mode === "cluster",
             clusterMaxZoom: 14,
             clusterRadius: 52,
+            promoteId: "featureKey",
           });
         } catch {
           return;
@@ -312,7 +372,7 @@ export function MapsIntelijenDataLayers({
     const enter = (event: MapLayerMouseEvent) => {
       map.getCanvas().style.cursor = "pointer";
       const rendered = event.features?.[0];
-      const feature = rendered?.id === undefined ? undefined : featureById.get(String(rendered.id));
+      const feature = resolveFeature(rendered);
       if (feature) onHover(feature);
     };
     const leave = () => {
@@ -321,8 +381,9 @@ export function MapsIntelijenDataLayers({
     };
     const click = (event: MapLayerMouseEvent) => {
       event.originalEvent.preventDefault();
+      event.originalEvent.stopPropagation();
       const rendered = event.features?.[0];
-      const feature = rendered?.id === undefined ? undefined : featureById.get(String(rendered.id));
+      const feature = resolveFeature(rendered);
       if (feature) onClick(feature);
     };
     const clusterClick = (event: MapLayerMouseEvent) => {
@@ -356,7 +417,7 @@ export function MapsIntelijenDataLayers({
       map.off("click", backgroundClick);
       map.getCanvas().style.cursor = "";
     };
-  }, [featureById, map, mode, onClick, onHover, onMapClick]);
+  }, [map, mode, onClick, onHover, onMapClick, resolveFeature]);
 
   return null;
 }

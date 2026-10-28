@@ -67,6 +67,8 @@ export function MapsIntelijenHoverPopup({
         aria-label={`Ringkasan ${presentation.label} ${getMapFeatureReference(feature)}`}
         onPointerEnter={onPointerEnter}
         onPointerLeave={onPointerLeave}
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
         className="dark pointer-events-auto w-[min(16.5rem,calc(100vw-1.5rem))] space-y-2 rounded-md border border-cyan-400/25 bg-slate-950/98 p-2.5 text-[10px] text-slate-100 shadow-[0_18px_48px_rgba(2,6,23,0.7)] backdrop-blur-md"
       >
         <div className="flex min-w-0 items-center gap-1.5">

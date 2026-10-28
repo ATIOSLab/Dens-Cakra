@@ -1,6 +1,6 @@
 /* biome-ignore lint/correctness/noUnknownPseudoClass: CSS Modules global selector is required for MapLibre popup chrome. */
 .root :global(.maplibregl-popup) {
-  z-index: 100 !important;
+  z-index: 1000 !important;
   max-width: none !important;
   pointer-events: auto !important;
 }

@@ -201,6 +201,7 @@ export function MapsIntelijenMapView({
   });
   const closeTimer = useRef<number | null>(null);
   const isMarkerActionRef = useRef(false);
+  const lastMarkerActionTimeRef = useRef<number>(0);
   const activeStyle = MAP_THEMES[mapLayer];
   const displayedFeatures = useMemo(
     () =>
@@ -232,6 +233,7 @@ export function MapsIntelijenMapView({
 
   const handleFeatureClick = useCallback(
     (feature: MapNetworkFeature) => {
+      lastMarkerActionTimeRef.current = Date.now();
       isMarkerActionRef.current = true;
       clearCloseTimer();
 
@@ -247,6 +249,9 @@ export function MapsIntelijenMapView({
   );
 
   const handleMapClick = useCallback(() => {
+    if (Date.now() - lastMarkerActionTimeRef.current < 350) {
+      return;
+    }
     if (isMarkerActionRef.current) {
       isMarkerActionRef.current = false;
       return;
@@ -256,6 +261,7 @@ export function MapsIntelijenMapView({
   }, []);
 
   const handleClosePopup = useCallback(() => {
+    lastMarkerActionTimeRef.current = 0;
     isMarkerActionRef.current = false;
     clearCloseTimer();
     setHovered(null);
@@ -279,12 +285,12 @@ export function MapsIntelijenMapView({
   }, [isFullscreen, onToggleFullscreen]);
 
   useEffect(() => {
-    if (!map || mode !== "marker") return;
+    if (!map) return;
     map.on("click", handleMapClick);
     return () => {
       map.off("click", handleMapClick);
     };
-  }, [handleMapClick, map, mode]);
+  }, [handleMapClick, map]);
 
   useEffect(() => {
     if (!map) return;
