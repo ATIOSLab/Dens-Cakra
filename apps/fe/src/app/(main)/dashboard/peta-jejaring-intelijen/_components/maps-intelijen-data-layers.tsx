@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import type { GeoJSONSource, MapLayerMouseEvent, Map as MapLibreMap, MapMouseEvent } from "maplibre-gl";
 
@@ -106,13 +106,11 @@ export function MapsIntelijenDataLayers({
   dataRef.current = data;
   const featureById = useMemo(() => new Map(features.map((feature) => [feature.id, feature])), [features]);
 
-  useEffect(() => {
-    if (!map) return;
+  const install = useCallback(() => {
+    if (!map || !hasUsableStyle(map) || !map.isStyleLoaded()) return;
+    removeDataLayers(map);
 
-    const install = () => {
-      if (!hasUsableStyle(map) || !map.isStyleLoaded()) return;
-      removeDataLayers(map);
-
+    try {
       map.addSource(SOURCE_ID, {
         type: "geojson",
         data: dataRef.current,
@@ -120,8 +118,12 @@ export function MapsIntelijenDataLayers({
         clusterMaxZoom: 14,
         clusterRadius: 52,
       });
+    } catch {
+      return;
+    }
 
-      if (mode === "heatmap") {
+    if (mode === "heatmap") {
+      try {
         map.addLayer({
           id: "dc-network-heatmap",
           type: "heatmap",
@@ -149,10 +151,12 @@ export function MapsIntelijenDataLayers({
             ],
           },
         });
-        return;
-      }
+      } catch {}
+      return;
+    }
 
-      if (mode === "cluster") {
+    if (mode === "cluster") {
+      try {
         map.addLayer({
           id: "dc-network-cluster",
           type: "circle",
@@ -165,6 +169,9 @@ export function MapsIntelijenDataLayers({
             "circle-stroke-color": "rgba(255,255,255,.85)",
           },
         });
+      } catch {}
+
+      try {
         map.addLayer({
           id: "dc-network-cluster-count",
           type: "symbol",
@@ -173,8 +180,10 @@ export function MapsIntelijenDataLayers({
           layout: { "text-field": ["get", "point_count_abbreviated"], "text-size": 10 },
           paint: { "text-color": "#ffffff" },
         });
-      }
+      } catch {}
+    }
 
+    try {
       map.addLayer({
         id: "dc-network-report-point",
         type: "circle",
@@ -187,6 +196,9 @@ export function MapsIntelijenDataLayers({
           "circle-stroke-color": "#ffffff",
         },
       });
+    } catch {}
+
+    try {
       map.addLayer({
         id: "dc-network-baket-point",
         type: "symbol",
@@ -203,20 +215,38 @@ export function MapsIntelijenDataLayers({
           "text-halo-width": 1.25,
         },
       });
-    };
-
-    install();
-    map.on("style.load", install);
-    return () => {
-      map.off("style.load", install);
-      removeDataLayers(map);
-    };
+    } catch {}
   }, [map, mode]);
 
   useEffect(() => {
+    if (!map) return;
+
+    if (map.isStyleLoaded()) {
+      install();
+    }
+
+    const handleStyleChange = () => {
+      install();
+    };
+
+    map.on("load", handleStyleChange);
+    map.on("styledata", handleStyleChange);
+    return () => {
+      map.off("load", handleStyleChange);
+      map.off("styledata", handleStyleChange);
+      removeDataLayers(map);
+    };
+  }, [install, map]);
+
+  useEffect(() => {
+    if (!map) return;
     const source = getDataSource(map);
-    if (source) source.setData(data);
-  }, [data, map]);
+    if (source) {
+      source.setData(data);
+    } else if (hasUsableStyle(map) && map.isStyleLoaded()) {
+      install();
+    }
+  }, [data, install, map]);
 
   useEffect(() => {
     if (!map || mode === "heatmap") return;

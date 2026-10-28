@@ -105,6 +105,11 @@ export function SearchableSelect({
   const hiddenCount = open ? Math.max(filteredOptions.length - visibleCount, 0) : 0;
 
   const isCustomSelected = Boolean(value && value !== "ALL" && value !== "");
+  const portalContainer =
+    container ??
+    (typeof document !== "undefined"
+      ? ((document.fullscreenElement as HTMLElement) ?? undefined)
+      : undefined);
 
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
@@ -138,8 +143,11 @@ export function SearchableSelect({
       </PopoverTrigger>
       <PopoverContent
         align="start"
-        container={container}
-        className={cn("w-[var(--radix-popover-trigger-width)] min-w-[260px] p-0 rounded-md border border-border/80 bg-popover text-popover-foreground shadow-lg z-50", contentClassName)}
+        container={portalContainer}
+        className={cn(
+          "w-[var(--radix-popover-trigger-width)] min-w-[260px] p-0 rounded-md border border-border/80 bg-popover text-popover-foreground shadow-2xl z-[99999]",
+          contentClassName,
+        )}
       >
         <div className="relative border-b border-border/70 p-2 bg-muted/20">
           <Search className="pointer-events-none absolute top-1/2 left-4 size-3.5 -translate-y-1/2 text-muted-foreground" />

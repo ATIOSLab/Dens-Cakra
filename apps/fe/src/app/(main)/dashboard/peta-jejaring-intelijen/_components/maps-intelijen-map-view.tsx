@@ -60,12 +60,15 @@ interface MapsIntelijenMapViewProps {
 }
 
 // Existing providers/styles are intentionally preserved.
+const MAPLIBRE_GLYPHS = "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf";
+
 const MAP_THEMES: Record<BaseMapLayer, string | Record<string, unknown>> = {
   dark: "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
   light: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
   terrain: "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json",
   satellite: {
     version: 8,
+    glyphs: MAPLIBRE_GLYPHS,
     sources: {
       esri: {
         type: "raster",
@@ -78,6 +81,7 @@ const MAP_THEMES: Record<BaseMapLayer, string | Record<string, unknown>> = {
   },
   osm: {
     version: 8,
+    glyphs: MAPLIBRE_GLYPHS,
     sources: {
       osm: {
         type: "raster",
