@@ -1,11 +1,13 @@
 "use client";
 
+import { useMemo } from "react";
+
 import { SearchableSelect, type SearchableSelectOption } from "@/components/ui/searchable-select";
 
 import { buildMapAreaHierarchyOptions, type MapAreaSelectOption } from "./maps-intelijen-area-hierarchy";
 import type { MapAreaFilterOptions, MapNetworkFilters } from "./maps-intelijen-types";
 
-const AREA_PAGE_SIZE = 7;
+const AREA_PAGE_SIZE = 25;
 
 function toSelectOptions(options: MapAreaSelectOption[]): SearchableSelectOption[] {
   return options.map(([value, label]) => ({ value, label }));
@@ -20,39 +22,79 @@ export function MapsIntelijenAreaFilter({
   filters: MapNetworkFilters;
   onChange: (patch: Partial<MapNetworkFilters>) => void;
 }) {
-  const hierarchy = buildMapAreaHierarchyOptions(areaOptions, filters);
+  const hierarchy = useMemo(
+    () => buildMapAreaHierarchyOptions(areaOptions, filters),
+    [
+      areaOptions,
+      filters.provinceId,
+      filters.regencyId,
+      filters.districtId,
+      filters.villageId,
+    ],
+  );
+
+  const provinceOptions = useMemo(() => toSelectOptions(hierarchy.provinces), [hierarchy.provinces]);
+  const regencyOptions = useMemo(() => toSelectOptions(hierarchy.regencies), [hierarchy.regencies]);
+  const districtOptions = useMemo(() => toSelectOptions(hierarchy.districts), [hierarchy.districts]);
+  const villageOptions = useMemo(() => toSelectOptions(hierarchy.villages), [hierarchy.villages]);
 
   const fields = [
     {
       label: "Provinsi",
       value: filters.provinceId,
-      options: toSelectOptions(hierarchy.provinces),
+      options: provinceOptions,
       disabled: areaOptions.loadingLevel === "province",
-      onChange: (provinceId: string) => onChange({ provinceId, regencyId: "ALL", districtId: "ALL", villageId: "ALL" }),
+      onChange: (provinceId: string) =>
+        onChange({
+          provinceId,
+          regencyId: "ALL",
+          districtId: "ALL",
+          villageId: "ALL",
+          fieldOfficerAssignmentId: "ALL",
+          jaringId: "ALL",
+        }),
       searchPlaceholder: "Cari provinsi...",
     },
     {
       label: "Kota/Kabupaten",
       value: filters.regencyId,
-      options: toSelectOptions(hierarchy.regencies),
+      options: regencyOptions,
       disabled: filters.provinceId === "ALL" || areaOptions.loadingLevel === "regency",
-      onChange: (regencyId: string) => onChange({ regencyId, districtId: "ALL", villageId: "ALL" }),
+      onChange: (regencyId: string) =>
+        onChange({
+          regencyId,
+          districtId: "ALL",
+          villageId: "ALL",
+          fieldOfficerAssignmentId: "ALL",
+          jaringId: "ALL",
+        }),
       searchPlaceholder: "Cari kota/kabupaten...",
     },
     {
       label: "Kecamatan",
       value: filters.districtId,
-      options: toSelectOptions(hierarchy.districts),
+      options: districtOptions,
       disabled: filters.regencyId === "ALL" || areaOptions.loadingLevel === "district",
-      onChange: (districtId: string) => onChange({ districtId, villageId: "ALL" }),
+      onChange: (districtId: string) =>
+        onChange({
+          districtId,
+          villageId: "ALL",
+          fieldOfficerAssignmentId: "ALL",
+          jaringId: "ALL",
+        }),
       searchPlaceholder: "Cari kecamatan...",
     },
     {
       label: "Kelurahan/Desa",
       value: filters.villageId,
-      options: toSelectOptions(hierarchy.villages),
+      options: villageOptions,
       disabled: filters.districtId === "ALL" || areaOptions.loadingLevel === "village",
-      onChange: (villageId: string) => onChange({ villageId }),
+      onChange: (villageId: string) =>
+        onChange({
+          villageId,
+          fieldOfficerAssignmentId: "ALL",
+          jaringId: "ALL",
+        }),
       searchPlaceholder: "Cari kelurahan/desa...",
     },
   ];

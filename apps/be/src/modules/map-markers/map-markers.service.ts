@@ -112,6 +112,10 @@ export class MapMarkersService {
 
   private async load(query: MapMarkersQuery, context: AuthorizationContext) {
     const filters = this.normalizeFilters(query);
+    const filterAreaIds = query.areaIds?.length
+      ? await resolveDescendantAreaIds(this.prisma, query.areaIds)
+      : undefined;
+    const filterAreaSet = filterAreaIds ? new Set(filterAreaIds) : undefined;
     const emptyResult: MarkerResult = {
       features: [],
       unlocatedCount: 0,
@@ -120,20 +124,32 @@ export class MapMarkersService {
     const [reportResult, baketResult, agentResult, categories, jaringHealth] =
       await Promise.all([
         filters.types.has(MapMarkerType.REPORT)
-          ? this.getReportFeatures(query, context, filters)
+          ? this.getReportFeatures(
+              query,
+              context,
+              filters,
+              filterAreaIds,
+              filterAreaSet,
+            )
           : Promise.resolve(emptyResult),
         filters.types.has(MapMarkerType.BAKET)
-          ? this.getBaketFeatures(query, context, filters)
+          ? this.getBaketFeatures(
+              query,
+              context,
+              filters,
+              filterAreaIds,
+              filterAreaSet,
+            )
           : Promise.resolve(emptyResult),
         filters.types.has(MapMarkerType.AGENT)
-          ? this.getAgentFeatures(query, context, filters)
+          ? this.getAgentFeatures(query, context, filters, filterAreaSet)
           : Promise.resolve(emptyResult),
         this.prisma.reportCategory.findMany({
           where: { isActive: true },
           orderBy: { name: 'asc' },
           select: { id: true, code: true, name: true },
         }),
-        this.jaringHealth(context, filters.now, query.areaIds),
+        this.jaringHealth(context, filters.now, query, filterAreaIds),
       ]);
     const features = [
       ...reportResult.features,
@@ -229,15 +245,30 @@ export class MapMarkersService {
   private async jaringHealth(
     context: AuthorizationContext,
     now: Date,
-    areaIds?: string[],
+    query: MapMarkersQuery,
+    filterAreaIds?: string[],
   ) {
     const scope = await this.scope.jaringWhere(context);
     const verifiedWhere = await this.withAreaFilter(
       {
         ...scope,
         registrationStatus: JaringRegistrationStatus.APPROVED,
+        ...(query.jaringIds?.length ? { id: { in: query.jaringIds } } : {}),
+        ...(query.fieldOfficerAssignmentIds?.length
+          ? {
+              caretakerAssignments: {
+                some: {
+                  isActive: true,
+                  fieldOfficerAssignmentId: {
+                    in: query.fieldOfficerAssignmentIds,
+                  },
+                },
+              },
+            }
+          : {}),
       },
-      areaIds,
+      query.areaIds,
+      filterAreaIds,
     );
     const activeSince = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
     const [verified, activeLast90Days] = await Promise.all([
@@ -258,9 +289,12 @@ export class MapMarkersService {
   private async withAreaFilter(
     where: Prisma.JaringWhereInput,
     areaIds?: string[],
+    resolvedFilterAreaIds?: string[],
   ): Promise<Prisma.JaringWhereInput> {
     if (!areaIds?.length) return where;
-    const filterAreaIds = await resolveDescendantAreaIds(this.prisma, areaIds);
+    const filterAreaIds =
+      resolvedFilterAreaIds ??
+      (await resolveDescendantAreaIds(this.prisma, areaIds));
     return {
       ...where,
       areaCoverages: {
@@ -273,6 +307,8 @@ export class MapMarkersService {
     query: MapMarkersQuery,
     context: AuthorizationContext,
     filters: ReturnType<MapMarkersService['normalizeFilters']>,
+    filterAreaIds?: string[],
+    filterAreaSet?: Set<string>,
   ): Promise<MarkerResult> {
     const scopedJaringWhere = await this.scope.jaringWhere(context);
     const phoneSearchVariants = filters.search
@@ -320,6 +356,101 @@ export class MapMarkersService {
               },
             ],
           }
+        : {},
+      filterAreaIds?.length
+        ? {
+            OR: [
+              {
+                jaring: {
+                  areaCoverages: {
+                    some: {
+                      validUntil: null,
+                      areaId: { in: filterAreaIds },
+                    },
+                  },
+                },
+              },
+              {
+                submittedMessage: {
+                  is: {
+                    resolvedAreaId: { in: filterAreaIds },
+                  },
+                },
+              },
+            ],
+          }
+        : {},
+      query.categoryIds?.length
+        ? {
+            submittedMessage: {
+              is: {
+                convertedBaket: {
+                  is: {
+                    deletedAt: null,
+                    reportCategoryId: { in: query.categoryIds },
+                  },
+                },
+              },
+            },
+          }
+        : {},
+      query.categoryCodes?.length
+        ? {
+            submittedMessage: {
+              is: {
+                convertedBaket: {
+                  is: {
+                    deletedAt: null,
+                    reportCategory: {
+                      code: { in: query.categoryCodes },
+                    },
+                  },
+                },
+              },
+            },
+          }
+        : {},
+      query.urgencies?.length
+        ? query.urgencies.includes(PriorityLevel.NORMAL)
+          ? {
+              OR: [
+                { submittedMessage: { is: null } },
+                { submittedMessage: { is: { convertedBaketId: null } } },
+                {
+                  submittedMessage: {
+                    is: {
+                      convertedBaket: {
+                        is: {
+                          deletedAt: null,
+                          versions: {
+                            some: { urgency: { in: query.urgencies } },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              ],
+            }
+          : {
+              submittedMessage: {
+                is: {
+                  convertedBaket: {
+                    is: {
+                      deletedAt: null,
+                      versions: {
+                        some: { urgency: { in: query.urgencies } },
+                      },
+                    },
+                  },
+                },
+              },
+            }
+        : {},
+      query.hasAttachments !== undefined
+        ? query.hasAttachments
+          ? { media: { some: { deletedAt: null } } }
+          : { media: { none: { deletedAt: null } } }
         : {},
       this.reportDateWhere(filters.from, filters.to),
       filters.search
@@ -417,14 +548,7 @@ export class MapMarkersService {
         : {},
     ];
     const reportMarkerWhere: Prisma.WhatsAppReportSessionWhereInput = {
-      AND: [
-        ...reportScopeFilters,
-        {
-          submittedMessage: {
-            is: { convertedBaketId: null },
-          },
-        },
-      ],
+      AND: reportScopeFilters,
     };
     const reportMetricWhere: Prisma.WhatsAppReportSessionWhereInput = {
       AND: reportScopeFilters,
@@ -543,7 +667,6 @@ export class MapMarkersService {
                 latitude: true,
                 longitude: true,
                 resolvedAreaId: true,
-                rawPayload: true,
                 status: true,
                 validationSummary: true,
                 receivedAt: true,
@@ -625,22 +748,30 @@ export class MapMarkersService {
     const reportCoordinates = new Map(
       candidates.map((report) => [report.id, this.reportCoordinate(report)]),
     );
-    const withCoordinates = candidates
+    const pointsNeedingSpatialMatch = candidates
+      .filter(
+        (report) =>
+          !report.submittedMessage?.resolvedArea &&
+          !report.jaring.areaCoverages?.length,
+      )
       .map((report) => ({
         id: report.id,
         coordinate: reportCoordinates.get(report.id),
       }))
       .filter(
         (item): item is { id: string; coordinate: ReportCoordinate } =>
-          item.coordinate !== null,
-      );
-    const matchedByReport = await this.spatial.matchCoordinates(
-      withCoordinates.map(({ id, coordinate }) => ({
-        id,
-        latitude: coordinate.latitude,
-        longitude: coordinate.longitude,
-      })),
-    );
+          item.coordinate !== null && item.coordinate !== undefined,
+      )
+      .slice(0, MAP_MARKER_MIN_CANDIDATES_PER_TYPE);
+    const matchedByReport = pointsNeedingSpatialMatch.length
+      ? await this.spatial.matchCoordinates(
+          pointsNeedingSpatialMatch.map(({ id, coordinate }) => ({
+            id,
+            latitude: coordinate.latitude,
+            longitude: coordinate.longitude,
+          })),
+        )
+      : new Map<string, MatchedAdministrativeArea[]>();
 
     const prepared = candidates
       .map((report) => {
@@ -662,7 +793,14 @@ export class MapMarkersService {
         const fallbackAreas = this.getFallbackAreas(
           message?.resolvedArea ?? null,
         );
-        const areas = spatialAreas.length ? spatialAreas : fallbackAreas;
+        const placementAreas = this.getPlacementAreas(
+          report.jaring.areaCoverages?.[0]?.area ?? null,
+        );
+        const areas = this.mergeAreas(
+          spatialAreas,
+          fallbackAreas,
+          placementAreas,
+        );
         const reportedAt =
           report.submittedAt ?? report.startedAt ?? report.createdAt;
         return {
@@ -708,12 +846,26 @@ export class MapMarkersService {
               query.coordinateSources.includes(message.coordinateSource))) &&
           (!query.locationSuitability?.length ||
             query.locationSuitability.includes(suitability)) &&
-          this.matchesArea(item.areas, query)
+          this.matchesArea(item.areas, query, filterAreaSet)
         );
       });
 
     const reportingJaring = reportingJaringGroups.length;
     const located = prepared.filter((item) => item.hasCoordinates);
+    const unlocatedInPrepared = prepared.length - located.length;
+    const effectiveTotalCount =
+      candidates.length < candidateLimit && prepared.length < totalReports
+        ? prepared.length
+        : totalReports;
+    const estimatedUnlocatedCount =
+      candidates.length < candidateLimit || prepared.length === 0
+        ? unlocatedInPrepared
+        : Math.min(
+            effectiveTotalCount,
+            Math.round(
+              (unlocatedInPrepared / prepared.length) * effectiveTotalCount,
+            ),
+          );
     const visible = located
       .filter(({ coordinate }) =>
         this.isInViewport(
@@ -834,16 +986,16 @@ export class MapMarkersService {
 
     return {
       features,
-      totalCount: totalReports,
-      unlocatedCount: Math.max(0, totalReports - located.length),
+      totalCount: effectiveTotalCount,
+      unlocatedCount: estimatedUnlocatedCount,
       reportingJaring,
       summary: {
-        total: totalReports,
+        total: effectiveTotalCount,
         valid: prepared.filter(
           (item) => item.validity === ReportValidityFilter.VALID,
         ).length,
-        mappable: located.length,
-        unlocated: prepared.length - located.length,
+        mappable: Math.max(0, effectiveTotalCount - estimatedUnlocatedCount),
+        unlocated: estimatedUnlocatedCount,
       },
       unlocatedItems: prepared
         .filter((item) => !item.hasCoordinates)
@@ -892,6 +1044,8 @@ export class MapMarkersService {
     query: MapMarkersQuery,
     context: AuthorizationContext,
     filters: ReturnType<MapMarkersService['normalizeFilters']>,
+    filterAreaIds?: string[],
+    filterAreaSet?: Set<string>,
   ) {
     const scopedWhere = await this.scope.baketWhere(context);
     const candidateLimit = this.candidateLimit(query);
@@ -963,6 +1117,29 @@ export class MapMarkersService {
                               in: query.fieldOfficerAssignmentIds,
                             },
                           },
+                        },
+                      },
+                    },
+                  },
+                ],
+              }
+            : {},
+          filterAreaIds?.length
+            ? {
+                OR: [
+                  {
+                    versions: {
+                      some: {
+                        eventAreaId: { in: filterAreaIds },
+                      },
+                    },
+                  },
+                  {
+                    primaryJaring: {
+                      areaCoverages: {
+                        some: {
+                          validUntil: null,
+                          areaId: { in: filterAreaIds },
                         },
                       },
                     },
@@ -1153,7 +1330,14 @@ export class MapMarkersService {
           ? (matchedByVersion.get(version.id) ?? [])
           : [];
         const fallbackAreas = this.getFallbackAreas(version?.eventArea ?? null);
-        const areas = spatialAreas.length ? spatialAreas : fallbackAreas;
+        const placementAreas = this.getPlacementAreas(
+          baket.primaryJaring?.areaCoverages?.[0]?.area ?? null,
+        );
+        const areas = this.mergeAreas(
+          spatialAreas,
+          fallbackAreas,
+          placementAreas,
+        );
         return {
           baket,
           version,
@@ -1180,7 +1364,7 @@ export class MapMarkersService {
                   version.coverageValidationStatus,
                 ),
               ))) &&
-          this.matchesArea(areas, query)
+          this.matchesArea(areas, query, filterAreaSet)
         );
       });
 
@@ -1292,6 +1476,7 @@ export class MapMarkersService {
     query: MapMarkersQuery,
     context: AuthorizationContext,
     filters: ReturnType<MapMarkersService['normalizeFilters']>,
+    filterAreaSet?: Set<string>,
   ) {
     const scope = await this.scope.resolve(context);
     const scopedAssignmentIds = query.assignmentIds?.length
@@ -1437,11 +1622,18 @@ export class MapMarkersService {
           ageMinutes <= query.activeWithinMinutes
             ? AgentLocationState.ACTIVE
             : AgentLocationState.LAST_KNOWN;
+        const spatialAreas = matchedByPing.get(location.pingId) ?? [];
+        const assignedJaringAreas = (
+          jaringsByAssignment.get(location.assignmentId) ?? []
+        ).flatMap((jaring) =>
+          this.getPlacementAreas(jaring.areaCoverages[0]?.area ?? null),
+        );
         return {
           location,
           ageMinutes,
           agentState,
-          areas: matchedByPing.get(location.pingId) ?? [],
+          hasSpatialMatch: spatialAreas.length > 0,
+          areas: this.mergeAreas(spatialAreas, assignedJaringAreas),
         };
       })
       .filter(({ location, agentState, areas }) => {
@@ -1464,61 +1656,71 @@ export class MapMarkersService {
             location.longitude,
             filters.viewport,
           ) &&
-          this.matchesArea(areas, query)
+          this.matchesArea(areas, query, filterAreaSet)
         );
       })
       .slice(0, query.limitPerType)
-      .map(({ location, ageMinutes, agentState, areas }): MapFeature => {
-        const visibleAreas = this.visibleAreas(areas, query);
-        const assignedJarings = (
-          jaringsByAssignment.get(location.assignmentId) ?? []
-        ).map((jaring) => ({
-          id: jaring.id,
-          name:
-            jaring.fullName ?? jaring.aliasName ?? 'Identitas Jaring terbatas',
-          code: jaring.aliasName,
-          whatsappNumber: jaring.whatsappNumber,
-          profilePhotoFileId: jaring.profilePhotoFileId,
-          placementArea: jaring.areaCoverages[0]?.area ?? null,
-          gaswilName: location.userName,
-          gaswilAssignmentId: location.assignmentId,
-          gaswilUserProfileId: location.userProfileId,
-        }));
-        return {
-          type: 'Feature',
-          id: `agent:${location.assignmentId}`,
-          geometry: {
-            type: 'Point',
-            coordinates: [location.longitude, location.latitude],
-          },
-          properties: {
-            markerType: MapMarkerType.AGENT,
-            markerKey: `agent:${agentState}`,
-            suggestedColor:
-              agentState === AgentLocationState.ACTIVE ? '#3b82f6' : '#94a3b8',
-            assignmentId: location.assignmentId,
-            userProfileId: location.userProfileId,
-            userName: location.userName,
-            positionTitle: location.positionTitle,
-            positionCode: location.positionCode,
-            unitId: location.unitId,
-            unitName: location.unitName,
-            capturedAt: location.capturedAt,
-            ageMinutes,
-            agentState,
-            gpsAccuracyMeters: location.gpsAccuracyMeters,
-            coordinateSource: location.coordinateSource,
-            areaResolutionMethod: areas.length
-              ? 'POLYGON_MATCH'
-              : location.areaResolutionMethod,
-            primaryArea: visibleAreas[0] ?? null,
-            matchedAreas: visibleAreas,
-            jaring: assignedJarings[0] ?? null,
-            jarings: assignedJarings,
-            jaringCount: assignedJarings.length,
-          },
-        };
-      });
+      .map(
+        ({
+          location,
+          ageMinutes,
+          agentState,
+          areas,
+          hasSpatialMatch,
+        }): MapFeature => {
+          const visibleAreas = this.visibleAreas(areas, query);
+          const assignedJarings = (
+            jaringsByAssignment.get(location.assignmentId) ?? []
+          ).map((jaring) => ({
+            id: jaring.id,
+            name:
+              jaring.fullName ?? jaring.aliasName ?? 'Identitas Jaring terbatas',
+            code: jaring.aliasName,
+            whatsappNumber: jaring.whatsappNumber,
+            profilePhotoFileId: jaring.profilePhotoFileId,
+            placementArea: jaring.areaCoverages[0]?.area ?? null,
+            gaswilName: location.userName,
+            gaswilAssignmentId: location.assignmentId,
+            gaswilUserProfileId: location.userProfileId,
+          }));
+          return {
+            type: 'Feature',
+            id: `agent:${location.assignmentId}`,
+            geometry: {
+              type: 'Point',
+              coordinates: [location.longitude, location.latitude],
+            },
+            properties: {
+              markerType: MapMarkerType.AGENT,
+              markerKey: `agent:${agentState}`,
+              suggestedColor:
+                agentState === AgentLocationState.ACTIVE
+                  ? '#3b82f6'
+                  : '#94a3b8',
+              assignmentId: location.assignmentId,
+              userProfileId: location.userProfileId,
+              userName: location.userName,
+              positionTitle: location.positionTitle,
+              positionCode: location.positionCode,
+              unitId: location.unitId,
+              unitName: location.unitName,
+              capturedAt: location.capturedAt,
+              ageMinutes,
+              agentState,
+              gpsAccuracyMeters: location.gpsAccuracyMeters,
+              coordinateSource: location.coordinateSource,
+              areaResolutionMethod: hasSpatialMatch
+                ? 'POLYGON_MATCH'
+                : location.areaResolutionMethod,
+              primaryArea: visibleAreas[0] ?? null,
+              matchedAreas: visibleAreas,
+              jaring: assignedJarings[0] ?? null,
+              jarings: assignedJarings,
+              jaringCount: assignedJarings.length,
+            },
+          };
+        },
+      );
 
     return {
       features,
@@ -1749,10 +1951,15 @@ export class MapMarkersService {
   private matchesArea(
     areas: MatchedAdministrativeArea[],
     query: MapMarkersQuery,
+    filterAreaSet?: Set<string>,
   ) {
     return (
       (!query.areaIds?.length ||
-        areas.some((area) => query.areaIds!.includes(area.id))) &&
+        areas.some(
+          (area) =>
+            query.areaIds!.includes(area.id) ||
+            (filterAreaSet ? filterAreaSet.has(area.id) : false),
+        )) &&
       (!query.areaCodes?.length ||
         areas.some((area) => query.areaCodes!.includes(area.code))) &&
       (!query.areaLevels?.length ||
@@ -1792,6 +1999,69 @@ export class MapMarkersService {
     return [...new Map(values.map((area) => [area.id, area])).values()]
       .sort((a, b) => rank.indexOf(b.level) - rank.indexOf(a.level))
       .map((area) => ({ ...area, boundaryQualityStatus: null }));
+  }
+
+  private getPlacementAreas(
+    area: {
+      id: string;
+      code: string;
+      name: string;
+      level: AdministrativeLevel;
+      parent?: {
+        id: string;
+        code: string;
+        name: string;
+        level: AdministrativeLevel;
+        parent?: {
+          id: string;
+          code: string;
+          name: string;
+          level: AdministrativeLevel;
+          parent?: {
+            id: string;
+            code: string;
+            name: string;
+            level: AdministrativeLevel;
+          } | null;
+        } | null;
+      } | null;
+    } | null,
+  ): MatchedAdministrativeArea[] {
+    if (!area) return [];
+    const chain: Array<{
+      id: string;
+      code: string;
+      name: string;
+      level: AdministrativeLevel;
+    }> = [];
+    let current: typeof area | null | undefined = area;
+    while (current) {
+      chain.push({
+        id: current.id,
+        code: current.code,
+        name: current.name,
+        level: current.level,
+      });
+      current = current.parent;
+    }
+    const rank = Object.values(AdministrativeLevel);
+    return [...new Map(chain.map((item) => [item.id, item])).values()]
+      .sort((a, b) => rank.indexOf(b.level) - rank.indexOf(a.level))
+      .map((item) => ({ ...item, boundaryQualityStatus: null }));
+  }
+
+  private mergeAreas(
+    ...areaLists: MatchedAdministrativeArea[][]
+  ): MatchedAdministrativeArea[] {
+    const merged = new Map<string, MatchedAdministrativeArea>();
+    for (const list of areaLists) {
+      for (const area of list) {
+        if (!merged.has(area.id)) {
+          merged.set(area.id, area);
+        }
+      }
+    }
+    return [...merged.values()];
   }
 
   private categoryColor(code: string) {

@@ -166,11 +166,20 @@ export function MapsIntelijenCommandHud({
   onResetMap,
   onOpenDetail,
 }: MapsIntelijenCommandHudProps) {
-  const [now, setNow] = useState<Date | null>(null);
+  const [tickerNow, setTickerNow] = useState<Date | null>(null);
   const [leftPanelOpen, setLeftPanelOpen] = useState(true);
   const [rightPanelOpen, setRightPanelOpen] = useState(true);
   const [analyticsOpen, setAnalyticsOpen] = useState(true);
-  const areaHierarchyOptions = buildMapAreaHierarchyOptions(areaOptions, filters);
+  const areaHierarchyOptions = useMemo(
+    () => buildMapAreaHierarchyOptions(areaOptions, filters),
+    [
+      areaOptions,
+      filters.provinceId,
+      filters.regencyId,
+      filters.districtId,
+      filters.villageId,
+    ],
+  );
 
   const visibleJaringOptions = useMemo(() => {
     if (filters.fieldOfficerAssignmentId === "ALL") return jaringOptions;
@@ -179,11 +188,35 @@ export function MapsIntelijenCommandHud({
     );
   }, [filters.fieldOfficerAssignmentId, jaringOptions]);
 
+  const categorySelectOptions = useMemo<Array<[string, string]>>(
+    () => [
+      ["ALL", "Semua Kategori Baket"],
+      ...sortReportCategories(meta.facets.categories).map((item) => [item.id, item.name] as [string, string]),
+    ],
+    [meta.facets.categories],
+  );
+
+  const fieldOfficerSelectOptions = useMemo<Array<[string, string]>>(
+    () => [
+      ["ALL", `Semua ${DOMAIN_TERMS.fieldOfficer}`],
+      ...fieldOfficerOptions.map((item) => [item.id, item.label] as [string, string]),
+    ],
+    [fieldOfficerOptions],
+  );
+
+  const jaringSelectOptions = useMemo<Array<[string, string]>>(
+    () => [
+      ["ALL", "Semua Jaring"],
+      ...visibleJaringOptions.map((item) => [item.id, item.label] as [string, string]),
+    ],
+    [visibleJaringOptions],
+  );
+
   useEffect(() => {
     if (!isFullscreen) return;
-    const updateClock = () => setNow(new Date());
-    updateClock();
-    const interval = window.setInterval(updateClock, 1_000);
+    const updateTickerNow = () => setTickerNow(new Date());
+    updateTickerNow();
+    const interval = window.setInterval(updateTickerNow, 60_000);
     return () => window.clearInterval(interval);
   }, [isFullscreen]);
 
@@ -233,10 +266,21 @@ export function MapsIntelijenCommandHud({
       .sort((left, right) => right[1] - left[1]);
     const categoryCounts =
       sourceBaketCategoryCounts.length > 0 ? sourceBaketCategoryCounts : featureBaketCategoryCounts;
-    const urgencyCounts = countBy(features, (feature) => feature.properties.urgency ?? "NORMAL");
+    const rawUrgencyCounts = countBy(features, (feature) => feature.properties.urgency ?? "NORMAL");
     const layerCounts = countBy(features, featureLayer);
     const total = reportTotal + baketTotal;
-    const mapped = (meta.summary.reports.mappable ?? 0) + (meta.summary.bakets.mappable ?? 0);
+    const nonNormalUrgencySum =
+      (rawUrgencyCounts.URGENT ?? 0) + (rawUrgencyCounts.HIGH ?? 0) + (rawUrgencyCounts.LOW ?? 0);
+    const urgencyCounts: Record<string, number> = {
+      ...rawUrgencyCounts,
+      NORMAL:
+        filters.urgency === "ALL" || filters.urgency === "NORMAL"
+          ? Math.max(rawUrgencyCounts.NORMAL ?? 0, total - nonNormalUrgencySum)
+          : (rawUrgencyCounts.NORMAL ?? 0),
+    };
+    const mapped =
+      (meta.counts.mappableReports ?? meta.summary.reports.mappable ?? layerCounts.report ?? 0) +
+      (meta.counts.mappableBakets ?? meta.summary.bakets.mappable ?? layerCounts.baket ?? 0);
     const sortedFeed = [...features].sort((left, right) => {
       const leftTime = new Date(getMapFeatureTimestamp(left) ?? 0).getTime();
       const rightTime = new Date(getMapFeatureTimestamp(right) ?? 0).getTime();
@@ -244,20 +288,24 @@ export function MapsIntelijenCommandHud({
     });
 
     return {
-      jaringTotal: jaringIds.size,
+      jaringTotal: meta.counts.jaring ?? jaringIds.size,
       reportTotal,
       baketTotal,
       total,
-      coverage: total > 0 ? Math.round((mapped / total) * 100) : 0,
+      coverage: total > 0 ? Math.min(100, Math.round((mapped / total) * 100)) : 0,
       areaCounts,
       categoryCounts,
       urgencyCounts,
-      layerCounts,
+      layerCounts: {
+        ...layerCounts,
+        report: reportTotal,
+        baket: baketTotal,
+      },
       feed: sortedFeed.slice(0, 10),
       reportFeed: sortedFeed.filter((feature) => feature.properties.markerType === "report").slice(0, 10),
       baketFeed: sortedFeed.filter((feature) => feature.properties.markerType === "baket").slice(0, 10),
     };
-  }, [features, meta]);
+  }, [features, filters.urgency, meta]);
 
   if (!isFullscreen) {
     return (
@@ -285,18 +333,21 @@ export function MapsIntelijenCommandHud({
       key: "report",
       label: DOMAIN_VISUALS.jaringReport.label,
       icon: DOMAIN_VISUALS.jaringReport.Icon,
-      count: intelligence.layerCounts.report ?? 0,
+      count: intelligence.reportTotal,
       tone: DOMAIN_VISUALS.jaringReport.tone,
     },
     {
       key: "baket",
       label: DOMAIN_VISUALS.baket.label,
       icon: DOMAIN_VISUALS.baket.Icon,
-      count: intelligence.layerCounts.baket ?? 0,
+      count: intelligence.baketTotal,
       tone: DOMAIN_VISUALS.baket.tone,
     },
   ];
   const layerCards = allLayerCards.filter((layer) => layer.count > 0);
+  const activeLayerTotalCount =
+    (layerVisibility.report ? intelligence.reportTotal : 0) +
+    (layerVisibility.baket ? intelligence.baketTotal : 0);
 
   const kpiCards = [
     {
@@ -383,17 +434,11 @@ export function MapsIntelijenCommandHud({
           <StatusChip icon={Filter} label={`${activeFilterCount} filter aktif`} />
           <StatusChip icon={Crosshair} label={`${intelligence.coverage}% terpetakan`} />
           <span className="h-7 w-px bg-slate-800" />
-          <div className="text-right">
-            <p className="font-bold font-mono text-xs sm:text-sm tabular-nums">UTC+7 / {formatWibTime(now)} WIB</p>
-            <p className="text-[9px] text-slate-500">{periodLabel}</p>
-          </div>
+          <HudLiveClock periodLabel={periodLabel} coverage={intelligence.coverage} variant="desktop" />
         </div>
 
         {/* Compact time on mobile */}
-        <div className="flex flex-col items-end md:hidden text-right font-mono text-[10px] text-slate-300">
-          <span className="tabular-nums font-semibold">{formatWibTime(now).slice(0, 5)} WIB</span>
-          <span className="text-[8px] text-cyan-400">{intelligence.coverage}% peta</span>
-        </div>
+        <HudLiveClock periodLabel={periodLabel} coverage={intelligence.coverage} variant="mobile" />
 
         <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
           <Button
@@ -589,10 +634,7 @@ export function MapsIntelijenCommandHud({
               label="Kategori Baket"
               value={filters.categoryId}
               onChange={(value) => onFilterChange({ categoryId: value })}
-              options={[
-                ["ALL", "Semua Kategori Baket"],
-                ...sortReportCategories(meta.facets.categories).map((item) => [item.id, item.name] as [string, string]),
-              ]}
+              options={categorySelectOptions}
             />
             <HudSelect
               label={DOMAIN_TERMS.fieldOfficer}
@@ -600,31 +642,32 @@ export function MapsIntelijenCommandHud({
               onChange={(fieldOfficerAssignmentId) =>
                 onFilterChange({
                   fieldOfficerAssignmentId,
-                  ...(filters.jaringId !== "ALL" && fieldOfficerAssignmentId !== "ALL" ? { jaringId: "ALL" } : {}),
+                  jaringId: "ALL",
                 })
               }
               searchPlaceholder={`Cari ${DOMAIN_TERMS.fieldOfficer.toLowerCase()}...`}
-              options={[
-                ["ALL", `Semua ${DOMAIN_TERMS.fieldOfficer}`],
-                ...fieldOfficerOptions.map((item) => [item.id, item.label] as [string, string]),
-              ]}
+              options={fieldOfficerSelectOptions}
             />
             <HudSelect
               label="Jaring"
               value={filters.jaringId}
               onChange={(jaringId) => onFilterChange({ jaringId })}
               searchPlaceholder="Cari jaring..."
-              options={[
-                ["ALL", "Semua Jaring"],
-                ...visibleJaringOptions.map((item) => [item.id, item.label] as [string, string]),
-              ]}
+              options={jaringSelectOptions}
             />
             <HudSelect
               label="Provinsi"
               value={filters.provinceId}
               disabled={areaOptions.loadingLevel === "province"}
               onChange={(provinceId) =>
-                onFilterChange({ provinceId, regencyId: "ALL", districtId: "ALL", villageId: "ALL" })
+                onFilterChange({
+                  provinceId,
+                  regencyId: "ALL",
+                  districtId: "ALL",
+                  villageId: "ALL",
+                  fieldOfficerAssignmentId: "ALL",
+                  jaringId: "ALL",
+                })
               }
               options={areaHierarchyOptions.provinces}
             />
@@ -632,21 +675,42 @@ export function MapsIntelijenCommandHud({
               label="Kota/Kabupaten"
               value={filters.regencyId}
               disabled={filters.provinceId === "ALL" || areaOptions.loadingLevel === "regency"}
-              onChange={(regencyId) => onFilterChange({ regencyId, districtId: "ALL", villageId: "ALL" })}
+              onChange={(regencyId) =>
+                onFilterChange({
+                  regencyId,
+                  districtId: "ALL",
+                  villageId: "ALL",
+                  fieldOfficerAssignmentId: "ALL",
+                  jaringId: "ALL",
+                })
+              }
               options={areaHierarchyOptions.regencies}
             />
             <HudSelect
               label="Kecamatan"
               value={filters.districtId}
               disabled={filters.regencyId === "ALL" || areaOptions.loadingLevel === "district"}
-              onChange={(districtId) => onFilterChange({ districtId, villageId: "ALL" })}
+              onChange={(districtId) =>
+                onFilterChange({
+                  districtId,
+                  villageId: "ALL",
+                  fieldOfficerAssignmentId: "ALL",
+                  jaringId: "ALL",
+                })
+              }
               options={areaHierarchyOptions.districts}
             />
             <HudSelect
               label="Kelurahan/Desa"
               value={filters.villageId}
               disabled={filters.districtId === "ALL" || areaOptions.loadingLevel === "village"}
-              onChange={(villageId) => onFilterChange({ villageId })}
+              onChange={(villageId) =>
+                onFilterChange({
+                  villageId,
+                  fieldOfficerAssignmentId: "ALL",
+                  jaringId: "ALL",
+                })
+              }
               options={areaHierarchyOptions.villages}
             />
           </div>
@@ -780,7 +844,9 @@ export function MapsIntelijenCommandHud({
               <span className="flex items-center gap-2">
                 <Layers3 className="size-3.5 text-cyan-300" /> Ringkasan Lapisan
               </span>
-              <span className="font-mono text-[10px] text-slate-500">{displayedFeatures.length}</span>
+              <span className="font-mono text-[10px] text-slate-500">
+                {activeLayerTotalCount.toLocaleString("id-ID")}
+              </span>
             </h3>
             <div className="space-y-1.5">
               {layerCards.map((layer) => (
@@ -912,7 +978,7 @@ export function MapsIntelijenCommandHud({
                     <TickerItem
                       key={`${copy}:${feature.id}`}
                       feature={feature}
-                      now={now}
+                      now={tickerNow}
                       duplicate={copy === 1}
                       onClick={() => onOpenDetail(feature)}
                     />
@@ -927,6 +993,41 @@ export function MapsIntelijenCommandHud({
           )}
         </div>
       </section>
+    </div>
+  );
+}
+
+function HudLiveClock({
+  periodLabel,
+  coverage,
+  variant,
+}: {
+  periodLabel: string;
+  coverage: number;
+  variant: "desktop" | "mobile";
+}) {
+  const [now, setNow] = useState<Date | null>(null);
+
+  useEffect(() => {
+    const updateClock = () => setNow(new Date());
+    updateClock();
+    const interval = window.setInterval(updateClock, 1_000);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  if (variant === "mobile") {
+    return (
+      <div className="flex flex-col items-end md:hidden text-right font-mono text-[10px] text-slate-300">
+        <span className="tabular-nums font-semibold">{formatWibTime(now).slice(0, 5)} WIB</span>
+        <span className="text-[8px] text-cyan-400">{coverage}% peta</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="text-right">
+      <p className="font-bold font-mono text-xs sm:text-sm tabular-nums">UTC+7 / {formatWibTime(now)} WIB</p>
+      <p className="text-[9px] text-slate-500">{periodLabel}</p>
     </div>
   );
 }
@@ -984,7 +1085,7 @@ function HudSelect({
   options,
   onChange,
   disabled = false,
-  pageSize = 7,
+  pageSize = 25,
   searchPlaceholder,
 }: {
   label: string;
@@ -995,8 +1096,9 @@ function HudSelect({
   pageSize?: number;
   searchPlaceholder?: string;
 }) {
-  const formattedOptions: SearchableSelectOption[] = options.map((opt) =>
-    Array.isArray(opt) ? { value: opt[0], label: opt[1] } : opt,
+  const formattedOptions = useMemo<SearchableSelectOption[]>(
+    () => options.map((opt) => (Array.isArray(opt) ? { value: opt[0], label: opt[1] } : opt)),
+    [options],
   );
 
   return (

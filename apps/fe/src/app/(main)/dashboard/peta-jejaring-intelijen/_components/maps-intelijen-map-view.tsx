@@ -277,7 +277,7 @@ export function MapsIntelijenMapView({
       <div className={isFullscreen ? "h-dvh" : "h-[min(68svh,52rem)] min-h-[26rem] sm:min-h-[34rem]"}>
         <MapView center={INITIAL_CENTER} zoom={9.5} styles={mapStyles} onMapReady={setMap} className="h-full w-full">
           {!isFullscreen ? <MapControls position="bottom-left" showZoom showCompass /> : null}
-          {mode === "marker"
+          {mode === "marker" && displayedFeatures.length <= 150
             ? displayedFeatures.map((feature) => {
                 const presentation = getFeatureTypePresentation(feature.properties);
                 const MarkerIcon = presentation.icon;
@@ -323,7 +323,7 @@ export function MapsIntelijenMapView({
                 );
               })
             : null}
-          {mode !== "marker" ? (
+          {mode !== "marker" || displayedFeatures.length > 150 ? (
             <MapsIntelijenDataLayers
               map={map}
               features={displayedFeatures}

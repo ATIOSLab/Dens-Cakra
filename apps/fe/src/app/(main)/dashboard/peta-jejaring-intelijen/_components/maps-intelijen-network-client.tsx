@@ -2,13 +2,16 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { AlertTriangle, Info } from "lucide-react";
+import { AlertTriangle, Info, RotateCcw, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { SearchableSelect, type SearchableSelectOption } from "@/components/ui/searchable-select";
 import { apiBrowserFetch } from "@/lib/api/browser-client";
 import { fetchAllVerifiedJaringOptions } from "@/lib/api/jaring-options";
 import { findDkiJakartaProvinceFilterId } from "@/lib/domain/area-filter";
 import { jakartaBoundaryIso, jakartaDateKey } from "@/lib/domain/date-time";
+import { sortReportCategories } from "@/lib/domain/report-category-order";
 
 import { MapsIntelijenAreaFilter } from "./maps-intelijen-area-filter";
 import { isAreaChildOfParent, normalizeMapAreas } from "./maps-intelijen-area-hierarchy";
@@ -51,7 +54,7 @@ function scopeAreaToMapArea(area: AdministrativeAreaScope): MapArea {
 
 const INITIAL_FILTERS: MapNetworkFilters = {
   search: "",
-  period: "LAST_30_DAYS",
+  period: "TODAY",
   startDate: "",
   endDate: "",
   dataType: "ALL",
@@ -66,9 +69,69 @@ const INITIAL_FILTERS: MapNetworkFilters = {
   suitability: "ALL",
 };
 
-const INITIAL_MAP_LIMIT_PER_TYPE = 160;
-const FOCUSED_MAP_LIMIT_PER_TYPE = 600;
+const INITIAL_MAP_LIMIT_PER_TYPE = 5000;
+const FOCUSED_MAP_LIMIT_PER_TYPE = 5000;
 const MAP_REQUEST_TIMEOUT_MS = 45_000;
+const ENTITY_SELECT_PAGE_SIZE = 30;
+
+const DATA_TYPE_SELECT_OPTIONS: SearchableSelectOption[] = [
+  { value: "ALL", label: "Semua Lapisan" },
+  { value: "REPORT", label: "Laporan Jaring" },
+  { value: "BAKET", label: "Bahan Keterangan (Baket)" },
+];
+
+const URGENCY_SELECT_OPTIONS: SearchableSelectOption[] = [
+  { value: "ALL", label: "Semua Urgensi" },
+  { value: "URGENT", label: "Mendesak" },
+  { value: "HIGH", label: "Tinggi" },
+  { value: "NORMAL", label: "Normal" },
+  { value: "LOW", label: "Rendah" },
+];
+
+type JaringCoverageAreaNode = {
+  id: string;
+  name?: string | null;
+  level?: string | null;
+  parent?: JaringCoverageAreaNode | null;
+};
+
+type VerifiedJaringOptionItem = {
+  id: string;
+  aliasName?: string | null;
+  fullName?: string | null;
+  name?: string | null;
+  code?: string | null;
+  areaCoverages?: Array<{
+    areaId?: string | null;
+    isPrimary?: boolean;
+    validUntil?: string | null;
+    area?: JaringCoverageAreaNode | null;
+  }>;
+  caretakerAssignments?: Array<{
+    id?: string | null;
+    fieldOfficerAssignmentId?: string | null;
+    fieldOfficerAssignment?: {
+      id?: string | null;
+      userProfile?: { fullName?: string | null; username?: string | null } | null;
+    } | null;
+  }>;
+};
+
+function jaringMatchesSelectedArea(jaring: VerifiedJaringOptionItem, selectedAreaId?: string) {
+  if (!selectedAreaId || selectedAreaId === "ALL") return true;
+  return (jaring.areaCoverages ?? []).some((coverage) => {
+    if (coverage.validUntil) return false;
+    if (coverage.areaId === selectedAreaId) return true;
+
+    let area = coverage.area ?? null;
+    while (area) {
+      if (area.id === selectedAreaId) return true;
+      area = area.parent ?? null;
+    }
+
+    return false;
+  });
+}
 
 function periodRange(filters: MapNetworkFilters) {
   const now = new Date();
@@ -135,7 +198,9 @@ function buildQuery(filters: MapNetworkFilters, debouncedSearch: string) {
   const selectedAreaId = [filters.villageId, filters.districtId, filters.regencyId, filters.provinceId].find(
     (areaId) => areaId !== "ALL",
   );
-  const hasNarrowedPeriod = ["LAST_7_DAYS", "LAST_14_DAYS", "LAST_30_DAYS", "CUSTOM"].includes(filters.period);
+  const hasNarrowedPeriod = ["TODAY", "LAST_7_DAYS", "LAST_14_DAYS", "LAST_30_DAYS", "CUSTOM"].includes(
+    filters.period,
+  );
   const hasFocusedFilter =
     Boolean(debouncedSearch) ||
     filters.dataType !== "ALL" ||
@@ -151,7 +216,6 @@ function buildQuery(filters: MapNetworkFilters, debouncedSearch: string) {
     types,
     limitPerType: hasFocusedFilter ? FOCUSED_MAP_LIMIT_PER_TYPE : INITIAL_MAP_LIMIT_PER_TYPE,
     includeAreaHierarchy: true,
-    hasCoordinates: true,
     ...(debouncedSearch ? { q: debouncedSearch } : {}),
     ...periodRange(filters),
     ...(filters.urgency !== "ALL" ? { urgencies: filters.urgency } : {}),
@@ -254,7 +318,8 @@ function withoutPersonnelMarkers(response: MapNetworkResponse): MapNetworkRespon
 export function MapsIntelijenNetworkClient() {
   const [response, setResponse] = useState<MapNetworkResponse>(EMPTY_MAP_RESPONSE);
   const [filters, setFilters] = useState<MapNetworkFilters>(INITIAL_FILTERS);
-  const [entityFilterOptions, setEntityFilterOptions] = useState<MapEntityFilterOptions>({
+  const [verifiedJarings, setVerifiedJarings] = useState<VerifiedJaringOptionItem[]>([]);
+  const [featureEntityOptions, setFeatureEntityOptions] = useState<MapEntityFilterOptions>({
     jarings: [],
     fieldOfficers: [],
   });
@@ -326,7 +391,7 @@ export function MapsIntelijenNetworkClient() {
             init: { signal: controller.signal },
           }),
           apiBrowserFetch<AdministrativeAreaScope[]>("/me/area-scopes", {
-            query: { includeDescendants: true },
+            query: { includeDescendants: true, excludeVillages: true },
             init: { signal: controller.signal },
           }),
         ]);
@@ -363,10 +428,27 @@ export function MapsIntelijenNetworkClient() {
             }
           }
           const accessibleAreas = [...hierarchy.values()];
+          const normalizedProvinces = normalizeMapAreas(accessibleAreas, ["PROVINCE", "PROVINSI"]);
+          const initialProvinceId = findDkiJakartaProvinceFilterId(normalizedProvinces);
+
+          if (!didApplyDefaultProvinceFilter.current && initialProvinceId) {
+            didApplyDefaultProvinceFilter.current = true;
+            setFilters((current) =>
+              current.provinceId === "ALL"
+                ? {
+                    ...current,
+                    provinceId: initialProvinceId,
+                    regencyId: "ALL",
+                    districtId: "ALL",
+                    villageId: "ALL",
+                  }
+                : current,
+            );
+          }
 
           setAreaOptions((current) => ({
             ...current,
-            provinces: normalizeMapAreas(accessibleAreas, ["PROVINCE", "PROVINSI"]),
+            provinces: normalizedProvinces,
             regencies: normalizeMapAreas(accessibleAreas, ["CITY", "REGENCY", "KOTA", "KABUPATEN"]),
             districts: normalizeMapAreas(accessibleAreas, ["DISTRICT", "KECAMATAN"]),
             villages: normalizeMapAreas(accessibleAreas, ["VILLAGE", "URBAN_VILLAGE", "DESA", "KELURAHAN"]),
@@ -618,60 +700,9 @@ export function MapsIntelijenNetworkClient() {
     let cancelled = false;
     async function loadJarings() {
       try {
-        const jaringList = await fetchAllVerifiedJaringOptions<{
-          id: string;
-          aliasName?: string | null;
-          fullName?: string | null;
-          name?: string | null;
-          code?: string | null;
-          caretakerAssignments?: Array<{
-            fieldOfficerAssignmentId?: string | null;
-            fieldOfficerAssignment?: {
-              id?: string | null;
-              userProfile?: { fullName?: string | null; username?: string | null } | null;
-            } | null;
-          }>;
-        }>();
+        const jaringList = await fetchAllVerifiedJaringOptions<VerifiedJaringOptionItem>();
         if (cancelled) return;
-        setEntityFilterOptions((current) => {
-          const jaringMap = new Map(current.jarings.map((item) => [item.id, item]));
-          const officerMap = new Map(current.fieldOfficers.map((item) => [item.id, item]));
-
-          for (const item of jaringList) {
-            const caretaker = item.caretakerAssignments?.[0];
-            const officerAssignmentId =
-              caretaker?.fieldOfficerAssignmentId ?? caretaker?.fieldOfficerAssignment?.id ?? null;
-            const officerName =
-              caretaker?.fieldOfficerAssignment?.userProfile?.fullName?.trim() ||
-              caretaker?.fieldOfficerAssignment?.userProfile?.username?.trim();
-
-            if (officerAssignmentId && officerName) {
-              if (!officerMap.has(officerAssignmentId)) {
-                officerMap.set(officerAssignmentId, {
-                  id: officerAssignmentId,
-                  label: officerName,
-                });
-              }
-            }
-
-            const code = item.code || item.aliasName;
-            const name = item.fullName || item.name || code || item.id;
-            const label = code && code !== name ? `${name} - ${code}` : name;
-            jaringMap.set(item.id, {
-              id: item.id,
-              label,
-              fieldOfficerAssignmentId: officerAssignmentId,
-            });
-          }
-
-          const sortByLabel = (left: MapEntityFilterOption, right: MapEntityFilterOption) =>
-            left.label.localeCompare(right.label, "id-ID");
-
-          return {
-            jarings: [...jaringMap.values()].sort(sortByLabel),
-            fieldOfficers: [...officerMap.values()].sort(sortByLabel),
-          };
-        });
+        setVerifiedJarings(jaringList);
       } catch {
         // Fallback gracefully to jarings from features
       }
@@ -682,9 +713,106 @@ export function MapsIntelijenNetworkClient() {
     };
   }, []);
 
+  const selectedAreaId = useMemo(
+    () =>
+      [filters.villageId, filters.districtId, filters.regencyId, filters.provinceId].find(
+        (areaId) => areaId !== "ALL",
+      ),
+    [filters.provinceId, filters.regencyId, filters.districtId, filters.villageId],
+  );
+
+  const entityFilterOptions = useMemo<MapEntityFilterOptions>(() => {
+    const sortByLabel = (left: MapEntityFilterOption, right: MapEntityFilterOption) =>
+      left.label.localeCompare(right.label, "id-ID");
+
+    if (verifiedJarings.length === 0) {
+      return featureEntityOptions;
+    }
+
+    const areaFilteredJarings = verifiedJarings.filter((jaring) =>
+      jaringMatchesSelectedArea(jaring, selectedAreaId),
+    );
+
+    const officerCounts = new Map<string, { name: string; count: number }>();
+    const jaringMap = new Map<string, MapEntityFilterOption>();
+
+    for (const item of areaFilteredJarings) {
+      const caretaker = item.caretakerAssignments?.[0];
+      const officerAssignmentId =
+        caretaker?.fieldOfficerAssignmentId ?? caretaker?.fieldOfficerAssignment?.id ?? caretaker?.id ?? null;
+      const officerName =
+        caretaker?.fieldOfficerAssignment?.userProfile?.fullName?.trim() ||
+        caretaker?.fieldOfficerAssignment?.userProfile?.username?.trim() ||
+        "Petugas Wilayah (Gaswil) tanpa nama";
+
+      if (officerAssignmentId) {
+        const existing = officerCounts.get(officerAssignmentId);
+        if (existing) {
+          existing.count += 1;
+        } else {
+          officerCounts.set(officerAssignmentId, { name: officerName, count: 1 });
+        }
+      }
+
+      const code = item.code || item.aliasName;
+      const name = item.fullName || item.name || code || item.id;
+      const label = code && code !== name ? `${name} - ${code}` : name;
+      jaringMap.set(item.id, {
+        id: item.id,
+        label,
+        fieldOfficerAssignmentId: officerAssignmentId,
+      });
+    }
+
+    const fieldOfficers: MapEntityFilterOption[] = [...officerCounts.entries()]
+      .map(([id, info]) => ({
+        id,
+        label: `${info.name} (${info.count} Jaring)`,
+      }))
+      .sort(sortByLabel);
+
+    const jarings = [...jaringMap.values()].sort(sortByLabel);
+
+    return {
+      fieldOfficers,
+      jarings,
+    };
+  }, [featureEntityOptions, selectedAreaId, verifiedJarings]);
+
+  useEffect(() => {
+    if (verifiedJarings.length === 0) return;
+    if (
+      filters.fieldOfficerAssignmentId !== "ALL" &&
+      !entityFilterOptions.fieldOfficers.some((officer) => officer.id === filters.fieldOfficerAssignmentId)
+    ) {
+      setFilters((current) => ({
+        ...current,
+        fieldOfficerAssignmentId: "ALL",
+        jaringId: "ALL",
+      }));
+      return;
+    }
+    if (
+      filters.jaringId !== "ALL" &&
+      !entityFilterOptions.jarings.some((jaring) => jaring.id === filters.jaringId)
+    ) {
+      setFilters((current) => ({
+        ...current,
+        jaringId: "ALL",
+      }));
+    }
+  }, [
+    entityFilterOptions.fieldOfficers,
+    entityFilterOptions.jarings,
+    filters.fieldOfficerAssignmentId,
+    filters.jaringId,
+    verifiedJarings.length,
+  ]);
+
   const query = useMemo(() => buildQuery(filters, debouncedSearch), [debouncedSearch, filters]);
 
   useEffect(() => {
+    if (areaOptions.loading) return;
     const controller = new AbortController();
     const timeout = window.setTimeout(
       async () => {
@@ -705,7 +833,7 @@ export function MapsIntelijenNetworkClient() {
           if (!controller.signal.aborted) {
             const data = withoutPersonnelMarkers(rawData);
             setResponse(data);
-            setEntityFilterOptions((current) => mergeEntityFilterOptions(current, data));
+            setFeatureEntityOptions((current) => mergeEntityFilterOptions(current, data));
           }
         } catch (cause) {
           if (timedOut) {
@@ -721,14 +849,14 @@ export function MapsIntelijenNetworkClient() {
           }
         }
       },
-      reloadKey === 0 ? 120 : 0,
+      0,
     );
     return () => {
       window.clearTimeout(timeout);
       controller.abort();
       if (activeMapRequestRef.current === controller) activeMapRequestRef.current = null;
     };
-  }, [query, reloadKey]);
+  }, [areaOptions.loading, query, reloadKey]);
 
   useEffect(() => {
     if (!isFullscreen) return;
@@ -759,9 +887,10 @@ export function MapsIntelijenNetworkClient() {
         if (key === "search") return Boolean(value);
         if (key === "period") return value !== INITIAL_FILTERS.period;
         if (key === "startDate" || key === "endDate") return Boolean(value);
+        if (key === "provinceId" && defaultProvinceFilter && value === defaultProvinceFilter) return false;
         return value !== "ALL";
       }).length,
-    [filters],
+    [defaultProvinceFilter, filters],
   );
 
   const handleFilterChange = useCallback((patch: Partial<MapNetworkFilters>) => {
@@ -772,11 +901,25 @@ export function MapsIntelijenNetworkClient() {
         next.regencyId = "ALL";
         next.districtId = "ALL";
         next.villageId = "ALL";
+        next.fieldOfficerAssignmentId = "ALL";
+        next.jaringId = "ALL";
       } else if (patch.regencyId !== undefined && patch.regencyId !== current.regencyId) {
         next.districtId = "ALL";
         next.villageId = "ALL";
+        next.fieldOfficerAssignmentId = "ALL";
+        next.jaringId = "ALL";
       } else if (patch.districtId !== undefined && patch.districtId !== current.districtId) {
         next.villageId = "ALL";
+        next.fieldOfficerAssignmentId = "ALL";
+        next.jaringId = "ALL";
+      } else if (patch.villageId !== undefined && patch.villageId !== current.villageId) {
+        next.fieldOfficerAssignmentId = "ALL";
+        next.jaringId = "ALL";
+      } else if (
+        patch.fieldOfficerAssignmentId !== undefined &&
+        patch.fieldOfficerAssignmentId !== current.fieldOfficerAssignmentId
+      ) {
+        next.jaringId = "ALL";
       }
 
       return next;
@@ -802,6 +945,46 @@ export function MapsIntelijenNetworkClient() {
     },
     [filters.provinceId],
   );
+
+  const categorySelectOptions = useMemo<SearchableSelectOption[]>(
+    () => [
+      { value: "ALL", label: "Semua Kategori Baket" },
+      ...sortReportCategories(response.meta.facets.categories).map((category) => ({
+        value: category.id,
+        label: category.name,
+      })),
+    ],
+    [response.meta.facets.categories],
+  );
+
+  const fieldOfficerSelectOptions = useMemo<SearchableSelectOption[]>(
+    () => [
+      { value: "ALL", label: "Semua Petugas Wilayah (Gaswil)" },
+      ...entityFilterOptions.fieldOfficers.map((officer) => ({
+        value: officer.id,
+        label: officer.label,
+      })),
+    ],
+    [entityFilterOptions.fieldOfficers],
+  );
+
+  const jaringSelectOptions = useMemo<SearchableSelectOption[]>(() => {
+    const visibleJarings =
+      filters.fieldOfficerAssignmentId === "ALL"
+        ? entityFilterOptions.jarings
+        : entityFilterOptions.jarings.filter(
+            (jaring) =>
+              !jaring.fieldOfficerAssignmentId ||
+              jaring.fieldOfficerAssignmentId === filters.fieldOfficerAssignmentId,
+          );
+    return [
+      { value: "ALL", label: "Semua Jaring" },
+      ...visibleJarings.map((jaring) => ({
+        value: jaring.id,
+        label: jaring.label,
+      })),
+    ];
+  }, [entityFilterOptions.jarings, filters.fieldOfficerAssignmentId]);
 
   const activePeriodLabel = periodLabel(filters);
   const activeAreaSubtitle = useMemo(() => buildMapAreaSubtitle(filters, areaOptions), [areaOptions, filters]);
@@ -831,6 +1014,101 @@ export function MapsIntelijenNetworkClient() {
       ) : null}
       <MapsIntelijenPeriodFilter filters={filters} onChange={handleFilterChange} />
       <MapsIntelijenAreaFilter areaOptions={areaOptions} filters={filters} onChange={handleFilterChange} />
+      <section
+        aria-label="Filter laporan dan entitas"
+        className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-6"
+      >
+        <div className="grid min-w-0 gap-1 lg:col-span-2">
+          <span className="truncate text-xs text-muted-foreground">Pencarian</span>
+          <div className="relative">
+            <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={filters.search}
+              onChange={(event) => handleFilterChange({ search: event.target.value })}
+              placeholder="Cari referensi, judul, Jaring, wilayah..."
+              aria-label="Pencarian laporan peta"
+              className="pl-8"
+            />
+          </div>
+        </div>
+        <div className="grid min-w-0 gap-1">
+          <span className="truncate text-xs text-muted-foreground">Jenis Data</span>
+          <SearchableSelect
+            value={filters.dataType}
+            options={DATA_TYPE_SELECT_OPTIONS}
+            onValueChange={(value) => handleFilterChange({ dataType: value as MapNetworkFilters["dataType"] })}
+            placeholder="Semua Lapisan"
+            searchPlaceholder="Cari jenis data..."
+            pageSize={ENTITY_SELECT_PAGE_SIZE}
+            aria-label="Jenis Data"
+            className="w-full min-w-0"
+          />
+        </div>
+        <div className="grid min-w-0 gap-1">
+          <span className="truncate text-xs text-muted-foreground">Urgensi</span>
+          <SearchableSelect
+            value={filters.urgency}
+            options={URGENCY_SELECT_OPTIONS}
+            onValueChange={(value) => handleFilterChange({ urgency: value as MapNetworkFilters["urgency"] })}
+            placeholder="Semua Urgensi"
+            searchPlaceholder="Cari urgensi..."
+            pageSize={ENTITY_SELECT_PAGE_SIZE}
+            aria-label="Urgensi"
+            className="w-full min-w-0"
+          />
+        </div>
+        <div className="grid min-w-0 gap-1">
+          <span className="truncate text-xs text-muted-foreground">Kategori Baket</span>
+          <SearchableSelect
+            value={filters.categoryId}
+            options={categorySelectOptions}
+            onValueChange={(value) => handleFilterChange({ categoryId: value })}
+            placeholder="Semua Kategori Baket"
+            searchPlaceholder="Cari kategori Baket..."
+            pageSize={ENTITY_SELECT_PAGE_SIZE}
+            aria-label="Kategori Baket"
+            className="w-full min-w-0"
+          />
+        </div>
+        <div className="grid min-w-0 gap-1">
+          <span className="truncate text-xs text-muted-foreground">Petugas Wilayah (Gaswil)</span>
+          <SearchableSelect
+            value={filters.fieldOfficerAssignmentId}
+            options={fieldOfficerSelectOptions}
+            onValueChange={(value) => handleFilterChange({ fieldOfficerAssignmentId: value, jaringId: "ALL" })}
+            placeholder="Semua Petugas Wilayah (Gaswil)"
+            searchPlaceholder="Cari nama Gaswil..."
+            pageSize={ENTITY_SELECT_PAGE_SIZE}
+            aria-label="Petugas Wilayah (Gaswil)"
+            className="w-full min-w-0"
+          />
+        </div>
+        <div className="grid min-w-0 gap-1 sm:col-span-2 lg:col-span-5">
+          <span className="truncate text-xs text-muted-foreground">Jaring</span>
+          <SearchableSelect
+            value={filters.jaringId}
+            options={jaringSelectOptions}
+            onValueChange={(value) => handleFilterChange({ jaringId: value })}
+            placeholder="Semua Jaring"
+            searchPlaceholder="Cari nama atau kode Jaring..."
+            pageSize={ENTITY_SELECT_PAGE_SIZE}
+            aria-label="Jaring"
+            className="w-full min-w-0"
+          />
+        </div>
+        <div className="flex items-end">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={resetFilters}
+            disabled={activeFilterCount === 0}
+            className="w-full gap-1.5"
+          >
+            <RotateCcw className="size-3.5" />
+            Atur Ulang Filter{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
+          </Button>
+        </div>
+      </section>
       <MapsIntelijenStats meta={response.meta} loading={loading} onCardClick={setActiveKpiModal} />
       <MapsIntelijenMapView
         mapCardRef={mapCardRef}
@@ -862,8 +1140,9 @@ export function MapsIntelijenNetworkClient() {
       <div className="flex items-start gap-2 rounded-lg border bg-card p-3 text-muted-foreground text-xs">
         <Info className="mt-0.5 size-4 shrink-0 text-sky-500" />
         <p>
-          Peta hanya memuat titik berkoordinat sesuai filter aktif. Mode klaster menjadi tampilan awal agar sebaran
-          seluruh wilayah tetap ringan; marker rinci tersedia setelah provinsi dipilih.
+          Peta menampilkan laporan Jaring dan Bahan Keterangan (Baket) sesuai filter aktif dengan rentang bawaan Hari
+          ini. Mode klaster menjadi tampilan awal agar sebaran seluruh wilayah tetap ringan; marker rinci tersedia
+          setelah provinsi dipilih.
         </p>
       </div>
       <MapsIntelijenDetailSheet feature={selected} open={detailOpen} onOpenChange={setDetailOpen} />

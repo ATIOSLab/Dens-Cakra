@@ -51,62 +51,63 @@ export function SearchableSelect({
   container,
   "aria-label": ariaLabel,
 }: SearchableSelectProps) {
-  const initialLimit = pageSize ? pageSize : maxVisibleOptions;
+  const effectivePageSize = pageSize ?? Math.min(maxVisibleOptions, 30);
   const [open, setOpen] = React.useState(false);
   const [search, setSearch] = React.useState("");
-  const [visibleCount, setVisibleCount] = React.useState(initialLimit);
+  const deferredSearch = React.useDeferredValue(search);
+  const [visibleCount, setVisibleCount] = React.useState(effectivePageSize);
 
   const selectedOption = React.useMemo(() => options.find((option) => option.value === value), [options, value]);
 
   const filteredOptions = React.useMemo(() => {
-    const term = search.trim().toLowerCase();
+    if (!open) return [];
+    const term = deferredSearch.trim().toLowerCase();
     if (!term) return options;
     return options.filter((option) => {
-      const haystack = [option.label, option.description, option.value, ...(option.keywords ?? [])]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-      return haystack.includes(term);
+      const label = option.label.toLowerCase();
+      if (label.includes(term)) return true;
+      if (option.description && option.description.toLowerCase().includes(term)) return true;
+      if (option.value.toLowerCase().includes(term)) return true;
+      if (option.keywords?.some((kw) => kw.toLowerCase().includes(term))) return true;
+      return false;
     });
-  }, [options, search]);
+  }, [open, options, deferredSearch]);
 
-  React.useEffect(() => {
-    if (open) {
-      setVisibleCount(pageSize ? pageSize : maxVisibleOptions);
-    } else {
-      setSearch("");
-    }
-  }, [open, pageSize, maxVisibleOptions]);
+  const handleOpenChange = React.useCallback(
+    (nextOpen: boolean) => {
+      setOpen(nextOpen);
+      if (nextOpen) {
+        setVisibleCount(effectivePageSize);
+      } else {
+        setSearch("");
+      }
+    },
+    [effectivePageSize],
+  );
 
   const handleScroll = (event: React.UIEvent<HTMLDivElement>) => {
-    if (!pageSize) return;
     const { scrollTop, scrollHeight, clientHeight } = event.currentTarget;
     if (scrollHeight - scrollTop - clientHeight < 60) {
-      setVisibleCount((prev) => Math.min(prev + (pageSize || 10), filteredOptions.length));
+      setVisibleCount((prev) => Math.min(prev + effectivePageSize, filteredOptions.length));
     }
   };
 
   const handleWheel = (event: React.WheelEvent<HTMLDivElement>) => {
-    if (!pageSize) return;
     if (event.deltaY > 0) {
       const { scrollTop, scrollHeight, clientHeight } = event.currentTarget;
       if (scrollHeight - scrollTop - clientHeight < 80) {
-        setVisibleCount((prev) => Math.min(prev + (pageSize || 10), filteredOptions.length));
+        setVisibleCount((prev) => Math.min(prev + effectivePageSize, filteredOptions.length));
       }
     }
   };
 
-  const visibleOptions = pageSize
-    ? filteredOptions.slice(0, visibleCount)
-    : filteredOptions.slice(0, maxVisibleOptions);
-  const hiddenCount = pageSize
-    ? Math.max(filteredOptions.length - visibleCount, 0)
-    : Math.max(filteredOptions.length - maxVisibleOptions, 0);
+  const visibleOptions = open ? filteredOptions.slice(0, visibleCount) : [];
+  const hiddenCount = open ? Math.max(filteredOptions.length - visibleCount, 0) : 0;
 
   const isCustomSelected = Boolean(value && value !== "ALL" && value !== "");
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <Button
           type="button"
@@ -138,7 +139,7 @@ export function SearchableSelect({
       <PopoverContent
         align="start"
         container={container}
-        className={cn("w-[var(--radix-popover-trigger-width)] min-w-[260px] p-0 rounded-md border border-border/80 bg-popover text-popover-foreground shadow-lg backdrop-blur-sm z-50", contentClassName)}
+        className={cn("w-[var(--radix-popover-trigger-width)] min-w-[260px] p-0 rounded-md border border-border/80 bg-popover text-popover-foreground shadow-lg z-50", contentClassName)}
       >
         <div className="relative border-b border-border/70 p-2 bg-muted/20">
           <Search className="pointer-events-none absolute top-1/2 left-4 size-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -146,7 +147,7 @@ export function SearchableSelect({
             value={search}
             onChange={(event) => {
               setSearch(event.target.value);
-              setVisibleCount(pageSize ? pageSize : maxVisibleOptions);
+              setVisibleCount(effectivePageSize);
             }}
             placeholder={searchPlaceholder}
             className={cn(DC_CONTROLS.input, "h-8 pr-8 pl-8 text-xs bg-background/60 focus:bg-background")}
@@ -165,8 +166,8 @@ export function SearchableSelect({
 
         <div
           className={cn("overflow-y-auto p-1 space-y-0.5", pageSize ? "max-h-56" : "max-h-72")}
-          onScroll={pageSize ? handleScroll : undefined}
-          onWheel={pageSize ? handleWheel : undefined}
+          onScroll={handleScroll}
+          onWheel={handleWheel}
         >
           {visibleOptions.length === 0 ? (
             <div className="px-3 py-6 text-center text-muted-foreground text-xs">{emptyText}</div>
@@ -179,8 +180,10 @@ export function SearchableSelect({
                   type="button"
                   disabled={option.disabled}
                   onClick={() => {
-                    onValueChange(option.value);
-                    setOpen(false);
+                    handleOpenChange(false);
+                    React.startTransition(() => {
+                      onValueChange(option.value);
+                    });
                   }}
                   className={cn(
                     DC_CONTROLS.selectItem,
@@ -205,9 +208,7 @@ export function SearchableSelect({
 
         {hiddenCount > 0 ? (
           <div className="border-t border-border/60 bg-muted/10 px-3 py-2 text-muted-foreground text-[11px]">
-            {pageSize
-              ? `Gulir untuk memuat ${hiddenCount} pilihan lagi (${visibleCount}/${filteredOptions.length}).`
-              : `${hiddenCount} pilihan lain disembunyikan. Ketik kata kunci untuk mempersempit hasil.`}
+            {`Gulir untuk memuat ${hiddenCount} pilihan lagi (${visibleCount}/${filteredOptions.length}).`}
           </div>
         ) : null}
       </PopoverContent>

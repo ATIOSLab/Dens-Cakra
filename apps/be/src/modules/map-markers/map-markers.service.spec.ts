@@ -469,10 +469,7 @@ describe('MapMarkersService', () => {
     expect(prisma.whatsAppReportSession.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          AND: expect.arrayContaining([
-            { jaring: { deletedAt: null } },
-            { submittedMessage: { is: { convertedBaketId: null } } },
-          ]),
+          AND: expect.arrayContaining([{ jaring: { deletedAt: null } }]),
         }),
       }),
     );
