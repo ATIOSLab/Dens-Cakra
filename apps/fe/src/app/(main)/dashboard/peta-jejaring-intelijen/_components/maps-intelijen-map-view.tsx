@@ -135,8 +135,12 @@ const IntelijenMapMarkerItem = memo(function IntelijenMapMarkerItem({
         onPointerLeave={() => onHover(null)}
         onFocus={() => onHover(feature)}
         onBlur={() => onHover(null)}
+        onPointerDown={(event) => {
+          event.stopPropagation();
+        }}
         onClick={(event) => {
           event.stopPropagation();
+          event.preventDefault();
           onClick(feature);
         }}
         className={cn(
@@ -147,12 +151,12 @@ const IntelijenMapMarkerItem = memo(function IntelijenMapMarkerItem({
             : feature.properties.markerType === "agent"
               ? "rounded-md rotate-45"
               : "rounded-full",
-          isSelected ? "z-50 scale-[1.08]" : "hover:scale-[1.04]",
+          isSelected ? "z-50 scale-[1.14] ring-2 ring-cyan-400" : "hover:scale-[1.08]",
         )}
         style={{ backgroundColor: markerColor(feature, colorMode) }}
       >
         <MarkerIcon
-          className={cn("size-3", feature.properties.markerType === "agent" && "-rotate-45")}
+          className={cn("size-3 pointer-events-none", feature.properties.markerType === "agent" && "-rotate-45")}
           aria-hidden
         />
       </button>
@@ -196,6 +200,7 @@ export function MapsIntelijenMapView({
     baket: true,
   });
   const closeTimer = useRef<number | null>(null);
+  const isMarkerActionRef = useRef(false);
   const activeStyle = MAP_THEMES[mapLayer];
   const displayedFeatures = useMemo(
     () =>
@@ -220,13 +225,16 @@ export function MapsIntelijenMapView({
         setHovered(feature);
         return;
       }
-      closeTimer.current = window.setTimeout(() => setHovered(null), 220);
+      closeTimer.current = window.setTimeout(() => setHovered(null), 450);
     },
     [clearCloseTimer],
   );
 
   const handleFeatureClick = useCallback(
     (feature: MapNetworkFeature) => {
+      isMarkerActionRef.current = true;
+      clearCloseTimer();
+
       const touchLike = window.matchMedia("(hover: none), (pointer: coarse)").matches;
       if (touchLike && locked?.id === feature.id) {
         onOpenDetail(feature);
@@ -235,13 +243,24 @@ export function MapsIntelijenMapView({
 
       setLocked((current) => (current?.id === feature.id ? null : feature));
     },
-    [locked?.id, onOpenDetail],
+    [clearCloseTimer, locked?.id, onOpenDetail],
   );
 
   const handleMapClick = useCallback(() => {
+    if (isMarkerActionRef.current) {
+      isMarkerActionRef.current = false;
+      return;
+    }
     setHovered(null);
     setLocked(null);
   }, []);
+
+  const handleClosePopup = useCallback(() => {
+    isMarkerActionRef.current = false;
+    clearCloseTimer();
+    setHovered(null);
+    setLocked(null);
+  }, [clearCloseTimer]);
 
   useEffect(() => {
     return () => clearCloseTimer();
@@ -369,11 +388,10 @@ export function MapsIntelijenMapView({
               isFullscreen={isFullscreen}
               onPointerEnter={clearCloseTimer}
               onPointerLeave={() => handleHover(null)}
-              onClose={handleMapClick}
+              onClose={handleClosePopup}
               onDetail={() => {
                 onOpenDetail(selectedPopup);
-                setHovered(null);
-                setLocked(null);
+                handleClosePopup();
               }}
             />
           ) : null}
