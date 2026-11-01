@@ -52,6 +52,7 @@ const securityHeaders = [
 ];
 
 const nextConfig = {
+  output: "standalone",
   reactCompiler: true,
   serverExternalPackages: ["@react-pdf/renderer"],
   compiler: {
