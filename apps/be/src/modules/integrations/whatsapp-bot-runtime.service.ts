@@ -1320,6 +1320,24 @@ export class WhatsappBotRuntimeService
       return;
     }
 
+    if (this.isSystemProtocolMessage(message.message)) {
+      await this.prisma.$transaction([
+        this.prisma.integrationWebhookEvent.update({
+          where: { id: event.id },
+          data: {
+            processedAt: new Date(),
+            success: true,
+            errorMessage: 'System protocol packet skipped',
+          },
+        }),
+        this.prisma.integrationChannel.update({
+          where: { id: channel.id },
+          data: { lastHealthAt: new Date() },
+        }),
+      ]);
+      return;
+    }
+
     if (this.inboundInterceptors.length > 0) {
       for (const interceptor of this.inboundInterceptors) {
         try {
@@ -1492,6 +1510,8 @@ export class WhatsappBotRuntimeService
         current.editedMessage?.message?.protocolMessage?.editedMessage
       ) {
         current = current.editedMessage.message.protocolMessage.editedMessage;
+      } else if (current.protocolMessage?.editedMessage) {
+        current = current.protocolMessage.editedMessage;
       } else {
         break;
       }
@@ -1614,7 +1634,56 @@ export class WhatsappBotRuntimeService
     if (message.extendedTextMessage || message.conversation) {
       return 'TEXT';
     }
+    if (
+      message.interactiveResponseMessage ||
+      message.templateButtonReplyMessage ||
+      (message as Record<string, unknown>).buttonsResponseMessage ||
+      (message as Record<string, unknown>).listResponseMessage
+    ) {
+      return 'INTERACTIVE_RESPONSE';
+    }
+    if (
+      message.protocolMessage ||
+      (message as Record<string, unknown>).senderKeyDistributionMessage ||
+      (message as Record<string, unknown>).reactionMessage
+    ) {
+      return 'SYSTEM_PROTOCOL';
+    }
     return 'UNKNOWN';
+  }
+
+  private isSystemProtocolMessage(rawMessage?: WAMessage['message']): boolean {
+    if (!rawMessage) {
+      return true;
+    }
+    const msg = this.unwrapMessage(rawMessage) || rawMessage;
+    if (
+      msg.conversation ||
+      msg.extendedTextMessage?.text ||
+      msg.locationMessage ||
+      msg.liveLocationMessage ||
+      msg.imageMessage ||
+      msg.videoMessage ||
+      msg.documentMessage ||
+      (msg as Record<string, unknown>).audioMessage ||
+      msg.interactiveResponseMessage ||
+      (msg as Record<string, unknown>).buttonsResponseMessage ||
+      (msg as Record<string, unknown>).templateButtonReplyMessage ||
+      (msg as Record<string, unknown>).listResponseMessage
+    ) {
+      return false;
+    }
+
+    return Boolean(
+      msg.protocolMessage ||
+      (msg as Record<string, unknown>).senderKeyDistributionMessage ||
+      (msg as Record<string, unknown>).fastRatchetKeyDistributionMessage ||
+      (msg as Record<string, unknown>).reactionMessage ||
+      (msg as Record<string, unknown>).keepInChatMessage ||
+      (rawMessage as Record<string, unknown>).protocolMessage ||
+      (rawMessage as Record<string, unknown>).senderKeyDistributionMessage ||
+      (rawMessage as Record<string, unknown>).reactionMessage
+    );
   }
 
   private async resolveSenderPhone(

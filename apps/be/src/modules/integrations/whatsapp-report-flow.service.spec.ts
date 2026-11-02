@@ -219,6 +219,29 @@ describe('WhatsAppReportFlowService simplified collector', () => {
     expect(input.reply).not.toHaveBeenCalled();
   });
 
+  it('reminds returning sender to send 1945 when sending location, media, or report content without an active session', async () => {
+    const { service, prisma } = createFixture();
+    prisma.auditLog.findFirst.mockResolvedValue({ id: 'audit-welcomed-1' });
+    const input = inbound('', {
+      liveLocationMessage: {
+        degreesLatitude: -6.1754,
+        degreesLongitude: 106.8272,
+      },
+    });
+
+    await service.handle(input);
+
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(input.reply).toHaveBeenCalledWith([
+      'Sesi pelaporan belum aktif. Silakan ketik *1945* terlebih dahulu untuk membuka sesi laporan resmi.',
+    ]);
+
+    // Rate-limiting check: second message within cooldown window is skipped
+    input.reply.mockClear();
+    await service.handle(input);
+    expect(input.reply).not.toHaveBeenCalled();
+  });
+
   it('replies to attendance word when no active session without using the word intelijen', async () => {
     const { service, prisma } = createFixture();
     const input = inbound('hadir');

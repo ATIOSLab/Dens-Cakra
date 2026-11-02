@@ -155,6 +155,7 @@ export class WhatsAppReportFlowService
     string,
     { timer: ReturnType<typeof setTimeout>; reply: ReplySender }
   >();
+  private readonly lastReminderSentAt = new Map<string, number>();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -384,6 +385,31 @@ export class WhatsAppReportFlowService
           },
         });
         await reply([formatFirstContactGreeting(eligibleJaring)]);
+        return;
+      }
+
+      // Deteksi jika jaring mengirimkan bukti (lokasi/media) atau konten yang menyerupai laporan
+      // tanpa mengawali dengan kode '1945'.
+      const hasLiveLocation = Boolean(this.extractLiveLocation(message));
+      const hasAnyLocation =
+        hasLiveLocation || this.hasLocationMessage(message);
+      const isReportLikeContent =
+        Boolean(media) ||
+        hasAnyLocation ||
+        text.length >= 25 ||
+        /\b(laporan|lapinfo|monitoring|giat|informasi|situasi|atensi|pantauan)\b/i.test(
+          text,
+        );
+
+      if (isReportLikeContent) {
+        const lastSent = this.lastReminderSentAt.get(payload.senderPhone) ?? 0;
+        const now = Date.now();
+        if (now - lastSent > 30_000) {
+          this.lastReminderSentAt.set(payload.senderPhone, now);
+          await reply([
+            'Sesi pelaporan belum aktif. Silakan ketik *1945* terlebih dahulu untuk membuka sesi laporan resmi.',
+          ]);
+        }
         return;
       }
 
