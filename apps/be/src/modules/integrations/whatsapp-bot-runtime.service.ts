@@ -1685,7 +1685,7 @@ export class WhatsappBotRuntimeService
       (msg as Record<string, unknown>).keepInChatMessage ||
       (rawMessage as Record<string, unknown>).protocolMessage ||
       (rawMessage as Record<string, unknown>).senderKeyDistributionMessage ||
-      (rawMessage as Record<string, unknown>).reactionMessage
+      (rawMessage as Record<string, unknown>).reactionMessage,
     );
   }
 

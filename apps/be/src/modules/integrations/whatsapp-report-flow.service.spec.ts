@@ -1,6 +1,10 @@
 import type { WAMessage, WASocket } from '@whiskeysockets/baileys';
 import { afterEach, describe, expect, it, jest } from '@jest/globals';
-import { WhatsAppReportFlowService } from './whatsapp-report-flow.service.js';
+import {
+  WELCOME_MESSAGE,
+  WhatsAppReportFlowService,
+  welcomeMessageFor,
+} from './whatsapp-report-flow.service.js';
 
 const channel = {
   id: 'channel-id',
@@ -889,7 +893,7 @@ describe('WhatsAppReportFlowService simplified collector', () => {
     ).toEqual([]);
   });
 
-  it('sends OPTIONAL welcome message when channel locationRequirement is OPTIONAL', async () => {
+  it('sends updated OPTIONAL welcome message when channel locationRequirement is OPTIONAL', async () => {
     const { service, prisma } = createFixture();
     const emptySession = activeSession({
       content: null,
@@ -911,8 +915,167 @@ describe('WhatsAppReportFlowService simplified collector', () => {
     expect(input.reply).toHaveBeenCalledWith([
       expect.stringContaining('*KANAL INFORMASI*'),
     ]);
-    expect(input.reply.mock.calls[0][0][0]).not.toContain(
+    const welcome = input.reply.mock.calls[0][0][0];
+    expect(welcome).toContain(
+      'Fitur pengiriman lokasi sedang dinonaktifkan, Anda tidak perlu mengirimkan *Live Location*.',
+    );
+    expect(welcome).not.toContain(
       'Kirim *Live Location* melalui fitur WhatsApp.',
     );
+    expect(welcome).not.toContain('Anda dapat menyertakan *Live Location*');
+    expect(welcomeMessageFor(optionalChannel)).toBe(welcome);
+    expect(
+      welcomeMessageFor({ locationRequirement: 'REQUIRED' as const }),
+    ).toBe(WELCOME_MESSAGE);
+  });
+
+  it('provides mode-aware progress text without mentioning location in OPTIONAL mode', () => {
+    const { service } = createFixture();
+    const target = service as any;
+    const optionalChannel = { locationRequirement: 'OPTIONAL' };
+
+    const completedOptionalSession = activeSession({
+      content: 'Narasi laporan',
+      media: [{ id: 'media-id' }],
+      latitude: null,
+      longitude: null,
+    });
+
+    const progress = target.progressText(
+      completedOptionalSession,
+      optionalChannel,
+    );
+    expect(progress).toBe(
+      'Semua komponen wajib sudah diterima. Anda masih dapat melanjutkan mengirim teks, foto, atau video. Jika sudah selesai, ketik *SELESAI*. Untuk membatalkan, ketik *BATAL*.',
+    );
+    expect(progress).not.toContain('Live Location');
+  });
+
+  it('does not capture Live Location in OPTIONAL mode, replies with disabled notice, and respects cooldown', async () => {
+    const { service, prisma } = createFixture();
+    prisma.whatsAppReportSession.findUnique.mockResolvedValue(activeSession());
+
+    const optionalChannel = {
+      ...channel,
+      locationRequirement: 'OPTIONAL' as const,
+    };
+    const input = inbound('', {
+      liveLocationMessage: {
+        degreesLatitude: -6.2,
+        degreesLongitude: 106.8,
+        accuracyInMeters: 8,
+      },
+    });
+    (input as any).channel = optionalChannel;
+
+    const dateNowSpy = jest.spyOn(Date, 'now');
+    dateNowSpy.mockReturnValue(1_000_000);
+
+    await service.handle(input);
+
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(input.reply).toHaveBeenCalledWith([
+      'Live Location tidak perlu dikirimkan lagi karena fitur lokasi sedang dinonaktifkan. Silakan lanjut mengirimkan laporan Anda.',
+    ]);
+
+    input.reply.mockClear();
+    dateNowSpy.mockReturnValue(1_015_000);
+    await service.handle(input);
+    expect(input.reply).not.toHaveBeenCalled();
+
+    input.reply.mockClear();
+    dateNowSpy.mockReturnValue(1_035_000);
+    await service.handle(input);
+    expect(input.reply).toHaveBeenCalledWith([
+      'Live Location tidak perlu dikirimkan lagi karena fitur lokasi sedang dinonaktifkan. Silakan lanjut mengirimkan laporan Anda.',
+    ]);
+
+    dateNowSpy.mockRestore();
+  });
+
+  it('does not capture static location in OPTIONAL mode and replies with disabled notice', async () => {
+    const { service, prisma } = createFixture();
+    prisma.whatsAppReportSession.findUnique.mockResolvedValue(activeSession());
+
+    const optionalChannel = {
+      ...channel,
+      locationRequirement: 'OPTIONAL' as const,
+    };
+    const input = inbound('', {
+      locationMessage: {
+        degreesLatitude: -6.2,
+        degreesLongitude: 106.8,
+        isLive: false,
+      },
+    });
+    (input as any).channel = optionalChannel;
+
+    await service.handle(input);
+
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(input.reply).toHaveBeenCalledWith([
+      'Lokasi tidak dicatat karena fitur lokasi sedang dinonaktifkan. Silakan lanjut mengirimkan laporan Anda.',
+    ]);
+  });
+
+  it('submits a ready draft without location on SELESAI when channel is OPTIONAL', async () => {
+    const {
+      service,
+      prisma,
+      txMessageCreate,
+      txReferenceCounterUpsert,
+      txSessionUpdate,
+    } = createFixture();
+
+    const readyWithoutLocation = activeSession({
+      content: 'Narasi situasi wilayah tanpa lokasi',
+      latitude: null,
+      longitude: null,
+      locationAccuracyMeters: null,
+      locationCapturedAt: null,
+      locationType: null,
+      media: [
+        {
+          id: 'media-id',
+          fileId: 'file-id',
+          caption: 'Dokumentasi',
+          file: { id: 'file-id', storageKey: 'draft/file.jpg' },
+        },
+      ],
+    });
+
+    prisma.whatsAppReportSession.findUnique.mockResolvedValue(
+      readyWithoutLocation,
+    );
+    txReferenceCounterUpsert.mockResolvedValue({ lastValue: 1 });
+
+    const optionalChannel = {
+      ...channel,
+      locationRequirement: 'OPTIONAL' as const,
+    };
+    const input = inbound('selesai');
+    (input as any).channel = optionalChannel;
+    input.payload.receivedAt = '2026-08-05T05:00:00.000Z';
+
+    await service.handle(input);
+
+    expect(txMessageCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        content: 'Narasi situasi wilayah tanpa lokasi',
+        latitude: null,
+        longitude: null,
+        coordinateSource: null,
+        referenceNumber: 'WLY-UNK-20260805-000001',
+      }),
+    });
+    expect(txSessionUpdate).toHaveBeenCalledWith({
+      where: { id: 'session-id' },
+      data: expect.objectContaining({
+        status: 'SUBMITTED',
+      }),
+    });
+    expect(input.reply).toHaveBeenCalledWith([
+      expect.stringContaining('WLY-UNK-20260805-000001'),
+    ]);
   });
 });

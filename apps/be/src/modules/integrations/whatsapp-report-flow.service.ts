@@ -134,16 +134,16 @@ Silakan sampaikan informasi dengan urutan berikut:
 
 *Catatan:*
 
-• Anda dapat menyertakan *Live Location* bila ingin mencantumkan titik lokasi (tidak wajib). Lokasi yang dikirim harus berupa *Live Location*, bukan lokasi biasa, share location statis, tautan Google Maps, alamat tertulis, atau screenshot peta.
+• Fitur pengiriman lokasi sedang dinonaktifkan, Anda tidak perlu mengirimkan *Live Location*.
 
 • Selama belum mengetik *SELESAI*, Anda dapat terus menambahkan teks, foto, video, atau pembaruan informasi.
 
 • Untuk membatalkan seluruh informasi yang sedang dibuat, ketik *BATAL*.`;
 
-export function welcomeMessageFor(channel: {
+export function welcomeMessageFor(channel?: {
   locationRequirement?: LocationRequirement;
 }) {
-  return channel.locationRequirement === LocationRequirement.OPTIONAL
+  return channel?.locationRequirement === LocationRequirement.OPTIONAL
     ? WELCOME_MESSAGE_OPTIONAL
     : WELCOME_MESSAGE;
 }
@@ -182,6 +182,7 @@ export class WhatsAppReportFlowService
     { timer: ReturnType<typeof setTimeout>; reply: ReplySender }
   >();
   private readonly lastReminderSentAt = new Map<string, number>();
+  private readonly lastOptionalLocationNoticeSentAt = new Map<string, number>();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -459,6 +460,19 @@ export class WhatsAppReportFlowService
 
     const liveLocation = this.extractLiveLocation(message);
     if (liveLocation) {
+      if (channel.locationRequirement === LocationRequirement.OPTIONAL) {
+        const lastSent =
+          this.lastOptionalLocationNoticeSentAt.get(payload.senderPhone) ?? 0;
+        const now = Date.now();
+        if (now - lastSent > 30_000) {
+          this.cancelCaptureAck(payload.senderPhone);
+          this.lastOptionalLocationNoticeSentAt.set(payload.senderPhone, now);
+          await reply([
+            'Live Location tidak perlu dikirimkan lagi karena fitur lokasi sedang dinonaktifkan. Silakan lanjut mengirimkan laporan Anda.',
+          ]);
+        }
+        return;
+      }
       await this.captureLiveLocation(session, payload, liveLocation, reply);
       return;
     }
@@ -467,7 +481,7 @@ export class WhatsAppReportFlowService
       this.cancelCaptureAck(payload.senderPhone);
       await reply([
         channel.locationRequirement === LocationRequirement.OPTIONAL
-          ? 'Lokasi biasa tidak dicatat. Gunakan *Live Location* jika ingin menyertakan titik lokasi.'
+          ? 'Lokasi tidak dicatat karena fitur lokasi sedang dinonaktifkan. Silakan lanjut mengirimkan laporan Anda.'
           : 'Lokasi tidak diterima. Kirim melalui fitur *Live Location*, bukan lokasi biasa atau share location statis.',
       ]);
       return;
@@ -752,8 +766,7 @@ export class WhatsAppReportFlowService
       return;
     }
 
-    const hasLocation =
-      session.latitude !== null && session.longitude !== null;
+    const hasLocation = session.latitude !== null && session.longitude !== null;
     const latitude = hasLocation ? Number(session.latitude) : null;
     const longitude = hasLocation ? Number(session.longitude) : null;
     const areaResolution =
@@ -808,7 +821,9 @@ export class WhatsAppReportFlowService
           longitude,
           gpsAccuracyMeters: session.locationAccuracyMeters,
           locationCapturedAt: session.locationCapturedAt,
-          coordinateSource: CoordinateSource.WHATSAPP_LOCATION,
+          coordinateSource: hasLocation
+            ? CoordinateSource.WHATSAPP_LOCATION
+            : null,
           resolvedAreaId: areaResolution?.area?.areaId ?? null,
           areaResolutionMethod:
             areaResolution?.method ?? AreaResolutionMethod.UNRESOLVED,
@@ -1007,7 +1022,7 @@ export class WhatsAppReportFlowService
     const missing = this.missingRequirements(session, channel);
     if (missing.length === 0) {
       return channel?.locationRequirement === LocationRequirement.OPTIONAL
-        ? 'Semua komponen wajib sudah diterima. Anda masih dapat melanjutkan mengirim teks, foto, video, atau menyertakan Live Location. Jika sudah selesai, ketik *SELESAI*. Untuk membatalkan, ketik *BATAL*.'
+        ? 'Semua komponen wajib sudah diterima. Anda masih dapat melanjutkan mengirim teks, foto, atau video. Jika sudah selesai, ketik *SELESAI*. Untuk membatalkan, ketik *BATAL*.'
         : 'Semua komponen wajib sudah diterima. Anda masih dapat melanjutkan mengirim teks, foto, video, atau pembaruan Live Location. Jika sudah selesai, ketik *SELESAI*. Untuk membatalkan, ketik *BATAL*.';
     }
     return `Informasi masih dalam proses. Komponen wajib yang belum terpenuhi:\n${missing.map((item) => `• ${item}`).join('\n')}\n\nSilakan lanjut kirimkan informasi. Setelah seluruh komponen siap, ketik *SELESAI*. Untuk membatalkan, ketik *BATAL*.`;
