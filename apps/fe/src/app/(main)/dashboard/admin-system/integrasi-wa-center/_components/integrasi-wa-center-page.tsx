@@ -28,12 +28,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 import { DC_CONTROLS, DC_TYPOGRAPHY, DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 import type { WhatsappControlChannel } from "@/server/field-ops/types";
 
 import { AddChannelDialog } from "./add-channel-dialog";
-import { Switch } from "@/components/ui/switch";
 
 type ChannelGroup = {
   key: string;
@@ -567,7 +567,9 @@ export function AdminWaCenterPage() {
                                   <AlertDialogFooter>
                                     <AlertDialogCancel>Batal</AlertDialogCancel>
                                     <AlertDialogAction
-                                      onClick={() => void toggleLocationRequirement(channel.id, channel.locationRequirement)}
+                                      onClick={() =>
+                                        void toggleLocationRequirement(channel.id, channel.locationRequirement)
+                                      }
                                     >
                                       Ya, ubah
                                     </AlertDialogAction>
