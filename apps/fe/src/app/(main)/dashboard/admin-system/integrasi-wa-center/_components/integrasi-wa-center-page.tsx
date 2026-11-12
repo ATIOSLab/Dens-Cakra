@@ -2,7 +2,19 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { Activity, Bot, CheckCircle2, LayoutGrid, Plus, QrCode, RadioTower, RefreshCw, Trash2 } from "lucide-react";
+import {
+  Activity,
+  Bot,
+  CheckCircle2,
+  LayoutGrid,
+  Loader2,
+  MapPin,
+  Plus,
+  QrCode,
+  RadioTower,
+  RefreshCw,
+  Trash2,
+} from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
@@ -28,6 +40,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
+import { apiBrowserFetch, apiBrowserMutation } from "@/lib/api/browser-client";
 import { DC_CONTROLS, DC_TYPOGRAPHY, DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 import type { WhatsappControlChannel } from "@/server/field-ops/types";
@@ -194,6 +208,48 @@ export function AdminWaCenterPage() {
   const [pairingChannelId, setPairingChannelId] = useState<string | null>(null);
 
   const [isAddOpen, setIsAddOpen] = useState(false);
+
+  const [locationRequirement, setLocationRequirement] = useState<"REQUIRED" | "OPTIONAL">("REQUIRED");
+  const [locationConfigLoading, setLocationConfigLoading] = useState(true);
+  const [locationSaving, setLocationSaving] = useState(false);
+  const [locationDialogOpen, setLocationDialogOpen] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
+
+  const loadLocationRequirement = useCallback(async () => {
+    try {
+      const config = await apiBrowserFetch<{ whatsappLocationRequirement?: "REQUIRED" | "OPTIONAL" }>(
+        "/system/configuration",
+      );
+      setLocationRequirement(config.whatsappLocationRequirement === "OPTIONAL" ? "OPTIONAL" : "REQUIRED");
+    } catch {
+      // Default tetap REQUIRED bila konfigurasi tidak dapat dimuat.
+    } finally {
+      setLocationConfigLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadLocationRequirement();
+  }, [loadLocationRequirement]);
+
+  const handleToggleLocationRequirement = useCallback(async () => {
+    const next = locationRequirement === "OPTIONAL" ? "REQUIRED" : "OPTIONAL";
+    setLocationSaving(true);
+    setLocationError(null);
+    try {
+      const config = await apiBrowserMutation<{ whatsappLocationRequirement?: "REQUIRED" | "OPTIONAL" }>(
+        "PUT",
+        "/system/configuration",
+        { whatsappLocationRequirement: next },
+      );
+      setLocationRequirement(config.whatsappLocationRequirement === "OPTIONAL" ? "OPTIONAL" : "REQUIRED");
+      setLocationDialogOpen(false);
+    } catch (saveError) {
+      setLocationError(saveError instanceof Error ? saveError.message : "Gagal menyimpan pengaturan lokasi.");
+    } finally {
+      setLocationSaving(false);
+    }
+  }, [locationRequirement]);
 
   useEffect(() => {
     channelsCountRef.current = channels.length;
@@ -362,6 +418,78 @@ export function AdminWaCenterPage() {
             Tambah Koneksi
           </Button>
         </div>
+      </section>
+
+      {/* KEWAJIBAN LIVE LOCATION (GLOBAL) */}
+      <section className="space-y-3">
+        <SectionHeader
+          icon={<MapPin className="size-4" />}
+          title="Kewajiban Live Location (Global)"
+          description="Berlaku untuk seluruh kanal WhatsApp penerimaan laporan jaring — bukan per kanal."
+        />
+        <Card className={DC_CONTROLS.card}>
+          <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1.5">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <span className="text-sm font-medium text-foreground">Kewajiban Live Location</span>
+                {locationRequirement === "OPTIONAL" ? (
+                  <Badge className="border-amber-500/30 bg-amber-500/15 text-[10px] text-amber-700 dark:text-amber-300">
+                    Opsional
+                  </Badge>
+                ) : (
+                  <Badge className="border-emerald-500/25 bg-emerald-500/10 text-[10px] text-emerald-700 dark:text-emerald-300">
+                    Wajib
+                  </Badge>
+                )}
+              </div>
+              <p className="max-w-2xl text-xs leading-relaxed text-muted-foreground">
+                {locationRequirement === "OPTIONAL"
+                  ? "Jaring tidak wajib mengirim lokasi; pesan instruksi bot menyesuaikan. Lokasi yang tetap dikirim tidak dicatat."
+                  : "Jaring harus mengirim Live Location sebelum laporan dapat diselesaikan."}
+              </p>
+              {locationError ? <p className="text-xs text-rose-600 dark:text-rose-300">{locationError}</p> : null}
+            </div>
+
+            <div className="flex shrink-0 items-center gap-3">
+              {locationSaving ? <Loader2 className="size-4 animate-spin text-muted-foreground" /> : null}
+              <AlertDialog open={locationDialogOpen} onOpenChange={setLocationDialogOpen}>
+                <AlertDialogTrigger asChild>
+                  <Switch
+                    id="global-location-requirement-toggle"
+                    checked={locationRequirement !== "OPTIONAL"}
+                    disabled={locationConfigLoading || locationSaving}
+                  />
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      {locationRequirement === "OPTIONAL"
+                        ? "Wajibkan Live Location?"
+                        : "Jadikan Live Location opsional?"}
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {locationRequirement === "OPTIONAL"
+                        ? "Seluruh kanal WhatsApp akan kembali mewajibkan Live Location sebelum laporan dapat diselesaikan."
+                        : "Seluruh kanal WhatsApp tidak lagi mewajibkan Live Location; bot mengirim instruksi tanpa permintaan lokasi dan lokasi yang masuk tidak dicatat."}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel disabled={locationSaving}>Batal</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={(event) => {
+                        event.preventDefault();
+                        void handleToggleLocationRequirement();
+                      }}
+                      disabled={locationSaving}
+                    >
+                      {locationSaving ? "Menyimpan..." : "Ya, Ubah"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          </CardContent>
+        </Card>
       </section>
 
       {/* RINGKASAN KONEKSI */}
