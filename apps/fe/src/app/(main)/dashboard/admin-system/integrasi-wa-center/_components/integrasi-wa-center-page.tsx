@@ -424,33 +424,35 @@ export function AdminWaCenterPage() {
       <section className="space-y-3">
         <SectionHeader
           icon={<MapPin className="size-4" />}
-          title="Kewajiban Live Location (Global)"
-          description="Berlaku untuk seluruh kanal WhatsApp penerimaan laporan jaring — bukan per kanal."
+          title="Kewajiban Live Location"
+          description="Satu pengaturan untuk seluruh kanal WhatsApp — bukan per kanal."
         />
         <Card className={DC_CONTROLS.card}>
           <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="space-y-1.5">
-              <div className="flex flex-wrap items-center gap-2.5">
-                <span className="text-sm font-medium text-foreground">Kewajiban Live Location</span>
-                {locationRequirement === "OPTIONAL" ? (
-                  <Badge className="border-amber-500/30 bg-amber-500/15 text-[10px] text-amber-700 dark:text-amber-300">
-                    Opsional
-                  </Badge>
-                ) : (
-                  <Badge className="border-emerald-500/25 bg-emerald-500/10 text-[10px] text-emerald-700 dark:text-emerald-300">
-                    Wajib
-                  </Badge>
-                )}
+            <div className="flex items-center gap-4">
+              <MapPin
+                className={cn("size-9", locationRequirement === "OPTIONAL" ? "text-amber-300" : "text-emerald-300")}
+              />
+              <div className="min-w-0">
+                <p className={DC_TYPOGRAPHY.metadata}>STATUS LIVE LOCATION</p>
+                <p className={cn("text-2xl font-semibold", locationRequirement === "OPTIONAL" && "text-amber-300")}>
+                  {locationRequirement === "OPTIONAL" ? "Opsional" : "Wajib"}
+                </p>
+                <p className={cn(DC_TYPOGRAPHY.metadata, "mt-1 normal-case tracking-normal")}>
+                  {locationRequirement === "OPTIONAL"
+                    ? "Jaring tidak wajib mengirim lokasi; lokasi yang tetap dikirim tidak dicatat."
+                    : "Jaring harus mengirim Live Location sebelum laporan dapat diselesaikan."}
+                </p>
+                {locationError ? (
+                  <p className="mt-1 text-xs text-rose-600 dark:text-rose-300">{locationError}</p>
+                ) : null}
               </div>
-              <p className="max-w-2xl text-xs leading-relaxed text-muted-foreground">
-                {locationRequirement === "OPTIONAL"
-                  ? "Jaring tidak wajib mengirim lokasi; pesan instruksi bot menyesuaikan. Lokasi yang tetap dikirim tidak dicatat."
-                  : "Jaring harus mengirim Live Location sebelum laporan dapat diselesaikan."}
-              </p>
-              {locationError ? <p className="text-xs text-rose-600 dark:text-rose-300">{locationError}</p> : null}
             </div>
 
-            <div className="flex shrink-0 items-center gap-3">
+            <div className="flex shrink-0 items-center gap-3 sm:pl-4">
+              <span className="text-xs font-medium text-muted-foreground">
+                {locationRequirement === "OPTIONAL" ? "Nonaktif" : "Aktif"}
+              </span>
               {locationSaving ? <Loader2 className="size-4 animate-spin text-muted-foreground" /> : null}
               <AlertDialog open={locationDialogOpen} onOpenChange={setLocationDialogOpen}>
                 <AlertDialogTrigger asChild>
@@ -458,6 +460,8 @@ export function AdminWaCenterPage() {
                     id="global-location-requirement-toggle"
                     checked={locationRequirement !== "OPTIONAL"}
                     disabled={locationConfigLoading || locationSaving}
+                    aria-label="Kewajiban Live Location untuk seluruh kanal"
+                    className="data-unchecked:border-slate-500/60 data-unchecked:bg-slate-500/30 dark:data-unchecked:bg-slate-600/50"
                   />
                 </AlertDialogTrigger>
                 <AlertDialogContent>
