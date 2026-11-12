@@ -33,6 +33,7 @@ import {
   FileLifecycleStatus,
   FileType,
   IntegrationStatus,
+  type LocationRequirement,
   Prisma,
   WhatsAppBotConnectionStatus,
   WhatsAppDeviceEventType,
@@ -57,7 +58,7 @@ import { SpatialRepository } from '../spatial/spatial.repository.js';
 import { WhatsAppChannelScopeService } from '../whatsapp/whatsapp-channel-scope.service.js';
 import {
   WhatsAppReportFlowService,
-  WELCOME_MESSAGE,
+  welcomeMessageFor,
   type WhatsAppReportReply,
 } from './whatsapp-report-flow.service.js';
 
@@ -74,6 +75,7 @@ type WhatsAppChannelRecord = {
   channelType: string;
   status: IntegrationStatus;
   config: unknown;
+  locationRequirement?: LocationRequirement;
 };
 
 type WhatsAppDeviceActivityNotification = {
@@ -471,7 +473,7 @@ export class WhatsappBotRuntimeService
       runtime.socket,
       session.remoteJid,
       [],
-      [WELCOME_MESSAGE],
+      [welcomeMessageFor(channel)],
     );
     await this.prisma.whatsAppReportHistory.create({
       data: {
@@ -869,6 +871,7 @@ export class WhatsappBotRuntimeService
         channelType: true,
         status: true,
         config: true,
+        locationRequirement: true,
       },
     });
 

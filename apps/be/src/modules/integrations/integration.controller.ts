@@ -25,6 +25,7 @@ import {
   TestIntegrationDto,
   UpdateWhatsappNotificationRecipientDto,
   UpdateWhatsappControlDto,
+  UpdateLocationRequirementDto,
   WhatsappConnectivityQuery,
   WhatsappDeviceActivityQuery,
   WhatsappMessageEventQuery,
@@ -270,6 +271,27 @@ export class IntegrationController {
     @CurrentAccessContext() context: AuthorizationContext,
   ) {
     return apiResult(await this.integrationService.test(id, body, context));
+  }
+
+  @Patch('integration-channels/:channelId/location-requirement')
+  @ApiContract({
+    operationId: 'apiInt022',
+    contractId: 'API-INT-022',
+    summary: 'Ubah kewajiban Live Location per kanal WhatsApp',
+    roles: ['admin_system'],
+  })
+  async updateLocationRequirement(
+    @Param('channelId', ParseUUIDPipe) id: string,
+    @Body() body: UpdateLocationRequirementDto,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(
+      await this.integrationService.updateLocationRequirement(
+        id,
+        body,
+        context,
+      ),
+    );
   }
 
   @Delete('integration-channels/:channelId')

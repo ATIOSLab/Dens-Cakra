@@ -7,6 +7,7 @@ const channel = {
   code: 'KANAL-JARING',
   channelType: 'WHATSAPP',
   config: {},
+  locationRequirement: 'REQUIRED' as const,
 };
 
 const eligibleJaring = {
@@ -866,5 +867,52 @@ describe('WhatsAppReportFlowService simplified collector', () => {
       select: { id: true },
     });
     expect(purge).toHaveBeenCalledTimes(3);
+  });
+
+  it('does not require Live Location when channel locationRequirement is OPTIONAL', () => {
+    const { service } = createFixture();
+    const target = service as any;
+    const optionalChannel = { locationRequirement: 'OPTIONAL' };
+
+    expect(
+      target.missingRequirements(activeSession(), optionalChannel),
+    ).toEqual(['Isi informasi/narasi', 'Foto atau video']);
+
+    expect(
+      target.missingRequirements(
+        activeSession({
+          content: 'Narasi',
+          media: [{ id: 'media-id' }],
+        }),
+        optionalChannel,
+      ),
+    ).toEqual([]);
+  });
+
+  it('sends OPTIONAL welcome message when channel locationRequirement is OPTIONAL', async () => {
+    const { service, prisma } = createFixture();
+    const emptySession = activeSession({
+      content: null,
+      contentParts: [],
+      media: [],
+      latitude: null,
+    });
+    prisma.whatsAppReportSession.findUnique.mockResolvedValue(emptySession);
+
+    const optionalChannel = {
+      ...channel,
+      locationRequirement: 'OPTIONAL' as const,
+    };
+    const input = inbound('*1945*');
+    (input as any).channel = optionalChannel;
+
+    await service.handle(input);
+
+    expect(input.reply).toHaveBeenCalledWith([
+      expect.stringContaining('*KANAL INFORMASI*'),
+    ]);
+    expect(input.reply.mock.calls[0][0][0]).not.toContain(
+      'Kirim *Live Location* melalui fitur WhatsApp.',
+    );
   });
 });

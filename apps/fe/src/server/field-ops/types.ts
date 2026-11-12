@@ -256,4 +256,5 @@ export type WhatsappControlChannel = {
   }>;
   coordinatorName?: string | null;
   coordinatorRegion?: string | null;
+  locationRequirement?: "REQUIRED" | "OPTIONAL";
 };

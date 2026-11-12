@@ -5,7 +5,7 @@ import {
   WHATSAPP_WELCOME_JOB_TYPE,
   WhatsappBotRuntimeService,
 } from './whatsapp-bot-runtime.service.js';
-import { WELCOME_MESSAGE } from './whatsapp-report-flow.service.js';
+import { WELCOME_MESSAGE, welcomeMessageFor } from './whatsapp-report-flow.service.js';
 
 describe('WhatsappBotRuntimeService report intake', () => {
   function createRuntimeService(
@@ -919,6 +919,7 @@ describe('WhatsappBotRuntimeService report intake', () => {
             channelType: 'WHATSAPP',
             status: 'ACTIVE',
             config: {},
+            locationRequirement: 'REQUIRED',
           }),
         ),
       },

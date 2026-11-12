@@ -18,6 +18,7 @@ import {
 } from 'class-validator';
 import {
   IntegrationStatus,
+  LocationRequirement,
   WhatsAppBotConnectionStatus,
   WhatsAppDeviceEventType,
 } from '../../generated/prisma/client.js';
@@ -118,4 +119,8 @@ export class UpdateWhatsappNotificationRecipientDto {
   @IsOptional() @IsBoolean() notifyOnConnected?: boolean;
   @IsOptional() @IsBoolean() notifyOnDisconnected?: boolean;
   @IsOptional() @IsBoolean() notifyOnError?: boolean;
+}
+
+export class UpdateLocationRequirementDto {
+  @IsEnum(LocationRequirement) locationRequirement!: LocationRequirement;
 }

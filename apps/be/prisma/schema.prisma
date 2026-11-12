@@ -419,6 +419,11 @@ enum WhatsAppDeviceEventType {
   STATUS_UPDATE
 }
 
+enum LocationRequirement {
+  REQUIRED
+  OPTIONAL
+}
+
 enum FileLifecycleStatus {
   PENDING_UPLOAD
   UPLOADED
@@ -2206,16 +2211,17 @@ model AuditLog {
 }
 
 model IntegrationChannel {
-  id           String            @id @default(uuid()) @db.Uuid
-  code         String            @unique @db.VarChar(80)
-  name         String            @db.VarChar(180)
-  channelType  String            @db.VarChar(80)
-  status       IntegrationStatus @default(INACTIVE)
-  config       Json
-  lastHealthAt DateTime?
-  deletedAt    DateTime?
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
+  id                  String              @id @default(uuid()) @db.Uuid
+  code                String              @unique @db.VarChar(80)
+  name                String              @db.VarChar(180)
+  channelType         String              @db.VarChar(80)
+  status              IntegrationStatus   @default(INACTIVE)
+  config              Json
+  locationRequirement LocationRequirement @default(REQUIRED)
+  lastHealthAt        DateTime?
+  deletedAt           DateTime?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
 
   whatsAppMessages WhatsAppMessage[]
   webhookEvents    IntegrationWebhookEvent[]

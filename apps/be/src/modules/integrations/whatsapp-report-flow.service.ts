@@ -19,6 +19,7 @@ import {
   FileLifecycleStatus,
   FileType,
   JaringRegistrationStatus,
+  LocationRequirement,
   Prisma,
   WhatsAppMessageStatus,
   WhatsAppReportSessionState,
@@ -36,6 +37,7 @@ export type WhatsAppReportChannel = {
   code: string;
   channelType: string;
   config: unknown;
+  locationRequirement?: LocationRequirement;
 };
 
 export type WhatsAppReportInboundPayload = {
@@ -121,6 +123,30 @@ Silakan sampaikan informasi dengan urutan berikut:
 • Selama belum mengetik *SELESAI*, Anda dapat terus menambahkan teks, foto, video, atau pembaruan informasi.
 
 • Untuk membatalkan seluruh informasi yang sedang dibuat, ketik *BATAL*.`;
+
+const WELCOME_MESSAGE_OPTIONAL = `*KANAL INFORMASI*
+
+Silakan sampaikan informasi dengan urutan berikut:
+
+1. Tulis isi informasi secara jelas dan runtut.
+2. Lampirkan foto atau video sebagai dokumentasi pendukung.
+3. Jika seluruh informasi telah selesai disampaikan, ketik *SELESAI*.
+
+*Catatan:*
+
+• Anda dapat menyertakan *Live Location* bila ingin mencantumkan titik lokasi (tidak wajib). Lokasi yang dikirim harus berupa *Live Location*, bukan lokasi biasa, share location statis, tautan Google Maps, alamat tertulis, atau screenshot peta.
+
+• Selama belum mengetik *SELESAI*, Anda dapat terus menambahkan teks, foto, video, atau pembaruan informasi.
+
+• Untuk membatalkan seluruh informasi yang sedang dibuat, ketik *BATAL*.`;
+
+export function welcomeMessageFor(channel: {
+  locationRequirement?: LocationRequirement;
+}) {
+  return channel.locationRequirement === LocationRequirement.OPTIONAL
+    ? WELCOME_MESSAGE_OPTIONAL
+    : WELCOME_MESSAGE;
+}
 
 export function formatFirstContactGreeting(
   jaring?: {
@@ -440,7 +466,9 @@ export class WhatsAppReportFlowService
     if (this.hasLocationMessage(message)) {
       this.cancelCaptureAck(payload.senderPhone);
       await reply([
-        'Lokasi tidak diterima. Kirim melalui fitur *Live Location*, bukan lokasi biasa atau share location statis.',
+        channel.locationRequirement === LocationRequirement.OPTIONAL
+          ? 'Lokasi biasa tidak dicatat. Gunakan *Live Location* jika ingin menyertakan titik lokasi.'
+          : 'Lokasi tidak diterima. Kirim melalui fitur *Live Location*, bukan lokasi biasa atau share location statis.',
       ]);
       return;
     }
@@ -464,9 +492,9 @@ export class WhatsAppReportFlowService
             expiresAt: new Date(Date.now() + DRAFT_SESSION_INACTIVITY_MS),
           },
         });
-        await reply([WELCOME_MESSAGE]);
+        await reply([welcomeMessageFor(channel)]);
       } else {
-        await reply([this.progressText(session)]);
+        await reply([this.progressText(session, channel)]);
       }
       return;
     }
@@ -482,7 +510,7 @@ export class WhatsAppReportFlowService
     }
     if (command === 'SELESAI') {
       this.cancelCaptureAck(payload.senderPhone);
-      await this.finishSession(session, payload, reply);
+      await this.finishSession(session, payload, reply, channel);
       return;
     }
 
@@ -529,11 +557,11 @@ export class WhatsAppReportFlowService
           },
         });
       });
-      await reply([WELCOME_MESSAGE]);
+      await reply([welcomeMessageFor(channel)]);
     } catch (error) {
       if (!this.isUniqueConstraint(error)) throw error;
       const existing = await this.findActiveSession(payload.senderPhone);
-      if (existing) await reply([this.progressText(existing)]);
+      if (existing) await reply([this.progressText(existing, channel)]);
     }
   }
 
@@ -711,11 +739,12 @@ export class WhatsAppReportFlowService
     staleSession: LoadedSession,
     payload: WhatsAppReportInboundPayload,
     reply: ReplySender,
+    channel?: { locationRequirement?: LocationRequirement },
   ) {
     const session = await this.loadSession(staleSession.id);
     if (!session) return;
 
-    const missing = this.missingRequirements(session);
+    const missing = this.missingRequirements(session, channel);
     if (missing.length > 0) {
       await reply([
         `Informasi belum dapat dikirim karena komponen wajib belum terpenuhi:\n${missing.map((item) => `• ${item}`).join('\n')}\n\nSilakan kirim komponen tersebut. Setelah siap, ketik *SELESAI* kembali.`,
@@ -723,12 +752,14 @@ export class WhatsAppReportFlowService
       return;
     }
 
-    const latitude = Number(session.latitude);
-    const longitude = Number(session.longitude);
-    const areaResolution = await this.spatial.resolveReportArea(
-      latitude,
-      longitude,
-    );
+    const hasLocation =
+      session.latitude !== null && session.longitude !== null;
+    const latitude = hasLocation ? Number(session.latitude) : null;
+    const longitude = hasLocation ? Number(session.longitude) : null;
+    const areaResolution =
+      hasLocation && latitude !== null && longitude !== null
+        ? await this.spatial.resolveReportArea(latitude, longitude)
+        : null;
     const reportedAt = this.validDate(payload.receivedAt);
     const dateKey = this.wibDateKey(reportedAt);
     const content = session.content?.trim() as string;
@@ -837,15 +868,19 @@ export class WhatsAppReportFlowService
     ]);
   }
 
-  private missingRequirements(session: LoadedSession) {
+  private missingRequirements(
+    session: LoadedSession,
+    channel?: { locationRequirement?: LocationRequirement },
+  ) {
     const missing: string[] = [];
     if (!session.content?.trim()) missing.push('Isi informasi/narasi');
     if (
-      session.latitude === null ||
-      session.longitude === null ||
-      session.locationAccuracyMeters === null ||
-      !session.locationCapturedAt ||
-      session.locationType !== 'LIVE_LOCATION'
+      channel?.locationRequirement !== LocationRequirement.OPTIONAL &&
+      (session.latitude === null ||
+        session.longitude === null ||
+        session.locationAccuracyMeters === null ||
+        !session.locationCapturedAt ||
+        session.locationType !== 'LIVE_LOCATION')
     ) {
       missing.push('Live Location');
     }
@@ -965,10 +1000,15 @@ export class WhatsAppReportFlowService
       .replace(/\s+/g, ' ');
   }
 
-  private progressText(session: LoadedSession) {
-    const missing = this.missingRequirements(session);
+  private progressText(
+    session: LoadedSession,
+    channel?: { locationRequirement?: LocationRequirement },
+  ) {
+    const missing = this.missingRequirements(session, channel);
     if (missing.length === 0) {
-      return 'Semua komponen wajib sudah diterima. Anda masih dapat melanjutkan mengirim teks, foto, video, atau pembaruan Live Location. Jika sudah selesai, ketik *SELESAI*. Untuk membatalkan, ketik *BATAL*.';
+      return channel?.locationRequirement === LocationRequirement.OPTIONAL
+        ? 'Semua komponen wajib sudah diterima. Anda masih dapat melanjutkan mengirim teks, foto, video, atau menyertakan Live Location. Jika sudah selesai, ketik *SELESAI*. Untuk membatalkan, ketik *BATAL*.'
+        : 'Semua komponen wajib sudah diterima. Anda masih dapat melanjutkan mengirim teks, foto, video, atau pembaruan Live Location. Jika sudah selesai, ketik *SELESAI*. Untuk membatalkan, ketik *BATAL*.';
     }
     return `Informasi masih dalam proses. Komponen wajib yang belum terpenuhi:\n${missing.map((item) => `• ${item}`).join('\n')}\n\nSilakan lanjut kirimkan informasi. Setelah seluruh komponen siap, ketik *SELESAI*. Untuk membatalkan, ketik *BATAL*.`;
   }
