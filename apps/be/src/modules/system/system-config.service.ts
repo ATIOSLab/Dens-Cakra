@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { LocationRequirement } from '../../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
 import type { UpdateSystemConfigDto } from './system.dto.js';
@@ -6,6 +7,7 @@ import type { UpdateSystemConfigDto } from './system.dto.js';
 export const SYSTEM_SETTING_KEYS = {
   COACHING_REPORT_ENABLED: 'features.coaching_report.enabled',
   COACHING_REPORT_ACTIVE_PERIOD: 'features.coaching_report.active_period',
+  WHATSAPP_LOCATION_REQUIREMENT: 'whatsapp.report.location_requirement',
 } as const;
 
 @Injectable()
@@ -15,14 +17,18 @@ export class SystemConfigService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getConfiguration() {
-    const [enabledSetting, periodSetting] = await Promise.all([
-      this.prisma.systemSetting.findUnique({
-        where: { key: SYSTEM_SETTING_KEYS.COACHING_REPORT_ENABLED },
-      }),
-      this.prisma.systemSetting.findUnique({
-        where: { key: SYSTEM_SETTING_KEYS.COACHING_REPORT_ACTIVE_PERIOD },
-      }),
-    ]);
+    const [enabledSetting, periodSetting, locationRequirementSetting] =
+      await Promise.all([
+        this.prisma.systemSetting.findUnique({
+          where: { key: SYSTEM_SETTING_KEYS.COACHING_REPORT_ENABLED },
+        }),
+        this.prisma.systemSetting.findUnique({
+          where: { key: SYSTEM_SETTING_KEYS.COACHING_REPORT_ACTIVE_PERIOD },
+        }),
+        this.prisma.systemSetting.findUnique({
+          where: { key: SYSTEM_SETTING_KEYS.WHATSAPP_LOCATION_REQUIREMENT },
+        }),
+      ]);
 
     const coachingReportEnabled =
       enabledSetting?.value === false ? false : true;
@@ -30,10 +36,15 @@ export class SystemConfigService {
       typeof periodSetting?.value === 'number' && periodSetting.value >= 1
         ? Number(periodSetting.value)
         : 1;
+    const whatsappLocationRequirement: LocationRequirement =
+      locationRequirementSetting?.value === LocationRequirement.OPTIONAL
+        ? LocationRequirement.OPTIONAL
+        : LocationRequirement.REQUIRED;
 
     return {
       coachingReportEnabled,
       coachingReportActivePeriod,
+      whatsappLocationRequirement,
     };
   }
 
@@ -85,6 +96,27 @@ export class SystemConfigService {
       );
     }
 
+    if (dto.whatsappLocationRequirement !== undefined) {
+      updates.push(
+        this.prisma.systemSetting.upsert({
+          where: { key: SYSTEM_SETTING_KEYS.WHATSAPP_LOCATION_REQUIREMENT },
+          update: {
+            value: dto.whatsappLocationRequirement,
+            description:
+              'Kewajiban pengiriman Live Location untuk pelaporan jaring via WhatsApp secara global.',
+            isSecret: false,
+          },
+          create: {
+            key: SYSTEM_SETTING_KEYS.WHATSAPP_LOCATION_REQUIREMENT,
+            value: dto.whatsappLocationRequirement,
+            description:
+              'Kewajiban pengiriman Live Location untuk pelaporan jaring via WhatsApp secara global.',
+            isSecret: false,
+          },
+        }),
+      );
+    }
+
     await Promise.all(updates);
 
     await this.prisma.auditLog.create({
@@ -97,12 +129,13 @@ export class SystemConfigService {
         metadata: {
           coachingReportEnabled: dto.coachingReportEnabled,
           coachingReportActivePeriod: dto.coachingReportActivePeriod,
+          whatsappLocationRequirement: dto.whatsappLocationRequirement,
         },
       },
     });
 
     this.logger.log(
-      `Konfigurasi sistem diperbarui: enabled=${dto.coachingReportEnabled}, activePeriod=${dto.coachingReportActivePeriod} oleh ${context.userProfileId}`,
+      `Konfigurasi sistem diperbarui: enabled=${dto.coachingReportEnabled}, activePeriod=${dto.coachingReportActivePeriod}, locationRequirement=${dto.whatsappLocationRequirement} oleh ${context.userProfileId}`,
     );
 
     return this.getConfiguration();

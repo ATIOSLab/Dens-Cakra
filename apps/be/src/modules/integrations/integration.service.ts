@@ -24,7 +24,6 @@ import type {
   TestIntegrationDto,
   UpdateWhatsappNotificationRecipientDto,
   UpdateWhatsappControlDto,
-  UpdateLocationRequirementDto,
   WhatsappConnectivityQuery,
   WhatsappDeviceActivityQuery,
   WhatsappMessageEventQuery,
@@ -202,7 +201,6 @@ export class IntegrationService {
     channelType: string;
     status: IntegrationStatus;
     config: unknown;
-    locationRequirement?: string;
     lastHealthAt: Date | null;
     updatedAt: Date;
     botState?: {
@@ -312,7 +310,6 @@ export class IntegrationService {
       }>,
       coordinatorName: null as string | null,
       coordinatorRegion: null as string | null,
-      locationRequirement: channel.locationRequirement ?? 'REQUIRED',
       requiresReconfiguration,
     };
   }
@@ -1702,39 +1699,6 @@ export class IntegrationService {
       scopeAreaCount: scopeAreaIds?.length ?? null,
       configRecovered,
     });
-    return this.whatsappControlDetail(id);
-  }
-
-  async updateLocationRequirement(
-    id: string,
-    body: UpdateLocationRequirementDto,
-    context: AuthorizationContext,
-  ) {
-    const channel = await this.prisma.integrationChannel.findFirstOrThrow({
-      where: { id, deletedAt: null },
-      select: { id: true, locationRequirement: true },
-    });
-
-    const before = channel.locationRequirement;
-    await this.prisma.integrationChannel.update({
-      where: { id },
-      data: { locationRequirement: body.locationRequirement },
-    });
-
-    await this.prisma.auditLog.create({
-      data: {
-        actorUserProfileId: context.userProfileId,
-        actorAssignmentId: context.primaryAssignmentId,
-        action: 'WHATSAPP_LOCATION_REQUIREMENT_UPDATED',
-        entityType: 'IntegrationChannel',
-        entityId: id,
-        category: 'CONFIGURATION',
-        severity: 'INFO',
-        outcome: 'SUCCESS',
-        metadata: { before, after: body.locationRequirement },
-      },
-    });
-
     return this.whatsappControlDetail(id);
   }
 

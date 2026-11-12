@@ -18,12 +18,16 @@ describe('SystemConfigService', () => {
     expect(config).toEqual({
       coachingReportEnabled: true,
       coachingReportActivePeriod: 1,
+      whatsappLocationRequirement: 'REQUIRED',
     });
     expect(prisma.systemSetting.findUnique).toHaveBeenCalledWith({
       where: { key: SYSTEM_SETTING_KEYS.COACHING_REPORT_ENABLED },
     });
     expect(prisma.systemSetting.findUnique).toHaveBeenCalledWith({
       where: { key: SYSTEM_SETTING_KEYS.COACHING_REPORT_ACTIVE_PERIOD },
+    });
+    expect(prisma.systemSetting.findUnique).toHaveBeenCalledWith({
+      where: { key: SYSTEM_SETTING_KEYS.WHATSAPP_LOCATION_REQUIREMENT },
     });
   });
 
@@ -45,6 +49,14 @@ describe('SystemConfigService', () => {
               value: 2,
             });
           }
+          if (
+            args.where.key === SYSTEM_SETTING_KEYS.WHATSAPP_LOCATION_REQUIREMENT
+          ) {
+            return Promise.resolve({
+              key: SYSTEM_SETTING_KEYS.WHATSAPP_LOCATION_REQUIREMENT,
+              value: 'OPTIONAL',
+            });
+          }
           return Promise.resolve(null);
         }),
       },
@@ -56,6 +68,7 @@ describe('SystemConfigService', () => {
     expect(config).toEqual({
       coachingReportEnabled: false,
       coachingReportActivePeriod: 2,
+      whatsappLocationRequirement: 'OPTIONAL',
     });
   });
 
@@ -84,6 +97,14 @@ describe('SystemConfigService', () => {
               value: 2,
             });
           }
+          if (
+            args.where.key === SYSTEM_SETTING_KEYS.WHATSAPP_LOCATION_REQUIREMENT
+          ) {
+            return Promise.resolve({
+              key: SYSTEM_SETTING_KEYS.WHATSAPP_LOCATION_REQUIREMENT,
+              value: 'OPTIONAL',
+            });
+          }
           return Promise.resolve(null);
         }),
       },
@@ -99,13 +120,18 @@ describe('SystemConfigService', () => {
     };
 
     const result = await service.updateConfiguration(
-      { coachingReportEnabled: false, coachingReportActivePeriod: 2 },
+      {
+        coachingReportEnabled: false,
+        coachingReportActivePeriod: 2,
+        whatsappLocationRequirement: 'OPTIONAL',
+      },
       context as never,
     );
 
     expect(result).toEqual({
       coachingReportEnabled: false,
       coachingReportActivePeriod: 2,
+      whatsappLocationRequirement: 'OPTIONAL',
     });
     expect(prisma.systemSetting.upsert).toHaveBeenCalledWith({
       where: { key: SYSTEM_SETTING_KEYS.COACHING_REPORT_ENABLED },
@@ -127,6 +153,16 @@ describe('SystemConfigService', () => {
         value: 2,
       }),
     });
+    expect(prisma.systemSetting.upsert).toHaveBeenCalledWith({
+      where: { key: SYSTEM_SETTING_KEYS.WHATSAPP_LOCATION_REQUIREMENT },
+      update: expect.objectContaining({
+        value: 'OPTIONAL',
+      }),
+      create: expect.objectContaining({
+        key: SYSTEM_SETTING_KEYS.WHATSAPP_LOCATION_REQUIREMENT,
+        value: 'OPTIONAL',
+      }),
+    });
     expect(prisma.auditLog.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         actorUserProfileId: 'user-admin-1',
@@ -137,6 +173,7 @@ describe('SystemConfigService', () => {
         metadata: {
           coachingReportEnabled: false,
           coachingReportActivePeriod: 2,
+          whatsappLocationRequirement: 'OPTIONAL',
         },
       }),
     });

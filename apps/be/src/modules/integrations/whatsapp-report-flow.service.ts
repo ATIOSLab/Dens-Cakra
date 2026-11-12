@@ -37,7 +37,6 @@ export type WhatsAppReportChannel = {
   code: string;
   channelType: string;
   config: unknown;
-  locationRequirement?: LocationRequirement;
 };
 
 export type WhatsAppReportInboundPayload = {
@@ -140,10 +139,8 @@ Silakan sampaikan informasi dengan urutan berikut:
 
 • Untuk membatalkan seluruh informasi yang sedang dibuat, ketik *BATAL*.`;
 
-export function welcomeMessageFor(channel?: {
-  locationRequirement?: LocationRequirement;
-}) {
-  return channel?.locationRequirement === LocationRequirement.OPTIONAL
+export function welcomeMessageFor(requirement?: LocationRequirement) {
+  return requirement === LocationRequirement.OPTIONAL
     ? WELCOME_MESSAGE_OPTIONAL
     : WELCOME_MESSAGE;
 }
@@ -210,6 +207,15 @@ export class WhatsAppReportFlowService
       clearTimeout(pending.timer);
     }
     this.pendingCaptureAcks.clear();
+  }
+
+  private async resolveLocationRequirement(): Promise<LocationRequirement> {
+    const setting = await this.prisma.systemSetting.findUnique({
+      where: { key: 'whatsapp.report.location_requirement' },
+    });
+    return setting?.value === LocationRequirement.OPTIONAL
+      ? LocationRequirement.OPTIONAL
+      : LocationRequirement.REQUIRED;
   }
 
   @Cron('*/10 * * * *')
@@ -458,9 +464,11 @@ export class WhatsAppReportFlowService
       return;
     }
 
+    const requirement = await this.resolveLocationRequirement();
+
     const liveLocation = this.extractLiveLocation(message);
     if (liveLocation) {
-      if (channel.locationRequirement === LocationRequirement.OPTIONAL) {
+      if (requirement === LocationRequirement.OPTIONAL) {
         const lastSent =
           this.lastOptionalLocationNoticeSentAt.get(payload.senderPhone) ?? 0;
         const now = Date.now();
@@ -480,7 +488,7 @@ export class WhatsAppReportFlowService
     if (this.hasLocationMessage(message)) {
       this.cancelCaptureAck(payload.senderPhone);
       await reply([
-        channel.locationRequirement === LocationRequirement.OPTIONAL
+        requirement === LocationRequirement.OPTIONAL
           ? 'Lokasi tidak dicatat karena fitur lokasi sedang dinonaktifkan. Silakan lanjut mengirimkan laporan Anda.'
           : 'Lokasi tidak diterima. Kirim melalui fitur *Live Location*, bukan lokasi biasa atau share location statis.',
       ]);
@@ -506,9 +514,9 @@ export class WhatsAppReportFlowService
             expiresAt: new Date(Date.now() + DRAFT_SESSION_INACTIVITY_MS),
           },
         });
-        await reply([welcomeMessageFor(channel)]);
+        await reply([welcomeMessageFor(requirement)]);
       } else {
-        await reply([this.progressText(session, channel)]);
+        await reply([this.progressText(session, requirement)]);
       }
       return;
     }
@@ -524,7 +532,7 @@ export class WhatsAppReportFlowService
     }
     if (command === 'SELESAI') {
       this.cancelCaptureAck(payload.senderPhone);
-      await this.finishSession(session, payload, reply, channel);
+      await this.finishSession(session, payload, reply, requirement);
       return;
     }
 
@@ -546,6 +554,8 @@ export class WhatsAppReportFlowService
     const fieldOfficerAssignmentId =
       jaring.caretakerAssignments[0]?.fieldOfficerAssignmentId;
     if (!remoteJid || !fieldOfficerAssignmentId) return;
+
+    const requirement = await this.resolveLocationRequirement();
 
     try {
       await this.prisma.$transaction(async (tx) => {
@@ -571,11 +581,11 @@ export class WhatsAppReportFlowService
           },
         });
       });
-      await reply([welcomeMessageFor(channel)]);
+      await reply([welcomeMessageFor(requirement)]);
     } catch (error) {
       if (!this.isUniqueConstraint(error)) throw error;
       const existing = await this.findActiveSession(payload.senderPhone);
-      if (existing) await reply([this.progressText(existing, channel)]);
+      if (existing) await reply([this.progressText(existing, requirement)]);
     }
   }
 
@@ -753,12 +763,14 @@ export class WhatsAppReportFlowService
     staleSession: LoadedSession,
     payload: WhatsAppReportInboundPayload,
     reply: ReplySender,
-    channel?: { locationRequirement?: LocationRequirement },
+    requirement?: LocationRequirement,
   ) {
+    const resolvedRequirement =
+      requirement ?? (await this.resolveLocationRequirement());
     const session = await this.loadSession(staleSession.id);
     if (!session) return;
 
-    const missing = this.missingRequirements(session, channel);
+    const missing = this.missingRequirements(session, resolvedRequirement);
     if (missing.length > 0) {
       await reply([
         `Informasi belum dapat dikirim karena komponen wajib belum terpenuhi:\n${missing.map((item) => `• ${item}`).join('\n')}\n\nSilakan kirim komponen tersebut. Setelah siap, ketik *SELESAI* kembali.`,
@@ -885,12 +897,12 @@ export class WhatsAppReportFlowService
 
   private missingRequirements(
     session: LoadedSession,
-    channel?: { locationRequirement?: LocationRequirement },
+    requirement?: LocationRequirement,
   ) {
     const missing: string[] = [];
     if (!session.content?.trim()) missing.push('Isi informasi/narasi');
     if (
-      channel?.locationRequirement !== LocationRequirement.OPTIONAL &&
+      requirement !== LocationRequirement.OPTIONAL &&
       (session.latitude === null ||
         session.longitude === null ||
         session.locationAccuracyMeters === null ||
@@ -1017,11 +1029,11 @@ export class WhatsAppReportFlowService
 
   private progressText(
     session: LoadedSession,
-    channel?: { locationRequirement?: LocationRequirement },
+    requirement?: LocationRequirement,
   ) {
-    const missing = this.missingRequirements(session, channel);
+    const missing = this.missingRequirements(session, requirement);
     if (missing.length === 0) {
-      return channel?.locationRequirement === LocationRequirement.OPTIONAL
+      return requirement === LocationRequirement.OPTIONAL
         ? 'Semua komponen wajib sudah diterima. Anda masih dapat melanjutkan mengirim teks, foto, atau video. Jika sudah selesai, ketik *SELESAI*. Untuk membatalkan, ketik *BATAL*.'
         : 'Semua komponen wajib sudah diterima. Anda masih dapat melanjutkan mengirim teks, foto, video, atau pembaruan Live Location. Jika sudah selesai, ketik *SELESAI*. Untuk membatalkan, ketik *BATAL*.';
     }

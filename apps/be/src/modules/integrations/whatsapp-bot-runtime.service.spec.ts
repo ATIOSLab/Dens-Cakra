@@ -919,9 +919,11 @@ describe('WhatsappBotRuntimeService report intake', () => {
             channelType: 'WHATSAPP',
             status: 'ACTIVE',
             config: {},
-            locationRequirement: 'REQUIRED',
           }),
         ),
+      },
+      systemSetting: {
+        findUnique: jest.fn(() => Promise.resolve(null)),
       },
       jaring: {
         findFirst: jest.fn(() =>

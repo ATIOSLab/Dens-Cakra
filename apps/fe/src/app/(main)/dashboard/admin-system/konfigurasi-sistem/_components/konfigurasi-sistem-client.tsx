@@ -10,6 +10,7 @@ import {
   FileText,
   Layers,
   Loader2,
+  MapPin,
   RefreshCw,
   Sliders,
   Sparkles,
@@ -26,6 +27,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -50,17 +52,22 @@ import { cn } from "@/lib/utils";
 type SystemConfiguration = {
   coachingReportEnabled: boolean;
   coachingReportActivePeriod: number;
+  whatsappLocationRequirement?: "REQUIRED" | "OPTIONAL";
 };
 
 export function KonfigurasiSistemClient() {
   const [config, setConfig] = useState<SystemConfiguration>({
     coachingReportEnabled: true,
     coachingReportActivePeriod: 1,
+    whatsappLocationRequirement: "REQUIRED",
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string>("-");
+
+  // Location requirement confirmation dialog
+  const [locationRequirementDialogOpen, setLocationRequirementDialogOpen] = useState(false);
 
   // Disable confirmation dialog
   const [disableDialogOpen, setDisableDialogOpen] = useState(false);
@@ -210,6 +217,40 @@ export function KonfigurasiSistemClient() {
       toast.success(`Nomor periode aktif pembinaan berhasil diubah menjadi Periode ${validPeriod}.`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Gagal mengubah nomor periode.";
+      setError(msg);
+      toast.error(msg);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleToggleLocationRequirement = async () => {
+    const nextRequirement = config.whatsappLocationRequirement === "OPTIONAL" ? "REQUIRED" : "OPTIONAL";
+    setSaving(true);
+    setError(null);
+    try {
+      const updated = await apiBrowserMutation<SystemConfiguration>(
+        "PUT",
+        "/system/configuration",
+        { whatsappLocationRequirement: nextRequirement },
+        { idempotent: true },
+      );
+      setConfig(updated);
+      setLastUpdated(
+        new Date().toLocaleTimeString("id-ID", {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        }),
+      );
+      setLocationRequirementDialogOpen(false);
+      toast.success(
+        nextRequirement === "REQUIRED"
+          ? "Live Location WhatsApp kini diwajibkan."
+          : "Live Location WhatsApp kini dijadikan opsional.",
+      );
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Gagal memperbarui konfigurasi kewajiban lokasi WhatsApp.";
       setError(msg);
       toast.error(msg);
     } finally {
@@ -430,6 +471,95 @@ export function KonfigurasiSistemClient() {
                   tercatat otomatis di log audit sistem dengan identitas pengguna dan waktu perubahan.
                 </li>
               </ul>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/80 shadow-xs">
+          <CardHeader className="border-b bg-muted/20 p-5 pb-4">
+            <div className="flex items-center gap-3">
+              <span className="grid size-10 place-items-center rounded-lg border border-primary/20 bg-primary/10 text-primary">
+                <MapPin className="size-5" />
+              </span>
+              <div>
+                <CardTitle className="text-base font-semibold">Wajibkan Live Location pada laporan WhatsApp</CardTitle>
+                <CardDescription className="text-xs">
+                  Pengaturan global kewajiban pengiriman Live Location untuk seluruh kanal WhatsApp penerimaan laporan
+                  jaring.
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+
+          <CardContent className="p-6 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-border/70 bg-card p-4 transition-colors">
+              <div className="space-y-1.5 max-w-2xl">
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <span className="font-medium text-sm text-foreground">Kewajiban Live Location WhatsApp</span>
+                  {config.whatsappLocationRequirement === "OPTIONAL" ? (
+                    <Badge className="border-amber-500/30 bg-amber-500/15 text-amber-700 dark:text-amber-300 text-[10px]">
+                      Opsional
+                    </Badge>
+                  ) : (
+                    <Badge className="border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 text-[10px]">
+                      Wajib
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  {config.whatsappLocationRequirement === "OPTIONAL"
+                    ? "Jaring tidak wajib mengirim lokasi; pesan instruksi bot menyesuaikan."
+                    : "Jaring harus mengirim Live Location."}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3 shrink-0">
+                <div className="flex items-center gap-2">
+                  {saving && <Loader2 className="size-4 animate-spin text-muted-foreground" />}
+                  <AlertDialog open={locationRequirementDialogOpen} onOpenChange={setLocationRequirementDialogOpen}>
+                    <AlertDialogTrigger asChild>
+                      <Switch
+                        id="location-requirement-toggle"
+                        checked={config.whatsappLocationRequirement !== "OPTIONAL"}
+                        disabled={loading || saving}
+                      />
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>
+                          {config.whatsappLocationRequirement === "OPTIONAL"
+                            ? "Wajibkan Live Location?"
+                            : "Jadikan Live Location opsional?"}
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          {config.whatsappLocationRequirement === "OPTIONAL"
+                            ? "Jaring harus mengirim Live Location sebelum laporan dapat dikirimkan."
+                            : "Jaring tidak wajib mengirim lokasi; pesan instruksi bot menyesuaikan."}
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel disabled={saving}>Batal</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={(e) => {
+                            e.preventDefault();
+                            void handleToggleLocationRequirement();
+                          }}
+                          disabled={saving}
+                        >
+                          {saving ? (
+                            <>
+                              <Loader2 className="mr-2 size-3.5 animate-spin" />
+                              Menyimpan...
+                            </>
+                          ) : (
+                            "Ya, Ubah"
+                          )}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>

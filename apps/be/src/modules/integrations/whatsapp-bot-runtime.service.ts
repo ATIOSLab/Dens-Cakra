@@ -33,7 +33,7 @@ import {
   FileLifecycleStatus,
   FileType,
   IntegrationStatus,
-  type LocationRequirement,
+  LocationRequirement,
   Prisma,
   WhatsAppBotConnectionStatus,
   WhatsAppDeviceEventType,
@@ -75,7 +75,6 @@ type WhatsAppChannelRecord = {
   channelType: string;
   status: IntegrationStatus;
   config: unknown;
-  locationRequirement?: LocationRequirement;
 };
 
 type WhatsAppDeviceActivityNotification = {
@@ -469,11 +468,19 @@ export class WhatsappBotRuntimeService
       throw new Error('Failed to prepare WhatsApp welcome session.');
     }
 
+    const requirementSetting = await this.prisma.systemSetting.findUnique({
+      where: { key: 'whatsapp.report.location_requirement' },
+    });
+    const requirement =
+      requirementSetting?.value === LocationRequirement.OPTIONAL
+        ? LocationRequirement.OPTIONAL
+        : LocationRequirement.REQUIRED;
+
     await this.sendHumanLikeReplies(
       runtime.socket,
       session.remoteJid,
       [],
-      [welcomeMessageFor(channel)],
+      [welcomeMessageFor(requirement)],
     );
     await this.prisma.whatsAppReportHistory.create({
       data: {
@@ -871,7 +878,6 @@ export class WhatsappBotRuntimeService
         channelType: true,
         status: true,
         config: true,
-        locationRequirement: true,
       },
     });
 

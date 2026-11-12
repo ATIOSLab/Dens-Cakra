@@ -2217,7 +2217,6 @@ model IntegrationChannel {
   channelType         String              @db.VarChar(80)
   status              IntegrationStatus   @default(INACTIVE)
   config              Json
-  locationRequirement LocationRequirement @default(REQUIRED)
   lastHealthAt        DateTime?
   deletedAt           DateTime?
   createdAt           DateTime            @default(now())

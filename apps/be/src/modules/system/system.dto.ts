@@ -1,4 +1,5 @@
-import { IsBoolean, IsInt, IsOptional, Min } from 'class-validator';
+import { IsBoolean, IsEnum, IsInt, IsOptional, Min } from 'class-validator';
+import { LocationRequirement } from '../../generated/prisma/client.js';
 
 export class UpdateSystemConfigDto {
   @IsOptional()
@@ -9,4 +10,8 @@ export class UpdateSystemConfigDto {
   @IsInt()
   @Min(1)
   coachingReportActivePeriod?: number;
+
+  @IsOptional()
+  @IsEnum(LocationRequirement)
+  whatsappLocationRequirement?: LocationRequirement;
 }

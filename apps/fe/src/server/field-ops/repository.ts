@@ -1236,18 +1236,6 @@ export async function updateWhatsappControlChannel(
   });
 }
 
-export async function updateWhatsappChannelLocationRequirement(
-  cookie: string,
-  channelId: string,
-  locationRequirement: "REQUIRED" | "OPTIONAL",
-) {
-  return backendApi(`/integration-channels/${channelId}/location-requirement`, {
-    cookie,
-    method: "PATCH",
-    body: { locationRequirement },
-  });
-}
-
 export async function activateWhatsappControlChannel(
   cookie: string,
   channelId: string,

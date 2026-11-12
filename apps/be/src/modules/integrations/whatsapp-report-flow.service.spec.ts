@@ -11,7 +11,6 @@ const channel = {
   code: 'KANAL-JARING',
   channelType: 'WHATSAPP',
   config: {},
-  locationRequirement: 'REQUIRED' as const,
 };
 
 const eligibleJaring = {
@@ -107,6 +106,9 @@ function createFixture() {
     auditLog: {
       create: jest.fn().mockResolvedValue({}),
       findFirst: jest.fn().mockResolvedValue(null),
+    },
+    systemSetting: {
+      findUnique: jest.fn().mockResolvedValue(null),
     },
   };
   const storage = { remove: jest.fn().mockResolvedValue(undefined) };
@@ -873,14 +875,14 @@ describe('WhatsAppReportFlowService simplified collector', () => {
     expect(purge).toHaveBeenCalledTimes(3);
   });
 
-  it('does not require Live Location when channel locationRequirement is OPTIONAL', () => {
+  it('does not require Live Location when locationRequirement is OPTIONAL', () => {
     const { service } = createFixture();
     const target = service as any;
-    const optionalChannel = { locationRequirement: 'OPTIONAL' };
 
-    expect(
-      target.missingRequirements(activeSession(), optionalChannel),
-    ).toEqual(['Isi informasi/narasi', 'Foto atau video']);
+    expect(target.missingRequirements(activeSession(), 'OPTIONAL')).toEqual([
+      'Isi informasi/narasi',
+      'Foto atau video',
+    ]);
 
     expect(
       target.missingRequirements(
@@ -888,13 +890,17 @@ describe('WhatsAppReportFlowService simplified collector', () => {
           content: 'Narasi',
           media: [{ id: 'media-id' }],
         }),
-        optionalChannel,
+        'OPTIONAL',
       ),
     ).toEqual([]);
   });
 
-  it('sends updated OPTIONAL welcome message when channel locationRequirement is OPTIONAL', async () => {
+  it('sends updated OPTIONAL welcome message when locationRequirement is OPTIONAL', async () => {
     const { service, prisma } = createFixture();
+    prisma.systemSetting.findUnique.mockResolvedValue({
+      key: 'whatsapp.report.location_requirement',
+      value: 'OPTIONAL',
+    });
     const emptySession = activeSession({
       content: null,
       contentParts: [],
@@ -903,12 +909,7 @@ describe('WhatsAppReportFlowService simplified collector', () => {
     });
     prisma.whatsAppReportSession.findUnique.mockResolvedValue(emptySession);
 
-    const optionalChannel = {
-      ...channel,
-      locationRequirement: 'OPTIONAL' as const,
-    };
     const input = inbound('*1945*');
-    (input as any).channel = optionalChannel;
 
     await service.handle(input);
 
@@ -923,16 +924,13 @@ describe('WhatsAppReportFlowService simplified collector', () => {
       'Kirim *Live Location* melalui fitur WhatsApp.',
     );
     expect(welcome).not.toContain('Anda dapat menyertakan *Live Location*');
-    expect(welcomeMessageFor(optionalChannel)).toBe(welcome);
-    expect(
-      welcomeMessageFor({ locationRequirement: 'REQUIRED' as const }),
-    ).toBe(WELCOME_MESSAGE);
+    expect(welcomeMessageFor('OPTIONAL')).toBe(welcome);
+    expect(welcomeMessageFor('REQUIRED')).toBe(WELCOME_MESSAGE);
   });
 
   it('provides mode-aware progress text without mentioning location in OPTIONAL mode', () => {
     const { service } = createFixture();
     const target = service as any;
-    const optionalChannel = { locationRequirement: 'OPTIONAL' };
 
     const completedOptionalSession = activeSession({
       content: 'Narasi laporan',
@@ -941,10 +939,7 @@ describe('WhatsAppReportFlowService simplified collector', () => {
       longitude: null,
     });
 
-    const progress = target.progressText(
-      completedOptionalSession,
-      optionalChannel,
-    );
+    const progress = target.progressText(completedOptionalSession, 'OPTIONAL');
     expect(progress).toBe(
       'Semua komponen wajib sudah diterima. Anda masih dapat melanjutkan mengirim teks, foto, atau video. Jika sudah selesai, ketik *SELESAI*. Untuk membatalkan, ketik *BATAL*.',
     );
@@ -953,12 +948,12 @@ describe('WhatsAppReportFlowService simplified collector', () => {
 
   it('does not capture Live Location in OPTIONAL mode, replies with disabled notice, and respects cooldown', async () => {
     const { service, prisma } = createFixture();
+    prisma.systemSetting.findUnique.mockResolvedValue({
+      key: 'whatsapp.report.location_requirement',
+      value: 'OPTIONAL',
+    });
     prisma.whatsAppReportSession.findUnique.mockResolvedValue(activeSession());
 
-    const optionalChannel = {
-      ...channel,
-      locationRequirement: 'OPTIONAL' as const,
-    };
     const input = inbound('', {
       liveLocationMessage: {
         degreesLatitude: -6.2,
@@ -966,7 +961,6 @@ describe('WhatsAppReportFlowService simplified collector', () => {
         accuracyInMeters: 8,
       },
     });
-    (input as any).channel = optionalChannel;
 
     const dateNowSpy = jest.spyOn(Date, 'now');
     dateNowSpy.mockReturnValue(1_000_000);
@@ -995,12 +989,12 @@ describe('WhatsAppReportFlowService simplified collector', () => {
 
   it('does not capture static location in OPTIONAL mode and replies with disabled notice', async () => {
     const { service, prisma } = createFixture();
+    prisma.systemSetting.findUnique.mockResolvedValue({
+      key: 'whatsapp.report.location_requirement',
+      value: 'OPTIONAL',
+    });
     prisma.whatsAppReportSession.findUnique.mockResolvedValue(activeSession());
 
-    const optionalChannel = {
-      ...channel,
-      locationRequirement: 'OPTIONAL' as const,
-    };
     const input = inbound('', {
       locationMessage: {
         degreesLatitude: -6.2,
@@ -1008,7 +1002,6 @@ describe('WhatsAppReportFlowService simplified collector', () => {
         isLive: false,
       },
     });
-    (input as any).channel = optionalChannel;
 
     await service.handle(input);
 
@@ -1026,6 +1019,11 @@ describe('WhatsAppReportFlowService simplified collector', () => {
       txReferenceCounterUpsert,
       txSessionUpdate,
     } = createFixture();
+
+    prisma.systemSetting.findUnique.mockResolvedValue({
+      key: 'whatsapp.report.location_requirement',
+      value: 'OPTIONAL',
+    });
 
     const readyWithoutLocation = activeSession({
       content: 'Narasi situasi wilayah tanpa lokasi',
@@ -1049,12 +1047,7 @@ describe('WhatsAppReportFlowService simplified collector', () => {
     );
     txReferenceCounterUpsert.mockResolvedValue({ lastValue: 1 });
 
-    const optionalChannel = {
-      ...channel,
-      locationRequirement: 'OPTIONAL' as const,
-    };
     const input = inbound('selesai');
-    (input as any).channel = optionalChannel;
     input.payload.receivedAt = '2026-08-05T05:00:00.000Z';
 
     await service.handle(input);

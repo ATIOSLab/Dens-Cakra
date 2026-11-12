@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { Activity, Bot, CheckCircle2, LayoutGrid, MapPin, Plus, QrCode, RadioTower, RefreshCw, Trash2 } from "lucide-react";
+import { Activity, Bot, CheckCircle2, LayoutGrid, Plus, QrCode, RadioTower, RefreshCw, Trash2 } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
@@ -28,7 +28,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Switch } from "@/components/ui/switch";
 import { DC_CONTROLS, DC_TYPOGRAPHY, DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 import type { WhatsappControlChannel } from "@/server/field-ops/types";
@@ -295,34 +294,6 @@ export function AdminWaCenterPage() {
     }
   };
 
-  const toggleLocationRequirement = async (channelId: string, current: string | undefined) => {
-    const next = current === "OPTIONAL" ? "REQUIRED" : "OPTIONAL";
-    try {
-      setBusyKey(`location:${channelId}`);
-      const response = await fetch(
-        `/api/admin-system/integrasi-wa-center/${channelId}/location-requirement`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ locationRequirement: next }),
-        },
-      );
-
-      if (!response.ok) {
-        const body = (await response.json()) as { message?: string };
-        throw new Error(body.message ?? "Gagal memperbarui kewajiban Live Location.");
-      }
-
-      await loadChannels();
-    } catch (toggleError) {
-      setError(
-        toggleError instanceof Error ? toggleError.message : "Gagal memperbarui kewajiban Live Location.",
-      );
-    } finally {
-      setBusyKey(null);
-    }
-  };
-
   const groupedChannels = useMemo<ChannelGroup[]>(() => {
     const groups = new Map<string, ChannelGroup>();
 
@@ -530,53 +501,6 @@ export function AdminWaCenterPage() {
                             ) : (
                               <p className="mt-2 text-muted-foreground text-sm">Belum terpetakan</p>
                             )}
-                          </div>
-                          <div className="rounded-md border border-border/70 bg-muted/20 p-3">
-                            <div className="flex items-center justify-between gap-3">
-                              <div className="flex items-center gap-2">
-                                <MapPin className="size-4 text-muted-foreground" />
-                                <div>
-                                  <p className={DC_TYPOGRAPHY.metadata}>WAJIBKAN LIVE LOCATION</p>
-                                  <p className="text-muted-foreground text-xs">
-                                    {channel.locationRequirement === "OPTIONAL"
-                                      ? "Opsional — jaring tidak wajib mengirim lokasi"
-                                      : "Wajib — jaring harus mengirim Live Location"}
-                                  </p>
-                                </div>
-                              </div>
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Switch
-                                    checked={channel.locationRequirement !== "OPTIONAL"}
-                                    disabled={busyKey === `location:${channel.id}`}
-                                  />
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>
-                                      {channel.locationRequirement === "OPTIONAL"
-                                        ? "Wajibkan Live Location?"
-                                        : "Jadikan Live Location opsional?"}
-                                    </AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      {channel.locationRequirement === "OPTIONAL"
-                                        ? "Jaring akan kembali diwajibkan mengirim Live Location sebelum laporan bisa disubmit."
-                                        : "Jaring tidak lagi diwajibkan mengirim Live Location; pesan instruksi bot akan disesuaikan."}
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Batal</AlertDialogCancel>
-                                    <AlertDialogAction
-                                      onClick={() =>
-                                        void toggleLocationRequirement(channel.id, channel.locationRequirement)
-                                      }
-                                    >
-                                      Ya, ubah
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            </div>
                           </div>
                           {channel.lastError ? (
                             <div className="rounded-md border border-destructive/25 bg-destructive/10 p-3 text-destructive text-sm">
