@@ -785,12 +785,15 @@ export class WhatsAppReportFlowService
       hasLocation && latitude !== null && longitude !== null
         ? await this.spatial.resolveReportArea(latitude, longitude)
         : null;
+    const fallbackArea = areaResolution?.area?.areaId
+      ? null
+      : await this.resolveReportingArea(session);
+    const resolvedAreaId =
+      areaResolution?.area?.areaId ?? fallbackArea?.areaId ?? null;
     const reportedAt = this.validDate(payload.receivedAt);
     const dateKey = this.wibDateKey(reportedAt);
     const content = session.content?.trim() as string;
-    const areaReference = await this.referenceAreaCodes(
-      areaResolution?.area?.areaId ?? null,
-    );
+    const areaReference = await this.referenceAreaCodes(resolvedAreaId);
 
     const contentChecksum = createHash('sha256').update(content).digest('hex');
     const duplicate = await this.prisma.whatsAppMessage.findFirst({
@@ -836,11 +839,15 @@ export class WhatsAppReportFlowService
           coordinateSource: hasLocation
             ? CoordinateSource.WHATSAPP_LOCATION
             : null,
-          resolvedAreaId: areaResolution?.area?.areaId ?? null,
+          resolvedAreaId,
           areaResolutionMethod:
-            areaResolution?.method ?? AreaResolutionMethod.UNRESOLVED,
-          areaResolutionConfidence: areaResolution?.confidence ?? null,
-          areaResolvedAt: areaResolution?.resolvedAt ?? null,
+            areaResolution?.method ??
+            fallbackArea?.method ??
+            AreaResolutionMethod.UNRESOLVED,
+          areaResolutionConfidence:
+            areaResolution?.confidence ?? (fallbackArea ? 100 : null),
+          areaResolvedAt:
+            areaResolution?.resolvedAt ?? (fallbackArea ? new Date() : null),
           status: WhatsAppMessageStatus.RECEIVED,
           validationSummary: WhatsAppValidationSummary.NOT_CHECKED,
           contentChecksum,
@@ -935,9 +942,45 @@ export class WhatsAppReportFlowService
     this.pendingCaptureAcks.delete(senderPhone);
   }
 
+  private async resolveReportingArea(
+    session: LoadedSession,
+  ): Promise<{ areaId: string; method: AreaResolutionMethod } | null> {
+    const coverage = await this.prisma.jaringAreaCoverage.findFirst({
+      where: {
+        jaringId: session.jaringId,
+        validUntil: null,
+        area: { isActive: true, deletedAt: null },
+      },
+      orderBy: [{ isPrimary: 'desc' }, { validFrom: 'desc' }],
+      select: { areaId: true },
+    });
+    if (coverage) {
+      return {
+        areaId: coverage.areaId,
+        method: AreaResolutionMethod.JARING_COVERAGE,
+      };
+    }
+
+    const scope = await this.prisma.userAreaScope.findFirst({
+      where: {
+        operationalAssignmentId: session.fieldOfficerAssignmentId,
+        validUntil: null,
+        area: { isActive: true, deletedAt: null },
+      },
+      orderBy: [{ isPrimary: 'desc' }, { validFrom: 'desc' }],
+      select: { areaId: true },
+    });
+    if (scope) {
+      return {
+        areaId: scope.areaId,
+        method: AreaResolutionMethod.FIELD_OFFICER_SCOPE,
+      };
+    }
+    return null;
+  }
+
   private async referenceAreaCodes(resolvedAreaId: string | null) {
     if (!resolvedAreaId) return { region: 'WLY', city: 'UNK' };
-
     const links = await this.prisma.administrativeAreaClosure.findMany({
       where: {
         descendantId: resolvedAreaId,

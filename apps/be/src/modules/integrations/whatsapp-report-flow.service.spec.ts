@@ -107,6 +107,8 @@ function createFixture() {
       create: jest.fn().mockResolvedValue({}),
       findFirst: jest.fn().mockResolvedValue(null),
     },
+    jaringAreaCoverage: { findFirst: jest.fn().mockResolvedValue(null) },
+    userAreaScope: { findFirst: jest.fn().mockResolvedValue(null) },
     systemSetting: {
       findUnique: jest.fn().mockResolvedValue(null),
     },
@@ -1070,5 +1072,136 @@ describe('WhatsAppReportFlowService simplified collector', () => {
     expect(input.reply).toHaveBeenCalledWith([
       expect.stringContaining('WLY-UNK-20260805-000001'),
     ]);
+  });
+
+  it('derives the delivery code from jaring coverage when the report has no live location', async () => {
+    const {
+      service,
+      prisma,
+      txMessageCreate,
+      txReferenceCounterUpsert,
+    } = createFixture();
+
+    prisma.systemSetting.findUnique.mockResolvedValue({
+      key: 'whatsapp.report.location_requirement',
+      value: 'OPTIONAL',
+    });
+    prisma.whatsAppReportSession.findUnique.mockResolvedValue(
+      activeSession({
+        jaringId: 'jaring-id',
+        fieldOfficerAssignmentId: 'assignment-id',
+        content: 'Narasi situasi wilayah tanpa lokasi',
+        media: [
+          {
+            id: 'media-id',
+            fileId: 'file-id',
+            caption: 'Dokumentasi',
+            file: { id: 'file-id', storageKey: 'draft/file.jpg' },
+          },
+        ],
+      }),
+    );
+    prisma.jaringAreaCoverage.findFirst.mockResolvedValue({
+      areaId: 'village-id',
+    });
+    prisma.administrativeAreaClosure.findMany.mockResolvedValue([
+      {
+        depth: 3,
+        ancestor: {
+          name: 'Daerah Khusus Ibukota Jakarta',
+          level: 'PROVINCE',
+        },
+      },
+      {
+        depth: 2,
+        ancestor: {
+          name: 'Kota Administrasi Jakarta Pusat',
+          level: 'CITY',
+        },
+      },
+    ]);
+    txReferenceCounterUpsert.mockResolvedValue({ lastValue: 7 });
+
+    const input = inbound('selesai');
+    input.payload.receivedAt = '2026-08-05T05:00:00.000Z';
+
+    await service.handle(input);
+
+    expect(prisma.jaringAreaCoverage.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ jaringId: 'jaring-id' }),
+      }),
+    );
+    expect(txMessageCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        referenceNumber: 'JKT-PST-20260805-000007',
+        resolvedAreaId: 'village-id',
+        areaResolutionMethod: 'JARING_COVERAGE',
+      }),
+    });
+    expect(input.reply).toHaveBeenCalledWith([
+      'Kode Pengiriman: *JKT-PST-20260805-000007*\n\nTerima kasih.\nInformasi telah kami terima.',
+    ]);
+  });
+
+  it('falls back to the field officer scope when the jaring has no active coverage', async () => {
+    const {
+      service,
+      prisma,
+      txMessageCreate,
+      txReferenceCounterUpsert,
+    } = createFixture();
+
+    prisma.systemSetting.findUnique.mockResolvedValue({
+      key: 'whatsapp.report.location_requirement',
+      value: 'OPTIONAL',
+    });
+    prisma.whatsAppReportSession.findUnique.mockResolvedValue(
+      activeSession({
+        jaringId: 'jaring-id',
+        fieldOfficerAssignmentId: 'assignment-id',
+        content: 'Narasi situasi wilayah tanpa lokasi',
+        media: [
+          {
+            id: 'media-id',
+            fileId: 'file-id',
+            caption: 'Dokumentasi',
+            file: { id: 'file-id', storageKey: 'draft/file.jpg' },
+          },
+        ],
+      }),
+    );
+    prisma.jaringAreaCoverage.findFirst.mockResolvedValue(null);
+    prisma.userAreaScope.findFirst.mockResolvedValue({ areaId: 'village-id' });
+    prisma.administrativeAreaClosure.findMany.mockResolvedValue([
+      {
+        depth: 3,
+        ancestor: {
+          name: 'Daerah Khusus Ibukota Jakarta',
+          level: 'PROVINCE',
+        },
+      },
+      {
+        depth: 2,
+        ancestor: {
+          name: 'Kota Administrasi Jakarta Timur',
+          level: 'CITY',
+        },
+      },
+    ]);
+    txReferenceCounterUpsert.mockResolvedValue({ lastValue: 3 });
+
+    const input = inbound('selesai');
+    input.payload.receivedAt = '2026-08-05T05:00:00.000Z';
+
+    await service.handle(input);
+
+    expect(txMessageCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        referenceNumber: 'JKT-TMR-20260805-000003',
+        resolvedAreaId: 'village-id',
+        areaResolutionMethod: 'FIELD_OFFICER_SCOPE',
+      }),
+    });
   });
 });
