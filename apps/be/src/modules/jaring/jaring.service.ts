@@ -3880,14 +3880,8 @@ export class JaringService {
         422,
       );
     }
-    if (!message.resolvedAreaId) {
-      throw new ApiException(
-        'JARING_REPORT_AREA_UNRESOLVED',
-        'Wilayah laporan belum tersimpan. Selesaikan resolusi lokasi sebelum membuat Baket.',
-        422,
-      );
-    }
-
+    // Laporan tanpa Live Location tidak wajib punya wilayah tersimpan; Baket
+    // tetap boleh dibuat karena BaketVersion.eventAreaId bersifat nullable.
     const baket = message.convertedBaket;
     const latestVersion = baket?.versions[0] ?? null;
     const categoryId = body.categoryId ?? baket?.reportCategoryId ?? null;

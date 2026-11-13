@@ -387,14 +387,7 @@ export class WhatsAppService {
       const usableMedia = message.media.filter((item) =>
         usableFileStatuses.includes(item.file.lifecycleStatus),
       );
-      if (!message.resolvedAreaId) {
-        throw new ApiException(
-          'MESSAGE_AREA_UNRESOLVED',
-          'Wilayah laporan belum tersimpan. Selesaikan resolusi lokasi sebelum membuat Baket.',
-          422,
-        );
-      }
-      const eventAreaId = message.resolvedAreaId;
+      const eventAreaId = message.resolvedAreaId ?? null;
       const areaResolutionMethod = message.areaResolutionMethod;
       const areaResolutionConfidence = message.areaResolutionConfidence;
       const areaResolvedAt = message.areaResolvedAt;
