@@ -74,6 +74,15 @@ export const env = {
   nodeEnv: process.env.NODE_ENV ?? 'development',
   port: getNumber('PORT', 3001),
   databaseUrl: getString('DATABASE_URL'),
+  database: {
+    // Ukuran pool koneksi Postgres. Default lama 20 koneksi terlalu kecil saat
+    // jaring melapor serentak (error "Unable to start a transaction").
+    poolMax: getNumber('DATABASE_POOL_MAX', 40),
+    poolIdleTimeoutMs: getNumber('DATABASE_POOL_IDLE_MS', 30_000),
+    poolConnectTimeoutMs: getNumber('DATABASE_POOL_CONNECT_TIMEOUT_MS', 15_000),
+    transactionMaxWaitMs: getNumber('DATABASE_TX_MAX_WAIT_MS', 10_000),
+    transactionTimeoutMs: getNumber('DATABASE_TX_TIMEOUT_MS', 15_000),
+  },
   betterAuthSecret: getString('BETTER_AUTH_SECRET'),
   betterAuthUrl: getStringList('BETTER_AUTH_URL', ['http://localhost:3001'])[0],
   authSecureCookies: getOptionalBoolean('AUTH_SECURE_COOKIES'),

@@ -25,9 +25,10 @@ export class PrismaService
   constructor() {
     const pool = new pg.Pool({
       connectionString: env.databaseUrl,
-      max: 20,
-      idleTimeoutMillis: 30_000,
-      connectionTimeoutMillis: 30_000,
+      max: env.database.poolMax,
+      idleTimeoutMillis: env.database.poolIdleTimeoutMs,
+      connectionTimeoutMillis: env.database.poolConnectTimeoutMs,
+      application_name: 'denscakra-be',
     });
 
     const adapter = new PrismaPg(pool, {
@@ -38,6 +39,12 @@ export class PrismaService
 
     super({
       adapter,
+      // Transaksi interaktif default Prisma (maxWait 2s / timeout 5s) terlalu
+      // ketat saat antrean laporan memuncak: transaksi ditolak walau DB sehat.
+      transactionOptions: {
+        maxWait: env.database.transactionMaxWaitMs,
+        timeout: env.database.transactionTimeoutMs,
+      },
       log:
         env.performance.slowQueryMs > 0
           ? [{ emit: 'event', level: 'query' }]
