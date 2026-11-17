@@ -230,7 +230,13 @@ export class WhatsAppReportFlowService
     });
 
     for (const draft of drafts) {
-      await this.purgeDraftSession(draft.id);
+      try {
+        await this.purgeDraftSession(draft.id);
+      } catch (error: unknown) {
+        this.logger.error(
+          `Failed to purge draft session ${draft.id}: ${this.messageOf(error)}`,
+        );
+      }
     }
 
     if (drafts.length > 0) {
@@ -254,7 +260,13 @@ export class WhatsAppReportFlowService
     });
 
     for (const draft of drafts) {
-      await this.purgeDraftSession(draft.id);
+      try {
+        await this.purgeDraftSession(draft.id);
+      } catch (error: unknown) {
+        this.logger.error(
+          `Failed to purge draft session ${draft.id}: ${this.messageOf(error)}`,
+        );
+      }
     }
 
     if (drafts.length > 0) {
@@ -1094,7 +1106,13 @@ export class WhatsAppReportFlowService
       return false;
     }
 
-    const candidateFileIds = draft.media.map((item) => item.file.id);
+    // Media rows can outlive their FileAsset (deleted/never uploaded). Reading
+    // item.file.id blindly made the purge throw, so the stale ACTIVE draft was
+    // never deleted and every following message from that sender died in the
+    // same place (silent bot, no reply).
+    const candidateFileIds = draft.media
+      .map((item) => item.file?.id)
+      .filter((fileId): fileId is string => Boolean(fileId));
     const files = await this.prisma.$transaction(async (tx) => {
       await tx.whatsAppReportHistory.deleteMany({
         where: { reportSessionId: id },
