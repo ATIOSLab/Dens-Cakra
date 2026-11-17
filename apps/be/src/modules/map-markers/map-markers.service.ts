@@ -547,8 +547,23 @@ export class MapMarkersService {
           }
         : {},
     ];
+    // Marker candidates must carry a coordinate (session-level or submitted
+    // message-level). Without this pre-filter, coordinate-less sessions fill up
+    // the `take` window and older coordinate-bearing reports never get plotted.
     const reportMarkerWhere: Prisma.WhatsAppReportSessionWhereInput = {
-      AND: reportScopeFilters,
+      AND: [
+        ...reportScopeFilters,
+        {
+          OR: [
+            { latitude: { not: null }, longitude: { not: null } },
+            {
+              submittedMessage: {
+                is: { latitude: { not: null }, longitude: { not: null } },
+              },
+            },
+          ],
+        },
+      ],
     };
     const reportMetricWhere: Prisma.WhatsAppReportSessionWhereInput = {
       AND: reportScopeFilters,
@@ -1060,6 +1075,13 @@ export class MapMarkersService {
                 validationSummary: WhatsAppValidationSummary.VALID,
                 reportSession: { isNot: null },
               },
+            },
+          },
+          // Same reason as report markers: keep the candidate window filled with
+          // bakets that actually carry a coordinate on one of their versions.
+          {
+            versions: {
+              some: { latitude: { not: null }, longitude: { not: null } },
             },
           },
           query.baketStatuses?.length
