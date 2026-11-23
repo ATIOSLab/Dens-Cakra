@@ -1,5 +1,13 @@
 import { Injectable, Logger, Optional } from '@nestjs/common';
-import sharp from 'sharp';
+
+/* sharp dimuat lazy: libvips native bisa SIGILL di CPU tanpa x86-64-v2.
+   Specifier lewat variabel agar TS tidak me-resolve modul saat type-check. */
+let sharpModule: unknown;
+const sharpModuleId = 'sharp';
+async function getSharp(): Promise<any> {
+  sharpModule ??= (await import(sharpModuleId)).default;
+  return sharpModule;
+}
 import {
   AdministrativeLevel,
   JaringRegistrationStatus,
@@ -477,7 +485,7 @@ export class JaringReportDataService {
             try {
               const buffer = await this.storage!.read(key);
               if (buffer && buffer.length > 0) {
-                const resized = await sharp(buffer)
+                const resized = await (await getSharp())(buffer)
                   .resize(160, 160, { fit: 'cover' })
                   .jpeg({ quality: 75 })
                   .toBuffer();

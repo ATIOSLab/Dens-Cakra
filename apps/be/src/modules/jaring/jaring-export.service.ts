@@ -13,8 +13,20 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { SYSTEM_ROLES } from '../../common/constants/system-role.js';
 import { resolveDescendantAreaIds } from '../../common/utils/area-closure.js';
 import type { JaringExportPdfQueryDto } from './jaring.dto.js';
-import sharp from 'sharp';
 import { DKI_MAP_PATHS } from './dki-map-paths.js';
+
+/**
+ * sharp = modul native (libvips). Pada CPU tanpa x86-64-v2 (mis. VM QEMU tanpa
+ * akselerasi KVM) memuatnya saat boot memicu SIGILL dan mematikan seluruh
+ * proses. Karena itu dimuat lazy, hanya ketika fitur ekspor gambar dipakai.
+ * Specifier lewat variabel agar TS tidak me-resolve modul saat type-check.
+ */
+let sharpModule: unknown;
+const sharpModuleId = 'sharp';
+async function getSharp(): Promise<any> {
+  sharpModule ??= (await import(sharpModuleId)).default;
+  return sharpModule;
+}
 
 export type JaringExportFile = {
   filename: string;
@@ -1360,7 +1372,7 @@ export class JaringExportService {
 </svg>
     `;
 
-    return sharp(Buffer.from(svg), { density: 150 }).png().toBuffer();
+    return (await getSharp())(Buffer.from(svg), { density: 150 }).png().toBuffer();
   }
 
   /**
@@ -1973,7 +1985,7 @@ export class JaringExportService {
 </svg>
     `;
 
-    return sharp(Buffer.from(svg), { density: 150 }).png().toBuffer();
+    return (await getSharp())(Buffer.from(svg), { density: 150 }).png().toBuffer();
   }
 
   private async generateBarChartPng(
@@ -2017,7 +2029,7 @@ export class JaringExportService {
 </svg>
     `;
 
-    return sharp(Buffer.from(svg), { density: 150 }).png().toBuffer();
+    return (await getSharp())(Buffer.from(svg), { density: 150 }).png().toBuffer();
   }
 
   private async generateWordCloudPng(
@@ -2178,7 +2190,7 @@ ${textElements}
 </svg>
     `;
 
-    return sharp(Buffer.from(svg), { density: 150 }).png().toBuffer();
+    return (await getSharp())(Buffer.from(svg), { density: 150 }).png().toBuffer();
   }
 
   private buildProfilingStatistics(
@@ -3081,7 +3093,7 @@ ${textElements}
             item.profilePhotoStorageKey,
           );
           if (rawBuf && rawBuf.length > 0) {
-            const jpegBuf = await sharp(rawBuf)
+            const jpegBuf = await (await getSharp())(rawBuf)
               .resize(220, 220, { fit: 'cover' })
               .jpeg({ quality: 85 })
               .toBuffer();
